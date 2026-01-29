@@ -130,6 +130,30 @@ if isinstance(plugin, str):
 PY
 )"
 
+enable_chassis_odometry_gt="$(python_with_ros_env "$SLAM_PARAMS_FILE" <<'PY'
+import sys
+from pathlib import Path
+
+cfg_path = Path(sys.argv[1])
+if not cfg_path.exists():
+	print("true")
+	raise SystemExit(0)
+
+try:
+	import yaml  # type: ignore
+except Exception:
+	print("true")
+	raise SystemExit(0)
+
+data = yaml.safe_load(cfg_path.read_text()) or {}
+switches = (data.get("pb_navigation_switches") or {}).get("ros__parameters") or {}
+value = switches.get("enable_chassis_odometry_gt", True)
+print("true" if bool(value) else "false")
+PY
+)"
+
+echo "[$SCRIPT_NAME] enable_chassis_odometry_gt=${enable_chassis_odometry_gt} (from ${SLAM_PARAMS_FILE})" >&2
+
 if [[ "$controller_plugin" == "neupan_nav2_controller" || "$controller_plugin" == "neupan_slam_controller" ]]; then
 	if [[ ! -f $NEUPAN_ACTIVATE ]]; then
 			echo "[$SCRIPT_NAME] NeuPAN virtualenv not found at $NEUPAN_ACTIVATE" >&2
@@ -315,6 +339,9 @@ launch_in_terminal() {
 }
 
 GAZEBO_CMD=${GAZEBO_CMD:-"ros2 launch rmu_gazebo_simulator bringup_sim.launch.py"}
+if [[ "$GAZEBO_CMD" != *"enable_chassis_odometry_gt:="* ]]; then
+	GAZEBO_CMD="$GAZEBO_CMD enable_chassis_odometry_gt:=${enable_chassis_odometry_gt}"
+fi
 SLAM_CMD=${SLAM_CMD:-"ros2 launch pb2025_nav_bringup rm_navigation_simulation_launch.py slam:=True"}
 
 launch_in_terminal "Gazebo Sim" "$GAZEBO_CMD" "" "bg"
