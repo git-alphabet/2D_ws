@@ -56,6 +56,14 @@ private:
   std::string base_frame_;
   std::string robot_base_frame_;
 
+  // When true, keep lidar->base transforms constant after the first successful lookup.
+  // This simulates the case where gimbal joint angle is NOT provided to the TF tree,
+  // so the mount extrinsic is treated as static.
+  bool freeze_lidar_mount_tf_{false};
+  bool mount_tf_cached_{false};
+  tf2::Transform cached_lidar_to_base_;
+  tf2::Transform cached_lidar_to_robot_base_;
+
   std::unique_ptr<tf2_ros::TransformBroadcaster> br_;
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_laser_cloud_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_chassis_odometry_;

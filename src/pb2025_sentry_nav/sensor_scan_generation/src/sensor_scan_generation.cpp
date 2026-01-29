@@ -26,10 +26,12 @@ SensorScanGenerationNode::SensorScanGenerationNode(const rclcpp::NodeOptions & o
   this->declare_parameter<std::string>("lidar_frame", "");
   this->declare_parameter<std::string>("base_frame", "");
   this->declare_parameter<std::string>("robot_base_frame", "");
+  this->declare_parameter<bool>("freeze_lidar_mount_tf", false);
 
   this->get_parameter("lidar_frame", lidar_frame_);
   this->get_parameter("base_frame", base_frame_);
   this->get_parameter("robot_base_frame", robot_base_frame_);
+  this->get_parameter("freeze_lidar_mount_tf", freeze_lidar_mount_tf_);
 
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
@@ -69,8 +71,39 @@ void SensorScanGenerationNode::laserCloudAndOdometryHandler(
   tf2::Transform tf_odom_to_lidar;
 
   tf2::fromMsg(odometry_msg->pose.pose, tf_odom_to_lidar);
-  tf_lidar_to_robot_base_ = getTransform(lidar_frame_, robot_base_frame_, pcd_msg->header.stamp);
-  tf_lidar_to_chassis = getTransform(lidar_frame_, base_frame_, pcd_msg->header.stamp);
+
+  if (freeze_lidar_mount_tf_ && !mount_tf_cached_) {
+    try {
+      const auto lidar_to_base = tf_buffer_->lookupTransform(
+        lidar_frame_, base_frame_, pcd_msg->header.stamp, rclcpp::Duration::from_seconds(0.5));
+      const auto lidar_to_robot_base = tf_buffer_->lookupTransform(
+        lidar_frame_, robot_base_frame_, pcd_msg->header.stamp,
+        rclcpp::Duration::from_seconds(0.5));
+      tf2::fromMsg(lidar_to_base.transform, cached_lidar_to_base_);
+      tf2::fromMsg(lidar_to_robot_base.transform, cached_lidar_to_robot_base_);
+      mount_tf_cached_ = true;
+      RCLCPP_INFO(
+        this->get_logger(),
+        "freeze_lidar_mount_tf=true: cached lidar mount TFs at t=%.3f (lidar='%s', base='%s', robot_base='%s')",
+        rclcpp::Time(pcd_msg->header.stamp).seconds(), lidar_frame_.c_str(), base_frame_.c_str(),
+        robot_base_frame_.c_str());
+    } catch (tf2::TransformException & ex) {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 2000,
+        "freeze_lidar_mount_tf=true: waiting for TF (%s -> %s, %s -> %s): %s",
+        base_frame_.c_str(), lidar_frame_.c_str(), robot_base_frame_.c_str(), lidar_frame_.c_str(),
+        ex.what());
+      return;
+    }
+  }
+
+  if (freeze_lidar_mount_tf_) {
+    tf_lidar_to_robot_base_ = cached_lidar_to_robot_base_;
+    tf_lidar_to_chassis = cached_lidar_to_base_;
+  } else {
+    tf_lidar_to_robot_base_ = getTransform(lidar_frame_, robot_base_frame_, pcd_msg->header.stamp);
+    tf_lidar_to_chassis = getTransform(lidar_frame_, base_frame_, pcd_msg->header.stamp);
+  }
 
   tf_odom_to_chassis = tf_odom_to_lidar * tf_lidar_to_chassis;
   tf_odom_to_robot_base = tf_odom_to_lidar * tf_lidar_to_robot_base_;

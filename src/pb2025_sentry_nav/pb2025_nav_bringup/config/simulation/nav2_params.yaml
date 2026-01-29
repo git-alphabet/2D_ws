@@ -316,6 +316,11 @@ sensor_scan_generation:
     base_frame: "base_footprint"
     robot_base_frame: "gimbal_yaw"
 
+    # 关键开关：是否冻结 lidar->base 的挂载 TF
+    # - false(默认): 使用 TF 树中的实时挂载关系（云台转动时，能够“去云台旋转”，底盘在 RViz 里保持不转）
+    # - true: 只在启动时缓存一次挂载外参，之后固定不变（模拟“实车未提供云台角度/关节状态”，此时 RViz 更像看到整车在转）
+    freeze_lidar_mount_tf: true
+
 
 
 
