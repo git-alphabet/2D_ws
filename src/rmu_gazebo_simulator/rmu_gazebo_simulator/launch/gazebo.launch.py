@@ -1,6 +1,7 @@
 import os
 
 from ament_index_python.packages import get_package_share_directory
+from launch.conditions import IfCondition, UnlessCondition
 from launch import LaunchDescription
 from launch.actions import (
     AppendEnvironmentVariable,
@@ -17,6 +18,7 @@ def generate_launch_description():
 
     world_sdf_path = LaunchConfiguration("world_sdf_path")
     ign_config_path = LaunchConfiguration("ign_config_path")
+    use_gui = LaunchConfiguration("use_gui")
 
     declare_world_sdf_path = DeclareLaunchArgument(
         "world_sdf_path",
@@ -32,6 +34,12 @@ def generate_launch_description():
         description="Path to the Ignition Gazebo GUI configuration file",
     )
 
+    declare_use_gui = DeclareLaunchArgument(
+        "use_gui",
+        default_value="true",
+        description="Whether to start Ignition Gazebo with the GUI",
+    )
+
     # Set Gazebo plugin and resource path
     append_enviroment_worlds = AppendEnvironmentVariable(
         name="GAZEBO_PLUGIN_PATH",
@@ -44,7 +52,7 @@ def generate_launch_description():
     )
 
     # Launch Gazebo simulator
-    gazebo = IncludeLaunchDescription(
+    gazebo_gui = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
                 get_package_share_directory("ros_gz_sim"), "launch", "gz_sim.launch.py"
@@ -58,6 +66,25 @@ def generate_launch_description():
                 ign_config_path,
             ],
         }.items(),
+        condition=IfCondition(use_gui),
+    )
+
+    gazebo_headless = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("ros_gz_sim"), "launch", "gz_sim.launch.py"
+            )
+        ),
+        launch_arguments={
+            "gz_version": "6",
+            # Headless + run (-s: server only, -r: run immediately)
+            # --headless-rendering is required for camera / lidar rendering without a GUI.
+            "gz_args": [
+                world_sdf_path,
+                TextSubstitution(text=" -r -s --headless-rendering"),
+            ],
+        }.items(),
+        condition=UnlessCondition(use_gui),
     )
 
     robot_ign_bridge = Node(
@@ -72,9 +99,11 @@ def generate_launch_description():
 
     ld.add_action(declare_world_sdf_path)
     ld.add_action(declare_ign_config_path)
+    ld.add_action(declare_use_gui)
     ld.add_action(append_enviroment_worlds)
     ld.add_action(append_enviroment_models)
-    ld.add_action(gazebo)
+    ld.add_action(gazebo_gui)
+    ld.add_action(gazebo_headless)
     ld.add_action(robot_ign_bridge)
 
     return ld

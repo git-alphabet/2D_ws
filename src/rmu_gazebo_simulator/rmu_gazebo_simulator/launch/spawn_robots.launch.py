@@ -3,7 +3,10 @@ import os
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition, UnlessCondition
 from launch.actions import ExecuteProcess
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from nav2_common.launch import ReplaceString
 from sdformat_tools.urdf_generator import UrdfGenerator
@@ -30,8 +33,11 @@ def generate_launch_description():
         "xmacro",
         "simulation_robot.sdf.xmacro",
     )
-    bridge_config = os.path.join(pkg_simulator, "config", "ros_gz_bridge.yaml")
+    bridge_config_with_odom = os.path.join(pkg_simulator, "config", "ros_gz_bridge.yaml")
+    bridge_config_no_odom = os.path.join(pkg_simulator, "config", "ros_gz_bridge_no_odom.yaml")
     robot_config = os.path.join(pkg_simulator, "config", "base_params.yaml")
+
+    enable_chassis_odometry_gt = LaunchConfiguration("enable_chassis_odometry_gt")
 
     # Get spawn robot init pose
     gz_world_path = os.path.join(pkg_simulator, "config", "gz_world.yaml")
@@ -45,6 +51,16 @@ def generate_launch_description():
 
     ld = LaunchDescription()
 
+    ld.add_action(
+        DeclareLaunchArgument(
+            "enable_chassis_odometry_gt",
+            default_value="true",
+            description=(
+                "Whether to bridge chassis ground-truth odometry from Gazebo to ROS as '<ns>/chassis_odometry_gt'. "
+                "Disable this to test navigation behavior without simulator GT odometry."),
+        )
+    )
+
     for robot in robots:
         # Generate SDF from xmacro
         xmacro.generate({"global_initial_color": robot["color"]})
@@ -56,8 +72,12 @@ def generate_launch_description():
         robot_urdf_xml = urdf_generator.to_string()
 
         # replace the <robot_name> in the bridge config file
-        aft_replace_ros_bridge_params = ReplaceString(
-            source_file=bridge_config,
+        aft_replace_ros_bridge_params_with_odom = ReplaceString(
+            source_file=bridge_config_with_odom,
+            replacements={"<robot_name>": robot["name"]},
+        )
+        aft_replace_ros_bridge_params_no_odom = ReplaceString(
+            source_file=bridge_config_no_odom,
             replacements={"<robot_name>": robot["name"]},
         )
 
@@ -102,11 +122,19 @@ def generate_launch_description():
             ],
         )
 
-        robot_ign_bridge = Node(
+        robot_ign_bridge_with_odom = Node(
+            condition=IfCondition(enable_chassis_odometry_gt),
             package="ros_gz_bridge",
             executable="parameter_bridge",
             namespace=robot["name"],
-            parameters=[{"config_file": aft_replace_ros_bridge_params}],
+            parameters=[{"config_file": aft_replace_ros_bridge_params_with_odom}],
+        )
+        robot_ign_bridge_no_odom = Node(
+            condition=UnlessCondition(enable_chassis_odometry_gt),
+            package="ros_gz_bridge",
+            executable="parameter_bridge",
+            namespace=robot["name"],
+            parameters=[{"config_file": aft_replace_ros_bridge_params_no_odom}],
         )
 
         # Execute service call after spawning robots
@@ -132,7 +160,8 @@ def generate_launch_description():
         ld.add_action(spawn_robot)
         ld.add_action(robot_base)
         ld.add_action(robot_state_publisher)
-        ld.add_action(robot_ign_bridge)
+        ld.add_action(robot_ign_bridge_with_odom)
+        ld.add_action(robot_ign_bridge_no_odom)
         ld.add_action(set_performer_service)
 
     return ld
