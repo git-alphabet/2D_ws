@@ -31,7 +31,7 @@ public:
     default_yaw_rad_ = this->declare_parameter<double>("default_yaw_rad", 0.0);
     publish_on_startup_ = this->declare_parameter<bool>("publish_on_startup", true);
     stamp_offset_sec_ = this->declare_parameter<double>("stamp_offset_sec", 0.0);
-    use_stamped_msg_ = this->declare_parameter<bool>("use_stamped_msg", false);
+    use_stamped_msg_ = this->declare_parameter<bool>("use_stamped_msg", true);
 
     joint_pub_ = this->create_publisher<sensor_msgs::msg::JointState>(output_topic_, rclcpp::QoS(10));
 
@@ -62,8 +62,9 @@ public:
 
     RCLCPP_INFO(
       this->get_logger(),
-      "Bridging '%s' (std_msgs/Float32) -> '%s' (sensor_msgs/JointState), joint_name='%s'",
-      input_topic_.c_str(), output_topic_.c_str(), joint_name_.c_str());
+      "Bridging '%s' (%s) -> '%s' (sensor_msgs/JointState), joint_name='%s'",
+      input_topic_.c_str(), use_stamped_msg_ ? "gimbal_yaw_interfaces/Float32Stamped" : "std_msgs/Float32",
+      output_topic_.c_str(), joint_name_.c_str());
   }
 
 private:

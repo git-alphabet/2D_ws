@@ -56,8 +56,7 @@ def generate_launch_description():
     use_respawn = LaunchConfiguration("use_respawn")
     log_level = LaunchConfiguration("log_level")
 
-    enable_auto_aim_yaw_bridge = LaunchConfiguration("enable_auto_aim_yaw_bridge")
-    enable_auto_aim_yaw_sim_pub = LaunchConfiguration("enable_auto_aim_yaw_sim_pub")
+    enable_gimbal_yaw_bridge = LaunchConfiguration("enable_gimbal_yaw_bridge")
     enable_rm_behavior_tree = LaunchConfiguration("enable_rm_behavior_tree")
     rm_behavior_tree_style_path = LaunchConfiguration("rm_behavior_tree_style_path")
 
@@ -445,8 +444,7 @@ def generate_launch_description():
         controller_plugin_name = None
         neupan_frame_name = None
         enable_obstacle_scan_value = "false"
-        enable_auto_aim_yaw_bridge_value = False
-        enable_auto_aim_yaw_sim_pub_value = False
+        enable_gimbal_yaw_bridge_value = False
 
         slam_raw = slam.perform(context)
         slam_enabled = str(slam_raw).strip().lower() in {"true", "1", "yes", "on"}
@@ -526,13 +524,14 @@ def generate_launch_description():
                 switches = _get_ros_params(raw_yaml, "pb_navigation_switches")
             enable_rm_bt = bool(switches.get("enable_rm_behavior_tree", enable_rm_bt))
 
-            enable_auto_aim_yaw_bridge_value = bool(
-                switches.get("enable_auto_aim_yaw_bridge", enable_auto_aim_yaw_bridge_value)
-            )
-
-            enable_auto_aim_yaw_sim_pub_value = bool(
-                switches.get("enable_auto_aim_yaw_sim_pub", enable_auto_aim_yaw_sim_pub_value)
-            )
+            # 收敛接口：只暴露一个开关 enable_gimbal_yaw_bridge。
+            # 兼容旧配置：enable_auto_aim_yaw_bridge / enable_auto_aim_yaw_sim_pub。
+            if "enable_gimbal_yaw_bridge" in switches:
+                enable_gimbal_yaw_bridge_value = bool(switches.get("enable_gimbal_yaw_bridge"))
+            else:
+                legacy_bridge = bool(switches.get("enable_auto_aim_yaw_bridge", False))
+                legacy_sim_pub = bool(switches.get("enable_auto_aim_yaw_sim_pub", False))
+                enable_gimbal_yaw_bridge_value = legacy_bridge or legacy_sim_pub
 
             raw_frame_name = switches.get("neupan_fake_frame")
             if isinstance(raw_frame_name, str):
@@ -655,12 +654,17 @@ def generate_launch_description():
             SetLaunchConfiguration("processed_params_file", processed_file),
             SetLaunchConfiguration("enable_obstacle_scan", enable_obstacle_scan_value),
             SetLaunchConfiguration(
+                "enable_gimbal_yaw_bridge",
+                "true" if enable_gimbal_yaw_bridge_value else "false",
+            ),
+            # Backward-compatible launch configurations (not used in this file anymore).
+            SetLaunchConfiguration(
                 "enable_auto_aim_yaw_bridge",
-                "true" if enable_auto_aim_yaw_bridge_value else "false",
+                "true" if enable_gimbal_yaw_bridge_value else "false",
             ),
             SetLaunchConfiguration(
                 "enable_auto_aim_yaw_sim_pub",
-                "true" if enable_auto_aim_yaw_sim_pub_value else "false",
+                "true" if enable_gimbal_yaw_bridge_value else "false",
             ),
         ]
 
@@ -670,7 +674,7 @@ def generate_launch_description():
     )
 
     start_auto_aim_yaw_joint_state_bridge_cmd = Node(
-        condition=IfCondition(enable_auto_aim_yaw_bridge),
+        condition=IfCondition(enable_gimbal_yaw_bridge),
         package="gimbal_yaw_bridge",
         executable="auto_aim_yaw_joint_state_bridge",
         name="auto_aim_yaw_joint_state_bridge",
@@ -679,7 +683,17 @@ def generate_launch_description():
     )
 
     start_auto_aim_yaw_sim_pub_cmd = Node(
-        condition=IfCondition(enable_auto_aim_yaw_sim_pub),
+        condition=IfCondition(
+            PythonExpression(
+                [
+                    "('",
+                    enable_gimbal_yaw_bridge,
+                    "' == 'true') and ('",
+                    use_sim_time,
+                    "' == 'true')",
+                ]
+            )
+        ),
         package="gimbal_yaw_bridge",
         executable="gimbal_state_to_auto_aim_yaw",
         name="gimbal_state_to_auto_aim_yaw",

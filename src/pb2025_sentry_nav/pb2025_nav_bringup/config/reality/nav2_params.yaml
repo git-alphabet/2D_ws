@@ -23,31 +23,10 @@ pb_navigation_switches:
     odometry_source: "point_lio"
     behavior_tree: "default"
 
-    # 发布 gimbal_joint_state -> robot_state_publisher 生成 chassis->gimbal_yaw
-    # 注意：需要系统里存在 joint_state_publisher + robot_state_publisher（导航独立模式可通过 rm_navigation_reality_launch.py 的 use_robot_state_pub 启动）
-    enable_auto_aim_yaw_bridge: true
-
-
-# /auto_aim_yaw -> gimbal_joint_state
-  ros__parameters:
-    use_sim_time: False
-    input_topic: auto_aim_yaw
-    # 上游已提供带时间戳消息
-    use_stamped_msg: true
-    output_topic: gimbal_joint_state
-    joint_name: gimbal_yaw_joint
-
-    # 角度转换：如果发现方向相反/零位有偏差，用 invert_sign/offset 修正
-    input_is_degrees: false
-    invert_sign: false
-    scale: 1.0
-    offset: 0.0
-
-    #避免 TF 树缺失，实车一般会持续有真实 /auto_aim_yaw 输入；默认不发布常数 yaw。
-    #如果启动阶段 TF 依赖严格、且 /auto_aim_yaw 可能晚到，可把它改回 true。
-    publish_on_startup: false
-    default_yaw_rad: 0.0
-    publish_rate_hz: 0.0
+    # 单一接口：是否启用 gimbal_yaw_bridge 通路。
+    # - True：订阅 /auto_aim_yaw，生成 gimbal_joint_state（供 joint_state_publisher/robot_state_publisher 发布 chassis->gimbal_yaw）
+    # - False：不注入云台角度（用于复现“无云台角度时整车跟转”等风险场景）
+    enable_gimbal_yaw_bridge: true
 
 
 # NeuPAN 控制器参数

@@ -14,11 +14,12 @@ pb_navigation_switches:
     odometry_source: "point_lio"                   #point_lio / small_point_lio / loam_interface
     behavior_tree: "default"                       # .xml or default,none
 
-    #订阅 /auto_aim_yaw,生成 chassis -> gimbal_yaw 的 TF
-    # 仿真默认由 Gazebo 发布 gimbal_yaw 相关 TF，不需要启用该 bridge；需要时可手动打开做联调
-    enable_auto_aim_yaw_bridge: true
-    # 仿真验证：从 Gazebo 的 robot_base/gimbal_state 生成 /auto_aim_yaw，用于代替实车电控数据做通路
-    enable_auto_aim_yaw_sim_pub: true
+    # 单一接口：是否启用 gimbal_yaw_bridge 通路。
+    # - True：
+    #   - (仿真) 由 gimbal_state_to_auto_aim_yaw 生成 /auto_aim_yaw（代替实车电控输入）
+    #   - (通用) 由 auto_aim_yaw_joint_state_bridge 把 /auto_aim_yaw 转成 gimbal_joint_state
+    # - False：依赖仿真/实车原生 TF/joint_state 来源（用于复现“无云台角度时整车跟转”等风险场景）
+    enable_gimbal_yaw_bridge: true
 
 
 # Gazebo gimbal_state -> /auto_aim_yaw（仿真代替实车电控 yaw 数据）
@@ -52,7 +53,7 @@ auto_aim_yaw_joint_state_bridge:
   ros__parameters:
     use_sim_time: True
     input_topic: auto_aim_yaw
-    use_stamped_msg: false
+    use_stamped_msg: true
     output_topic: gimbal_joint_state
     joint_name: gimbal_yaw_joint
 
@@ -63,8 +64,8 @@ auto_aim_yaw_joint_state_bridge:
     offset: 0.0
 
     #作用是“在 /auto_aim_yaw 还没来之前，TF 树别缺这条关节”
-    publish_on_startup: true    
-    default_yaw_rad: 2.0
+    publish_on_startup: true
+    default_yaw_rad: 0.0
     publish_rate_hz: 0.0
     stamp_offset_sec: 0.0
 
