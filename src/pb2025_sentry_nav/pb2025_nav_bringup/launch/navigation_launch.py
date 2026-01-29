@@ -55,6 +55,9 @@ def generate_launch_description():
     container_name_full = (namespace, "/", container_name)
     use_respawn = LaunchConfiguration("use_respawn")
     log_level = LaunchConfiguration("log_level")
+
+    enable_auto_aim_yaw_bridge = LaunchConfiguration("enable_auto_aim_yaw_bridge")
+    enable_auto_aim_yaw_sim_pub = LaunchConfiguration("enable_auto_aim_yaw_sim_pub")
     enable_rm_behavior_tree = LaunchConfiguration("enable_rm_behavior_tree")
     rm_behavior_tree_style_path = LaunchConfiguration("rm_behavior_tree_style_path")
 
@@ -442,6 +445,8 @@ def generate_launch_description():
         controller_plugin_name = None
         neupan_frame_name = None
         enable_obstacle_scan_value = "false"
+        enable_auto_aim_yaw_bridge_value = False
+        enable_auto_aim_yaw_sim_pub_value = False
 
         slam_raw = slam.perform(context)
         slam_enabled = str(slam_raw).strip().lower() in {"true", "1", "yes", "on"}
@@ -520,6 +525,14 @@ def generate_launch_description():
             if not switches and target_data is not raw_yaml:
                 switches = _get_ros_params(raw_yaml, "pb_navigation_switches")
             enable_rm_bt = bool(switches.get("enable_rm_behavior_tree", enable_rm_bt))
+
+            enable_auto_aim_yaw_bridge_value = bool(
+                switches.get("enable_auto_aim_yaw_bridge", enable_auto_aim_yaw_bridge_value)
+            )
+
+            enable_auto_aim_yaw_sim_pub_value = bool(
+                switches.get("enable_auto_aim_yaw_sim_pub", enable_auto_aim_yaw_sim_pub_value)
+            )
 
             raw_frame_name = switches.get("neupan_fake_frame")
             if isinstance(raw_frame_name, str):
@@ -641,11 +654,37 @@ def generate_launch_description():
             SetLaunchConfiguration("rm_behavior_tree_style_path", style_path),
             SetLaunchConfiguration("processed_params_file", processed_file),
             SetLaunchConfiguration("enable_obstacle_scan", enable_obstacle_scan_value),
+            SetLaunchConfiguration(
+                "enable_auto_aim_yaw_bridge",
+                "true" if enable_auto_aim_yaw_bridge_value else "false",
+            ),
+            SetLaunchConfiguration(
+                "enable_auto_aim_yaw_sim_pub",
+                "true" if enable_auto_aim_yaw_sim_pub_value else "false",
+            ),
         ]
 
     set_switches_cmd = OpaqueFunction(
         function=_set_navigation_switches,
         kwargs={"params_file": params_file, "namespace": namespace, "slam": slam},
+    )
+
+    start_auto_aim_yaw_joint_state_bridge_cmd = Node(
+        condition=IfCondition(enable_auto_aim_yaw_bridge),
+        package="gimbal_yaw_bridge",
+        executable="auto_aim_yaw_joint_state_bridge",
+        name="auto_aim_yaw_joint_state_bridge",
+        output="screen",
+        parameters=[configured_params],
+    )
+
+    start_auto_aim_yaw_sim_pub_cmd = Node(
+        condition=IfCondition(enable_auto_aim_yaw_sim_pub),
+        package="gimbal_yaw_bridge",
+        executable="gimbal_state_to_auto_aim_yaw",
+        name="gimbal_state_to_auto_aim_yaw",
+        output="screen",
+        parameters=[configured_params],
     )
 
     # Create the launch description and populate
@@ -673,6 +712,8 @@ def generate_launch_description():
     # Set switches before starting nodes
     ld.add_action(set_switches_cmd)
     # Add the actions to launch all of the navigation nodes
+    ld.add_action(start_auto_aim_yaw_sim_pub_cmd)
+    ld.add_action(start_auto_aim_yaw_joint_state_bridge_cmd)
     ld.add_action(start_terrain_analysis_cmd)
     ld.add_action(start_terrain_analysis_ext_cmd)
     ld.add_action(start_rm_behavior_tree_cmd)

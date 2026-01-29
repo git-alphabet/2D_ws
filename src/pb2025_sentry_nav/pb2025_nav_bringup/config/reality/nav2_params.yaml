@@ -12,7 +12,7 @@ mid360_driver:
     # 20Hz 发布点云（与旧配置 publish_freq: 20.0 对齐）
     lidar_publish_time_interval: 0.05
     # 本机网卡 IP
-    host_ip: 192.168.1.2
+    host_ip: 192.168.1.50
     # 多雷达时可打开，让话题名后缀带雷达 ip
     is_topic_name_with_lidar_ip: false
 
@@ -20,10 +20,37 @@ mid360_driver:
 pb_navigation_switches:
   ros__parameters:
     controller_plugin: "pb_omni_pid_pursuit_controller"
-    odometry_source: "small_point_lio"
-    behavior_tree: "default"   # align with simulation navigation BT
+    odometry_source: "point_lio"
+    behavior_tree: "default"
 
-# NeuPAN 控制器参数 只在这里维护。
+    # 发布 gimbal_joint_state -> robot_state_publisher 生成 chassis->gimbal_yaw
+    # 注意：需要系统里存在 joint_state_publisher + robot_state_publisher（导航独立模式可通过 rm_navigation_reality_launch.py 的 use_robot_state_pub 启动）
+    enable_auto_aim_yaw_bridge: true
+
+
+# /auto_aim_yaw -> gimbal_joint_state
+  ros__parameters:
+    use_sim_time: False
+    input_topic: auto_aim_yaw
+    # 上游已提供带时间戳消息
+    use_stamped_msg: true
+    output_topic: gimbal_joint_state
+    joint_name: gimbal_yaw_joint
+
+    # 角度转换：如果发现方向相反/零位有偏差，用 invert_sign/offset 修正
+    input_is_degrees: false
+    invert_sign: false
+    scale: 1.0
+    offset: 0.0
+
+    #避免 TF 树缺失，实车一般会持续有真实 /auto_aim_yaw 输入；默认不发布常数 yaw。
+    #如果启动阶段 TF 依赖严格、且 /auto_aim_yaw 可能晚到，可把它改回 true。
+    publish_on_startup: false
+    default_yaw_rad: 0.0
+    publish_rate_hz: 0.0
+
+
+# NeuPAN 控制器参数
 controller_server:
   ros__parameters:
     use_sim_time: False

@@ -14,11 +14,6 @@ pb_navigation_switches:
     odometry_source: "point_lio"                   #point_lio / small_point_lio / loam_interface
     behavior_tree: "default"                       # .xml or default,none
 
-    # Gazebo 真值底盘里程计桥接开关（/<ns>/chassis_odometry_gt）：
-    # - true: 从仿真桥接底盘真值里程计，方便调试/对比
-    # - false: 不桥接真值里程计，用于模拟“实车只有雷达+雷达IMU”的极端场景，验证云台转动是否会污染定位/规划
-    enable_chassis_odometry_gt: false
-
     #订阅 /auto_aim_yaw,生成 chassis -> gimbal_yaw 的 TF
     # 仿真默认由 Gazebo 发布 gimbal_yaw 相关 TF，不需要启用该 bridge；需要时可手动打开做联调
     enable_auto_aim_yaw_bridge: true
@@ -93,6 +88,7 @@ controller_server:
       required_movement_radius: 0.5
       movement_time_allowance: 10.0
     general_goal_checker:
+    
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.2
@@ -391,7 +387,7 @@ fake_vel_transform:
     input_cmd_vel_topic: "cmd_vel_nav2_result"
     output_cmd_vel_topic: "cmd_vel"
     cmd_spin_topic: "cmd_spin"
-    init_spin_speed: 0.0
+    init_spin_speed: 6.28
 
 # 重定位：GICP 基于点云的全局重定位/初始化
 small_gicp_relocalization:
