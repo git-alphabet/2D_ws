@@ -12,7 +12,7 @@ mid360_driver:
     # 20Hz 发布点云（与旧配置 publish_freq: 20.0 对齐）
     lidar_publish_time_interval: 0.05
     # 本机网卡 IP
-    host_ip: 192.168.1.50
+    host_ip: 192.168.1.2
     # 多雷达时可打开，让话题名后缀带雷达 ip
     is_topic_name_with_lidar_ip: false
 
