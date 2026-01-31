@@ -14,20 +14,16 @@ pb_navigation_switches:
     odometry_source: "point_lio"                   #point_lio / small_point_lio / loam_interface
     behavior_tree: "default"                       # .xml or default,none
 
-    # 单一接口：是否启用 gimbal_yaw_bridge 通路。
-    # - True：
-    #   - (仿真) 由 gimbal_state_to_auto_aim_yaw 生成 /auto_aim_yaw（代替实车电控输入）
-    #   - (通用) 由 auto_aim_yaw_joint_state_bridge 把 /auto_aim_yaw 转成 serial/gimbal_joint_state
-    # - False：依赖仿真/实车原生 TF/joint_state 来源（用于复现“无云台角度时整车跟转”等风险场景）
-    enable_gimbal_yaw_bridge: true
+
+    enable_gimbal_yaw_bridge: true                #是否启用 gimbal_yaw_bridge 通路。
 
 
 # Gazebo gimbal_state -> /auto_aim_yaw（仿真代替实车电控 yaw 数据）
 gimbal_state_to_auto_aim_yaw:
   ros__parameters:
     use_sim_time: True
-    # 语义：发布“云台 yaw 相对底盘 yaw”的角度，即 parent_frame->child_frame 的 yaw
-    # 该值被归一化到 [-pi, pi]，当云台与底盘朝向一致时为 0
+
+    #parent_frame->child_frame 的 yaw，该值被归一化到 [-pi, pi]，当云台与底盘朝向一致时为 0
     use_tf_source: true
     parent_frame: chassis
     child_frame: gimbal_yaw
@@ -40,7 +36,7 @@ gimbal_state_to_auto_aim_yaw:
     scale: 1.0
     offset: 0.0
 
-    # TF 模式下建议定频发布（下游需要持续输入时更稳）
+    #其实感觉没必要
     publish_rate_hz: 50.0
     publish_on_startup: false
     default_yaw_rad: 0.0

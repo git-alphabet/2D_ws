@@ -1,4 +1,3 @@
-# Mid360 驱动：实车雷达数据源
 mid360_driver:
   ros__parameters:
     # 说明：这里用相对话题名（不带前导 /），以便在设置 namespace 时能自动跟随命名空间。
@@ -6,7 +5,7 @@ mid360_driver:
     lidar_frame: front_mid360
     imu_topic: livox/imu
     imu_frame: front_mid360
-    # 兼容旧 livox_ros_driver2：额外发布 CustomMsg（给 point_lio / small_point_lio 用）
+    #额外发布 CustomMsg（给 point_lio 用）
     publish_custom_msg: true
     custom_msg_topic: livox/lidar/pointcloud
     # 20Hz 发布点云（与旧配置 publish_freq: 20.0 对齐）
@@ -23,15 +22,13 @@ pb_navigation_switches:
     odometry_source: "point_lio"
     behavior_tree: "default"
 
-    # 单一接口：是否启用 gimbal_yaw_bridge 通路。
-    # - True：订阅 /auto_aim_yaw，生成 gimbal_joint_state（供 joint_state_publisher/robot_state_publisher 发布 chassis->gimbal_yaw）
-    # - False：不注入云台角度（用于复现“无云台角度时整车跟转”等风险场景）
-    enable_gimbal_yaw_bridge: true
+
+    enable_gimbal_yaw_bridge: true             #是否启用 gimbal_yaw_bridge 通路。
 
 
-# /auto_aim_yaw -> serial/gimbal_joint_state（供 joint_state_publisher/robot_state_publisher 使用）
+# /auto_aim_yaw -> serial/gimbal_joint_state
 # 说明：
-# - /auto_aim_yaw 必须是绝对话题名（不带 namespace）
+# - /auto_aim_yaw是绝对话题名
 # - serial/gimbal_joint_state 用相对名，便于在 __ns:=/red_standard_robot1 时自动变成 /red_standard_robot1/serial/gimbal_joint_state
 auto_aim_yaw_joint_state_bridge:
   ros__parameters:
