@@ -36,6 +36,29 @@ is_truthy() {
 	esac
 }
 
+kill_by_pattern() {
+	local pattern="$1"
+	local title="$2"
+
+	local pids
+	pids="$(pgrep -f "$pattern" 2>/dev/null || true)"
+	if [[ -z ${pids} ]]; then
+		return 0
+	fi
+
+	echo "[$SCRIPT_NAME] Killing existing ${title} pids: ${pids}" >&2
+	# shellcheck disable=SC2086
+	kill ${pids} 2>/dev/null || true
+	sleep 0.3
+	local pids2
+	pids2="$(pgrep -f "$pattern" 2>/dev/null || true)"
+	if [[ -n ${pids2} ]]; then
+		echo "[$SCRIPT_NAME] Force-killing remaining ${title} pids: ${pids2}" >&2
+		# shellcheck disable=SC2086
+		kill -9 ${pids2} 2>/dev/null || true
+	fi
+}
+
 in_docker() {
 	[[ -f /.dockerenv ]] && return 0
 	grep -qaE '(docker|containerd)' /proc/1/cgroup 2>/dev/null
@@ -275,6 +298,17 @@ launch_in_terminal() {
 
 if [[ -z ${MAPPING_CMD:-} ]]; then
 	MAPPING_CMD="ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True"
+fi
+
+# When iterating, it is easy to accidentally start the stack multiple times (new terminal each run),
+# which results in many duplicated nodes (e.g. multiple auto_aim_yaw_joint_state_bridge).
+# Default behavior: kill existing related processes before launching.
+KILL_EXISTING=${KILL_EXISTING:-1}
+if is_truthy "$KILL_EXISTING"; then
+	# Kill the previous launch (if any) and the duplicated bridge processes.
+	# Note: this is best-effort; if you intentionally run multiple stacks, set KILL_EXISTING=0.
+	kill_by_pattern "ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py" "rm_navigation_reality_launch.py"
+	kill_by_pattern "(^|/)auto_aim_yaw_joint_state_bridge(\\s|$)" "auto_aim_yaw_joint_state_bridge"
 fi
 
 if [[ $# -gt 0 ]]; then
