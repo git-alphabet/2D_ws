@@ -23,11 +23,8 @@ ament_target_dependencies(joint_state_to_float32_bridge rclcpp std_msgs sensor_m
 add_executable(gimbal_state_to_auto_aim_yaw src/gimbal_state_to_auto_aim_yaw.cpp)
 ament_target_dependencies(gimbal_state_to_auto_aim_yaw rclcpp std_msgs rmoss_interfaces sp_msgs geometry_msgs tf2_ros)
 
-add_executable(auto_aim_yaw_tf_broadcaster src/auto_aim_yaw_tf_broadcaster.cpp)
-ament_target_dependencies(auto_aim_yaw_tf_broadcaster rclcpp std_msgs geometry_msgs tf2_ros sp_msgs)
-
 install(TARGETS auto_aim_yaw_joint_state_bridge joint_state_to_float32_bridge
-  auto_aim_yaw_tf_broadcaster gimbal_state_to_auto_aim_yaw
+  gimbal_state_to_auto_aim_yaw
   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
