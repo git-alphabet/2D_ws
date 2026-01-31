@@ -17,7 +17,7 @@ pb_navigation_switches:
     # 单一接口：是否启用 gimbal_yaw_bridge 通路。
     # - True：
     #   - (仿真) 由 gimbal_state_to_auto_aim_yaw 生成 /auto_aim_yaw（代替实车电控输入）
-    #   - (通用) 由 auto_aim_yaw_joint_state_bridge 把 /auto_aim_yaw 转成 gimbal_joint_state
+    #   - (通用) 由 auto_aim_yaw_joint_state_bridge 把 /auto_aim_yaw 转成 serial/gimbal_joint_state
     # - False：依赖仿真/实车原生 TF/joint_state 来源（用于复现“无云台角度时整车跟转”等风险场景）
     enable_gimbal_yaw_bridge: true
 
@@ -33,7 +33,7 @@ gimbal_state_to_auto_aim_yaw:
     child_frame: gimbal_yaw
 
     input_topic: robot_base/gimbal_state
-    output_topic: auto_aim_yaw
+    output_topic: /auto_aim_yaw
     use_stamped_msg: true
 
     invert_sign: false
@@ -52,9 +52,9 @@ gimbal_state_to_auto_aim_yaw:
 auto_aim_yaw_joint_state_bridge:
   ros__parameters:
     use_sim_time: True
-    input_topic: auto_aim_yaw
+    input_topic: /auto_aim_yaw
     use_stamped_msg: true
-    output_topic: gimbal_joint_state
+    output_topic: serial/gimbal_joint_state
     joint_name: gimbal_yaw_joint
 
     #解决的是“同一个 yaw 数字，在不同系统里的正方向/零位定义不一致”的问题，测试后如果没问题可去掉

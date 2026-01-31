@@ -29,6 +29,28 @@ pb_navigation_switches:
     enable_gimbal_yaw_bridge: true
 
 
+# /auto_aim_yaw -> serial/gimbal_joint_state（供 joint_state_publisher/robot_state_publisher 使用）
+# 说明：
+# - /auto_aim_yaw 必须是绝对话题名（不带 namespace）
+# - serial/gimbal_joint_state 用相对名，便于在 __ns:=/red_standard_robot1 时自动变成 /red_standard_robot1/serial/gimbal_joint_state
+auto_aim_yaw_joint_state_bridge:
+  ros__parameters:
+    input_topic: /auto_aim_yaw
+    use_stamped_msg: true
+    output_topic: serial/gimbal_joint_state
+    joint_name: gimbal_yaw_joint
+
+    input_is_degrees: false
+    invert_sign: false
+    scale: 1.0
+    offset: 0.0
+
+    publish_on_startup: true
+    default_yaw_rad: 0.0
+    publish_rate_hz: 0.0
+    stamp_offset_sec: 0.0
+
+
 # NeuPAN 控制器参数
 controller_server:
   ros__parameters:
