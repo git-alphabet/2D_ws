@@ -11,20 +11,20 @@ find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
-find_package(gimbal_yaw_interfaces REQUIRED)
+find_package(sp_msgs REQUIRED)
 find_package(rmoss_interfaces REQUIRED)
 
 add_executable(auto_aim_yaw_joint_state_bridge src/auto_aim_yaw_joint_state_bridge.cpp)
-ament_target_dependencies(auto_aim_yaw_joint_state_bridge rclcpp std_msgs sensor_msgs gimbal_yaw_interfaces)
+ament_target_dependencies(auto_aim_yaw_joint_state_bridge rclcpp std_msgs sensor_msgs sp_msgs)
 
 add_executable(joint_state_to_float32_bridge src/joint_state_to_float32_bridge.cpp)
 ament_target_dependencies(joint_state_to_float32_bridge rclcpp std_msgs sensor_msgs)
 
 add_executable(gimbal_state_to_auto_aim_yaw src/gimbal_state_to_auto_aim_yaw.cpp)
-ament_target_dependencies(gimbal_state_to_auto_aim_yaw rclcpp std_msgs rmoss_interfaces gimbal_yaw_interfaces geometry_msgs tf2_ros)
+ament_target_dependencies(gimbal_state_to_auto_aim_yaw rclcpp std_msgs rmoss_interfaces sp_msgs geometry_msgs tf2_ros)
 
 add_executable(auto_aim_yaw_tf_broadcaster src/auto_aim_yaw_tf_broadcaster.cpp)
-ament_target_dependencies(auto_aim_yaw_tf_broadcaster rclcpp std_msgs geometry_msgs tf2_ros gimbal_yaw_interfaces)
+ament_target_dependencies(auto_aim_yaw_tf_broadcaster rclcpp std_msgs geometry_msgs tf2_ros sp_msgs)
 
 install(TARGETS auto_aim_yaw_joint_state_bridge joint_state_to_float32_bridge
   auto_aim_yaw_tf_broadcaster gimbal_state_to_auto_aim_yaw

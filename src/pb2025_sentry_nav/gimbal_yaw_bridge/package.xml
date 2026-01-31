@@ -11,7 +11,7 @@
   <depend>rclcpp</depend>
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
-  <depend>gimbal_yaw_interfaces</depend>
+  <depend>sp_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>tf2_ros</depend>
   <depend>rmoss_interfaces</depend>

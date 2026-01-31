@@ -3,7 +3,7 @@
 #include <string>
 
 #include "geometry_msgs/msg/transform_stamped.hpp"
-#include "gimbal_yaw_interfaces/msg/float32_stamped.hpp"
+#include "sp_msgs/msg/float32_stamped.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float32.hpp"
 #include "tf2_ros/transform_broadcaster.h"
@@ -42,7 +42,7 @@ public:
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
     if (use_stamped_msg_) {
-      yaw_stamped_sub_ = this->create_subscription<gimbal_yaw_interfaces::msg::Float32Stamped>(
+      yaw_stamped_sub_ = this->create_subscription<sp_msgs::msg::Float32Stamped>(
         input_topic_, rclcpp::QoS(10),
         std::bind(&AutoAimYawTfBroadcaster::onYawStamped, this, std::placeholders::_1));
     } else {
@@ -80,7 +80,7 @@ private:
     publish(last_yaw_rad_, last_stamp_);
   }
 
-  void onYawStamped(const gimbal_yaw_interfaces::msg::Float32Stamped::SharedPtr msg)
+  void onYawStamped(const sp_msgs::msg::Float32Stamped::SharedPtr msg)
   {
     last_yaw_rad_ = convertToRad(static_cast<double>(msg->data));
     have_last_ = true;
@@ -149,7 +149,7 @@ private:
 
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr yaw_sub_;
-  rclcpp::Subscription<gimbal_yaw_interfaces::msg::Float32Stamped>::SharedPtr yaw_stamped_sub_;
+  rclcpp::Subscription<sp_msgs::msg::Float32Stamped>::SharedPtr yaw_stamped_sub_;
   rclcpp::TimerBase::SharedPtr timer_;
 
   bool have_last_{false};

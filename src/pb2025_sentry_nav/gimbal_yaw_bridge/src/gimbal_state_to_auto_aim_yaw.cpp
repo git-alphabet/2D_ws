@@ -4,7 +4,7 @@
 #include <string>
 
 #include "geometry_msgs/msg/transform_stamped.hpp"
-#include "gimbal_yaw_interfaces/msg/float32_stamped.hpp"
+#include "sp_msgs/msg/float32_stamped.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rmoss_interfaces/msg/gimbal.hpp"
 #include "std_msgs/msg/float32.hpp"
@@ -40,7 +40,7 @@ public:
     // 同名 topic 不能同时以不同 message type 创建 publisher。
     // 这里只按 use_stamped_msg_ 选择其一。
     if (use_stamped_msg_) {
-      yaw_stamped_pub_ = this->create_publisher<gimbal_yaw_interfaces::msg::Float32Stamped>(
+      yaw_stamped_pub_ = this->create_publisher<sp_msgs::msg::Float32Stamped>(
         output_topic_, rclcpp::QoS(10));
     } else {
       yaw_pub_ = this->create_publisher<std_msgs::msg::Float32>(output_topic_, rclcpp::QoS(10));
@@ -159,7 +159,7 @@ private:
       if (!yaw_stamped_pub_) {
         return;
       }
-      gimbal_yaw_interfaces::msg::Float32Stamped out;
+      sp_msgs::msg::Float32Stamped out;
       out.header.stamp = stamp;
       out.header.frame_id = frame_id_;
       out.data = static_cast<float>(yaw_rad);
@@ -194,7 +194,7 @@ private:
   double default_yaw_rad_{0.0};
 
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr yaw_pub_;
-  rclcpp::Publisher<gimbal_yaw_interfaces::msg::Float32Stamped>::SharedPtr yaw_stamped_pub_;
+  rclcpp::Publisher<sp_msgs::msg::Float32Stamped>::SharedPtr yaw_stamped_pub_;
   rclcpp::Subscription<rmoss_interfaces::msg::Gimbal>::SharedPtr sub_;
   rclcpp::TimerBase::SharedPtr timer_;
 
