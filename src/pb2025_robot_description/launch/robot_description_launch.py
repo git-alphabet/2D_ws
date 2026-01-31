@@ -47,15 +47,23 @@ def launch_setup(context: LaunchContext) -> list:
     # Create our own temporary YAML files that include substitutions
     param_substitutions = {"use_sim_time": use_sim_time}
 
-    configured_params = ParameterFile(
-        RewrittenYaml(
-            source_file=params_file,
-            root_key=namespace,
-            param_rewrites=param_substitutions,
-            convert_types=True,
-        ),
-        allow_substs=True,
-    )
+    # NOTE:
+    # When `namespace` is an empty string (common on the real robot), using RewrittenYaml
+    # with an empty `root_key` can prevent parameters from being applied as expected.
+    # In that case, fall back to the original params file directly.
+    namespace_value = (context.launch_configurations.get("namespace") or "").strip()
+    if namespace_value:
+        configured_params = ParameterFile(
+            RewrittenYaml(
+                source_file=params_file,
+                root_key=namespace,
+                param_rewrites=param_substitutions,
+                convert_types=True,
+            ),
+            allow_substs=True,
+        )
+    else:
+        configured_params = ParameterFile(params_file, allow_substs=True)
 
     stdout_linebuf_envvar = SetEnvironmentVariable(
         "RCUTILS_LOGGING_BUFFERED_STREAM", "1"
@@ -72,7 +80,7 @@ def launch_setup(context: LaunchContext) -> list:
                 output="screen",
                 respawn=use_respawn,
                 respawn_delay=2.0,
-                parameters=[configured_params],
+                parameters=[configured_params, {"use_sim_time": use_sim_time}],
                 arguments=["--ros-args", "--log-level", log_level],
             ),
             Node(
@@ -83,7 +91,7 @@ def launch_setup(context: LaunchContext) -> list:
                 respawn_delay=2.0,
                 parameters=[
                     configured_params,
-                    {"robot_description": robot_urdf_xml},
+                    {"use_sim_time": use_sim_time, "robot_description": robot_urdf_xml},
                 ],
                 arguments=["--ros-args", "--log-level", log_level],
             ),
