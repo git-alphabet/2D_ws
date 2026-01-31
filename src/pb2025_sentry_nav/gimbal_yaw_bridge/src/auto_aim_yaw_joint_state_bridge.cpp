@@ -18,8 +18,8 @@ public:
   explicit AutoAimYawJointStateBridge(const rclcpp::NodeOptions & options)
   : Node("auto_aim_yaw_joint_state_bridge", options)
   {
-    input_topic_ = this->declare_parameter<std::string>("input_topic", "auto_aim_yaw");
-    output_topic_ = this->declare_parameter<std::string>("output_topic", "gimbal_joint_state");
+    input_topic_ = this->declare_parameter<std::string>("input_topic", "/auto_aim_yaw");
+    output_topic_ = this->declare_parameter<std::string>("output_topic", "serial/gimbal_joint_state");
     joint_name_ = this->declare_parameter<std::string>("joint_name", "gimbal_yaw_joint");
 
     input_is_degrees_ = this->declare_parameter<bool>("input_is_degrees", false);

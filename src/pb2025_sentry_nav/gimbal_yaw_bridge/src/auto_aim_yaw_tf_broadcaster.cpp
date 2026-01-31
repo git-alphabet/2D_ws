@@ -19,7 +19,7 @@ public:
   explicit AutoAimYawTfBroadcaster(const rclcpp::NodeOptions & options)
   : Node("auto_aim_yaw_tf_broadcaster", options)
   {
-    input_topic_ = this->declare_parameter<std::string>("input_topic", "auto_aim_yaw");
+    input_topic_ = this->declare_parameter<std::string>("input_topic", "/auto_aim_yaw");
     parent_frame_ = this->declare_parameter<std::string>("parent_frame", "chassis");
     child_frame_ = this->declare_parameter<std::string>("child_frame", "gimbal_yaw_auto");
 
