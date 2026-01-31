@@ -60,6 +60,10 @@ private:
   // This simulates the case where gimbal joint angle is NOT provided to the TF tree,
   // so the mount extrinsic is treated as static.
   bool freeze_lidar_mount_tf_{false};
+
+  // Debug: print whether TF lookups succeed and the derived yaw(chassis->gimbal_yaw).
+  bool debug_tf_{false};
+  int debug_tf_throttle_ms_{1000};
   bool mount_tf_cached_{false};
   tf2::Transform cached_lidar_to_base_;
   tf2::Transform cached_lidar_to_robot_base_;

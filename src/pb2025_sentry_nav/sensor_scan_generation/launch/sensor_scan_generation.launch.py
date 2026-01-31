@@ -23,6 +23,8 @@ def generate_launch_description():
     lidar_frame = LaunchConfiguration("lidar_frame")
     base_frame = LaunchConfiguration("base_frame")
     robot_base_frame = LaunchConfiguration("robot_base_frame")
+    debug_tf = LaunchConfiguration("debug_tf")
+    debug_tf_throttle_ms = LaunchConfiguration("debug_tf_throttle_ms")
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
     # In case of the transforms (tf), currently, there doesn't seem to be a better alternative
@@ -54,6 +56,18 @@ def generate_launch_description():
         description="Frame ID for Gimbal",
     )
 
+    declare_debug_tf = DeclareLaunchArgument(
+        "debug_tf",
+        default_value="false",
+        description="Enable TF debug log (prints derived yaw(chassis->gimbal_yaw))",
+    )
+
+    declare_debug_tf_throttle_ms = DeclareLaunchArgument(
+        "debug_tf_throttle_ms",
+        default_value="1000",
+        description="TF debug log throttle period in milliseconds",
+    )
+
     start_sensor_scan_generation = Node(
         package="sensor_scan_generation",
         executable="sensor_scan_generation_node",
@@ -64,6 +78,8 @@ def generate_launch_description():
             {"lidar_frame": lidar_frame},
             {"base_frame": base_frame},
             {"robot_base_frame": robot_base_frame},
+            {"debug_tf": debug_tf},
+            {"debug_tf_throttle_ms": debug_tf_throttle_ms},
         ],
     )
 
@@ -74,6 +90,8 @@ def generate_launch_description():
     ld.add_action(declare_lidar_frame)
     ld.add_action(declare_base_frame)
     ld.add_action(declare_robot_base_frame)
+    ld.add_action(declare_debug_tf)
+    ld.add_action(declare_debug_tf_throttle_ms)
     ld.add_action(start_sensor_scan_generation)
 
     return ld
