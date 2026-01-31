@@ -47,6 +47,13 @@ def launch_setup(context: LaunchContext) -> list:
     # Create our own temporary YAML files that include substitutions
     param_substitutions = {"use_sim_time": use_sim_time}
 
+    # Resolve params file to a concrete path. When `namespace` is empty (common
+    # on the real robot), passing a LaunchConfiguration directly to ParameterFile
+    # can result in parameters not being applied.
+    params_file_value = (context.launch_configurations.get("params_file") or "").strip()
+    if not params_file_value:
+        raise RuntimeError("params_file launch argument resolved to an empty path")
+
     # NOTE:
     # When `namespace` is an empty string (common on the real robot), using RewrittenYaml
     # with an empty `root_key` can prevent parameters from being applied as expected.
@@ -55,7 +62,7 @@ def launch_setup(context: LaunchContext) -> list:
     if namespace_value:
         configured_params = ParameterFile(
             RewrittenYaml(
-                source_file=params_file,
+                source_file=params_file_value,
                 root_key=namespace,
                 param_rewrites=param_substitutions,
                 convert_types=True,
@@ -63,7 +70,7 @@ def launch_setup(context: LaunchContext) -> list:
             allow_substs=True,
         )
     else:
-        configured_params = ParameterFile(params_file, allow_substs=True)
+        configured_params = ParameterFile(params_file_value, allow_substs=True)
 
     stdout_linebuf_envvar = SetEnvironmentVariable(
         "RCUTILS_LOGGING_BUFFERED_STREAM", "1"
