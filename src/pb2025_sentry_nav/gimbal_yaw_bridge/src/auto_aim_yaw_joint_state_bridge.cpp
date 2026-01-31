@@ -80,7 +80,13 @@ private:
   {
     last_yaw_rad_ = convertToRad(static_cast<double>(msg->data));
     have_last_ = true;
-    last_stamp_ = rclcpp::Time(msg->header.stamp, this->get_clock()->get_clock_type());
+    // Some publishers (e.g. `ros2 topic pub`) may omit header.stamp, leaving it as 0.
+    // Using a zero timestamp can break downstream TF consumers. Fall back to now.
+    if (msg->header.stamp.sec == 0 && msg->header.stamp.nanosec == 0) {
+      last_stamp_ = this->get_clock()->now();
+    } else {
+      last_stamp_ = rclcpp::Time(msg->header.stamp, this->get_clock()->get_clock_type());
+    }
     publish(last_yaw_rad_, last_stamp_);
   }
 
