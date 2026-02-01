@@ -11,8 +11,8 @@ set -euo pipefail
 PS4='[${BASH_SOURCE}:${LINENO}] '
 
 NS="${1:-/red_standard_robot1}"
-YAW_STEP_RAD="${2:-${YAW_STEP_RAD:-0.02}}"
-RATE_HZ="${3:-${RATE_HZ:-50}}"
+YAW_STEP_RAD="${2:-${YAW_STEP_RAD:-0.2}}"
+RATE_HZ="${3:-${RATE_HZ:-100}}"
 PITCH_STEP_RAD="${PITCH_STEP_RAD:-0.0}"
 QUIET="${QUIET:-1}"
 DURATION_SEC="${DURATION_SEC:-0}"
