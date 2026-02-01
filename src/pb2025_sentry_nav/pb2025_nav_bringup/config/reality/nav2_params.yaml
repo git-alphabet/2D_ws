@@ -44,7 +44,9 @@ auto_aim_yaw_joint_state_bridge:
 
     publish_on_startup: true
     default_yaw_rad: 0.0
-    publish_rate_hz: 0.0
+    # 建议设置为 >0：当 /auto_aim_yaw 低频或仅在变化时发布时，持续用“当前时间戳”重发 JointState
+    # 可以避免 TF 因时间戳过旧而在 tf2 buffer 中失效。
+    publish_rate_hz: 100.0
     stamp_offset_sec: 0.0
 
 

@@ -62,7 +62,8 @@ auto_aim_yaw_joint_state_bridge:
     #作用是“在 /auto_aim_yaw 还没来之前，TF 树别缺这条关节”
     publish_on_startup: true
     default_yaw_rad: 0.0
-    publish_rate_hz: 0.0
+    # 建议设置为 >0：保持 JointState/TF 持续刷新时间戳，便于 tf2 lookup 与联调。
+    publish_rate_hz: 50.0
     stamp_offset_sec: 0.0
 
 
