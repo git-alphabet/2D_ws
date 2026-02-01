@@ -73,10 +73,13 @@ def generate_launch_description():
     # Create our own temporary YAML files that include substitutions
     param_substitutions = {"use_sim_time": use_sim_time, "autostart": autostart}
 
+    # Normalize namespace for YAML root key (strip leading '/'; treat '/' as empty).
+    normalized_root_key = PythonExpression(["'", namespace, "'.lstrip('/')"])
+
     configured_params = ParameterFile(
         RewrittenYaml(
             source_file=processed_params_file,
-            root_key=namespace,
+            root_key=normalized_root_key,
             param_rewrites=param_substitutions,
             convert_types=True,
         ),
