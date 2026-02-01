@@ -27,6 +27,10 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
   src/fake_vel_transform.cpp
 )
 
+ament_auto_add_executable(nonlinear_spin_publisher
+  src/nonlinear_spin_publisher.cpp
+)
+
 rclcpp_components_register_node(${PROJECT_NAME}
   PLUGIN fake_vel_transform::FakeVelTransform
   EXECUTABLE ${PROJECT_NAME}_node

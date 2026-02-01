@@ -359,6 +359,33 @@ fake_vel_transform:
     cmd_spin_topic: "cmd_spin"
     init_spin_speed: 3.14
 
+# 非线性小陀螺（实车）：同仿真，发布 cmd_spin（Float32，单位 rad/s）
+nonlinear_spin_publisher:
+  ros__parameters:
+    use_sim_time: False
+
+    # 总开关：true 才会开始发布 cmd_spin
+    enabled: false
+
+    # 触发策略：收到第一条 Nav2 local_plan 后开始小陀螺，之后不停止
+    start_on_first_trigger: true
+    start_trigger_topic: "cmd_vel_nav2_result"
+    start_trigger_msg_type: "geometry_msgs/Twist"
+    trigger_require_nonzero: false
+    cmd_spin_topic: "cmd_spin"
+    publish_rate_hz: 50.0
+
+    # 实车默认中心值与 init_spin_speed 对齐，后续你可按底盘能力改
+    center_speed: 4.6
+    range_speed: 2.0
+    target_update_period: 0.15
+    accel_limit: 16.0
+
+    max_abs_speed: 10.0
+    min_abs_speed: 2.0
+    seed: 1
+    start_delay_sec: 0.5
+
 # 重定位：GICP 基于点云的全局重定位/初始化
 small_gicp_relocalization:
   ros__parameters:

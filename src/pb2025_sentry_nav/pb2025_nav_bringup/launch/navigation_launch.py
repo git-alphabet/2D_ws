@@ -56,6 +56,7 @@ def generate_launch_description():
     use_respawn = LaunchConfiguration("use_respawn")
     log_level = LaunchConfiguration("log_level")
 
+
     enable_gimbal_yaw_bridge = LaunchConfiguration("enable_gimbal_yaw_bridge")
     enable_rm_behavior_tree = LaunchConfiguration("enable_rm_behavior_tree")
     rm_behavior_tree_style_path = LaunchConfiguration("rm_behavior_tree_style_path")
@@ -114,6 +115,15 @@ def generate_launch_description():
             bringup_dir, "config", "simulation", "nav2_params.yaml"
         ),
         description="Full path to the ROS2 parameters file to use for all launched nodes",
+    )
+
+    nonlinear_spin_publisher_node = Node(
+        package="fake_vel_transform",
+        executable="nonlinear_spin_publisher",
+        name="nonlinear_spin_publisher",
+        output="screen",
+        parameters=[configured_params],
+        arguments=["--ros-args", "--log-level", log_level],
     )
 
     declare_autostart_cmd = DeclareLaunchArgument(
@@ -729,6 +739,7 @@ def generate_launch_description():
     # Set switches before starting nodes
     ld.add_action(set_switches_cmd)
     # Add the actions to launch all of the navigation nodes
+    ld.add_action(nonlinear_spin_publisher_node)
     ld.add_action(start_auto_aim_yaw_sim_pub_cmd)
     ld.add_action(start_auto_aim_yaw_joint_state_bridge_cmd)
     ld.add_action(start_terrain_analysis_cmd)

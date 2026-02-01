@@ -311,7 +311,7 @@ sensor_scan_generation:
     robot_base_frame: "gimbal_yaw"
 
     # TF 调试：打印 TF lookup 是否成功，以及推导出来的 yaw(chassis->gimbal_yaw)
-    debug_tf: true
+    debug_tf: false
     debug_tf_throttle_ms: 1000
 
     # 关键开关：是否冻结 lidar->base 的挂载 TF
@@ -389,7 +389,48 @@ fake_vel_transform:
     input_cmd_vel_topic: "cmd_vel_nav2_result"
     output_cmd_vel_topic: "cmd_vel"
     cmd_spin_topic: "cmd_spin"
-    init_spin_speed: 6.28
+    init_spin_speed: 0.0
+
+# 非线性小陀螺：发布 cmd_spin（Float32，单位 rad/s），被 fake_vel_transform 叠加到 cmd_vel.angular.z
+# 注意：cmd_spin_topic 不要写成以 / 开头的绝对话题名，这样才会跟随 namespace。
+nonlinear_spin_publisher:
+  ros__parameters:
+    use_sim_time: True
+
+    # 总开关：true 才会开始发布 cmd_spin
+    enabled: true
+
+    # 触发策略：满足“发布第一条 nav2_goal 再开始转”
+    # 这里不直接监听 action goal（实现复杂且不同客户端可能不同），而是监听 Nav2 的速度输出。
+    # 一旦收到第一条 cmd_vel_nav2_result（通常意味着第一条 goal 已进入控制器并开始出速度），就开始小陀螺，并且之后不会停止。
+    start_on_first_trigger: true
+    start_trigger_topic: "cmd_vel_nav2_result"
+    start_trigger_msg_type: "geometry_msgs/Twist"
+    trigger_require_nonzero: false
+
+    # 与 fake_vel_transform.ros__parameters.cmd_spin_topic 保持一致
+    cmd_spin_topic: "cmd_spin"
+
+    # 发布频率（Hz）
+    publish_rate_hz: 100.0
+
+    # 角速度目标生成：每隔 target_update_period 生成一个新的目标角速度 w_target
+    # w_target = center_speed + range_speed * U(-1, 1)
+    center_speed: 3.14          # 角速度中心值（rad/s）
+    range_speed: 2.0            # 随机扰动范围（rad/s）
+    target_update_period: 0.15  # 目标更新周期（s）
+    accel_limit: 15.0           # 角加速度限幅（rad/s^2），越大变化越“跳”
+
+    # 安全限幅（最终发布前会 clamp 到 [-max_abs_speed, +max_abs_speed]）
+    # 重要：max_abs_speed 必须 >= |center_speed| + range_speed，否则会长期卡在限幅值，看起来“不随机”。
+    max_abs_speed: 6.28         # 最大绝对角速度（rad/s）
+    min_abs_speed: 2.0          # 最小绝对角速度（rad/s），>0 可避免转速贴近 0
+
+    # 随机性：seed 固定则每次复现同一序列；seed=0 则每次随机
+    seed: 0
+
+    # 启动延迟：给系统起完其他节点，避免刚启动就对底盘施加扰动
+    start_delay_sec: 0.5
 
 # 重定位：GICP 基于点云的全局重定位/初始化
 small_gicp_relocalization:

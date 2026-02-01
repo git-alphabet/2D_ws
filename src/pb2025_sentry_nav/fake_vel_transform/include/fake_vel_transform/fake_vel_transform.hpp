@@ -45,6 +45,7 @@ private:
   void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg);
   void cmdSpinCallback(example_interfaces::msg::Float32::SharedPtr msg);
   void publishTransform();
+  void publishHoldCmdVelIfNeeded(const rclcpp::Time & now);
   geometry_msgs::msg::Twist transformVelocity(
     const geometry_msgs::msg::Twist::SharedPtr & twist, float yaw_diff);
 
@@ -76,6 +77,9 @@ private:
   geometry_msgs::msg::Twist::SharedPtr latest_cmd_vel_;
   double current_robot_base_angle_;
   rclcpp::Time last_controller_activate_time_;
+
+  rclcpp::Time last_cmd_vel_rx_time_;
+  rclcpp::Time last_cmd_vel_pub_time_;
 };
 
 }  // namespace fake_vel_transform

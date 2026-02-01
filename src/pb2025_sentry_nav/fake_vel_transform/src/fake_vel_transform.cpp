@@ -22,6 +22,7 @@ namespace fake_vel_transform
 
 constexpr double EPSILON = 1e-5;
 constexpr double CONTROLLER_TIMEOUT = 0.5;
+constexpr double OUTPUT_HOLD_PUBLISH_TIMEOUT = 0.1;
 
 FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
 : Node("fake_vel_transform", options)
@@ -32,6 +33,8 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   current_robot_base_angle_ = 0.0;
   spin_speed_ = 0.0f;
   last_controller_activate_time_ = this->get_clock()->now();
+  last_cmd_vel_rx_time_ = last_controller_activate_time_;
+  last_cmd_vel_pub_time_ = last_controller_activate_time_;
 
   this->declare_parameter<std::string>("robot_base_frame", "gimbal_link");
   this->declare_parameter<std::string>("fake_robot_base_frame", "gimbal_link_fake");
@@ -98,6 +101,9 @@ void FakeVelTransform::odometryCallback(const nav_msgs::msg::Odometry::ConstShar
 void FakeVelTransform::cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg)
 {
   std::lock_guard<std::mutex> lock(cmd_vel_mutex_);
+  const auto now = this->get_clock()->now();
+  last_cmd_vel_rx_time_ = now;
+  latest_cmd_vel_ = msg;
   const bool is_zero_vel = std::abs(msg->linear.x) < EPSILON && std::abs(msg->linear.y) < EPSILON &&
                            std::abs(msg->angular.z) < EPSILON;
   if (
@@ -106,8 +112,9 @@ void FakeVelTransform::cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr
     // If received velocity cannot be synchronized, publish it directly
     auto aft_tf_vel = transformVelocity(msg, current_robot_base_angle_);
     cmd_vel_chassis_pub_->publish(aft_tf_vel);
+    last_cmd_vel_pub_time_ = now;
   } else {
-    latest_cmd_vel_ = msg;
+    // Keep latest_cmd_vel_ for sync callback
   }
 }
 
@@ -135,18 +142,52 @@ void FakeVelTransform::syncCallback(
   geometry_msgs::msg::Twist aft_tf_vel = transformVelocity(current_cmd_vel, yaw_diff);
 
   cmd_vel_chassis_pub_->publish(aft_tf_vel);
+  last_cmd_vel_pub_time_ = this->get_clock()->now();
 }
 
 void FakeVelTransform::publishTransform()
 {
+  const auto now = this->get_clock()->now();
   geometry_msgs::msg::TransformStamped t;
-  t.header.stamp = this->get_clock()->now();
+  t.header.stamp = now;
   t.header.frame_id = robot_base_frame_;
   t.child_frame_id = fake_robot_base_frame_;
   tf2::Quaternion q;
   q.setRPY(0, 0, -current_robot_base_angle_);
   t.transform.rotation = tf2::toMsg(q);
   tf_broadcaster_->sendTransform(t);
+
+  publishHoldCmdVelIfNeeded(now);
+}
+
+void FakeVelTransform::publishHoldCmdVelIfNeeded(const rclcpp::Time & now)
+{
+  std::lock_guard<std::mutex> lock(cmd_vel_mutex_);
+
+  // If output cmd_vel is still flowing, do nothing.
+  if ((now - last_cmd_vel_pub_time_).seconds() <= OUTPUT_HOLD_PUBLISH_TIMEOUT) {
+    return;
+  }
+
+  geometry_msgs::msg::Twist base_cmd;
+
+  // If upstream cmd_vel becomes stale, force linear/ang.z base to 0 to avoid runaway.
+  const bool upstream_stale = (now - last_cmd_vel_rx_time_).seconds() > CONTROLLER_TIMEOUT;
+  if (!upstream_stale && latest_cmd_vel_) {
+    base_cmd = *latest_cmd_vel_;
+  } else {
+    base_cmd.linear.x = 0.0;
+    base_cmd.linear.y = 0.0;
+    base_cmd.linear.z = 0.0;
+    base_cmd.angular.x = 0.0;
+    base_cmd.angular.y = 0.0;
+    base_cmd.angular.z = 0.0;
+  }
+
+  auto base_cmd_ptr = std::make_shared<geometry_msgs::msg::Twist>(base_cmd);
+  auto aft_tf_vel = transformVelocity(base_cmd_ptr, current_robot_base_angle_);
+  cmd_vel_chassis_pub_->publish(aft_tf_vel);
+  last_cmd_vel_pub_time_ = now;
 }
 
 geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
