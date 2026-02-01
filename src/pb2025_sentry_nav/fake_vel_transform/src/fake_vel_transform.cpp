@@ -28,6 +28,11 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
 {
   RCLCPP_INFO(get_logger(), "Start FakeVelTransform!");
 
+  // Initialize state
+  current_robot_base_angle_ = 0.0;
+  spin_speed_ = 0.0f;
+  last_controller_activate_time_ = this->get_clock()->now();
+
   this->declare_parameter<std::string>("robot_base_frame", "gimbal_link");
   this->declare_parameter<std::string>("fake_robot_base_frame", "gimbal_link_fake");
   this->declare_parameter<std::string>("odom_topic", "odom");
@@ -85,7 +90,7 @@ void FakeVelTransform::cmdSpinCallback(const example_interfaces::msg::Float32::S
 void FakeVelTransform::odometryCallback(const nav_msgs::msg::Odometry::ConstSharedPtr & msg)
 {
   // NOTE: Haven't synced with local_plan
-  if ((rclcpp::Clock().now() - last_controller_activate_time_).seconds() > CONTROLLER_TIMEOUT) {
+  if ((this->get_clock()->now() - last_controller_activate_time_).seconds() > CONTROLLER_TIMEOUT) {
     current_robot_base_angle_ = tf2::getYaw(msg->pose.pose.orientation);
   }
 }
@@ -97,7 +102,7 @@ void FakeVelTransform::cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr
                            std::abs(msg->angular.z) < EPSILON;
   if (
     is_zero_vel ||
-    (rclcpp::Clock().now() - last_controller_activate_time_).seconds() > CONTROLLER_TIMEOUT) {
+    (this->get_clock()->now() - last_controller_activate_time_).seconds() > CONTROLLER_TIMEOUT) {
     // If received velocity cannot be synchronized, publish it directly
     auto aft_tf_vel = transformVelocity(msg, current_robot_base_angle_);
     cmd_vel_chassis_pub_->publish(aft_tf_vel);
@@ -109,7 +114,7 @@ void FakeVelTransform::cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr
 void FakeVelTransform::localPlanCallback(const nav_msgs::msg::Path::ConstSharedPtr & /*msg*/)
 {
   // Consider nav2_controller_server is activated when receiving local_plan
-  last_controller_activate_time_ = rclcpp::Clock().now();
+  last_controller_activate_time_ = this->get_clock()->now();
 }
 
 void FakeVelTransform::syncCallback(
