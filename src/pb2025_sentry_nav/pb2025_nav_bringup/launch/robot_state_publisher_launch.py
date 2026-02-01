@@ -73,6 +73,11 @@ def generate_launch_description():
                     "namespace": namespace,
                     "use_sim_time": use_sim_time,
                     "robot_name": robot_name,
+                    # Avoid inheriting the parent launch's `params_file` (nav2_params.yaml).
+                    # robot_description_launch.py expects pb2025_robot_description params.
+                    "params_file": os.path.join(
+                        pkg_pb2025_robot_description_dir, "params", "robot_description.yaml"
+                    ),
                     "use_rviz": "False",
                 }.items(),
             ),
