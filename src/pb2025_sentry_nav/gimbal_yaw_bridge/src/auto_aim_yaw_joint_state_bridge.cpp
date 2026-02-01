@@ -108,7 +108,9 @@ private:
     if (!have_last_) {
       return;
     }
-    publish(last_yaw_rad_, last_stamp_);
+    // Periodic republish should use a fresh timestamp; otherwise TF can become stale
+    // and fall out of the tf2 buffer even if yaw hasn't changed.
+    publish(last_yaw_rad_, this->get_clock()->now());
   }
 
   void publish(double yaw_rad, const rclcpp::Time & stamp)
