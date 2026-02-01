@@ -35,6 +35,10 @@ ros2 pkg prefix joint_state_publisher 2>/dev/null || true
 ros2 pkg prefix pb2025_robot_description 2>/dev/null || true
 ros2 pkg prefix gimbal_yaw_bridge 2>/dev/null || true
 
+say "Processes (who actually started jsp/rsp)"
+ps -ef | grep -E "joint_state_publisher(/joint_state_publisher)?( |$)|robot_state_publisher( |$)" | grep -v grep || true
+ps -ef | grep -E "ros2 launch|launch.py" | grep -v grep | head -n 30 || true
+
 say "Nodes (filter)"
 ros2 node list | grep -E "auto_aim_yaw_joint_state_bridge|joint_state_publisher|robot_state_publisher" || true
 
@@ -44,14 +48,23 @@ ros2 topic list | grep -E "/auto_aim_yaw|/serial/gimbal_joint_state|/joint_state
 say "Topic info: /auto_aim_yaw"
 ros2 topic info /auto_aim_yaw -v || true
 
+say "Topic hz (2s): /auto_aim_yaw"
+(timeout -s INT 2 ros2 topic hz /auto_aim_yaw 2>/dev/null) || true
+
 say "Topic info: /serial/gimbal_joint_state (expect: sub>=1 if joint_state_publisher is consuming)"
 ros2 topic info /serial/gimbal_joint_state -v || true
+
+say "Topic hz (2s): /serial/gimbal_joint_state"
+(timeout -s INT 2 ros2 topic hz /serial/gimbal_joint_state 2>/dev/null) || true
 
 say "Topic info: /red_standard_robot1/serial/gimbal_joint_state (namespace variant, if any)"
 ros2 topic info /red_standard_robot1/serial/gimbal_joint_state -v || true
 
 say "Topic info: /joint_states (expect: pub>=1 if joint_state_publisher is running)"
 ros2 topic info /joint_states -v || true
+
+say "Topic hz (2s): /joint_states"
+(timeout -s INT 2 ros2 topic hz /joint_states 2>/dev/null) || true
 
 say "Node info: /joint_state_publisher (if exists)"
 ros2 node info /joint_state_publisher || true
