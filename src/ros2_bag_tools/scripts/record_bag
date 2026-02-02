@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# 说明：
+# - 设计为可同时支持“从源码运行”和“ros2 run 安装后运行”
+# - 默认录包目录放在工作区的 src/ros2_bag_tools/bags（避免塞满顶层 scripts）
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WS_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+
+usage() {
+  cat <<'EOF'
+用法：
+  ros2 run ros2_bag_tools record_bag [--mode basic|full] [--out-dir DIR] [--max-bag-size-mb N] [--compress zstd] [--storage sqlite3|mcap]
+
+说明：
+  - 默认按时间命名输出目录：<out-dir>/<YYYY-MM-DD_HH-MM-SS>
+  - 默认 mode=basic（不录 costmap 等大流量话题）
+  - 默认 storage=sqlite3（ROS2 Humble 开箱可用）；mcap 可后续安装后再切换
+  - 停止录包：Ctrl+C
+EOF
+}
+
+MODE="basic"
+OUT_DIR_DEFAULT="${WS_ROOT}/src/ros2_bag_tools/bags"
+if [[ ! -d "${OUT_DIR_DEFAULT}" ]]; then
+  OUT_DIR_DEFAULT="${WS_ROOT}/bags"
+fi
+OUT_DIR="${OUT_DIR_DEFAULT}"
+
+MAX_BAG_SIZE_MB=2048
+COMPRESS=""
+STORAGE="sqlite3"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --mode)
+      MODE="${2:-}"; shift 2 ;;
+    --out-dir)
+      OUT_DIR="${2:-}"; shift 2 ;;
+    --max-bag-size-mb)
+      MAX_BAG_SIZE_MB="${2:-}"; shift 2 ;;
+    --compress)
+      COMPRESS="${2:-}"; shift 2 ;;
+    --storage)
+      STORAGE="${2:-}"; shift 2 ;;
+    -h|--help)
+      usage; exit 0 ;;
+    *)
+      echo "未知参数: $1" >&2
+      usage
+      exit 2
+      ;;
+  esac
+done
+
+if ! command -v ros2 >/dev/null 2>&1; then
+  echo "找不到 ros2 命令。请先 source ROS2 环境 (如 /opt/ros/humble/setup.bash) 以及工作空间 install/setup.bash" >&2
+  exit 1
+fi
+
+_find_topics_file() {
+  local name="$1"
+  local source_path="${WS_ROOT}/src/ros2_bag_tools/topics/${name}"
+  if [[ -f "${source_path}" ]]; then
+    echo "${source_path}"
+    return 0
+  fi
+
+  local prefix
+  prefix="$(ros2 pkg prefix ros2_bag_tools 2>/dev/null || true)"
+  if [[ -n "${prefix}" && -f "${prefix}/share/ros2_bag_tools/topics/${name}" ]]; then
+    echo "${prefix}/share/ros2_bag_tools/topics/${name}"
+    return 0
+  fi
+
+  return 1
+}
+
+case "${MODE}" in
+  basic) TOPICS_FILE="$(_find_topics_file bag_topics_basic.txt || true)" ;;
+  full) TOPICS_FILE="$(_find_topics_file bag_topics_full.txt || true)" ;;
+  *)
+    echo "--mode 只能是 basic 或 full，当前：${MODE}" >&2
+    exit 2
+    ;;
+esac
+
+if [[ -z "${TOPICS_FILE}" || ! -f "${TOPICS_FILE}" ]]; then
+  echo "找不到话题列表文件（mode=${MODE}）。你可能还没 build/install，或源码路径不完整。" >&2
+  echo "期望存在：${WS_ROOT}/src/ros2_bag_tools/topics/bag_topics_${MODE}.txt" >&2
+  exit 1
+fi
+
+mkdir -p "${OUT_DIR}"
+
+TS="$(date +%F_%H-%M-%S)"
+BAG_PATH="${OUT_DIR}/${TS}"
+
+mapfile -t TOPICS < <(grep -vE '^[[:space:]]*#' "${TOPICS_FILE}" | sed '/^[[:space:]]*$/d')
+if [[ ${#TOPICS[@]} -eq 0 ]]; then
+  echo "话题列表为空: ${TOPICS_FILE}" >&2
+  exit 1
+fi
+
+MAX_BAG_SIZE_BYTES=$((MAX_BAG_SIZE_MB * 1024 * 1024))
+
+RECORD_ARGS=(
+  record
+  -o "${BAG_PATH}"
+  --storage "${STORAGE}"
+  --max-bag-size "${MAX_BAG_SIZE_BYTES}"
+)
+
+if [[ -n "${COMPRESS}" ]]; then
+  case "${COMPRESS}" in
+    zstd)
+      RECORD_ARGS+=(--compression-mode file --compression-format zstd)
+      ;;
+    *)
+      echo "--compress 目前只支持: zstd" >&2
+      exit 2
+      ;;
+  esac
+fi
+
+echo "录包模式: ${MODE}"
+echo "话题列表: ${TOPICS_FILE}（${#TOPICS[@]} 个）"
+echo "输出目录: ${BAG_PATH}"
+echo "storage: ${STORAGE}"
+echo "分包大小: ${MAX_BAG_SIZE_MB} MB"
+if [[ -n "${COMPRESS}" ]]; then
+  echo "压缩: ${COMPRESS}"
+fi
+
+echo "开始录包...（Ctrl+C 停止）"
+exec ros2 bag "${RECORD_ARGS[@]}" "${TOPICS[@]}"

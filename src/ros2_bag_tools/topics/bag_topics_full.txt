@@ -1,0 +1,48 @@
+# full 录包话题（排障/复现复杂问题用，数据量更大）
+# 包含 basic + costmap/诊断/行为树日志等。
+
+# basic
+/parameter_events
+/rosout
+/tf
+/tf_static
+/cmd_vel
+/odometry
+/lidar_odometry
+/livox/imu
+/livox/lidar/pointcloud
+/sensor_scan
+/registered_scan
+/path
+/plan
+/plan_smoothed
+/goal_pose
+/initialpose
+/pose
+/map
+/map_metadata
+/map_updates
+
+# 诊断/调试
+/diagnostics
+/behavior_tree_log
+/bt_navigator/transition_event
+/planner_server/transition_event
+/controller_server/transition_event
+/behavior_server/transition_event
+/smoother_server/transition_event
+/velocity_smoother/transition_event
+/waypoint_follower/transition_event
+
+# costmap（非常大；只有需要复盘障碍物/局部规划时才建议录 full）
+/global_costmap/costmap
+/global_costmap/costmap_raw
+/global_costmap/costmap_updates
+/global_costmap/footprint
+/global_costmap/published_footprint
+
+/local_costmap/costmap
+/local_costmap/costmap_raw
+/local_costmap/costmap_updates
+/local_costmap/footprint
+/local_costmap/published_footprint

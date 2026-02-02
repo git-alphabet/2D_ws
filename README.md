@@ -134,6 +134,27 @@ PYTHON_BIN=python3 ./scripts/setup_neupan_env.sh
 
 ---
 
+## 4.6 实车数据录包（ros2 bag）
+
+当前阶段建议：**实车每次运行都录包**，用于复现与回放验证算法。
+
+- 最小录包（默认 sqlite3，按时间命名输出目录）：
+
+```bash
+./scripts/record_bag.sh
+```
+
+- 回放：
+
+```bash
+ros2 run ros2_bag_tools play_bag ./src/ros2_bag_tools/bags/<时间目录>
+```
+
+如需估算录包大小，最直接的方法是录一次然后查看目录大小（`du -sh <bag_dir>`）。
+更多说明见：`src/ros2_bag_tools/README.md`
+
+---
+
 ## 5. 配置与开关
 
 ### 5.1 NeuPAN 虚拟环境是否会被自动启用？

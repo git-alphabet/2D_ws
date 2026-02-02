@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+用法：
+  ros2 run ros2_bag_tools play_bag <bag_dir> [--rate R] [--loop] [--no-clock]
+
+说明：
+  - 默认会先执行 `ros2 bag info` 再回放
+  - 默认会带 `--clock` 发布 /clock（很多导航/仿真链路回放更稳）
+EOF
+}
+
+if [[ $# -lt 1 ]]; then
+  usage
+  exit 2
+fi
+
+BAG_DIR="$1"; shift
+RATE="1.0"
+LOOP=0
+USE_CLOCK=1
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --rate)
+      RATE="${2:-}"; shift 2 ;;
+    --loop)
+      LOOP=1; shift ;;
+    --no-clock)
+      USE_CLOCK=0; shift ;;
+    -h|--help)
+      usage; exit 0 ;;
+    *)
+      echo "未知参数: $1" >&2
+      usage
+      exit 2
+      ;;
+  esac
+done
+
+if ! command -v ros2 >/dev/null 2>&1; then
+  echo "找不到 ros2 命令。请先 source ROS2 环境以及工作空间 install/setup.bash" >&2
+  exit 1
+fi
+
+if [[ ! -d "${BAG_DIR}" ]]; then
+  echo "bag 目录不存在: ${BAG_DIR}" >&2
+  exit 1
+fi
+
+echo "bag 信息："
+ros2 bag info "${BAG_DIR}" || true
+
+echo "开始回放..."
+PLAY_ARGS=(play "${BAG_DIR}" --rate "${RATE}")
+
+if [[ ${USE_CLOCK} -eq 1 ]]; then
+  PLAY_ARGS+=(--clock)
+fi
+
+if [[ ${LOOP} -eq 1 ]]; then
+  PLAY_ARGS+=(--loop)
+fi
+
+exec ros2 bag "${PLAY_ARGS[@]}"

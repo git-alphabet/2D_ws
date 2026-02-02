@@ -5,3 +5,4 @@ log/
 neupan_env/
 /tips.txt
 /env.txt
+src/ros2_bag_tools/bags/
