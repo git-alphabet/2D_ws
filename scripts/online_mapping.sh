@@ -25,4 +25,4 @@ else
   ros2 service call /rviz/start std_srvs/srv/Trigger "{}" >/dev/null 2>&1 || true
 fi
 
-exec "${SCRIPT_DIR}/mapping.sh" "$@"
+exec "${SCRIPT_DIR}/mapping_gui.sh" "$@"

@@ -25,4 +25,4 @@ else
   ros2 service call /rviz/start std_srvs/srv/Trigger "{}" >/dev/null 2>&1 || true
 fi
 
-exec "${SCRIPT_DIR}/start_navigation.sh" "$@"
+exec "${SCRIPT_DIR}/start_navigation_gui.sh" "$@"
