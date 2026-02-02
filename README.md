@@ -118,6 +118,39 @@ PYTHON_BIN=python3 ./scripts/setup_neupan_env.sh
 ./scripts/mapping.sh
 ```
 
+### 4.4.1 远端一键启动（SSH）+ 本机弹出 RViz（DDS 触发）
+
+场景：你通过 VS Code SSH 连接小电脑（无 GUI），希望在远端只跑建图/导航并记录日志，但在本机自动弹出 `rviz2`。
+
+1) 在本机（有 GUI 的电脑）先启动 RViz 触发服务（建议开一个终端常驻）：
+
+```bash
+cd <你的 ros2_ws>
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+
+# 可选：本机用 NVIDIA 渲染（默认已启用；设为 0 关闭）
+export RVIZ_NVIDIA=1
+
+python3 scripts/rviz_daemon.py
+```
+
+2) 在小电脑（VS Code SSH 终端）执行一键脚本：
+
+- 实车建图：
+
+```bash
+ROS_DOMAIN_ID=66 ROS_LOCALHOST_ONLY=0 ./scripts/reality_mapping_oneclick.sh
+```
+
+- 实车导航：
+
+```bash
+ROS_DOMAIN_ID=66 ROS_LOCALHOST_ONLY=0 ./scripts/reality_navigation_oneclick.sh
+```
+
+说明：两端需保持一致的 `ROS_DOMAIN_ID`（以及如有需要的 `RMW_IMPLEMENTATION`），并确保 `ROS_LOCALHOST_ONLY=0`。
+
 ### 4.5 其他常用脚本
 
 - 启动串口驱动：

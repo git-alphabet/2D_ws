@@ -35,6 +35,14 @@ def _slugify(text: str) -> str:
     return s or "log"
 
 
+def _ensure_launch_arg(cmd: str, name: str, value: str) -> str:
+    # If user already specified `<name>:=...`, don't override.
+    # This is intentionally simple string matching (good enough for our scripts).
+    if re.search(rf"(^|\s){re.escape(name)}:=", cmd):
+        return cmd
+    return cmd + f" {name}:={value}"
+
+
 def _which(cmd: str) -> Optional[str]:
     try:
         out = subprocess.check_output(["bash", "-lc", f"command -v {shlex.quote(cmd)}"], text=True)
@@ -410,6 +418,10 @@ def main(argv: list[str]) -> int:
         if extra_args:
             mapping_cmd = mapping_cmd + " " + " ".join(map(shlex.quote, extra_args))
 
+        # Headless/SSH usage: by default do not start RViz on the remote machine.
+        if cfg.no_new_terminal:
+            mapping_cmd = _ensure_launch_arg(mapping_cmd, "use_rviz", "False")
+
         if kill_existing:
             _kill_by_pattern(r"ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py", "rm_navigation_reality_launch.py", cfg.script_name)
             _kill_by_pattern(r"(^|/)joint_state_publisher(\\s|$)", "joint_state_publisher", cfg.script_name)
@@ -426,6 +438,10 @@ def main(argv: list[str]) -> int:
         )
         if extra_args:
             nav_cmd = nav_cmd + " " + " ".join(map(shlex.quote, extra_args))
+
+        # Headless/SSH usage: by default do not start RViz on the remote machine.
+        if cfg.no_new_terminal:
+            nav_cmd = _ensure_launch_arg(nav_cmd, "use_rviz", "False")
 
         if kill_existing:
             _kill_by_pattern(r"ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py", "rm_navigation_reality_launch.py", cfg.script_name)
