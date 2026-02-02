@@ -1,5 +1,6 @@
 import os
 import tempfile
+import re
 
 import yaml  # type: ignore
 
@@ -16,6 +17,19 @@ from launch.substitutions import LaunchConfiguration, TextSubstitution
 from launch_ros.actions import Node
 from sdformat_tools.urdf_generator import UrdfGenerator
 from xmacro.xmacro4sdf import XMLMacro4sdf
+
+
+def _make_urdf_mesh_uris_portable(urdf_xml: str) -> str:
+        """Rewrite absolute file:// URIs produced on another machine into package:// URIs.
+
+        Example from remote robot_description:
+            file:///.../install/rmoss_gz_resources/share/rmoss_gz_resources/resource/... ->
+            package://rmoss_gz_resources/resource/...
+        """
+
+        # Match: file:///.../install/<pkg>/share/<pkg>/
+        pattern = re.compile(r"file:///(?:(?!\s).)*/install/([^/\s]+)/share/\1/")
+        return pattern.sub(r"package://\1/", urdf_xml)
 
 
 def launch_setup(context: LaunchContext) -> list:
@@ -43,7 +57,7 @@ def launch_setup(context: LaunchContext) -> list:
     # Generate URDF from SDF
     urdf_generator = UrdfGenerator()
     urdf_generator.parse_from_sdf_string(robot_xml)
-    robot_urdf_xml = urdf_generator.to_string()
+    robot_urdf_xml = _make_urdf_mesh_uris_portable(urdf_generator.to_string())
 
     # Resolve params file to a concrete path. When `namespace` is empty (common
     # on the real robot), passing a LaunchConfiguration directly to ParameterFile
