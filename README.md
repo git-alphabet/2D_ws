@@ -132,6 +132,9 @@ source install/setup.bash
 # 可选：本机用 NVIDIA 渲染（默认已启用；设为 0 关闭）
 export RVIZ_NVIDIA=1
 
+# 可选：UI/字体缩放（Qt）
+export RVIZ_QT_SCALE=1.2
+
 python3 scripts/rviz_daemon.py
 ```
 
