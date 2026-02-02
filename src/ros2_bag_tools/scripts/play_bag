@@ -1,67 +1,55 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-usage() {
-  cat <<'EOF'
-用法：
-  ros2 run ros2_bag_tools play_bag <bag_dir> [--rate R] [--loop] [--no-clock]
-
-说明：
-  - 默认会先执行 `ros2 bag info` 再回放
-  - 默认会带 `--clock` 发布 /clock（很多导航/仿真链路回放更稳）
-EOF
-}
-
-if [[ $# -lt 1 ]]; then
-  usage
-  exit 2
-fi
-
-BAG_DIR="$1"; shift
-RATE="1.0"
-LOOP=0
-USE_CLOCK=1
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --rate)
-      RATE="${2:-}"; shift 2 ;;
-    --loop)
-      LOOP=1; shift ;;
-    --no-clock)
-      USE_CLOCK=0; shift ;;
-    -h|--help)
-      usage; exit 0 ;;
-    *)
-      echo "未知参数: $1" >&2
-      usage
-      exit 2
-      ;;
-  esac
 done
+#!/usr/bin/env python3
 
-if ! command -v ros2 >/dev/null 2>&1; then
-  echo "找不到 ros2 命令。请先 source ROS2 环境以及工作空间 install/setup.bash" >&2
-  exit 1
-fi
+from __future__ import annotations
 
-if [[ ! -d "${BAG_DIR}" ]]; then
-  echo "bag 目录不存在: ${BAG_DIR}" >&2
-  exit 1
-fi
+import argparse
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
 
-echo "bag 信息："
-ros2 bag info "${BAG_DIR}" || true
 
-echo "开始回放..."
-PLAY_ARGS=(play "${BAG_DIR}" --rate "${RATE}")
+def main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="play_bag",
+        description="ros2 bag 回放（默认先 info，再带 --clock）。",
+    )
+    parser.add_argument("bag_dir", help="bag 目录路径")
+    parser.add_argument("--rate", default="1.0", help="回放倍率（默认 1.0）")
+    parser.add_argument("--loop", action="store_true", help="循环回放")
+    parser.add_argument("--no-clock", action="store_true", help="不发布 /clock")
+    args = parser.parse_args(argv)
 
-if [[ ${USE_CLOCK} -eq 1 ]]; then
-  PLAY_ARGS+=(--clock)
-fi
+    if shutil.which("ros2") is None:
+        print(
+            "找不到 ros2 命令。请先 source ROS2 环境以及工作空间 install/setup.bash",
+            file=sys.stderr,
+        )
+        return 1
 
-if [[ ${LOOP} -eq 1 ]]; then
-  PLAY_ARGS+=(--loop)
-fi
+    bag_dir = Path(args.bag_dir).expanduser()
+    if not bag_dir.is_dir():
+        print(f"bag 目录不存在: {bag_dir}", file=sys.stderr)
+        return 1
 
-exec ros2 bag "${PLAY_ARGS[@]}"
+    print("bag 信息：")
+    try:
+        subprocess.run(["ros2", "bag", "info", str(bag_dir)], check=False)
+    except Exception:
+        pass
+
+    cmd: list[str] = ["ros2", "bag", "play", str(bag_dir), "--rate", str(args.rate)]
+    if not args.no_clock:
+        cmd.append("--clock")
+    if args.loop:
+        cmd.append("--loop")
+
+    print("开始回放...")
+    os.execvp(cmd[0], cmd)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
