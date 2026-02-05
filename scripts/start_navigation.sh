@@ -4,6 +4,9 @@ set -euo pipefail
 # Thin wrapper: delegate to Python (easier to read).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# 实车默认不要拉起 gnome-terminal 等图形化终端（只在当前终端运行）。
+export NO_NEW_TERMINAL="${NO_NEW_TERMINAL:-1}"
+
 export QT_FONT_DPI=120
 export __NV_PRIME_RENDER_OFFLOAD=1
 export __GLX_VENDOR_LIBRARY_NAME=nvidia
