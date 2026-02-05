@@ -43,6 +43,43 @@ def _ensure_launch_arg(cmd: str, name: str, value: str) -> str:
     return cmd + f" {name}:={value}"
 
 
+def _foxglove_bridge_command() -> str:
+    # Configure via env vars (strings):
+    # - START_FOXGLOVE=0 to disable
+    # - FOXGLOVE_PORT / FOXGLOVE_ADDRESS
+    # - FOXGLOVE_TOPIC_WHITELIST / FOXGLOVE_PARAM_WHITELIST / FOXGLOVE_SERVICE_WHITELIST
+    # - FOXGLOVE_DEBUG / FOXGLOVE_TLS / FOXGLOVE_CERTFILE / FOXGLOVE_KEYFILE
+    # - FOXGLOVE_SEND_BUFFER_LIMIT / FOXGLOVE_USE_SIM_TIME / FOXGLOVE_CAPABILITIES
+    def pick(key: str, default: str) -> str:
+        v = os.environ.get(key, "").strip()
+        return v if v else default
+
+    args: dict[str, str] = {
+        "port": pick("FOXGLOVE_PORT", "8765"),
+        "address": pick("FOXGLOVE_ADDRESS", "0.0.0.0"),
+        "debug": pick("FOXGLOVE_DEBUG", "false"),
+        "tls": pick("FOXGLOVE_TLS", "false"),
+        "certfile": pick("FOXGLOVE_CERTFILE", ""),
+        "keyfile": pick("FOXGLOVE_KEYFILE", ""),
+        # NOTE: These values include brackets/quotes; always quote to avoid shell globbing.
+        "topic_whitelist": pick("FOXGLOVE_TOPIC_WHITELIST", "['.*']"),
+        "param_whitelist": pick("FOXGLOVE_PARAM_WHITELIST", "['.*']"),
+        "service_whitelist": pick("FOXGLOVE_SERVICE_WHITELIST", "['.*']"),
+        "send_buffer_limit": pick("FOXGLOVE_SEND_BUFFER_LIMIT", "10000000"),
+        "use_sim_time": pick("FOXGLOVE_USE_SIM_TIME", "false"),
+    }
+
+    capabilities = os.environ.get("FOXGLOVE_CAPABILITIES", "").strip()
+    if capabilities:
+        args["capabilities"] = capabilities
+
+    parts = ["ros2", "launch", "foxglove_bridge", "foxglove_bridge_launch.xml"]
+    for k, v in args.items():
+        parts.append(f"{k}:={shlex.quote(v)}")
+
+    return " ".join(parts)
+
+
 def _which(cmd: str) -> Optional[str]:
     try:
         out = subprocess.check_output(["bash", "-lc", f"command -v {shlex.quote(cmd)}"], text=True)
@@ -286,20 +323,30 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
         full_cmd += f"; {extra_env}"
     full_cmd += f"; {command}"
 
-    if cfg.no_new_terminal or not cfg.terminal_cmd:
+    # Background processes: always run detached (log to file), regardless of terminal mode.
+    if background:
         log_dir = cfg.ws_dir / "log"
         log_dir.mkdir(parents=True, exist_ok=True)
         slug = _slugify(title)
         log_file = log_dir / f"{Path(cfg.script_name).stem}_{slug}.log"
 
-        if background:
-            if bg is None:
-                raise RuntimeError("internal: background requested without bg group")
-            print(f"[{cfg.script_name}] (single-terminal) {title} -> {log_file}", file=sys.stderr)
-            # Start in its own session so we can kill the whole group.
-            p = subprocess.Popen(["bash", "-lc", full_cmd], stdout=open(log_file, "a"), stderr=subprocess.STDOUT, preexec_fn=os.setsid)
+        print(f"[{cfg.script_name}] (background) {title} -> {log_file}", file=sys.stderr)
+        # Start in its own session so we can kill the whole group (when tracked).
+        p = subprocess.Popen(
+            ["bash", "-lc", full_cmd],
+            stdout=open(log_file, "a"),
+            stderr=subprocess.STDOUT,
+            preexec_fn=os.setsid,
+        )
+        if bg is not None:
             bg.add(p.pid)
-            return
+        return
+
+    if cfg.no_new_terminal or not cfg.terminal_cmd:
+        log_dir = cfg.ws_dir / "log"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        slug = _slugify(title)
+        log_file = log_dir / f"{Path(cfg.script_name).stem}_{slug}.log"
 
         print(f"[{cfg.script_name}] (single-terminal) {title} (foreground)", file=sys.stderr)
         print(f"[{cfg.script_name}] Log: {log_file}", file=sys.stderr)
@@ -411,6 +458,29 @@ def main(argv: list[str]) -> int:
         _check_conflicts(cfg.script_name, cfg.strict)
 
     if mode == "reality_mapping":
+        # Reality modes: default to Foxglove (headless) instead of RViz.
+        start_foxglove = _is_truthy(os.environ.get("START_FOXGLOVE", "1"))
+        start_rviz = _is_truthy(os.environ.get("START_RVIZ", "0"))
+
+        # In single-terminal mode we keep this wrapper alive, so we can clean up bg processes.
+        bg: Optional[BackgroundGroup] = None
+        if cfg.no_new_terminal:
+            bg = BackgroundGroup(cfg.script_name)
+            atexit.register(bg.cleanup)
+
+            def _sig(_signum, _frame):
+                bg.cleanup()
+                raise SystemExit(130)
+
+            signal.signal(signal.SIGINT, _sig)
+            signal.signal(signal.SIGTERM, _sig)
+
+        if start_foxglove:
+            if kill_existing:
+                _kill_by_pattern(r"ros2 launch foxglove_bridge foxglove_bridge_launch.xml", "foxglove_bridge", cfg.script_name)
+            foxglove_cmd = _foxglove_bridge_command()
+            _launch_in_terminal(cfg, "Foxglove Bridge", foxglove_cmd, "", background=True, bg=bg)
+
         mapping_cmd = os.environ.get(
             "MAPPING_CMD",
             "ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True",
@@ -418,9 +488,8 @@ def main(argv: list[str]) -> int:
         if extra_args:
             mapping_cmd = mapping_cmd + " " + " ".join(map(shlex.quote, extra_args))
 
-        # Headless/SSH usage: by default do not start RViz on the remote machine.
-        if cfg.no_new_terminal:
-            mapping_cmd = _ensure_launch_arg(mapping_cmd, "use_rviz", "False")
+        # Default: do not start RViz unless explicitly requested.
+        mapping_cmd = _ensure_launch_arg(mapping_cmd, "use_rviz", "True" if start_rviz else "False")
 
         if kill_existing:
             _kill_by_pattern(r"ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py", "rm_navigation_reality_launch.py", cfg.script_name)
@@ -432,6 +501,27 @@ def main(argv: list[str]) -> int:
         return 0
 
     if mode == "reality_navigation":
+        start_foxglove = _is_truthy(os.environ.get("START_FOXGLOVE", "1"))
+        start_rviz = _is_truthy(os.environ.get("START_RVIZ", "0"))
+
+        bg: Optional[BackgroundGroup] = None
+        if cfg.no_new_terminal:
+            bg = BackgroundGroup(cfg.script_name)
+            atexit.register(bg.cleanup)
+
+            def _sig(_signum, _frame):
+                bg.cleanup()
+                raise SystemExit(130)
+
+            signal.signal(signal.SIGINT, _sig)
+            signal.signal(signal.SIGTERM, _sig)
+
+        if start_foxglove:
+            if kill_existing:
+                _kill_by_pattern(r"ros2 launch foxglove_bridge foxglove_bridge_launch.xml", "foxglove_bridge", cfg.script_name)
+            foxglove_cmd = _foxglove_bridge_command()
+            _launch_in_terminal(cfg, "Foxglove Bridge", foxglove_cmd, "", background=True, bg=bg)
+
         nav_cmd = os.environ.get(
             "NAVIGATION_CMD",
             "ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True",
@@ -439,9 +529,8 @@ def main(argv: list[str]) -> int:
         if extra_args:
             nav_cmd = nav_cmd + " " + " ".join(map(shlex.quote, extra_args))
 
-        # Headless/SSH usage: by default do not start RViz on the remote machine.
-        if cfg.no_new_terminal:
-            nav_cmd = _ensure_launch_arg(nav_cmd, "use_rviz", "False")
+        # Default: do not start RViz unless explicitly requested.
+        nav_cmd = _ensure_launch_arg(nav_cmd, "use_rviz", "True" if start_rviz else "False")
 
         if kill_existing:
             _kill_by_pattern(r"ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py", "rm_navigation_reality_launch.py", cfg.script_name)
