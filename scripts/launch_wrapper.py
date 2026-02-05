@@ -75,6 +75,10 @@ def _foxglove_bridge_command() -> str:
 
     parts = ["ros2", "launch", "foxglove_bridge", "foxglove_bridge_launch.xml"]
     for k, v in args.items():
+        # Avoid passing empty-string values through a shell-parsed command.
+        # Example: certfile:='' becomes certfile:= after shlex splitting, which ros2 launch rejects.
+        if k in {"certfile", "keyfile"} and not v:
+            continue
         parts.append(f"{k}:={shlex.quote(v)}")
 
     return " ".join(parts)
@@ -334,7 +338,7 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
         # Start in its own session so we can kill the whole group (when tracked).
         p = subprocess.Popen(
             ["bash", "-lc", full_cmd],
-            stdout=open(log_file, "a"),
+            stdout=open(log_file, "w"),
             stderr=subprocess.STDOUT,
             preexec_fn=os.setsid,
         )
