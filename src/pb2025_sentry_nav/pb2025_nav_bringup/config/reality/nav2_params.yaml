@@ -11,7 +11,7 @@ mid360_driver:
     # 20Hz 发布点云（与旧配置 publish_freq: 20.0 对齐）
     lidar_publish_time_interval: 0.05
     # 本机网卡 IP
-    host_ip: 192.168.1.2
+    host_ip: 0.0.0.0
     # 多雷达时可打开，让话题名后缀带雷达 ip
     is_topic_name_with_lidar_ip: false
 
@@ -110,8 +110,8 @@ pb_controller_profiles:
       use_rotate_to_heading_treshold: 0.1
       min_approach_linear_velocity: 0.5
       approach_velocity_scaling_dist: 1.0
-      v_linear_min: -2.5
-      v_linear_max: 2.5
+      v_linear_min: -1.5
+      v_linear_max: 1.5
       v_angular_min: -3.0
       v_angular_max: 3.0
       curvature_min: 0.4
@@ -376,13 +376,13 @@ nonlinear_spin_publisher:
     publish_rate_hz: 50.0
 
     # 实车默认中心值与 init_spin_speed 对齐，后续你可按底盘能力改
-    center_speed: 4.6
+    center_speed: 2.8
     range_speed: 2.0
     target_update_period: 0.15
     accel_limit: 16.0
 
-    max_abs_speed: 10.0
-    min_abs_speed: 2.0
+    max_abs_speed: 4.8
+    min_abs_speed: 1.5
     seed: 1
     start_delay_sec: 0.5
 
@@ -606,7 +606,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 4.0
-        inflation_radius: 0.7
+        inflation_radius: 0.8
       always_send_full_costmap: False
 
 # 代价地图（global）：通常使用 map 坐标系，观测源常来自 terrain_map_ext
@@ -655,7 +655,7 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 4.0
-        inflation_radius: 0.7
+        inflation_radius: 0.8
       always_send_full_costmap: False
 
 # The yaml_filename does not need to be specified since it going to be set by defaults in launch.
