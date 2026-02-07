@@ -11,6 +11,10 @@ export QT_FONT_DPI=120
 export __NV_PRIME_RENDER_OFFLOAD=1
 export __GLX_VENDOR_LIBRARY_NAME=nvidia
 
+# 默认使用 RViz，关闭 Foxglove（可通过环境变量覆盖）
+export START_FOXGLOVE="${START_FOXGLOVE:-1}"
+export START_RVIZ="${START_RVIZ:-0}"
+
 # 你想加/改 launch 参数，优先改这行（或运行时用环境变量覆盖 MAPPING_CMD）。
 MAPPING_CMD=${MAPPING_CMD:-"ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True"}
 export MAPPING_CMD

@@ -15,4 +15,8 @@ export __GLX_VENDOR_LIBRARY_NAME=nvidia
 NAVIGATION_CMD=${NAVIGATION_CMD:-"ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True"}
 export NAVIGATION_CMD
 
+# 默认使用 RViz，关闭 Foxglove（可通过环境变量覆盖）
+export START_FOXGLOVE="${START_FOXGLOVE:-0}"
+export START_RVIZ="${START_RVIZ:-1}"
+
 exec python3 "$SCRIPT_DIR/launch_wrapper.py" reality_navigation "$@"
