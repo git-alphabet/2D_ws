@@ -21,7 +21,7 @@
                     <specular>0.6 0.6 0.6</specular>
                 </material>
             </visual>
-            <visual name="light_bar_visual">
+            <visual name="light_indicator${suffix}_light_bar_visual">
                 <xmacro_block name="geometry_mesh" uri="model://rm21_light_indicator_module/meshes/light_indicator_bar.dae"/>
                 <material>
                     <ambient>1.0 1.0 1.0</ambient>

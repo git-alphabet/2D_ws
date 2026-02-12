@@ -271,8 +271,8 @@ point_lio:
       plane_thr: 0.1                                    # 0.05, the threshold for plane criteria, the smaller, the flatter a plane
       match_s: 81.0
       ivox_grid_resolution: 0.5
-      gravity: [ 0.0, 0.0, 0.0 ]        # point_lio已实现自动重力校准，这里仅作标识
-      gravity_init: [ 0.0, 0.0, 0.0 ]
+      gravity: [ 0.0, 0.0, -9.81 ]       # 重力向量(机体坐标系), 模长用于 G_m_s2 计算, 不能为零
+      gravity_init: [ 0.0, 0.0, -9.81 ] # fix_gravity_direction=false 时的初始重力方向
       extrinsic_T: [ 0.0, 0.0, 0.0 ]
       extrinsic_R: [ 1.0, 0.0, 0.0,
                      0.0, 1.0, 0.0,

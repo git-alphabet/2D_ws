@@ -493,7 +493,10 @@ int main(int argc, char ** argv)
           V3D tmp_gravity;
           if (imu_en) {
             if (fix_gravity_direction) {
-              tmp_gravity = -p_imu->mean_acc / p_imu->mean_acc.norm() * G_m_s2;
+              // Safety: if gravity param was [0,0,0], G_m_s2 would be 0 → NaN in Set_init.
+              // Fall back to acc_norm (which is typically 9.81) as the gravity magnitude.
+              double g_mag = (G_m_s2 > 1e-6) ? G_m_s2 : acc_norm;
+              tmp_gravity = -p_imu->mean_acc / p_imu->mean_acc.norm() * g_mag;
               // Make auto-calibrated gravity effective for subsequent init/propagation.
               // This mirrors the behavior of manually setting mapping.gravity/gravity_init to the calibrated value.
               p_imu->gravity_ = tmp_gravity;

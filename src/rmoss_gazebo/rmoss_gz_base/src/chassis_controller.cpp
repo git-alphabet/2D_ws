@@ -44,9 +44,12 @@ ChassisController::ChassisController(
   ros_cmd_vel_sub_ = node_->create_subscription<geometry_msgs::msg::Twist>(
     "cmd_vel", 10, std::bind(&ChassisController::cmd_vel_cb, this, _1));
   // timer and set_parameters callback
+  // Use rclcpp::create_timer (sim-time aware) instead of create_wall_timer
+  // to avoid "jump back in time" errors in the TF buffer when use_sim_time=true
   auto period = std::chrono::milliseconds(10);
-  controller_timer_ = node_->create_wall_timer(
-    period, std::bind(&ChassisController::update, this));
+  controller_timer_ = rclcpp::create_timer(
+    node_, node_->get_clock(), rclcpp::Duration(period),
+    std::bind(&ChassisController::update, this));
 }
 
 void ChassisController::update()

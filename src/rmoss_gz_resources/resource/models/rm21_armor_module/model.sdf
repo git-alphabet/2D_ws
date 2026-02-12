@@ -82,7 +82,7 @@
 					<specular>0.6 0.6 0.6</specular>
 				</material>
 			</visual>
-			<visual name="light_bar_visual">
+			<visual name="armor_1_light_bar_visual">
 				<geometry>
 					<mesh>
 						<uri>model://rm21_armor_module/meshes/small_armor_light_bar.dae</uri>
@@ -155,7 +155,7 @@
 					<specular>0.6 0.6 0.6</specular>
 				</material>
 			</visual>
-			<visual name="light_bar_visual">
+			<visual name="armor_2_light_bar_visual">
 				<geometry>
 					<mesh>
 						<uri>model://rm21_armor_module/meshes/large_armor_light_bar.stl</uri>
@@ -287,7 +287,7 @@
 					<specular>0.6 0.6 0.6</specular>
 				</material>
 			</visual>
-			<visual name="light_bar_visual">
+			<visual name="armor_3_light_bar_visual">
 				<geometry>
 					<mesh>
 						<uri>model://rm21_armor_module/meshes/small_armor_light_bar.dae</uri>
@@ -419,7 +419,7 @@
 					<specular>0.6 0.6 0.6</specular>
 				</material>
 			</visual>
-			<visual name="light_bar_visual">
+			<visual name="armor_4_light_bar_visual">
 				<geometry>
 					<mesh>
 						<uri>model://rm21_armor_module/meshes/large_armor_light_bar.stl</uri>

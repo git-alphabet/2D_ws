@@ -81,8 +81,11 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
     std::bind(&FakeVelTransform::syncCallback, this, std::placeholders::_1, std::placeholders::_2));
 
   // 50Hz Timer to send transform from `robot_base_frame` to `fake_robot_base_frame`
-  timer_ = this->create_wall_timer(
-    std::chrono::milliseconds(20), std::bind(&FakeVelTransform::publishTransform, this));
+  // Use create_timer (sim-time aware) instead of create_wall_timer to avoid
+  // non-monotonic TF timestamps when Gazebo sim-time pauses or fluctuates.
+  timer_ = rclcpp::create_timer(
+    this, this->get_clock(), std::chrono::milliseconds(20),
+    std::bind(&FakeVelTransform::publishTransform, this));
 }
 
 void FakeVelTransform::cmdSpinCallback(const example_interfaces::msg::Float32::SharedPtr msg)

@@ -70,7 +70,7 @@
 					<specular>0.6 0.6 0.6</specular>
 				</material>
 			</visual>
-			<visual name="light_bar_visual">
+			<visual name="light_indicator_light_bar_visual">
 				<geometry>
 					<mesh>
 						<uri>model://rm21_light_indicator_module/meshes/light_indicator_bar.dae</uri>

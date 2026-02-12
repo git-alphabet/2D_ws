@@ -48,7 +48,7 @@ public:
 
     if (use_tf_source_) {
       tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-      tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+      tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_, this, true);
     } else {
       sub_ = this->create_subscription<rmoss_interfaces::msg::Gimbal>(
         input_topic_, rclcpp::QoS(10),
@@ -63,7 +63,10 @@ public:
 
     if (publish_rate_hz_ > 0.0) {
       const auto period = std::chrono::duration<double>(1.0 / publish_rate_hz_);
-      timer_ = this->create_wall_timer(
+      // Use sim-time-aware timer instead of wall_timer to avoid
+      // non-monotonic timestamps when Gazebo sim-time fluctuates.
+      timer_ = rclcpp::create_timer(
+        this, this->get_clock(),
         std::chrono::duration_cast<std::chrono::nanoseconds>(period),
         use_tf_source_ ? std::bind(&GimbalStateToAutoAimYaw::tickTf, this)
                        : std::bind(&GimbalStateToAutoAimYaw::publishLast, this));

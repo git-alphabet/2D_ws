@@ -14,6 +14,8 @@
 
 #include "small_gicp_relocalization/small_gicp_relocalization.hpp"
 
+#include <rclcpp/create_timer.hpp>
+
 #include "pcl/common/transforms.h"
 #include "pcl_conversions/pcl_conversions.h"
 #include "small_gicp/pcl/pcl_registration.hpp"
@@ -72,7 +74,7 @@ SmallGicpRelocalizationNode::SmallGicpRelocalizationNode(const rclcpp::NodeOptio
     small_gicp::Registration<small_gicp::GICPFactor, small_gicp::ParallelReductionOMP>>();
 
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
-  tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
+  tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_, this);
   tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
   loadGlobalMap(prior_pcd_file_);
@@ -97,12 +99,14 @@ SmallGicpRelocalizationNode::SmallGicpRelocalizationNode(const rclcpp::NodeOptio
     "initialpose", 10,
     std::bind(&SmallGicpRelocalizationNode::initialPoseCallback, this, std::placeholders::_1));
 
-  register_timer_ = this->create_wall_timer(
-    std::chrono::milliseconds(500),  // 2 Hz
+  // Use rclcpp::create_timer (sim-time aware) instead of create_wall_timer
+  // to avoid "jump back in time" errors in Gazebo simulation
+  register_timer_ = rclcpp::create_timer(
+    this, this->get_clock(), std::chrono::milliseconds(500),  // 2 Hz
     std::bind(&SmallGicpRelocalizationNode::performRegistration, this));
 
-  transform_timer_ = this->create_wall_timer(
-    std::chrono::milliseconds(50),  // 20 Hz
+  transform_timer_ = rclcpp::create_timer(
+    this, this->get_clock(), std::chrono::milliseconds(50),  // 20 Hz
     std::bind(&SmallGicpRelocalizationNode::publishTransform, this));
 }
 
@@ -162,6 +166,13 @@ void SmallGicpRelocalizationNode::performRegistration()
     source_, small_gicp::KdTreeBuilderOMP(num_threads_));
 
   if (!source_ || !source_tree_) {
+    return;
+  }
+
+  if (!target_ || target_->empty() || !target_tree_) {
+    RCLCPP_WARN_THROTTLE(
+      this->get_logger(), *this->get_clock(), 5000,
+      "Target point cloud is empty, skipping registration.");
     return;
   }
 

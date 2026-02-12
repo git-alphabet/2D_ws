@@ -55,7 +55,10 @@ public:
 
     if (publish_rate_hz_ > 0.0) {
       const auto period = std::chrono::duration<double>(1.0 / publish_rate_hz_);
-      timer_ = this->create_wall_timer(
+      // Use sim-time-aware timer instead of wall_timer to avoid
+      // non-monotonic JointState timestamps when Gazebo sim-time fluctuates.
+      timer_ = rclcpp::create_timer(
+        this, this->get_clock(),
         std::chrono::duration_cast<std::chrono::nanoseconds>(period),
         std::bind(&AutoAimYawJointStateBridge::publishLast, this));
     }

@@ -42,6 +42,12 @@ def generate_launch_description():
         ),
     )
 
+    declare_use_sim_time_cmd = DeclareLaunchArgument(
+        "use_sim_time",
+        default_value="false",
+        description="Use simulation (Gazebo) clock if true",
+    )
+
     declare_rviz_config_file_cmd = DeclareLaunchArgument(
         "rviz_config",
         default_value=os.path.join(bringup_dir, "rviz", "nav2_default_view.rviz"),
@@ -55,6 +61,7 @@ def generate_launch_description():
         namespace=namespace,
         arguments=["-d", rviz_config_file],
         output="screen",
+        parameters=[{"use_sim_time": LaunchConfiguration("use_sim_time")}],
         remappings=[
             ("/tf", "tf"),
             ("/tf_static", "tf_static"),
@@ -73,6 +80,7 @@ def generate_launch_description():
 
     # Declare the launch options
     ld.add_action(declare_namespace_cmd)
+    ld.add_action(declare_use_sim_time_cmd)
     ld.add_action(declare_rviz_config_file_cmd)
 
     # Add any conditioned actions

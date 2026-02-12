@@ -24,7 +24,7 @@ TeleopTwistJoyNode::TeleopTwistJoyNode(const rclcpp::NodeOptions & options)
 {
   RCLCPP_INFO(this->get_logger(), "Starting Teleop Twist Joy");
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_, this, false);
 
   this->declare_parameter<bool>("publish_stamped_twist", false);
   this->declare_parameter<std::string>("robot_base_frame", "base_link");

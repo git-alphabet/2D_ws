@@ -3,9 +3,14 @@ import os
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import (
+    DeclareLaunchArgument,
+    ExecuteProcess,
+    GroupAction,
+    RegisterEventHandler,
+)
 from launch.conditions import IfCondition, UnlessCondition
-from launch.actions import ExecuteProcess
+from launch.event_handlers import OnProcessExit
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from nav2_common.launch import ReplaceString
@@ -15,11 +20,6 @@ from xmacro.xmacro4sdf import XMLMacro4sdf
 
 def generate_launch_description():
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
-    # In case of the transforms (tf), currently, there doesn't seem to be a better alternative
-    # https://github.com/ros/geometry2/issues/32
-    # https://github.com/ros/robot_state_publisher/pull/30
-    # TODO(orduno) Substitute with `PushNodeRemapping`
-    #              https://github.com/ros2/launch_ros/issues/56
     remappings = [("/tf", "tf"), ("/tf_static", "tf_static")]
 
     pkg_simulator = get_package_share_directory("rmu_gazebo_simulator")
@@ -38,6 +38,7 @@ def generate_launch_description():
     robot_config = os.path.join(pkg_simulator, "config", "base_params.yaml")
 
     enable_chassis_odometry_gt = LaunchConfiguration("enable_chassis_odometry_gt")
+    robot_base_prefix = LaunchConfiguration("robot_base_prefix")
 
     # Get spawn robot init pose
     gz_world_path = os.path.join(pkg_simulator, "config", "gz_world.yaml")
@@ -61,6 +62,23 @@ def generate_launch_description():
         )
     )
 
+    ld.add_action(
+        DeclareLaunchArgument(
+            "robot_base_prefix",
+            default_value="",
+            description="Optional launch prefix for rmua19_robot_base (e.g. 'gdb -ex run -ex bt --args')",
+        )
+    )
+
+    # ── Build per-robot actions ──
+    # We must spawn robots one at a time (sequentially) because Ignition
+    # Fortress 6 has a rendering-thread race: when two models are spawned
+    # in parallel, SceneManager::CreateVisual may attempt to register the
+    # same visual twice, crashing with a duplicate-name assertion.
+
+    # Collect (spawn_node, [companion_actions]) for each robot
+    robot_groups = []
+
     for robot in robots:
         # Generate SDF from xmacro
         xmacro.generate({"global_initial_color": robot["color"]})
@@ -71,7 +89,6 @@ def generate_launch_description():
         urdf_generator.parse_from_sdf_string(robot_xml)
         robot_urdf_xml = urdf_generator.to_string()
 
-        # replace the <robot_name> in the bridge config file
         aft_replace_ros_bridge_params_with_odom = ReplaceString(
             source_file=bridge_config_with_odom,
             replacements={"<robot_name>": robot["name"]},
@@ -84,6 +101,7 @@ def generate_launch_description():
         spawn_robot = Node(
             package="ros_gz_sim",
             executable="create",
+            name=f'spawn_{robot["name"].replace("-", "_")}',
             arguments=[
                 "-string",
                 robot_xml,
@@ -102,66 +120,80 @@ def generate_launch_description():
             ],
         )
 
-        robot_base = Node(
-            package="rmoss_gz_base",
-            executable="rmua19_robot_base",
-            namespace=robot["name"],
-            parameters=[robot_config, {"robot_name": robot["name"]}],
-        )
+        companion_actions = [
+            Node(
+                package="rmoss_gz_base",
+                executable="rmua19_robot_base",
+                namespace=robot["name"],
+                prefix=robot_base_prefix,
+                parameters=[robot_config, {"robot_name": robot["name"]}],
+            ),
+            Node(
+                package="robot_state_publisher",
+                executable="robot_state_publisher",
+                namespace=robot["name"],
+                remappings=remappings,
+                parameters=[
+                    {
+                        "use_sim_time": True,
+                        "robot_description": robot_urdf_xml,
+                    }
+                ],
+            ),
+            Node(
+                condition=IfCondition(enable_chassis_odometry_gt),
+                package="ros_gz_bridge",
+                executable="parameter_bridge",
+                namespace=robot["name"],
+                parameters=[{"config_file": aft_replace_ros_bridge_params_with_odom}],
+            ),
+            Node(
+                condition=UnlessCondition(enable_chassis_odometry_gt),
+                package="ros_gz_bridge",
+                executable="parameter_bridge",
+                namespace=robot["name"],
+                parameters=[{"config_file": aft_replace_ros_bridge_params_no_odom}],
+            ),
+            ExecuteProcess(
+                cmd=[
+                    "ign",
+                    "service",
+                    "-s",
+                    "/world/default/level/set_performer",
+                    "--reqtype",
+                    "ignition.msgs.StringMsg",
+                    "--reptype",
+                    "ignition.msgs.Boolean",
+                    "--timeout",
+                    "2000",
+                    "--req",
+                    f'data: "{robot["name"]}"',
+                ],
+                output="screen",
+            ),
+        ]
 
-        robot_state_publisher = Node(
-            package="robot_state_publisher",
-            executable="robot_state_publisher",
-            namespace=robot["name"],
-            remappings=remappings,
-            parameters=[
-                {
-                    "use_sim_time": True,
-                    "robot_description": robot_urdf_xml,
-                }
-            ],
-        )
+        robot_groups.append((spawn_robot, companion_actions))
 
-        robot_ign_bridge_with_odom = Node(
-            condition=IfCondition(enable_chassis_odometry_gt),
-            package="ros_gz_bridge",
-            executable="parameter_bridge",
-            namespace=robot["name"],
-            parameters=[{"config_file": aft_replace_ros_bridge_params_with_odom}],
-        )
-        robot_ign_bridge_no_odom = Node(
-            condition=UnlessCondition(enable_chassis_odometry_gt),
-            package="ros_gz_bridge",
-            executable="parameter_bridge",
-            namespace=robot["name"],
-            parameters=[{"config_file": aft_replace_ros_bridge_params_no_odom}],
-        )
+    # ── Chain spawns: robot[0] starts immediately; robot[N] waits for
+    #    robot[N-1]'s spawn (ros_gz_sim create) to exit before beginning.
+    if robot_groups:
+        first_spawn, first_companions = robot_groups[0]
+        ld.add_action(first_spawn)
+        for action in first_companions:
+            ld.add_action(action)
 
-        # Execute service call after spawning robots
-        # https://gazebosim.org/api/gazebo/6.9/levels.html#Runtime-performers
-        set_performer_service = ExecuteProcess(
-            cmd=[
-                "ign",
-                "service",
-                "-s",
-                "/world/default/level/set_performer",
-                "--reqtype",
-                "ignition.msgs.StringMsg",
-                "--reptype",
-                "ignition.msgs.Boolean",
-                "--timeout",
-                "2000",
-                "--req",
-                f'data: "{robot["name"]}"',
-            ],
-            output="screen",
-        )
-
-        ld.add_action(spawn_robot)
-        ld.add_action(robot_base)
-        ld.add_action(robot_state_publisher)
-        ld.add_action(robot_ign_bridge_with_odom)
-        ld.add_action(robot_ign_bridge_no_odom)
-        ld.add_action(set_performer_service)
+        prev_spawn = first_spawn
+        for spawn_node, companions in robot_groups[1:]:
+            # When the previous spawn process exits, start this group
+            ld.add_action(
+                RegisterEventHandler(
+                    OnProcessExit(
+                        target_action=prev_spawn,
+                        on_exit=[spawn_node] + companions,
+                    )
+                )
+            )
+            prev_spawn = spawn_node
 
     return ld

@@ -53,14 +53,17 @@ GimbalController::GimbalController(
   ros_gimbal_cmd_sub_ = node_->create_subscription<sensor_msgs::msg::JointState>(
     gimbal_joint_cmd_topic, 10, std::bind(&GimbalController::gimbal_joint_cb, this, _1));
   // timer
+  // Use rclcpp::create_timer (sim-time aware) instead of create_wall_timer
+  // to avoid "jump back in time" errors in the TF buffer when use_sim_time=true
   int pid_rate = 100;
   pid_period_ = std::chrono::milliseconds(1000 / pid_rate);
-  controller_timer_ = node_->create_wall_timer(
-    pid_period_,
+  controller_timer_ = rclcpp::create_timer(
+    node_, node_->get_clock(), rclcpp::Duration(pid_period_),
     std::bind(&GimbalController::update, this));
   int publish_rate = 10;
-  gimbal_state_timer_ = node_->create_wall_timer(
-    std::chrono::milliseconds(1000 / publish_rate),
+  gimbal_state_timer_ = rclcpp::create_timer(
+    node_, node_->get_clock(),
+    rclcpp::Duration(std::chrono::milliseconds(1000 / publish_rate)),
     std::bind(&GimbalController::gimbal_state_timer_cb, this));
 }
 

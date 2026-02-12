@@ -29,12 +29,26 @@ void standard_pcl_cbk(const sensor_msgs::msg::PointCloud2::SharedPtr & msg)
   // mtx_buffer.lock();
   scan_count++;
   double preprocess_start_time = omp_get_wtime();
-  if (rclcpp::Time(msg->header.stamp).seconds() < last_timestamp_lidar) {
-    RCLCPP_ERROR(rclcpp::get_logger("li_initialization"), "lidar loop back, clear buffer");
-    return;
+  double msg_time = rclcpp::Time(msg->header.stamp).seconds();
+  if (msg_time < last_timestamp_lidar) {
+    double dt_back = last_timestamp_lidar - msg_time;
+    if (dt_back > 0.5) {
+      // Large jump back — sim restart or rosbag loop, reset all state
+      RCLCPP_WARN(rclcpp::get_logger("li_initialization"), "lidar large loop back (%.3fs), resetting timestamps & buffers", dt_back);
+      last_timestamp_lidar = -1.0;
+      last_timestamp_imu = -1.0;
+      lidar_buffer.clear();
+      time_buffer.clear();
+      imu_deque.clear();
+      // Fall through to process this message as the first one
+    } else {
+      // Small backwards jump from Gazebo sim time jitter — clamp and continue
+      RCLCPP_DEBUG(rclcpp::get_logger("li_initialization"), "lidar minor time jitter (%.6fs), clamping", dt_back);
+      msg_time = last_timestamp_lidar;
+    }
   }
 
-  last_timestamp_lidar = rclcpp::Time(msg->header.stamp).seconds();
+  last_timestamp_lidar = msg_time;
   // printf("check lidar time %f\n", last_timestamp_lidar);
   // if (abs(last_timestamp_imu - last_timestamp_lidar) > 1.0 && !timediff_set_flg && !imu_deque.empty()) {
   //     timediff_set_flg = true;
@@ -92,12 +106,24 @@ void livox_pcl_cbk(const livox_ros_driver2::msg::CustomMsg::SharedPtr & msg)
   // mtx_buffer.lock();
   double preprocess_start_time = omp_get_wtime();
   scan_count++;
-  if (rclcpp::Time(msg->header.stamp).seconds() < last_timestamp_lidar) {
-    RCLCPP_ERROR(rclcpp::get_logger("li_initialization"), "lidar loop back, clear buffer");
-    return;
+  double msg_time = rclcpp::Time(msg->header.stamp).seconds();
+  if (msg_time < last_timestamp_lidar) {
+    double dt_back = last_timestamp_lidar - msg_time;
+    if (dt_back > 0.5) {
+      // Large jump back — sim restart or rosbag loop, reset all state
+      RCLCPP_WARN(rclcpp::get_logger("li_initialization"), "lidar large loop back (%.3fs), resetting timestamps & buffers", dt_back);
+      last_timestamp_lidar = -1.0;
+      last_timestamp_imu = -1.0;
+      lidar_buffer.clear();
+      time_buffer.clear();
+      imu_deque.clear();
+    } else {
+      RCLCPP_DEBUG(rclcpp::get_logger("li_initialization"), "lidar minor time jitter (%.6fs), clamping", dt_back);
+      msg_time = last_timestamp_lidar;
+    }
   }
 
-  last_timestamp_lidar = rclcpp::Time(msg->header.stamp).seconds();
+  last_timestamp_lidar = msg_time;
   // if (abs(last_timestamp_imu - last_timestamp_lidar) > 1.0 && !timediff_set_flg && !imu_deque.empty()) {
   //     timediff_set_flg = true;
   //     timediff_imu_wrt_lidar = last_timestamp_imu - last_timestamp_lidar;
@@ -164,14 +190,22 @@ void imu_cbk(const sensor_msgs::msg::Imu::ConstSharedPtr & msg_in)
   // printf("time_diff%f, %f, %f\n", last_timestamp_imu - timestamp, last_timestamp_imu, timestamp);
 
   if (timestamp < last_timestamp_imu) {
-    RCLCPP_ERROR(rclcpp::get_logger("li_initialization"), "imu loop back, clear deque");
-    // imu_deque.shrink_to_fit();
-    // std::cout << "check time:" << timestamp << ";" << last_timestamp_imu << '\n';
-    // printf("time_diff%f, %f, %f\n", last_timestamp_imu - timestamp, last_timestamp_imu, timestamp);
-
-    // mtx_buffer.unlock();
-    // sig_buffer.notify_all();
-    return;
+    double dt_back = last_timestamp_imu - timestamp;
+    if (dt_back > 0.5) {
+      // Large jump back — sim restart or rosbag loop, reset all state
+      RCLCPP_WARN(rclcpp::get_logger("li_initialization"), "imu large loop back (%.3fs), resetting timestamps & buffers", dt_back);
+      last_timestamp_imu = -1.0;
+      last_timestamp_lidar = -1.0;
+      imu_deque.clear();
+      lidar_buffer.clear();
+      time_buffer.clear();
+      // Fall through to process this message as the first one
+    } else {
+      // Small backwards jump from Gazebo sim time jitter — clamp timestamp and continue
+      RCLCPP_DEBUG(rclcpp::get_logger("li_initialization"), "imu minor time jitter (%.6fs), clamping", dt_back);
+      timestamp = last_timestamp_imu;
+      msg->header.stamp = get_ros_time(timestamp);
+    }
   }
   imu_deque.emplace_back(msg);
   last_timestamp_imu = timestamp;

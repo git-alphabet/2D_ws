@@ -8,6 +8,10 @@ export QT_FONT_DPI=120
 export __NV_PRIME_RENDER_OFFLOAD=1
 export __GLX_VENDOR_LIBRARY_NAME=nvidia
 
+# Render-engine environment (ogre2 is the default; override if needed).
+export IGN_GAZEBO_RENDER_ENGINE_SERVER="${IGN_GAZEBO_RENDER_ENGINE_SERVER:-ogre2}"
+export IGN_GAZEBO_RENDER_ENGINE_GUI="${IGN_GAZEBO_RENDER_ENGINE_GUI:-ogre2}"
+
 # Backward-compatible override name.
 if [[ -n ${SLAM_PARAMS_FILE:-} ]] && [[ -z ${SIM_PARAMS_FILE:-} ]]; then
 	export SIM_PARAMS_FILE="$SLAM_PARAMS_FILE"

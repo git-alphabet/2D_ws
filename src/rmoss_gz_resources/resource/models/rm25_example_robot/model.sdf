@@ -513,7 +513,7 @@
 					<specular>0.6 0.6 0.6</specular>
 				</material>
 			</visual>
-			<visual name="light_bar_visual">
+			<visual name="armor_0_light_bar_visual">
 				<geometry>
 					<mesh>
 						<uri>model://rm21_armor_module/meshes/small_armor_light_bar.dae</uri>
@@ -646,7 +646,7 @@
 					<specular>0.6 0.6 0.6</specular>
 				</material>
 			</visual>
-			<visual name="light_bar_visual">
+			<visual name="armor_1_light_bar_visual">
 				<geometry>
 					<mesh>
 						<uri>model://rm21_armor_module/meshes/small_armor_light_bar.dae</uri>
@@ -779,7 +779,7 @@
 					<specular>0.6 0.6 0.6</specular>
 				</material>
 			</visual>
-			<visual name="light_bar_visual">
+			<visual name="armor_2_light_bar_visual">
 				<geometry>
 					<mesh>
 						<uri>model://rm21_armor_module/meshes/small_armor_light_bar.dae</uri>
@@ -912,7 +912,7 @@
 					<specular>0.6 0.6 0.6</specular>
 				</material>
 			</visual>
-			<visual name="light_bar_visual">
+			<visual name="armor_3_light_bar_visual">
 				<geometry>
 					<mesh>
 						<uri>model://rm21_armor_module/meshes/small_armor_light_bar.dae</uri>
@@ -993,7 +993,7 @@
 					<specular>0.6 0.6 0.6</specular>
 				</material>
 			</visual>
-			<visual name="light_bar_visual">
+			<visual name="light_indicator_light_bar_visual">
 				<geometry>
 					<mesh>
 						<uri>model://rm21_light_indicator_module/meshes/light_indicator_bar.dae</uri>
@@ -1046,7 +1046,7 @@
 					<specular>0.6 0.6 0.6</specular>
 				</material>
 			</visual>
-			<visual name="light_bar_visual">
+			<visual name="speed_monitor_light_bar_visual">
 				<geometry>
 					<mesh>
 						<uri>model://rm21_speed_monitor_module/meshes/speed_monitor_17mm_light_bar.dae</uri>
@@ -1071,12 +1071,12 @@
 		<!--plugin for light bar-->
 		<plugin filename="LightBarController" name="ignition::gazebo::systems::LightBarController">
 			<controller_name>color</controller_name>
-			<link_visual>armor_0/light_bar_visual</link_visual>
-			<link_visual>armor_1/light_bar_visual</link_visual>
-			<link_visual>armor_2/light_bar_visual</link_visual>
-			<link_visual>armor_3/light_bar_visual</link_visual>
-			<link_visual>light_indicator/light_bar_visual</link_visual>
-			<link_visual>speed_monitor/light_bar_visual</link_visual>
+			<link_visual>armor_0/armor_0_light_bar_visual</link_visual>
+			<link_visual>armor_1/armor_1_light_bar_visual</link_visual>
+			<link_visual>armor_2/armor_2_light_bar_visual</link_visual>
+			<link_visual>armor_3/armor_3_light_bar_visual</link_visual>
+			<link_visual>light_indicator/light_indicator_light_bar_visual</link_visual>
+			<link_visual>speed_monitor/speed_monitor_light_bar_visual</link_visual>
 			<initial_color>none</initial_color>
 		</plugin>
 		<!--plugin for joint state sensor-->

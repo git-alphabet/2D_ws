@@ -70,7 +70,7 @@
 					<specular>0.6 0.6 0.6</specular>
 				</material>
 			</visual>
-			<visual name="light_bar_visual">
+			<visual name="speed_monitor_1_light_bar_visual">
 				<geometry>
 					<mesh>
 						<uri>model://rm21_speed_monitor_module/meshes/speed_monitor_17mm_light_bar.dae</uri>
@@ -122,7 +122,7 @@
 					<specular>0.6 0.6 0.6</specular>
 				</material>
 			</visual>
-			<visual name="light_bar_visual">
+			<visual name="speed_monitor_2_light_bar_visual">
 				<geometry>
 					<mesh>
 						<uri>model://rm21_speed_monitor_module/meshes/speed_monitor_42mm_light_bar.stl</uri>

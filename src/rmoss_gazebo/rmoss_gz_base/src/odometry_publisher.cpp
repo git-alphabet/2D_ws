@@ -43,9 +43,12 @@ OdometryPublisher::OdometryPublisher(
   std::string odom_topic = "robot_base/odom";
   odom_pub_ = node_->create_publisher<nav_msgs::msg::Odometry>(odom_topic, 10);
   tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
+  // Use rclcpp::create_timer (sim-time aware) instead of create_wall_timer
+  // to avoid "jump back in time" errors in the TF buffer when use_sim_time=true
   auto period = std::chrono::microseconds(1000000 / rate);
-  timer_ = node_->create_wall_timer(
-    period, std::bind(&OdometryPublisher::timer_callback, this));
+  timer_ = rclcpp::create_timer(
+    node_, node_->get_clock(), rclcpp::Duration(period),
+    std::bind(&OdometryPublisher::timer_callback, this));
 }
 
 void OdometryPublisher::timer_callback()

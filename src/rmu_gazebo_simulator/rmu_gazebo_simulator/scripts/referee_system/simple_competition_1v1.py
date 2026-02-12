@@ -142,6 +142,8 @@ class SimpleRefereeSystem:
         self.node.declare_parameter("initial_resources", 200)
         self.referee_game_time = None
         self.last_time = None
+        # 记录上一次完成资源发放的 30s tick，避免 timer 抖动导致重复发放
+        self.last_resource_tick = -1
         self.timer = GameTimer()
         # ==========================================
         #   srv
@@ -199,8 +201,10 @@ class SimpleRefereeSystem:
         # 判断是哪个阵营的机器人发出的请求
         if "red" in request.robot_name:
             resources = self.red_resources
+            team_key = "red"
         elif "blue" in request.robot_name:
             resources = self.blue_resources
+            team_key = "blue"
         else:
             response.success = False
             response.message = "Invalid robot name"
@@ -215,6 +219,11 @@ class SimpleRefereeSystem:
             # 增加弹丸上限
             if request.robot_name in self.robots.keys():
                 self.robots[request.robot_name].supply_projectile(request.ammo_amount)
+            # 将资源扣减写回对应阵营
+            if team_key == "red":
+                self.red_resources = resources
+            else:
+                self.blue_resources = resources
         else:
             response.success = False
             response.message = "Not enough resources, resources left: " + str(resources)
@@ -268,8 +277,11 @@ class SimpleRefereeSystem:
         if self.game_over:
             return
         # print(self.timer.get_time())
-        if self.timer.get_time() % 30 < 0.5 and self.timer.get_time() > 29:
-            self.last_time = self.timer.get_time()
+        # 每满 30s 发放一次资源（通过 tick 防抖避免重复发放）
+        current_time = self.timer.get_time()
+        current_tick = int(current_time // 30)
+        if current_time >= 30 and current_tick > self.last_resource_tick:
+            self.last_resource_tick = current_tick
             self.red_resources += 50
             self.blue_resources += 50
             print("资源增加红方：", self.red_resources)
@@ -300,7 +312,11 @@ class SimpleRefereeSystem:
             for robot in self.robots.values():
                 robot.enable_power(False)
             for robot_name, robot in self.robots.items():
-                assert robot.initial_tf is not None
+                if robot.initial_tf is None:
+                    self.node.get_logger().warn(
+                        f"skip set_pose for {robot_name}: initial_tf not received yet"
+                    )
+                    continue
                 msg = TransformStamped()
                 msg.child_frame_id = robot_name
                 msg.transform = robot.initial_tf
@@ -312,6 +328,7 @@ class SimpleRefereeSystem:
             self.game_over = False
             self.red_resources = self.initial_resources
             self.blue_resources = self.initial_resources
+            self.last_resource_tick = -1
             for robot in self.robots.values():
                 robot.reset_data()
                 robot.enable_power(True)

@@ -563,11 +563,55 @@ def main(argv: list[str]) -> int:
     if "enable_chassis_odometry_gt:=" not in gazebo_cmd:
         gazebo_cmd = gazebo_cmd + f" enable_chassis_odometry_gt:={'true' if enable_gt else 'false'}"
 
+    # Auto-detect headless environment: if DISPLAY is unset/empty or we are
+    # running inside NO_NEW_TERMINAL mode (nohup / background), default to
+    # headless Gazebo to avoid EGL / GPU rendering crashes.
+    if "use_gui:=" not in gazebo_cmd:
+        _force_headless = _is_truthy(os.environ.get("GAZEBO_HEADLESS"))
+        _no_display = not os.environ.get("DISPLAY", "").strip()
+        if _force_headless or _no_display or cfg.no_new_terminal:
+            gazebo_cmd = _ensure_launch_arg(gazebo_cmd, "use_gui", "false")
+            print(f"[{cfg.script_name}] Headless Gazebo (no GUI): "
+                  f"DISPLAY={os.environ.get('DISPLAY', '(unset)')!r}, "
+                  f"no_new_terminal={cfg.no_new_terminal}, "
+                  f"GAZEBO_HEADLESS={os.environ.get('GAZEBO_HEADLESS', '(unset)')!r}",
+                  file=sys.stderr)
+
+    def _wait_for_background(bg: BackgroundGroup) -> int:
+        """Block until all background processes exit (used in multi-terminal mode
+        where the foreground command returns immediately after spawning a window).
+        This prevents atexit from killing Gazebo prematurely."""
+        if not bg._pids:
+            return 0
+        print(f"[{cfg.script_name}] Waiting for background processes (pids: {' '.join(map(str, bg._pids))})...", file=sys.stderr)
+        print(f"[{cfg.script_name}] Press Ctrl+C to stop all.", file=sys.stderr)
+        import time as _time
+        try:
+            while True:
+                alive = []
+                for pid in bg._pids:
+                    try:
+                        os.kill(pid, 0)  # check if alive
+                        alive.append(pid)
+                    except OSError:
+                        pass
+                if not alive:
+                    break
+                _time.sleep(1.0)
+        except (KeyboardInterrupt, SystemExit):
+            pass
+        return 0
+
+    # Helper: does the foreground launch return immediately (multi-terminal)?
+    _fg_returns_immediately = bool(cfg.terminal_cmd) and not cfg.no_new_terminal
+
     if mode == "sim_mapping":
         slam_cmd = os.environ.get("SLAM_CMD", "ros2 launch pb2025_nav_bringup rm_navigation_simulation_launch.py slam:=True")
         _launch_in_terminal(cfg, "Gazebo Sim", gazebo_cmd, "", background=True, bg=bg)
         time.sleep(1.0)
         _launch_in_terminal(cfg, "SLAM", slam_cmd, neupan_env)
+        if _fg_returns_immediately:
+            return _wait_for_background(bg)
         return 0
 
     if mode == "sim_nav":
@@ -583,6 +627,8 @@ def main(argv: list[str]) -> int:
             rqt_cmd = "rqt_graph" + (" " + rqt_args if rqt_args else "")
             _launch_in_terminal(cfg, "rqt_graph", rqt_cmd, rqt_env)
 
+        if _fg_returns_immediately:
+            return _wait_for_background(bg)
         return 0
 
     raise RuntimeError(f"unhandled mode '{mode}'")

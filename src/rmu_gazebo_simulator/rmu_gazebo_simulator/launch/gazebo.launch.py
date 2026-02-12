@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from ament_index_python.packages import get_package_share_directory
 from launch.conditions import IfCondition, UnlessCondition
@@ -6,11 +7,18 @@ from launch import LaunchDescription
 from launch.actions import (
     AppendEnvironmentVariable,
     DeclareLaunchArgument,
-    IncludeLaunchDescription,
+    ExecuteProcess,
 )
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, TextSubstitution
 from launch_ros.actions import Node
+
+
+def _ign_executable_path() -> str:
+    """Return the full path to the ``ign`` wrapper script."""
+    path = shutil.which("ign")
+    if path is None:
+        raise RuntimeError("Cannot find 'ign' executable on PATH")
+    return path
 
 
 def generate_launch_description():
@@ -51,39 +59,56 @@ def generate_launch_description():
         value=os.path.join(pkg_simulator, "resource", "models"),
     )
 
-    # Launch Gazebo simulator
-    gazebo_gui = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory("ros_gz_sim"), "launch", "gz_sim.launch.py"
-            )
+    # ── Common rendering-engine env vars ──
+    # Work around Ignition Fortress (Gazebo 6) rendering bug: OGRE2 + EGL
+    # headless rendering triggers a segfault inside SceneManager::CreateVisual
+    # when duplicate visual names exist across different links (e.g.
+    # armor_0/light_bar_visual, armor_1/light_bar_visual).
+    # Falling back to OGRE 1.x avoids the crash.
+    _render_env = {
+        "IGN_GAZEBO_RENDER_ENGINE_SERVER": os.environ.get(
+            "IGN_GAZEBO_RENDER_ENGINE_SERVER", "ogre2"
         ),
-        launch_arguments={
-            "gz_version": "6",
-            "gz_args": [
-                world_sdf_path,
-                TextSubstitution(text=" --gui-config "),
-                ign_config_path,
-            ],
-        }.items(),
+        "IGN_GAZEBO_RENDER_ENGINE_GUI": os.environ.get(
+            "IGN_GAZEBO_RENDER_ENGINE_GUI", "ogre2"
+        ),
+    }
+
+    ign_exec = "ruby " + _ign_executable_path() + " gazebo"
+
+    # Prefix command with env vars to guarantee they reach the ign gazebo
+    # process, even when ros2 launch's additional_env does not propagate
+    # through the shell=True path correctly.
+    _env_prefix = " ".join(f"{k}={v}" for k, v in _render_env.items()) + " "
+
+    # Launch Gazebo simulator — GUI mode
+    gazebo_gui = ExecuteProcess(
+        cmd=[
+            _env_prefix + ign_exec,
+            " ",
+            world_sdf_path,
+            TextSubstitution(text=" -r --gui-config "),
+            ign_config_path,
+            " --force-version 6",
+        ],
+        output="screen",
+        additional_env=_render_env,
+        shell=True,
         condition=IfCondition(use_gui),
     )
 
-    gazebo_headless = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory("ros_gz_sim"), "launch", "gz_sim.launch.py"
-            )
-        ),
-        launch_arguments={
-            "gz_version": "6",
-            # Headless + run (-s: server only, -r: run immediately)
-            # --headless-rendering is required for camera / lidar rendering without a GUI.
-            "gz_args": [
-                world_sdf_path,
-                TextSubstitution(text=" -r -s --headless-rendering"),
-            ],
-        }.items(),
+    # Launch Gazebo simulator — Headless mode
+    gazebo_headless = ExecuteProcess(
+        cmd=[
+            _env_prefix + ign_exec,
+            " ",
+            world_sdf_path,
+            TextSubstitution(text=" -r -s --headless-rendering"),
+            " --force-version 6",
+        ],
+        output="screen",
+        additional_env=_render_env,
+        shell=True,
         condition=UnlessCondition(use_gui),
     )
 

@@ -86,7 +86,8 @@ PointCloudToLaserScanNode::PointCloudToLaserScanNode(const rclcpp::NodeOptions &
     auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
       this->get_node_base_interface(), this->get_node_timers_interface());
     tf2_->setCreateTimerInterface(timer_interface);
-    tf2_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf2_);
+    tf2_->setUsingDedicatedThread(true);
+    tf2_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf2_, this, true);
     message_filter_ = std::make_unique<MessageFilter>(
       sub_, *tf2_, target_frame_, input_queue_size_,
       this->get_node_logging_interface(),

@@ -71,7 +71,7 @@
                 <xmacro_block name="geometry_mesh" uri="model://rm21_armor_module/meshes/small_armor_target.dae"/>
                 <xmacro_block name="armor_material"/>
             </visual>
-            <visual name="light_bar_visual">
+            <visual name="armor${suffix}_light_bar_visual">
                 <xmacro_block name="geometry_mesh" uri="model://rm21_armor_module/meshes/small_armor_light_bar.dae"/>
                 <material>
                     <ambient>1.0 1.0 1.0</ambient>
@@ -125,7 +125,7 @@
                 <xmacro_block name="geometry_mesh" uri="model://rm21_armor_module/meshes/large_armor_target.stl"/>
                 <xmacro_block name="armor_material"/>
             </visual>
-            <visual name="light_bar_visual">
+            <visual name="armor${suffix}_light_bar_visual">
                 <xmacro_block name="geometry_mesh" uri="model://rm21_armor_module/meshes/large_armor_light_bar.stl"/>
                 <material>
                     <ambient>1.0 1.0 1.0</ambient>

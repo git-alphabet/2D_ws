@@ -3,7 +3,11 @@ import os
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    TimerAction,
+)
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 
@@ -73,7 +77,10 @@ def generate_launch_description():
     )
 
     ld.add_action(gazebo_launch)
-    ld.add_action(spawn_robots_launch)
-    ld.add_action(referee_system_launch)
+    # Delay robot spawning to allow Gazebo rendering engine to fully initialise.
+    # Spawning too early triggers a known Ignition Fortress 6 bug where
+    # SceneManager::CreateVisual creates duplicate scene nodes and crashes.
+    ld.add_action(TimerAction(period=5.0, actions=[spawn_robots_launch]))
+    ld.add_action(TimerAction(period=5.0, actions=[referee_system_launch]))
 
     return ld

@@ -69,7 +69,7 @@ SensorScanGenerationNode::SensorScanGenerationNode(const rclcpp::NodeOptions & o
   this->get_parameter("debug_tf_throttle_ms", debug_tf_throttle_ms_);
 
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
-  tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
+  tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_, this, true);
   br_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
   pub_laser_cloud_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("sensor_scan", 2);

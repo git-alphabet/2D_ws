@@ -38,7 +38,7 @@ LoamInterfaceNode::LoamInterfaceNode(const rclcpp::NodeOptions & options)
   base_frame_to_lidar_initialized_ = false;
 
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
-  tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
+  tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_, this);
 
   pcd_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("registered_scan", 5);
   odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("lidar_odometry", 5);
@@ -53,6 +53,9 @@ LoamInterfaceNode::LoamInterfaceNode(const rclcpp::NodeOptions & options)
 
 void LoamInterfaceNode::pointCloudCallback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg)
 {
+  if (!base_frame_to_lidar_initialized_) {
+    return;  // Skip until TF is initialized
+  }
   // NOTE: Input point cloud message is based on the `lidar_odom`
   // Here we transform it to the REAL `odom` frame
   auto out = std::make_shared<sensor_msgs::msg::PointCloud2>();
@@ -66,8 +69,11 @@ void LoamInterfaceNode::odometryCallback(const nav_msgs::msg::Odometry::ConstSha
   // Here we transform it to the `odom` frame
   if (!base_frame_to_lidar_initialized_) {
     try {
+      // Use TimePointZero (latest available) instead of msg timestamp
+      // to avoid blocking on exact-time TF lookup when TF buffer is being
+      // cleared or sim-time TF hasn't propagated yet.
       auto tf_stamped = tf_buffer_->lookupTransform(
-        base_frame_, lidar_frame_, msg->header.stamp, rclcpp::Duration::from_seconds(0.5));
+        base_frame_, lidar_frame_, tf2::TimePointZero);
       tf2::Transform tf_base_frame_to_lidar;
       tf2::fromMsg(tf_stamped.transform, tf_base_frame_to_lidar);
       tf_odom_to_lidar_odom_ = tf_base_frame_to_lidar;

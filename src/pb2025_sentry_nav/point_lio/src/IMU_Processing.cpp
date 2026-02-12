@@ -87,7 +87,16 @@ void ImuProcess::IMU_init(const MeasureGroup & meas, int & N)
 void ImuProcess::Process(const MeasureGroup & meas, PointCloudXYZI::Ptr cur_pcl_un_)
 {
   if (imu_en) {
-    if (meas.imu.empty()) return;
+    if (meas.imu.empty()) {
+      // After IMU init, sync_packages no longer fills meas.imu (the main loop
+      // consumes imu_deque directly). Still copy lidar data so that
+      // feats_undistort is up-to-date for downstream processing.
+      if (!imu_need_init_) {
+        if (!after_imu_init_) after_imu_init_ = true;
+        *cur_pcl_un_ = *(meas.lidar);
+      }
+      return;
+    }
 
     if (imu_need_init_) {
       {
