@@ -1,18 +1,18 @@
 # mpc
-receding: 10
+receding: 15
 step_time: 0.1
-ref_speed: 2.0          # align with trained speed
+ref_speed: 4.0          # align with trained speed
 device: 'cpu'
 time_print: False
-collision_threshold: 0.1
+collision_threshold: 0.01
 
 # robot
 robot:
   kinematics: 'omni'
-  max_speed: [2, 2]
+  max_speed: [2.5, 2.5]
   max_acce: [1, 1]
-  length: 0.8
-  width: 0.8
+  length: 0.57
+  width: 0.57
   # vertices: [[-0.8, -1.0], [-0.8, 1.0], [0.8, 1.0], [0.8, -1.0]] 
 
 # initial path
@@ -20,7 +20,7 @@ ipath:
   # interval: 0.4
   waypoints: [[23, 30, -1.57], [41, 28, -1], [30, 38, 2], [10, 19, -2], [29, 18, 3]]
   curve_style: 'line'   # 'dubins' or reeds or line
-  min_radius: 4.0
+  min_radius: 1.0
   loop: False
   arrive_threshold: 0.2
   close_threshold: 0.1
@@ -29,17 +29,20 @@ ipath:
   
 # proximal alternating minimization network
 pan:
-  iter_num: 2
-  dune_max_num: 100
-  nrmp_max_num: 10
-  iter_threshold: 0.1
-  dune_checkpoint: '../../../../../model/omni_robot_default/model_6000.pth'
+  iter_num: 3
+  dune_max_num: 150
+  nrmp_max_num: 15
+  iter_threshold: 0.075
+  # use relative path instead of workspace-specific absolute path
+  dune_checkpoint: 'model/omni_robot_default/model_8500.pth'
 
 
 # adjust parameters
 adjust:
-  q_s: 2.0     # 官方是0.5。保持较大值以增强高速（2.0m/s）下的轨迹跟踪能力。
-  p_u: 0.05    # 关键！官方是1.0。动力（加速度1.0）相对受限，降低惩罚以允许满负荷加速。
-  eta: 10.0     # 官方是10.0。降低至5.0，避免在狭窄处过于保守（被“吓死”）。
-  d_max: 1.2   # 官方是1.0。速度提升至2.0m/s，需要更远的感知/反应距离，故调大。
-  d_min: 0.2
+  q_s: 1.3
+  p_u: 0.5
+  eta: 50.0
+  d_max: 1.14
+  d_min: 0.10000000149011612
+  ro_obs: 600
+  bk: 0.05
