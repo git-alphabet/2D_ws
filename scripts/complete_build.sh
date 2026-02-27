@@ -8,7 +8,7 @@ WS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$WS_DIR"
 
 # Build the ROS workspace skipping NeuPAN and neupan_nav2_controller
-colcon build --parallel-workers 1 --packages-skip neupan_nav2_controller --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+colcon build --executor sequential --packages-skip neupan_nav2_controller --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 
 # Activate NeuPAN virtual environment and set PYTHONPATH
 source neupan_env/bin/activate
