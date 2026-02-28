@@ -279,9 +279,30 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
         _run_shell(f"gnome-terminal --title={shlex.quote(title)} -- bash -c {shlex.quote(keep_shell)}")
         return
     if term == "x-terminal-emulator":
-        _run_shell(f"x-terminal-emulator -T {shlex.quote(title)} -e bash -lc {shlex.quote(keep_shell)}")
+        # xterm 是前台阻塞进程（不像 gnome-terminal 会 fork daemon），
+        # 必须用 Popen 非阻塞启动，否则第二个窗口永远不会打开。
+        # 直接调用 xterm（而非 x-terminal-emulator 包装器），可传入样式参数。
+        subprocess.Popen(
+            [
+                "xterm",
+                "-T", title,
+                "-u8",                              # UTF-8 模式，中文正常显示
+                "-bg", "#1e1e2e",                    # 深色背景
+                "-fg", "#cdd6f4",                    # 浅色前景
+                "-fa", "Monospace",                  # 主字体，CJK 由 fontconfig 自动 fallback
+                "-fs", "13",                         # 字号 pt
+                "-geometry", "220x55",               # 列×行
+                "-sl", "5000",                       # 滚动缓冲行数
+                "-e", "bash", "-lc", keep_shell,
+            ],
+            preexec_fn=os.setsid,
+        )
         return
-    _run_shell(f"{shlex.quote(term)} -T {shlex.quote(title)} -e bash -lc {shlex.quote(keep_shell)}")
+    # fallback: 其他终端模拟器同样非阻塞处理
+    subprocess.Popen(
+        [term, "-T", title, "-e", "bash", "-lc", keep_shell],
+        preexec_fn=os.setsid,
+    )
 
 
 def _wait_for_background(bg: BackgroundGroup, script_name: str) -> int:

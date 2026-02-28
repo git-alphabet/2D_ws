@@ -7,6 +7,14 @@ WS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 cd "$WS_DIR"
 
+# Source ROS environment（在容器内直接执行脚本时需要）
+# 临时关闭 -u，避免 ROS setup.bash 内部使用未定义变量时报错
+ROS_DISTRO="${ROS_DISTRO:-humble}"
+set +u
+# shellcheck disable=SC1090
+source "/opt/ros/${ROS_DISTRO}/setup.bash"
+set -u
+
 # Build the ROS workspace skipping NeuPAN and neupan_nav2_controller
 colcon build --executor sequential --packages-skip neupan_nav2_controller --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 

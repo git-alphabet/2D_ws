@@ -1,0 +1,79 @@
+{
+  // ============================================================
+  // Dev Container 配置
+  // ============================================================
+  // 前提：先用 ./docker/build_env.sh 构建好镜像
+  // 用法：VS Code F1 → "Dev Containers: Reopen in Container"
+  // ============================================================
+  "name": "gxu2026-ros2-dev",
+
+  // 镜像名 = docker/.env 里的 DOCKERHUB_NS/IMAGE_REPO:IMAGE_TAG
+  // 改名只需修改 docker/.env，这里同步更新一次即可
+  "image": "alphabet2006/gxu2026-nav-env:latest",
+
+  // ---------- 挂载策略（与 docker/run_dev.sh 保持一致）----------
+  // workspaceMount：把 src/ 挂到容器 /ws/src（VS Code 工作区文件）
+  "workspaceMount": "source=${localWorkspaceFolder}/src,target=/ws/src,type=bind,consistency=cached",
+  // VS Code 在容器内打开的目录（/ws 而不是 /ws/src，可以看到完整结构）
+  "workspaceFolder": "/ws",
+
+  "mounts": [
+    // scripts/ 同步挂载
+    "source=${localWorkspaceFolder}/scripts,target=/ws/scripts,type=bind,consistency=cached",
+    // build/install/log 用 Docker 命名 volume 持久化（重启不丢编译缓存）
+    "source=gxu2026-nav-build,target=/ws/build,type=volume",
+    "source=gxu2026-nav-install,target=/ws/install,type=volume",
+    "source=gxu2026-nav-log,target=/ws/log,type=volume",
+    // X11 转发（Rviz / Gazebo GUI）
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"
+  ],
+
+  // ---------- 容器启动参数 ----------
+  "runArgs": [
+    "--network=host",
+    "--privileged",
+    // NVIDIA GPU（仿真 + CUDA）
+    "--gpus=all"
+  ],
+
+  // ---------- 环境变量 ----------
+  "containerEnv": {
+    "DISPLAY": "${localEnv:DISPLAY}",
+    "TERM": "xterm-256color",
+    "QT_X11_NO_MITSHM": "1",
+    "NVIDIA_VISIBLE_DEVICES": "all",
+    "NVIDIA_DRIVER_CAPABILITIES": "graphics,compute,display,utility"
+  },
+
+  // ---------- 容器启动后自动执行 ----------
+  // 进入容器时自动 source ROS 和编译结果（如果 install 已存在）
+  "postStartCommand": "echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc && [ -f /ws/install/setup.bash ] && echo 'source /ws/install/setup.bash' >> ~/.bashrc || true",
+
+  // ---------- 在容器内自动安装的 VS Code 扩展 ----------
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // ROS 开发
+        "ms-iot.vscode-ros",
+        // C++ IntelliSense（容器内的编译器/头文件）
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools",
+        // Python（NeuPAN venv）
+        "ms-python.python",
+        "ms-python.pylance",
+        // 容器工具
+        "ms-azuretools.vscode-containers",
+        // 代码质量
+        "xaver.clang-format"
+      ],
+      "settings": {
+        // 指向 neupan venv（容器内预置，已烘焙进镜像，无需再跑 setup_neupan_env.sh）
+        "python.defaultInterpreterPath": "/ws/neupan_env/bin/python3",
+        // ROS 工作空间
+        "ros.distro": "humble",
+        // Container Tools：让侧边栏识别构建用 compose 文件
+        "containers.dockerComposeBuild": "docker/compose.build.yml"
+      }
+    }
+  }
+}

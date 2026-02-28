@@ -1,0 +1,52 @@
+# ============================================================
+# docker/compose.build.yml — 构建 & 推送环境镜像
+# ============================================================
+# 类比 git 工作流：
+#   改代码       →  git add && git commit -m "描述"
+#   构建镜像     →  docker compose -f docker/compose.build.yml build
+#   推送镜像仓库 →  docker compose -f docker/compose.build.yml push
+#
+# 用法：
+#
+#   方式A：Container Tools UI（推荐）
+#     右键本文件 → "Compose Up (Select Services)" 选 env
+#     APT_MIRROR 默认清华源，IMAGE_TAG 默认 latest，无需手动传参
+#
+#   方式B：命令行
+#     # 只构建（tag=latest）
+#     docker compose -f docker/compose.build.yml build
+#
+#     # 构建 + 打日期 tag
+#     IMAGE_TAG=$(date +%Y%m%d) docker compose -f docker/compose.build.yml build
+#
+#     # 构建 + 打 git commit hash tag
+#     IMAGE_TAG=$(git rev-parse --short HEAD) docker compose -f docker/compose.build.yml build
+#
+#     # 构建完直接推送
+#     IMAGE_TAG=$(date +%Y%m%d) docker compose -f docker/compose.build.yml build
+#     IMAGE_TAG=$(date +%Y%m%d) docker compose -f docker/compose.build.yml push
+#
+# 环境变量：
+#   DOCKERHUB_NS  Docker Hub 用户名（默认 alphabet2006）
+#   IMAGE_TAG     镜像 tag（默认 latest，推荐用日期或 git hash）
+#   APT_MIRROR    apt 镜像源（默认清华）
+# ============================================================
+
+services:
+  env:
+    build:
+      context: ..                    # 构建上下文 = 工作区根目录
+      dockerfile: Dockerfile.env
+      network: host                  # 构建时共享宿主机网络，127.0.0.1:7897 可达
+      args:
+        APT_MIRROR:  ${APT_MIRROR:-mirrors.tuna.tsinghua.edu.cn}
+        http_proxy:  ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        HTTP_PROXY:  ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+    # image 属性同时决定：本地 tag 名 和 push 目标
+    # DOCKERHUB_NS/IMAGE_REPO:IMAGE_TAG
+    # !! 建议通过 VS Code 任务构建（F1→Tasks: Run Task→Docker: Build env image）
+    # !! 任务会自动用日期 tag，不会产生 <none>；直接 Compose Up 会覆盖 latest 产生 <none>
+    image: ${DOCKERHUB_NS:-alphabet2006}/${IMAGE_REPO:-gxu2026-nav-env}:${IMAGE_TAG:-latest}
+    # 本文件仅用于构建，不定义 command/ports，up 后容器会立即退出

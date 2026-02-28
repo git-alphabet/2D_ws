@@ -342,3 +342,115 @@ docker run -it --rm --name gxu_robotz_nav2026 \
 ```
 
 > 说明：仓库里的 `scripts/*` 多数会尝试调用图形终端（`gnome-terminal`/`x-terminal-emulator`）打开新窗口；在无桌面/无 X11 的小电脑上更建议直接在容器内运行 `ros2 launch ...`。
+
+---
+
+## 9. Docker 开发环境（`Dockerfile.env` + 挂载代码）
+
+与 Section 8 不同，本节的镜像 **只打包依赖，不编译代码**。
+开发时把 `src/` 挂载进容器，在容器内 `colcon build`，改代码后无需重建镜像。
+
+### 9.1 镜像内包含的依赖
+
+| 类别 | 具体内容 |
+|---|---|
+| **基础镜像** | `ros:humble-ros-base`（Ubuntu 22.04 + ROS2 Humble） |
+| **编译工具** | `build-essential` / `cmake` / `git` / `curl` / `wget` |
+| **Python 工具链** | `python3-pip` / `python3-venv` / `python3-dev` / `python3-colcon-common-extensions` / `python3-rosdep` |
+| **点云 / 线性代数** | `libpcl-dev` / `libeigen3-dev` / `libomp-dev` |
+| **OpenGL / EGL 渲染** | `libgl1-mesa-dev` / `libgles2-mesa-dev` / `libegl1-mesa-dev` / `mesa-utils` / `xvfb` |
+| **仿真（Ignition Fortress）** | `ros-humble-ros-gz-sim` / `ros-humble-ros-gz-bridge` / `ignition-fortress`（通过 OSRF apt 源 + rosdep） |
+| **ROS 包依赖** | 由 `docker/rosdep_src/` 下的 `package.xml` 快照 `rosdep install` 安装（含导航、感知、描述等全部包依赖） |
+| **small_gicp** | 预编译并 `cmake --install` 到系统（重定位 / 点云配准用） |
+| **NeuPAN Python venv** | `numpy<2` / `scipy<1.15` / `torch==2.1.0+cpu` / `cvxpy` / `cvxpylayers` / `diffcp` / `ecos` / `gctl` / `clarabel` / `osqp` / `scs` / `matplotlib` / `scikit-learn` |
+| **NVIDIA GPU 透传** | `NVIDIA_VISIBLE_DEVICES=all` + `NVIDIA_DRIVER_CAPABILITIES=graphics,compute,display,utility`，配合 nvidia-container-toolkit 透传宿主机 GPU（Gazebo 渲染 + CUDA） |
+
+> **不包含**：CUDA/cuDNN 运行时（torch 为 CPU 版）、TensorRT。如需 CUDA 推理需替换 base 镜像。
+
+### 9.2 宿主机前置条件（一次性）
+
+```bash
+# 1. 安装 nvidia-container-toolkit（已完成则跳过）
+sudo apt-get install -y nvidia-container-toolkit
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
+
+# 2. 允许容器访问 X11（每次登录执行一次，或写入 ~/.bashrc）
+xhost +local:docker
+```
+
+### 9.3 构建环境镜像
+
+```bash
+# 国内加速（默认已设为清华源，直接 build 即可）
+docker compose -f docker/compose.build.yml build
+
+# 带代理
+http_proxy=http://127.0.0.1:7897 https_proxy=http://127.0.0.1:7897 \
+  docker compose -f docker/compose.build.yml build
+
+# 打版本号
+IMAGE_TAG=$(date +%Y%m%d) docker compose -f docker/compose.build.yml build
+
+# 构建完直接推送 Docker Hub
+IMAGE_TAG=$(date +%Y%m%d) docker compose -f docker/compose.build.yml build
+IMAGE_TAG=$(date +%Y%m%d) docker compose -f docker/compose.build.yml push
+```
+
+> 依赖没变就不需要重建镜像，一次构建长期复用。
+
+### 9.4 启动开发容器
+
+```bash
+# 笔记本（有 NVIDIA GPU，跑仿真）
+docker compose -f docker/compose.dev.yml --profile laptop up dev-laptop
+
+# 小电脑实车（无 GPU）
+docker compose -f docker/compose.dev.yml --profile robot up dev-robot
+
+# 指定镜像 tag
+IMAGE_TAG=20260228 docker compose -f docker/compose.dev.yml --profile laptop up dev-laptop
+```
+
+> Container Tools UI：右键 `docker/compose.dev.yml` → "Compose Up (Select Services)"，选对应服务即可。
+
+| 路径 | 来源 | 说明 |
+|---|---|---|
+| `/ws/src` | 宿主机 `src/` | 改代码直接生效，容器内 build |
+| `/ws/scripts` | 宿主机 `scripts/` | 启动脚本同步 |
+| `/ws/build` | Docker 命名 volume | 持久化，重启不丢编译缓存 |
+| `/ws/install` | Docker 命名 volume | 持久化 |
+| `/ws/log` | Docker 命名 volume | 持久化 |
+| `/ws/neupan_env` | 镜像内 | 已预置，不被 src/ 覆盖 |
+
+### 9.5 容器内常用命令
+
+```bash
+# 首次编译（或有新包时）
+colcon build --symlink-install
+
+# 仅编译指定包
+colcon build --symlink-install --packages-select pb2025_nav_bringup
+
+# source 编译结果
+source install/setup.bash
+
+# 验证 GPU
+nvidia-smi
+
+# 启动仿真（Ignition Fortress）
+ros2 launch rmu_gazebo_simulator ...
+
+# NeuPAN 控制器运行（venv 已预置，直接激活）
+source /ws/neupan_env/bin/activate
+ros2 launch ...
+```
+
+### 9.6 依赖变更时的处理
+
+| 变更类型 | 需要重建镜像？ | 操作 |
+|---|---|---|
+| 改业务代码（`src/`） | ❌ | 容器内 `colcon build` 即可 |
+| 新增/修改 `package.xml` 里的 apt 依赖 | ✅ | 更新 `docker/rosdep_src/` 后重建 |
+| 修改 `neupan_nav2_controller/requirements.txt` | ✅ | 重建镜像 |
+| `small_gicp` CMakeLists 变动 | ✅ | 重建镜像 |
