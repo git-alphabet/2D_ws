@@ -4,15 +4,11 @@ set -euo pipefail
 # Thin wrapper: delegate to Python (easier to read).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-export QT_FONT_DPI=120
+export QT_FONT_DPI=192
 export __NV_PRIME_RENDER_OFFLOAD=1
 export __GLX_VENDOR_LIBRARY_NAME=nvidia
 
-# Keep existing env defaults/overrides.
 export RCUTILS_LOGGING_SEVERITY=${RCUTILS_LOGGING_SEVERITY:-INFO}
-export RQT_GRAPH=${RQT_GRAPH:-false}
-export RQT_GRAPH_NAMESPACE=${RQT_GRAPH_NAMESPACE:-}
-export RQT_GRAPH_ARGS=${RQT_GRAPH_ARGS:-}
 
 # Backward-compatible override name.
 if [[ -n ${NAV_PARAMS_FILE:-} ]] && [[ -z ${SIM_PARAMS_FILE:-} ]]; then

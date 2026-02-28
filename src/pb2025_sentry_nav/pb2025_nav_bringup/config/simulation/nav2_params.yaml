@@ -10,12 +10,12 @@ ign_sim_pointcloud_tool:
 
 pb_navigation_switches:
   ros__parameters:
-    controller_plugin: "pb_omni_pid_pursuit_controller"   # 控制器插件选择：neupan_nav2_controller / pb_omni_pid_pursuit_controller
+    controller_plugin: "neupan_nav2_controller"   # 控制器插件选择：neupan_nav2_controller / pb_omni_pid_pursuit_controller
     odometry_source: "point_lio"                   #point_lio / small_point_lio / loam_interface
     behavior_tree: "default"                       # .xml or default,none
 
 
-    enable_gimbal_yaw_bridge: true                #是否启用 gimbal_yaw_bridge 通路。
+    enable_gimbal_yaw_bridge: false               # 仿真中 TF 由 Gazebo bringup 的 robot_state_publisher 直接提供，无需此通路。
 
 
 # Gazebo gimbal_state -> /auto_aim_yaw（仿真代替实车电控 yaw 数据）
@@ -74,9 +74,6 @@ controller_server:
     use_sim_time: True
     odom_topic: odometry
     controller_frequency: 20.0
-    min_x_velocity_threshold: 0.001
-    min_y_velocity_threshold: 0.001
-    min_theta_velocity_threshold: 0.001
     failure_tolerance: 0.4
     progress_checker_plugins: ["progress_checker"]
     goal_checker_plugins: ["general_goal_checker"]
@@ -93,15 +90,14 @@ controller_server:
       yaw_goal_tolerance: 6.28
     FollowPath:
       plugin: "neupan_nav2_controller::NeuPANController"
-      debug_print_control_frequency: true    #看控制器频率
-      robot_type: "omni"
-      max_linear_velocity: 2.0
-      max_angular_velocity: 2.0
-      goal_tolerance: 0.2
-      laser_topic: /red_standard_robot1/obstacle_scan
+      # planner 路径（robot_type / max_speed / goal_tolerance 等规划侧参数已在 planner.yaml 中定义）
       neupan_config_path: "$(find-pkg-share neupan_nav2_controller)/vendor/NeuPAN-main/example/non_obs/omni/planner.yaml"
-      dune_model_path: "$(find-pkg-share neupan_nav2_controller)/model/omni_robot_default/model_6000.pth"
-      laser_downsample_rate: 2
+      # ↓ planner.yaml 中没有的 ROS 层参数
+      dune_model_path: "$(find-pkg-share neupan_nav2_controller)/model/omni_robot_default/model_8500.pth"  # ROS 路径解析；planner.yaml pan.dune_checkpoint 为相对路径
+      laser_topic: /red_standard_robot1/obstacle_scan
+      max_linear_velocity: 2.5    # C++ 输出 cmd_vel 硬限幅，与 planner robot.max_speed（规划侧）语义不同
+      max_angular_velocity: 6.28
+      debug_print_control_frequency: true    #看控制器频率
      
 
 # 控制器参数集合（传统控制器 profile）：需要切换传统控制器时只改这里即可。

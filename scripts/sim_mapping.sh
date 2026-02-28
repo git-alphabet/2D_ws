@@ -4,7 +4,7 @@ set -euo pipefail
 # Thin wrapper: delegate to Python (easier to read).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-export QT_FONT_DPI=120
+export QT_FONT_DPI=192
 export __NV_PRIME_RENDER_OFFLOAD=1
 export __GLX_VENDOR_LIBRARY_NAME=nvidia
 

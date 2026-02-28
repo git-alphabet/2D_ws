@@ -43,47 +43,6 @@ def _ensure_launch_arg(cmd: str, name: str, value: str) -> str:
     return cmd + f" {name}:={value}"
 
 
-def _foxglove_bridge_command() -> str:
-    # Configure via env vars (strings):
-    # - START_FOXGLOVE=0 to disable
-    # - FOXGLOVE_PORT / FOXGLOVE_ADDRESS
-    # - FOXGLOVE_TOPIC_WHITELIST / FOXGLOVE_PARAM_WHITELIST / FOXGLOVE_SERVICE_WHITELIST
-    # - FOXGLOVE_DEBUG / FOXGLOVE_TLS / FOXGLOVE_CERTFILE / FOXGLOVE_KEYFILE
-    # - FOXGLOVE_SEND_BUFFER_LIMIT / FOXGLOVE_USE_SIM_TIME / FOXGLOVE_CAPABILITIES
-    def pick(key: str, default: str) -> str:
-        v = os.environ.get(key, "").strip()
-        return v if v else default
-
-    args: dict[str, str] = {
-        "port": pick("FOXGLOVE_PORT", "8765"),
-        "address": pick("FOXGLOVE_ADDRESS", "0.0.0.0"),
-        "debug": pick("FOXGLOVE_DEBUG", "false"),
-        "tls": pick("FOXGLOVE_TLS", "false"),
-        "certfile": pick("FOXGLOVE_CERTFILE", ""),
-        "keyfile": pick("FOXGLOVE_KEYFILE", ""),
-        # NOTE: These values include brackets/quotes; always quote to avoid shell globbing.
-        "topic_whitelist": pick("FOXGLOVE_TOPIC_WHITELIST", "['.*']"),
-        "param_whitelist": pick("FOXGLOVE_PARAM_WHITELIST", "['.*']"),
-        "service_whitelist": pick("FOXGLOVE_SERVICE_WHITELIST", "['.*']"),
-        "send_buffer_limit": pick("FOXGLOVE_SEND_BUFFER_LIMIT", "10000000"),
-        "use_sim_time": pick("FOXGLOVE_USE_SIM_TIME", "false"),
-    }
-
-    capabilities = os.environ.get("FOXGLOVE_CAPABILITIES", "").strip()
-    if capabilities:
-        args["capabilities"] = capabilities
-
-    parts = ["ros2", "launch", "foxglove_bridge", "foxglove_bridge_launch.xml"]
-    for k, v in args.items():
-        # Avoid passing empty-string values through a shell-parsed command.
-        # Example: certfile:='' becomes certfile:= after shlex splitting, which ros2 launch rejects.
-        if k in {"certfile", "keyfile"} and not v:
-            continue
-        parts.append(f"{k}:={shlex.quote(v)}")
-
-    return " ".join(parts)
-
-
 def _which(cmd: str) -> Optional[str]:
     try:
         out = subprocess.check_output(["bash", "-lc", f"command -v {shlex.quote(cmd)}"], text=True)
@@ -93,85 +52,33 @@ def _which(cmd: str) -> Optional[str]:
         return None
 
 
-def _read_yaml(path: Path) -> dict:
+def _read_yaml_params(path: Path, node_key: str) -> dict:
     try:
         import yaml  # type: ignore
-    except Exception:
-        return {}
-
-    try:
         data = yaml.safe_load(path.read_text())
-        return data if isinstance(data, dict) else {}
+        node = (data or {}).get(node_key, {})
+        return (node.get("ros__parameters") or {}) if isinstance(node, dict) else {}
     except Exception:
         return {}
-
-
-def _get_ros_params(root: dict, key: str) -> dict:
-    node = root.get(key)
-    if not isinstance(node, dict):
-        return {}
-    params = node.get("ros__parameters")
-    return params if isinstance(params, dict) else {}
 
 
 def _controller_plugin(params_file: Path) -> str:
     if not params_file.exists():
         return ""
-    root = _read_yaml(params_file)
-    switches = _get_ros_params(root, "pb_navigation_switches")
-    plugin = switches.get("controller_plugin")
-    return plugin.strip() if isinstance(plugin, str) else ""
+    p = _read_yaml_params(params_file, "pb_navigation_switches").get("controller_plugin", "")
+    return p.strip() if isinstance(p, str) else ""
 
 
 def _enable_chassis_odometry_gt(params_file: Path) -> bool:
-    # default true (matches existing scripts)
     if not params_file.exists():
         return True
-    root = _read_yaml(params_file)
-    switches = _get_ros_params(root, "pb_navigation_switches")
-    v = switches.get("enable_chassis_odometry_gt", True)
-    return bool(v)
+    return bool(_read_yaml_params(params_file, "pb_navigation_switches").get("enable_chassis_odometry_gt", True))
 
 
-def _bt_report(params_file: Path, script_name: str) -> str:
-    if not params_file.exists():
-        return ""
-    root = _read_yaml(params_file)
-    if not root:
-        return ""
-
-    switches = _get_ros_params(root, "pb_navigation_switches")
-    rm_bt = _get_ros_params(root, "rm_behavior_tree")
-
-    selector = switches.get("behavior_tree") if isinstance(switches, dict) else None
-    selector = selector.strip() if isinstance(selector, str) else ""
-    enable_flag = bool(switches.get("enable_rm_behavior_tree", False)) if isinstance(switches, dict) else False
-    style = rm_bt.get("style", "rmuc_01.xml") if isinstance(rm_bt, dict) else "rmuc_01.xml"
-
-    enabled = False
-    reason = ""
-    if selector:
-        lowered = selector.lower()
-        if lowered in {"disabled", "none", "nav2", "default"}:
-            enabled = False
-            reason = selector
-        else:
-            enabled = True
-            reason = selector
-            style = selector
-    else:
-        enabled = enable_flag and bool(rm_bt)
-        reason = f"enable_rm_behavior_tree={'true' if enable_flag else 'false'}"
-
-    prefix = f"[{script_name}]"
-    if not enabled:
-        return f"{prefix} Behavior tree disabled (selector='{reason}')"
-    return f"{prefix} Behavior tree enabled; style='{style}'"
-
-
-def _neupan_env(controller_plugin: str, *, neupan_activate: Path, neupan_site_packages: Path, neupan_model_setup: str, script_name: str) -> str:
-    # Returns a shell snippet.
-    if controller_plugin not in {"neupan_nav2_controller", "neupan_slam_controller"}:
+def _neupan_env(controller_plugin: str, *, neupan_activate: Path,
+                neupan_site_packages: Path, script_name: str) -> str:
+    # Returns a shell snippet; only activates for neupan_nav2_controller.
+    if controller_plugin != "neupan_nav2_controller":
         return ""
 
     if not neupan_activate.exists():
@@ -179,14 +86,10 @@ def _neupan_env(controller_plugin: str, *, neupan_activate: Path, neupan_site_pa
 
     parts = [f"source {shlex.quote(str(neupan_activate))}"]
     if neupan_site_packages.is_dir():
-        parts.append(f"export PYTHONPATH=\$PYTHONPATH:{shlex.quote(str(neupan_site_packages))}")
-
-    if neupan_model_setup:
-        model_setup = Path(os.path.expanduser(neupan_model_setup))
-        if model_setup.exists():
-            parts.append(f"source {shlex.quote(str(model_setup))}")
-        else:
-            print(f"[{script_name}] Warning: {model_setup} not found; skipping model setup.", file=sys.stderr)
+        # Use double-quoted assignment so $PYTHONPATH expands correctly at runtime.
+        # (A backslash-escaped \$PYTHONPATH would be treated as a literal string,
+        #  overwriting PYTHONPATH with '$PYTHONPATH:/path' instead of the real value.)
+        parts.append(f'export PYTHONPATH="$PYTHONPATH:{neupan_site_packages}"')
 
     return "; ".join(parts)
 
@@ -200,7 +103,6 @@ class CommonConfig:
     params_file: Path
     no_new_terminal: bool
     terminal_cmd: str
-    strict: bool
     kill_existing: bool
     rcutils_logging_severity: Optional[str] = None
 
@@ -242,6 +144,12 @@ def _build_base_env(cfg: CommonConfig) -> str:
     ]
     if cfg.rcutils_logging_severity:
         parts.append(f"export RCUTILS_LOGGING_SEVERITY={shlex.quote(cfg.rcutils_logging_severity)}")
+    # 显式传递 NVIDIA / Gazebo 渲染变量，确保 gnome-terminal 新窗口和后台进程都能调用 GPU
+    for _var in ("__NV_PRIME_RENDER_OFFLOAD", "__GLX_VENDOR_LIBRARY_NAME",
+                 "IGN_GAZEBO_RENDER_ENGINE_SERVER", "IGN_GAZEBO_RENDER_ENGINE_GUI"):
+        _val = os.environ.get(_var, "")
+        if _val:
+            parts.append(f"export {_var}={shlex.quote(_val)}")
     return "; ".join(parts)
 
 
@@ -296,27 +204,33 @@ def _kill_by_pattern(pattern: str, title: str, script_name: str) -> None:
                 pass
 
 
-def _check_conflicts(script_name: str, strict: bool) -> None:
-    patterns = [
-        r"(^|/)joint_state_publisher(\\s|$)",
-        r"(^|/)robot_state_publisher(\\s|$)",
-        r"(^|/)auto_aim_yaw_joint_state_bridge(\\s|$)",
-    ]
-    titles = [
-        "joint_state_publisher",
-        "robot_state_publisher",
-        "auto_aim_yaw_joint_state_bridge",
-    ]
+def _pid_gone(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+        return False
+    except OSError:
+        return True
 
-    any_hit = False
-    for pat, title in zip(patterns, titles, strict=False):
-        pids = _pgrep(pat)
-        if pids:
-            any_hit = True
-            print(f"[{script_name}] Warning: Detected running {title} pids: {' '.join(map(str, pids))}", file=sys.stderr)
 
-    if any_hit and strict:
-        raise RuntimeError("Conflicting processes are running. Set KILL_EXISTING=1 or stop them manually.")
+def _kill_sim(script_name: str) -> None:
+    """启动仿真前清理残留的 Gazebo 和仿真导航/SLAM 进程。"""
+    for pat, title in [
+        (r"bringup_sim\.launch\.py",               "bringup_sim"),
+        (r"ruby.*ign|ign.*gazebo|gz-server|gz-gui", "Gazebo"),
+        (r"rm_navigation_simulation_launch\.py",   "sim nav/SLAM"),
+    ]:
+        _kill_by_pattern(pat, title, script_name)
+
+
+def _kill_reality(script_name: str) -> None:
+    """启动实车前清理残留进程。"""
+    for pat, title in [
+        (r"rm_navigation_reality_launch\.py",            "reality nav/SLAM"),
+        (r"(^|/)joint_state_publisher(\s|$)",            "joint_state_publisher"),
+        (r"(^|/)robot_state_publisher(\s|$)",            "robot_state_publisher"),
+        (r"(^|/)auto_aim_yaw_joint_state_bridge(\s|$)",  "auto_aim_yaw_bridge"),
+    ]:
+        _kill_by_pattern(pat, title, script_name)
 
 
 def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: str, *, background: bool = False, bg: Optional[BackgroundGroup] = None) -> None:
@@ -370,47 +284,54 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
     _run_shell(f"{shlex.quote(term)} -T {shlex.quote(title)} -e bash -lc {shlex.quote(keep_shell)}")
 
 
-def _parse_args(argv: list[str]) -> tuple[str, list[str]]:
-    if len(argv) < 2:
-        raise RuntimeError("usage: launch_wrapper.py <mode> [-- extra args]")
-    mode = argv[1]
-    extra = argv[2:]
-    return mode, extra
+def _wait_for_background(bg: BackgroundGroup, script_name: str) -> int:
+    """阻塞直到所有后台进程退出（multi-terminal 模式下防止 atexit 过早 kill Gazebo）。"""
+    if not bg._pids:
+        return 0
+    print(f"[{script_name}] Waiting for background pids: {bg._pids}. Ctrl+C to stop all.", file=sys.stderr)
+    try:
+        while not all(_pid_gone(p) for p in bg._pids):
+            time.sleep(1.0)
+    except (KeyboardInterrupt, SystemExit):
+        pass
+    return 0
 
 
 def main(argv: list[str]) -> int:
+    if len(argv) < 2:
+        print("usage: launch_wrapper.py <mode> [extra args...]", file=sys.stderr)
+        return 1
+
     script_name = Path(argv[0]).name
-    mode, extra_args = _parse_args(argv)
+    mode = argv[1]
+    extra_args = argv[2:]
 
-    ws_dir = Path(os.environ.get("WS_DIR", "")).expanduser()
-    if not ws_dir:
-        ws_dir = Path(__file__).resolve().parent.parent
+    VALID_MODES = {"sim_mapping", "sim_nav", "reality_mapping", "reality_navigation"}
+    if mode not in VALID_MODES:
+        print(f"[{script_name}] Unknown mode '{mode}'. Valid: {sorted(VALID_MODES)}", file=sys.stderr)
+        return 1
 
-    ros_setup = Path(os.environ.get("ROS_SETUP", "/opt/ros/humble/setup.bash"))
+    # ws_dir: 优先 WS_DIR 环境变量，否则脚本所在目录的上一级
+    _ws_env = os.environ.get("WS_DIR", "").strip()
+    ws_dir = Path(_ws_env).expanduser() if _ws_env else Path(__file__).resolve().parent.parent
+
+    ros_setup     = Path(os.environ.get("ROS_SETUP",     "/opt/ros/humble/setup.bash"))
     overlay_setup = Path(os.environ.get("OVERLAY_SETUP", str(ws_dir / "install/setup.bash")))
 
-    if not ros_setup.exists():
-        print(f"[{script_name}] Missing ROS setup: {ros_setup}", file=sys.stderr)
-        return 1
-    if not overlay_setup.exists():
-        print(f"[{script_name}] Missing workspace overlay: {overlay_setup}", file=sys.stderr)
-        return 1
+    for p, label in [(ros_setup, "ROS setup"), (overlay_setup, "workspace overlay")]:
+        if not p.exists():
+            print(f"[{script_name}] Missing {label}: {p}", file=sys.stderr)
+            return 1
 
-    strict = _is_truthy(os.environ.get("STRICT"))
-    kill_existing = _is_truthy(os.environ.get("KILL_EXISTING", "1"))
+    kill_existing     = _is_truthy(os.environ.get("KILL_EXISTING", "1"))
+    no_new_terminal_e = os.environ.get("NO_NEW_TERMINAL")
+    no_new_terminal   = _is_truthy(no_new_terminal_e) or (_in_docker() and not no_new_terminal_e)
 
-    no_new_terminal_env = os.environ.get("NO_NEW_TERMINAL")
-    no_new_terminal = _is_truthy(no_new_terminal_env) or (_in_docker() and not no_new_terminal_env)
-
-    # Mode-specific params file
-    if mode in {"reality_mapping", "reality_navigation"}:
-        params_file = Path(os.environ.get("REALITY_PARAMS_FILE", str(ws_dir / "src/pb2025_sentry_nav/pb2025_nav_bringup/config/reality/nav2_params.yaml")))
-    elif mode in {"sim_mapping", "sim_nav"}:
-        params_file = Path(os.environ.get("SIM_PARAMS_FILE", str(ws_dir / "src/pb2025_sentry_nav/pb2025_nav_bringup/config/simulation/nav2_params.yaml")))
-    else:
-        raise RuntimeError(f"unknown mode '{mode}'")
-
-    rcutils = os.environ.get("RCUTILS_LOGGING_SEVERITY") if mode == "sim_nav" else None
+    is_sim = mode.startswith("sim_")
+    params_env_key  = "SIM_PARAMS_FILE" if is_sim else "REALITY_PARAMS_FILE"
+    params_default  = (ws_dir / "src/pb2025_sentry_nav/pb2025_nav_bringup/config"
+                       / ("simulation" if is_sim else "reality") / "nav2_params.yaml")
+    params_file = Path(os.environ.get(params_env_key, str(params_default)))
 
     cfg = CommonConfig(
         script_name=script_name,
@@ -420,218 +341,104 @@ def main(argv: list[str]) -> int:
         params_file=params_file,
         no_new_terminal=no_new_terminal,
         terminal_cmd="",
-        strict=strict,
         kill_existing=kill_existing,
-        rcutils_logging_severity=rcutils,
+        rcutils_logging_severity=os.environ.get("RCUTILS_LOGGING_SEVERITY"),
     )
     cfg.terminal_cmd = _pick_terminal_cmd(cfg)
     if not cfg.terminal_cmd:
         cfg.no_new_terminal = True
 
-    # Print behavior tree report (optional)
-    if _is_truthy(os.environ.get("PRINT_BT_REPORT", "1")):
-        rep = _bt_report(cfg.params_file, cfg.script_name)
-        if rep:
-            print(rep)
-
-    # NeuPAN env snippet
+    # NeuPAN 虚拟环境片段
     controller_plugin = _controller_plugin(cfg.params_file)
     if controller_plugin:
-        print(f"[{cfg.script_name}] controller_plugin='{controller_plugin}'", file=sys.stderr)
+        print(f"[{script_name}] controller_plugin='{controller_plugin}'", file=sys.stderr)
+    else:
+        print(f"[{script_name}] controller_plugin unset; NeuPAN venv will not be activated.", file=sys.stderr)
 
-    neupan_env = ""
     try:
         neupan_env = _neupan_env(
             controller_plugin,
-            neupan_activate=Path(os.environ.get("NEUPAN_ACTIVATE", str(ws_dir / "neupan_env/bin/activate"))),
-            neupan_site_packages=Path(os.environ.get("NEUPAN_SITE_PACKAGES", str(ws_dir / "neupan_env/lib/python3.10/site-packages"))),
-            neupan_model_setup=os.environ.get("NEUPAN_MODEL_SETUP", str(ws_dir / "install/neupan_models/share/neupan_models/local_setup.bash"))
-            if mode in {"reality_mapping", "reality_navigation", "sim_mapping"}
-            else os.environ.get("NEUPAN_MODEL_SETUP", ""),
-            script_name=cfg.script_name,
+            neupan_activate=Path(os.environ.get("NEUPAN_ACTIVATE",
+                                                 str(ws_dir / "neupan_env/bin/activate"))),
+            neupan_site_packages=Path(os.environ.get("NEUPAN_SITE_PACKAGES",
+                                                      str(ws_dir / "neupan_env/lib/python3.10/site-packages"))),
+            script_name=script_name,
         )
     except Exception as exc:
-        print(f"[{cfg.script_name}] {exc}", file=sys.stderr)
+        print(f"[{script_name}] {exc}", file=sys.stderr)
         return 1
 
-    if not controller_plugin:
-        print(f"[{cfg.script_name}] controller_plugin='unset'; NeuPAN virtualenv will not be activated.", file=sys.stderr)
+    # ── 启动前清理残留进程 ────────────────────────────────────────────────────
+    if kill_existing:
+        if is_sim:
+            _kill_sim(script_name)
+        else:
+            _kill_reality(script_name)
 
-    # Kill/conflict handling
-    if not kill_existing:
-        _check_conflicts(cfg.script_name, cfg.strict)
+    # ── 仿真模式：Gazebo (后台) + SLAM/Nav (前台) ─────────────────────────────
+    if is_sim:
+        bg = BackgroundGroup(script_name)
+        atexit.register(bg.cleanup)
 
-    if mode == "reality_mapping":
-        # Reality modes: default to Foxglove (headless) instead of RViz.
-        start_foxglove = _is_truthy(os.environ.get("START_FOXGLOVE", "1"))
-        start_rviz = _is_truthy(os.environ.get("START_RVIZ", "0"))
+        def _sig(_signum, _frame):
+            bg.cleanup()
+            raise SystemExit(130)
 
-        # In single-terminal mode we keep this wrapper alive, so we can clean up bg processes.
-        bg: Optional[BackgroundGroup] = None
-        if cfg.no_new_terminal:
-            bg = BackgroundGroup(cfg.script_name)
-            atexit.register(bg.cleanup)
+        signal.signal(signal.SIGINT, _sig)
+        signal.signal(signal.SIGTERM, _sig)
 
-            def _sig(_signum, _frame):
-                bg.cleanup()
-                raise SystemExit(130)
+        enable_gt = _enable_chassis_odometry_gt(cfg.params_file)
+        print(f"[{script_name}] enable_chassis_odometry_gt={'true' if enable_gt else 'false'}", file=sys.stderr)
 
-            signal.signal(signal.SIGINT, _sig)
-            signal.signal(signal.SIGTERM, _sig)
+        gazebo_cmd = os.environ.get("GAZEBO_CMD", "ros2 launch rmu_gazebo_simulator bringup_sim.launch.py")
+        if "enable_chassis_odometry_gt:=" not in gazebo_cmd:
+            gazebo_cmd += f" enable_chassis_odometry_gt:={'true' if enable_gt else 'false'}"
+        if "use_gui:=" not in gazebo_cmd:
+            _headless = (_is_truthy(os.environ.get("GAZEBO_HEADLESS"))
+                         or not os.environ.get("DISPLAY", "").strip()
+                         or cfg.no_new_terminal)
+            if _headless:
+                gazebo_cmd = _ensure_launch_arg(gazebo_cmd, "use_gui", "false")
+                print(f"[{script_name}] Headless Gazebo (DISPLAY={os.environ.get('DISPLAY', '(unset)')!r})", file=sys.stderr)
 
-        if start_foxglove:
-            if kill_existing:
-                _kill_by_pattern(r"ros2 launch foxglove_bridge foxglove_bridge_launch.xml", "foxglove_bridge", cfg.script_name)
-            foxglove_cmd = _foxglove_bridge_command()
-            _launch_in_terminal(cfg, "Foxglove Bridge", foxglove_cmd, "", background=True, bg=bg)
+        if mode == "sim_mapping":
+            ros_cmd  = os.environ.get("SLAM_CMD", "ros2 launch pb2025_nav_bringup rm_navigation_simulation_launch.py slam:=True")
+            fg_title = "SLAM"
+        else:  # sim_nav
+            ros_cmd  = os.environ.get("NAV_CMD", "ros2 launch pb2025_nav_bringup rm_navigation_simulation_launch.py world:=rmuc_2025 slam:=False")
+            fg_title = "Nav"
 
-        mapping_cmd = os.environ.get(
-            "MAPPING_CMD",
-            "ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True",
-        )
         if extra_args:
-            mapping_cmd = mapping_cmd + " " + " ".join(map(shlex.quote, extra_args))
+            ros_cmd += " " + " ".join(map(shlex.quote, extra_args))
 
-        # Default: do not start RViz unless explicitly requested.
-        mapping_cmd = _ensure_launch_arg(mapping_cmd, "use_rviz", "True" if start_rviz else "False")
+        _is_multi_terminal = bool(cfg.terminal_cmd) and not cfg.no_new_terminal
 
-        if kill_existing:
-            _kill_by_pattern(r"ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py", "rm_navigation_reality_launch.py", cfg.script_name)
-            _kill_by_pattern(r"(^|/)joint_state_publisher(\\s|$)", "joint_state_publisher", cfg.script_name)
-            _kill_by_pattern(r"(^|/)robot_state_publisher(\\s|$)", "robot_state_publisher", cfg.script_name)
-            _kill_by_pattern(r"(^|/)auto_aim_yaw_joint_state_bridge(\\s|$)", "auto_aim_yaw_joint_state_bridge", cfg.script_name)
-
-        _launch_in_terminal(cfg, "Reality Mapping", mapping_cmd, neupan_env)
-        return 0
-
-    if mode == "reality_navigation":
-        start_foxglove = _is_truthy(os.environ.get("START_FOXGLOVE", "1"))
-        start_rviz = _is_truthy(os.environ.get("START_RVIZ", "0"))
-
-        bg: Optional[BackgroundGroup] = None
-        if cfg.no_new_terminal:
-            bg = BackgroundGroup(cfg.script_name)
-            atexit.register(bg.cleanup)
-
-            def _sig(_signum, _frame):
-                bg.cleanup()
-                raise SystemExit(130)
-
-            signal.signal(signal.SIGINT, _sig)
-            signal.signal(signal.SIGTERM, _sig)
-
-        if start_foxglove:
-            if kill_existing:
-                _kill_by_pattern(r"ros2 launch foxglove_bridge foxglove_bridge_launch.xml", "foxglove_bridge", cfg.script_name)
-            foxglove_cmd = _foxglove_bridge_command()
-            _launch_in_terminal(cfg, "Foxglove Bridge", foxglove_cmd, "", background=True, bg=bg)
-
-        nav_cmd = os.environ.get(
-            "NAVIGATION_CMD",
-            "ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True",
-        )
-        if extra_args:
-            nav_cmd = nav_cmd + " " + " ".join(map(shlex.quote, extra_args))
-
-        # Default: do not start RViz unless explicitly requested.
-        nav_cmd = _ensure_launch_arg(nav_cmd, "use_rviz", "True" if start_rviz else "False")
-
-        if kill_existing:
-            _kill_by_pattern(r"ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py", "rm_navigation_reality_launch.py", cfg.script_name)
-            _kill_by_pattern(r"(^|/)joint_state_publisher(\\s|$)", "joint_state_publisher", cfg.script_name)
-            _kill_by_pattern(r"(^|/)robot_state_publisher(\\s|$)", "robot_state_publisher", cfg.script_name)
-            _kill_by_pattern(r"(^|/)auto_aim_yaw_joint_state_bridge(\\s|$)", "auto_aim_yaw_joint_state_bridge", cfg.script_name)
-
-        _launch_in_terminal(cfg, "Reality Navigation", nav_cmd, neupan_env)
-        return 0
-
-    # Simulation modes: optionally run Gazebo in bg (single-terminal)
-    bg = BackgroundGroup(cfg.script_name)
-    atexit.register(bg.cleanup)
-
-    def _sig(_signum, _frame):
-        bg.cleanup()
-        raise SystemExit(130)
-
-    signal.signal(signal.SIGINT, _sig)
-    signal.signal(signal.SIGTERM, _sig)
-
-    enable_gt = _enable_chassis_odometry_gt(cfg.params_file)
-    print(f"[{cfg.script_name}] enable_chassis_odometry_gt={'true' if enable_gt else 'false'} (from {cfg.params_file})", file=sys.stderr)
-
-    gazebo_cmd = os.environ.get("GAZEBO_CMD", "ros2 launch rmu_gazebo_simulator bringup_sim.launch.py")
-    if "enable_chassis_odometry_gt:=" not in gazebo_cmd:
-        gazebo_cmd = gazebo_cmd + f" enable_chassis_odometry_gt:={'true' if enable_gt else 'false'}"
-
-    # Auto-detect headless environment: if DISPLAY is unset/empty or we are
-    # running inside NO_NEW_TERMINAL mode (nohup / background), default to
-    # headless Gazebo to avoid EGL / GPU rendering crashes.
-    if "use_gui:=" not in gazebo_cmd:
-        _force_headless = _is_truthy(os.environ.get("GAZEBO_HEADLESS"))
-        _no_display = not os.environ.get("DISPLAY", "").strip()
-        if _force_headless or _no_display or cfg.no_new_terminal:
-            gazebo_cmd = _ensure_launch_arg(gazebo_cmd, "use_gui", "false")
-            print(f"[{cfg.script_name}] Headless Gazebo (no GUI): "
-                  f"DISPLAY={os.environ.get('DISPLAY', '(unset)')!r}, "
-                  f"no_new_terminal={cfg.no_new_terminal}, "
-                  f"GAZEBO_HEADLESS={os.environ.get('GAZEBO_HEADLESS', '(unset)')!r}",
-                  file=sys.stderr)
-
-    def _wait_for_background(bg: BackgroundGroup) -> int:
-        """Block until all background processes exit (used in multi-terminal mode
-        where the foreground command returns immediately after spawning a window).
-        This prevents atexit from killing Gazebo prematurely."""
-        if not bg._pids:
+        if _is_multi_terminal:
+            # 多终端模式：Gazebo 和 SLAM/Nav 各弹一个 gnome 窗口，用户可直接在窗口内 Ctrl+C 关闭。
+            # wrapper 弹完两个窗口后直接退出，不需要 atexit/BackgroundGroup。
+            _launch_in_terminal(cfg, "Gazebo Sim", gazebo_cmd, "")
+            time.sleep(1.0)
+            _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env)
             return 0
-        print(f"[{cfg.script_name}] Waiting for background processes (pids: {' '.join(map(str, bg._pids))})...", file=sys.stderr)
-        print(f"[{cfg.script_name}] Press Ctrl+C to stop all.", file=sys.stderr)
-        import time as _time
-        try:
-            while True:
-                alive = []
-                for pid in bg._pids:
-                    try:
-                        os.kill(pid, 0)  # check if alive
-                        alive.append(pid)
-                    except OSError:
-                        pass
-                if not alive:
-                    break
-                _time.sleep(1.0)
-        except (KeyboardInterrupt, SystemExit):
-            pass
-        return 0
 
-    # Helper: does the foreground launch return immediately (multi-terminal)?
-    _fg_returns_immediately = bool(cfg.terminal_cmd) and not cfg.no_new_terminal
-
-    if mode == "sim_mapping":
-        slam_cmd = os.environ.get("SLAM_CMD", "ros2 launch pb2025_nav_bringup rm_navigation_simulation_launch.py slam:=True")
+        # 单终端/Docker 模式：Gazebo 后台 Popen 写日志，SLAM/Nav 前台阻塞，Ctrl+C 统一清理。
         _launch_in_terminal(cfg, "Gazebo Sim", gazebo_cmd, "", background=True, bg=bg)
         time.sleep(1.0)
-        _launch_in_terminal(cfg, "SLAM", slam_cmd, neupan_env)
-        if _fg_returns_immediately:
-            return _wait_for_background(bg)
+        _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env)
         return 0
 
-    if mode == "sim_nav":
-        nav_cmd = os.environ.get("NAV_CMD", "ros2 launch pb2025_nav_bringup rm_navigation_simulation_launch.py world:=rmuc_2025 slam:=False")
-        _launch_in_terminal(cfg, "Gazebo Sim", gazebo_cmd, "", background=True, bg=bg)
-        time.sleep(1.0)
-        _launch_in_terminal(cfg, "Nav", nav_cmd, neupan_env)
+    # ── 实车模式：SLAM/Nav (前台) ─────────────────────────────────────────────
+    if mode == "reality_mapping":
+        ros_cmd  = os.environ.get("MAPPING_CMD",
+                                  "ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True")
+        fg_title = "Reality Mapping"
+    else:  # reality_navigation
+        ros_cmd  = os.environ.get("NAVIGATION_CMD",
+                                  "ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True")
+        fg_title = "Reality Navigation"
 
-        if _is_truthy(os.environ.get("RQT_GRAPH", "false")):
-            rqt_ns = os.environ.get("RQT_GRAPH_NAMESPACE", "").strip()
-            rqt_args = os.environ.get("RQT_GRAPH_ARGS", "").strip()
-            rqt_env = f"export ROS_NAMESPACE={shlex.quote(rqt_ns)}" if rqt_ns else ""
-            rqt_cmd = "rqt_graph" + (" " + rqt_args if rqt_args else "")
-            _launch_in_terminal(cfg, "rqt_graph", rqt_cmd, rqt_env)
-
-        if _fg_returns_immediately:
-            return _wait_for_background(bg)
-        return 0
-
-    raise RuntimeError(f"unhandled mode '{mode}'")
+    _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env)
+    return 0
 
 
 if __name__ == "__main__":
