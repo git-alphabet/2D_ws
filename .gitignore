@@ -6,3 +6,8 @@ neupan_env/
 /tips.txt
 /env.txt
 src/ros2_bag_tools/bags/
+
+# Python 编译缓存
+__pycache__/
+*.pyc
+*.pyo
