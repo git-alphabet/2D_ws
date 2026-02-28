@@ -12,6 +12,9 @@ export __GLX_VENDOR_LIBRARY_NAME=nvidia
 export IGN_GAZEBO_RENDER_ENGINE_SERVER="${IGN_GAZEBO_RENDER_ENGINE_SERVER:-ogre2}"
 export IGN_GAZEBO_RENDER_ENGINE_GUI="${IGN_GAZEBO_RENDER_ENGINE_GUI:-ogre2}"
 
+# 容器内有 xterm，允许弹多终端（覆盖 Docker 自动 no_new_terminal 逻辑）
+export NO_NEW_TERMINAL="${NO_NEW_TERMINAL:-0}"
+
 # Backward-compatible override name.
 if [[ -n ${SLAM_PARAMS_FILE:-} ]] && [[ -z ${SIM_PARAMS_FILE:-} ]]; then
 	export SIM_PARAMS_FILE="$SLAM_PARAMS_FILE"
