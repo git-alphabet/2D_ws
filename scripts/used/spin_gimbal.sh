@@ -19,7 +19,9 @@ DURATION_SEC="${DURATION_SEC:-0}"
 TOPIC_SUFFIX="${TOPIC_SUFFIX:-robot_base/gimbal_cmd}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+_d="$SCRIPT_DIR"
+while [[ "$_d" != "/" && ! -f "$_d/install/setup.bash" ]]; do _d="$(dirname "$_d")"; done
+WS_DIR="$_d"; unset _d
 
 # source overlay（存在就用 overlay，否则只用 /opt/ros）
 set +u

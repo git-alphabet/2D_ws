@@ -5,7 +5,9 @@ set -e
 #   ./scripts/pub_auto_aim_yaw_test.sh                  # 发布到 /auto_aim_yaw
 #   ./scripts/pub_auto_aim_yaw_test.sh /red_standard_robot1  # 发布到 /red_standard_robot1/auto_aim_yaw
 
-WS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+_d="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+while [[ "$_d" != "/" && ! -f "$_d/install/setup.bash" ]]; do _d="$(dirname "$_d")"; done
+WS_ROOT="$_d"; unset _d
 NS="${1:-}"
 
 # ROS 的 setup 脚本里会读取未定义变量（如 AMENT_TRACE_SETUP_FILES）。

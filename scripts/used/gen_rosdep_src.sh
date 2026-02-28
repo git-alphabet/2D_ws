@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+_d="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+while [[ "$_d" != "/" && ! -f "$_d/install/setup.bash" ]]; do _d="$(dirname "$_d")"; done
+WS_ROOT="$_d"; unset _d
 SRC_DIR="$WS_ROOT/src"
 OUT_DIR="$WS_ROOT/docker/rosdep_src"
 

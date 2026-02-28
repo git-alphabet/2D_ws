@@ -7,7 +7,9 @@ set -euo pipefail
 # 3) robot_state_publisher 是否基于 /joint_states 生成 base_frame->gimbal_yaw 的 TF（yaw 是否随输入变化）
 # 4) 是否存在“namespace 不一致”导致发布/订阅对不上
 
-WS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+_d="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+while [[ "$_d" != "/" && ! -f "$_d/install/setup.bash" ]]; do _d="$(dirname "$_d")"; done
+WS_ROOT="$_d"; unset _d
 
 # Source ROS + overlay (nounset-friendly)
 set +u
