@@ -149,7 +149,8 @@ protected:
   bool callNeuPANPlanner(
     const std::vector<double> & robot_state,
     const std::vector<std::vector<double>> & obstacle_points,
-    geometry_msgs::msg::Twist & cmd_vel);
+    geometry_msgs::msg::Twist & cmd_vel,
+    nav_msgs::msg::Path & opt_trajectory);
 
   /**
    * @brief Convert laser scan to obstacle points
@@ -265,6 +266,9 @@ protected:
 
   // Current plan
   nav_msgs::msg::Path global_plan_;
+  // Last goal pose for detecting actual goal changes (avoid resetting NeuPAN on replanning)
+  geometry_msgs::msg::Pose last_goal_pose_;
+  bool has_last_goal_{false};
 
   // Python integration
   PyObject * neupan_core_instance_;
@@ -284,6 +288,8 @@ protected:
 
   // Path visualization publisher
   rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>::SharedPtr local_plan_pub_;
+  // NeuPAN optimization trajectory publisher (actual MPC-predicted path, green in RViz)
+  rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>::SharedPtr neupan_traj_pub_;
 
   // Parameters
   double max_linear_velocity_;
@@ -305,6 +311,9 @@ protected:
   std::size_t control_cycle_count_{0};
   bool control_freq_initialized_{false};
   bool debug_print_control_frequency_{false};
+  bool debug_log_goal_reached_{false};   // 到达目标点日志
+  bool debug_log_python_init_{true};     // Python 初始化状态日志
+  bool debug_log_stop_events_{true};     // NeuPAN stop/suppressed 安全停止日志
 };
 
 }  // namespace neupan_nav2_controller

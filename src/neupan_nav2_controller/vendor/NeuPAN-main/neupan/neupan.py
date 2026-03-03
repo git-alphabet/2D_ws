@@ -115,6 +115,9 @@ class neupan(torch.nn.Module):
             self.info["arrive"] = True
             return np.zeros((2, 1)), self.info
 
+        # 未到达，清除 arrive 标志（防止旧状态残留）
+        self.info["arrive"] = False
+
         nom_input_np = self.ipath.generate_nom_ref_state(
             state, self.cur_vel_array, self.ref_speed
         )
@@ -291,6 +294,8 @@ class neupan(torch.nn.Module):
         '''
 
         self.ipath.set_initial_path(path)
+        # 重置 arrive 标志，防止旧的 arrive=True 状态污染新路径的执行
+        self.info["arrive"] = False
 
     def set_initial_path_from_state(self, state):
         """

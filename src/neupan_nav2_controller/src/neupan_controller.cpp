@@ -77,6 +77,12 @@ void NeuPANController::configure(
     node, plugin_name_ + ".min_distance_noise_floor", rclcpp::ParameterValue(-0.01));
   nav2_util::declare_parameter_if_not_declared(
     node, plugin_name_ + ".debug_print_control_frequency", rclcpp::ParameterValue(false));
+  nav2_util::declare_parameter_if_not_declared(
+    node, plugin_name_ + ".debug_log_goal_reached", rclcpp::ParameterValue(false));
+  nav2_util::declare_parameter_if_not_declared(
+    node, plugin_name_ + ".debug_log_python_init", rclcpp::ParameterValue(true));
+  nav2_util::declare_parameter_if_not_declared(
+    node, plugin_name_ + ".debug_log_stop_events", rclcpp::ParameterValue(true));
 
   node->get_parameter(plugin_name_ + ".max_linear_velocity", max_linear_velocity_);
   node->get_parameter(plugin_name_ + ".max_angular_velocity", max_angular_velocity_);
@@ -88,6 +94,9 @@ void NeuPANController::configure(
   node->get_parameter(plugin_name_ + ".obstacle_clear_radius", obstacle_clear_radius_);
   node->get_parameter(plugin_name_ + ".min_distance_noise_floor", min_distance_noise_floor_);
   node->get_parameter(plugin_name_ + ".debug_print_control_frequency", debug_print_control_frequency_);
+  node->get_parameter(plugin_name_ + ".debug_log_goal_reached", debug_log_goal_reached_);
+  node->get_parameter(plugin_name_ + ".debug_log_python_init", debug_log_python_init_);
+  node->get_parameter(plugin_name_ + ".debug_log_stop_events", debug_log_stop_events_);
   obstacle_clear_radius_ = std::max(0.0, obstacle_clear_radius_);
   min_distance_noise_floor_ = std::min(0.0, min_distance_noise_floor_);
 
@@ -116,6 +125,10 @@ void NeuPANController::configure(
   // Create local plan publisher for visualization
   local_plan_pub_ = node->create_publisher<nav_msgs::msg::Path>(
     "local_plan", rclcpp::SystemDefaultsQoS());
+
+  // NeuPAN optimized trajectory (MPC predicted states, map frame)
+  neupan_traj_pub_ = node->create_publisher<nav_msgs::msg::Path>(
+    "neupan_trajectory", rclcpp::SystemDefaultsQoS());
 
   RCLCPP_INFO(logger_, "NeuPAN Controller configured successfully");
 }
@@ -161,6 +174,7 @@ void NeuPANController::cleanup()
   cleanupPython();
   laser_sub_.reset();
   local_plan_pub_.reset();
+  neupan_traj_pub_.reset();
   
   RCLCPP_INFO(logger_, "NeuPAN Controller cleaned up successfully");
 }
@@ -173,6 +187,9 @@ void NeuPANController::activate()
   control_cycle_count_ = 0;
   last_control_freq_report_time_ = steady_clock_.now();
   control_freq_initialized_ = true;
+
+  // Reset goal tracking so first setPlan() always initialises NeuPAN path
+  has_last_goal_ = false;
   
   // Start Python initialization in background thread (non-blocking)
   if (!python_initialized_ && !python_initialization_in_progress_) {
@@ -182,6 +199,9 @@ void NeuPANController::activate()
 
   if (local_plan_pub_) {
     local_plan_pub_->on_activate();
+  }
+  if (neupan_traj_pub_) {
+    neupan_traj_pub_->on_activate();
   }
   
   RCLCPP_INFO(logger_, "NeuPAN Controller activated successfully (Python initializing asynchronously)");
@@ -194,6 +214,9 @@ void NeuPANController::deactivate()
   if (local_plan_pub_) {
     local_plan_pub_->on_deactivate();
   }
+  if (neupan_traj_pub_) {
+    neupan_traj_pub_->on_deactivate();
+  }
   // Keep Python initialized for potential reactivation
   RCLCPP_INFO(logger_, "NeuPAN Controller deactivated successfully");
 }
@@ -202,10 +225,37 @@ void NeuPANController::setPlan(const nav_msgs::msg::Path & path)
 {
   global_plan_ = path;
   RCLCPP_DEBUG(logger_, "New global plan set with %zu waypoints", path.poses.size());
-  
-  // Convert Nav2 path to NeuPAN initial path format
-  if (python_initialized_ && neupan_core_instance_ && !path.poses.empty()) {
+
+  if (!python_initialized_ || !neupan_core_instance_ || path.poses.empty()) {
+    return;
+  }
+
+  // Only reset NeuPAN path tracking when the goal actually changes.
+  // During normal replanning the goal stays the same but the path shape may
+  // shift slightly; resetting point_index every time causes the optimizer to
+  // restart from the beginning and produces jerky velocity commands.
+  const auto & new_goal = path.poses.back().pose;
+  constexpr double kGoalChangeTol = 0.15;  // m
+  constexpr double kGoalChangeAngTol = 0.15;  // rad
+
+  bool goal_changed = !has_last_goal_;
+  if (!goal_changed) {
+    const double dx = new_goal.position.x - last_goal_pose_.position.x;
+    const double dy = new_goal.position.y - last_goal_pose_.position.y;
+    const double dyaw = std::abs(
+      tf2::getYaw(new_goal.orientation) - tf2::getYaw(last_goal_pose_.orientation));
+    goal_changed = (std::hypot(dx, dy) > kGoalChangeTol) ||
+                   (std::min(dyaw, 2 * M_PI - dyaw) > kGoalChangeAngTol);
+  }
+
+  if (goal_changed) {
+    RCLCPP_INFO(logger_, "New goal detected, resetting NeuPAN initial path (%zu waypoints)",
+      path.poses.size());
+    last_goal_pose_ = new_goal;
+    has_last_goal_ = true;
     convertNav2PathToNeuPAN(path);
+  } else {
+    RCLCPP_DEBUG(logger_, "Same goal, skipping NeuPAN path reset (replanning only)");
   }
 }
 
@@ -229,7 +279,9 @@ geometry_msgs::msg::TwistStamped NeuPANController::computeVelocityCommands(
 
   // Check if goal is reached
   if (goal_checker->isGoalReached(pose.pose, global_plan_.poses.back().pose, velocity)) {
-    RCLCPP_INFO(logger_, "🎯 Goal reached!");
+    if (debug_log_goal_reached_) {
+      RCLCPP_INFO(logger_, "[NeuPAN] Goal reached");
+    }
     return cmd;  // Return zero velocity
   }
 
@@ -255,25 +307,41 @@ geometry_msgs::msg::TwistStamped NeuPANController::computeVelocityCommands(
   // Call NeuPAN planner only if Python is initialized
   if (python_initialized_) {
     geometry_msgs::msg::Twist neu_cmd;
-    if (!callNeuPANPlanner(robot_state, obstacle_points, neu_cmd)) {
+    nav_msgs::msg::Path opt_traj;
+    if (!callNeuPANPlanner(robot_state, obstacle_points, neu_cmd, opt_traj)) {
       RCLCPP_WARN_THROTTLE(logger_, *node_.lock()->get_clock(), 1000,
         "NeuPAN planner failed, delegating to fallback controller");
       return computeSimpleFallbackVelocity(pose, global_plan_);
     }
     cmd.twist = neu_cmd;
+    // Publish NeuPAN optimized trajectory (map frame, control frequency)
+    if (neupan_traj_pub_ && !opt_traj.poses.empty()) {
+      opt_traj.header.frame_id = global_plan_.header.frame_id.empty() ? "map" : global_plan_.header.frame_id;
+      opt_traj.header.stamp = pose.header.stamp;
+      for (auto & p : opt_traj.poses) {
+        p.header = opt_traj.header;
+      }
+      neupan_traj_pub_->publish(opt_traj);
+    }
   } else if (python_initialization_in_progress_) {
-    RCLCPP_WARN_THROTTLE(logger_, *node_.lock()->get_clock(), 1000,
-      "🔄 Python initialization in progress, using fallback controller");
+    if (debug_log_python_init_) {
+      RCLCPP_WARN_THROTTLE(logger_, *node_.lock()->get_clock(), 1000,
+        "Python initialization in progress, using fallback controller");
+    }
     // Fallback: use simple goal-seeking behavior while initializing
     return computeSimpleFallbackVelocity(pose, global_plan_);
   } else if (python_initialization_failed_) {
-    RCLCPP_WARN_THROTTLE(logger_, *node_.lock()->get_clock(), 1000,
-      "❌ Python initialization failed, using fallback behavior");
+    if (debug_log_python_init_) {
+      RCLCPP_WARN_THROTTLE(logger_, *node_.lock()->get_clock(), 1000,
+        "Python initialization failed, using fallback behavior");
+    }
     // Fallback: return zero velocity when initialization failed
     return cmd;
   } else {
-    RCLCPP_WARN_THROTTLE(logger_, *node_.lock()->get_clock(), 1000,
-      "⏳ Python not initialized yet, using fallback behavior");
+    if (debug_log_python_init_) {
+      RCLCPP_WARN_THROTTLE(logger_, *node_.lock()->get_clock(), 1000,
+        "Python not initialized yet, using fallback behavior");
+    }
     return cmd;
   }
 
@@ -282,9 +350,8 @@ geometry_msgs::msg::TwistStamped NeuPANController::computeVelocityCommands(
   cmd.twist.linear.y = std::clamp(cmd.twist.linear.y, -max_linear_velocity_, max_linear_velocity_);
   cmd.twist.angular.z = std::clamp(cmd.twist.angular.z, -max_angular_velocity_, max_angular_velocity_);
 
-  // Create and publish local plan for visualization based on velocity commands
-  // This shows the actual trajectory the robot will follow based on the computed velocities
-  nav_msgs::msg::Path local_plan = generateVelocityBasedTrajectory(pose, cmd.twist);
+  // Publish local plan for visualization: actual global plan segment near robot (same as PID)
+  nav_msgs::msg::Path local_plan = generateLocalPlan(pose);
   publishLocalPlan(pose, local_plan);
 
   return cmd;
@@ -682,7 +749,8 @@ void NeuPANController::cleanupPython()
 bool NeuPANController::callNeuPANPlanner(
   const std::vector<double> & robot_state,
   const std::vector<std::vector<double>> & obstacle_points,
-  geometry_msgs::msg::Twist & cmd_vel)
+  geometry_msgs::msg::Twist & cmd_vel,
+  nav_msgs::msg::Path & opt_trajectory)
 {
   if (!python_initialized_ || !neupan_core_instance_) {
     RCLCPP_WARN_THROTTLE(logger_, *node_.lock()->get_clock(), 1000, "Python not initialized");
@@ -914,6 +982,36 @@ bool NeuPANController::callNeuPANPlanner(
     PyObject* action = PyTuple_GetItem(result, 0);
     PyObject* info_dict = PyTuple_GetItem(result, 1);
 
+    // Extract NeuPAN MPC optimized trajectory (opt_state_list: list of (3,1) arrays [x,y,theta] in map frame)
+    opt_trajectory.poses.clear();
+    PyObject* opt_state_list_obj = PyDict_GetItemString(info_dict, "opt_state_list");
+    if (opt_state_list_obj && PyList_Check(opt_state_list_obj)) {
+      const Py_ssize_t n_states = PyList_Size(opt_state_list_obj);
+      opt_trajectory.poses.reserve(static_cast<size_t>(n_states));
+      for (Py_ssize_t si = 0; si < n_states; ++si) {
+        PyObject* state_arr = PyList_GetItem(opt_state_list_obj, si);  // shape (3,1), borrowed
+        if (!state_arr) continue;
+        // Flatten (3,1) -> 1D via ravel()
+        PyObject* flat = PyObject_CallMethod(state_arr, "ravel", nullptr);
+        if (!flat) { PyErr_Clear(); continue; }
+        std::vector<double> sv;
+        if (extract_double_sequence(flat, sv) && sv.size() >= 3) {
+          geometry_msgs::msg::PoseStamped p;
+          p.pose.position.x = sv[0];
+          p.pose.position.y = sv[1];
+          p.pose.position.z = 0.0;
+          tf2::Quaternion q;
+          q.setRPY(0.0, 0.0, sv[2]);
+          p.pose.orientation.x = q.x();
+          p.pose.orientation.y = q.y();
+          p.pose.orientation.z = q.z();
+          p.pose.orientation.w = q.w();
+          opt_trajectory.poses.push_back(p);
+        }
+        Py_DECREF(flat);
+      }
+    }
+
     // Check if we should stop
     PyObject* stop_obj = PyDict_GetItemString(info_dict, "stop");
     PyObject* arrive_obj = PyDict_GetItemString(info_dict, "arrive");
@@ -961,33 +1059,39 @@ bool NeuPANController::callNeuPANPlanner(
         min_distance_value >= min_distance_noise_floor_) {
         stop = false;
         suppressed_stop_due_to_noise = true;
-        RCLCPP_WARN(logger_,
-          "NeuPAN stop suppressed: min_distance=%.3f m within noise floor %.3f m", min_distance_value,
-          min_distance_noise_floor_);
+        if (debug_log_stop_events_) {
+          RCLCPP_WARN(logger_,
+            "NeuPAN stop suppressed: min_distance=%.3f m within noise floor %.3f m",
+            min_distance_value, min_distance_noise_floor_);
+        }
       }
 
       if (arrive) {
-        if (min_distance_valid) {
-          const double value_to_report = min_distance_interpreted_valid ?
-            min_distance_interpreted : min_distance_value;
-          RCLCPP_INFO(logger_, "Goal reached with NeuPAN min_distance=%.3f m", value_to_report);
-        } else {
-          RCLCPP_INFO(logger_, "Goal reached!");
+        if (debug_log_goal_reached_) {
+          if (min_distance_valid) {
+            const double value_to_report = min_distance_interpreted_valid ?
+              min_distance_interpreted : min_distance_value;
+            RCLCPP_INFO(logger_, "Goal reached with NeuPAN min_distance=%.3f m", value_to_report);
+          } else {
+            RCLCPP_INFO(logger_, "Goal reached");
+          }
         }
       } else if (!suppressed_stop_due_to_noise) {
-        if (min_distance_valid && collision_threshold_valid) {
-          const double value_to_report = min_distance_interpreted_valid ?
-            min_distance_interpreted : min_distance_value;
-          RCLCPP_WARN(logger_,
-            "NeuPAN stopped due to safety constraints (min_distance=%.3f m < threshold=%.3f m)",
-            value_to_report, collision_threshold_value);
-        } else if (min_distance_valid) {
-          const double value_to_report = min_distance_interpreted_valid ?
-            min_distance_interpreted : min_distance_value;
-          RCLCPP_WARN(logger_, "NeuPAN stopped due to safety constraints (min_distance=%.3f m)",
-            value_to_report);
-        } else {
-          RCLCPP_WARN(logger_, "NeuPAN stopped due to safety constraints");
+        if (debug_log_stop_events_) {
+          if (min_distance_valid && collision_threshold_valid) {
+            const double value_to_report = min_distance_interpreted_valid ?
+              min_distance_interpreted : min_distance_value;
+            RCLCPP_WARN(logger_,
+              "NeuPAN stopped due to safety constraints (min_distance=%.3f m < threshold=%.3f m)",
+              value_to_report, collision_threshold_value);
+          } else if (min_distance_valid) {
+            const double value_to_report = min_distance_interpreted_valid ?
+              min_distance_interpreted : min_distance_value;
+            RCLCPP_WARN(logger_, "NeuPAN stopped due to safety constraints (min_distance=%.3f m)",
+              value_to_report);
+          } else {
+            RCLCPP_WARN(logger_, "NeuPAN stopped due to safety constraints");
+          }
         }
       }
 
@@ -1437,7 +1541,9 @@ void NeuPANController::pythonInitializationWorker()
       python_initialized_ = true;
       python_initialization_failed_ = false;
     } else {
-      RCLCPP_ERROR(logger_, "❌ Background Python initialization failed!");
+      if (debug_log_python_init_) {
+        RCLCPP_ERROR(logger_, "Background Python initialization failed");
+      }
       python_initialized_ = false;
       python_initialization_failed_ = true;
     }
@@ -1563,6 +1669,11 @@ nav_msgs::msg::Path NeuPANController::generateLocalPlan(
     for (size_t i = closest_idx; i < global_plan_.poses.size(); ++i) {
       // Transform each pose to robot base frame
       geometry_msgs::msg::PoseStamped global_pose = global_plan_.poses[i];
+      // poses[i].header.frame_id may be empty; inherit from the path header
+      if (global_pose.header.frame_id.empty()) {
+        global_pose.header.frame_id = global_plan_.header.frame_id;
+        global_pose.header.stamp = global_plan_.header.stamp;
+      }
       geometry_msgs::msg::PoseStamped local_pose;
       
       if (transformPose(costmap_ros_->getBaseFrameID(), global_pose, local_pose)) {
@@ -1722,7 +1833,7 @@ geometry_msgs::msg::TwistStamped NeuPANController::computeSimpleFallbackVelocity
   cmd.twist.angular.z = std::clamp(cmd.twist.angular.z, -max_angular_velocity_, max_angular_velocity_);
   
   RCLCPP_DEBUG_THROTTLE(logger_, *node_.lock()->get_clock(), 2000,
-    "🔄 Fallback controller: target distance=%.2f, yaw_error=%.2f, vel=[%.2f, %.2f, %.2f]",
+    "Fallback controller: target distance=%.2f, yaw_error=%.2f, vel=[%.2f, %.2f, %.2f]",
     distance_to_target, yaw_error, cmd.twist.linear.x, cmd.twist.linear.y, cmd.twist.angular.z);
   
   return cmd;

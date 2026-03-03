@@ -61,8 +61,8 @@ def generate_launch_description():
 
         DeclareLaunchArgument(
             'params_file',
-            default_value=os.path.join(neupan_nav2_controller_dir, 'config', 'nav2_params.yaml'),
-            description='Nav2 参数文件路径'),
+            default_value=os.path.join(neupan_nav2_controller_dir, 'config', 'neupan.yaml'),
+            description='NeuPAN 插件参数文件，独立测试时可通过 params_file:= 覆盖为完整的 Nav2 配置文件'),
 
         DeclareLaunchArgument(
             'use_composition',
