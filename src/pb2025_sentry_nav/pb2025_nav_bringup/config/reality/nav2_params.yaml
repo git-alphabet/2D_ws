@@ -50,7 +50,8 @@ auto_aim_yaw_joint_state_bridge:
     stamp_offset_sec: 0.0
 
 
-# NeuPAN 控制器参数
+# NeuPAN 插件参数已迁移到 neupan_nav2_controller/config/reality/neupan.yaml 维护。
+# 切换为 NeuPAN 控制器时，navigation_launch.py 会自动加载该文件并将 FollowPath 合并到 controller_server。
 controller_server:
   ros__parameters:
     use_sim_time: False
@@ -69,17 +70,6 @@ controller_server:
       plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.25
       yaw_goal_tolerance: 6.28
-    FollowPath:
-      plugin: "neupan_nav2_controller::NeuPANController"
-      # planner 路径（robot_type / max_speed / goal_tolerance 等规划侧参数已在 planner.yaml 中定义）
-      neupan_config_path: "$(find-pkg-share neupan_nav2_controller)/vendor/NeuPAN-main/example/non_obs/omni/planner.yaml"
-      # ↓ planner.yaml 中没有的 ROS 层参数
-      dune_model_path: "$(find-pkg-share neupan_nav2_controller)/model/omni_robot_default/model_5000.pth"  # ROS 路径解析；planner.yaml pan.dune_checkpoint 为相对路径
-      laser_topic: "/obstacle_scan"
-      max_linear_velocity: 2.5    # C++ 输出 cmd_vel 硬限幅，与 planner robot.max_speed（规划侧）语义不同
-      max_angular_velocity: 2.5
-      debug_print_control_frequency: true    #看控制器频率
-      
 
 # 控制器参数集合（传统控制器 profile）：这里的 profile 通常与仿真保持一致，便于复现调参。
 pb_controller_profiles:
