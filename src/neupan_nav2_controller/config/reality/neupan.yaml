@@ -1,0 +1,34 @@
+# NeuPAN Nav2 Controller 插件参数 —— 实车环境
+# 由 navigation_launch.py 在 controller_plugin=neupan_nav2_controller 时自动加载，
+# 无需在 bringup 的 nav2_params.yaml 中重复填写 FollowPath 块。
+
+controller_server:
+  ros__parameters:
+    FollowPath:
+      plugin: "neupan_nav2_controller::NeuPANController"
+
+      robot_type: "omni"  # omni: action=[vx,vy]；diff/acker: action=[v,w/steering]
+
+      # 规划配置
+      neupan_config_path: "$(find-pkg-share neupan_nav2_controller)/vendor/NeuPAN-main/example/non_obs/omni/planner.yaml"
+
+      # PyTorch 权重文件（实车使用 model_5000）
+      dune_model_path: "$(find-pkg-share neupan_nav2_controller)/model/omni_robot_default/model_5000.pth"
+
+      # 实车激光话题（无命名空间前缀）
+      laser_topic: /obstacle_scan
+
+      # C++ 层输出 cmd_vel 硬限幅
+      max_linear_velocity: 2.5   # m/s
+      max_angular_velocity: 2.5  # rad/s；omni 模式 NeuPAN 不输出 wz，此值暂无实际效果
+
+      # 近场滤波：小于此半径的激光点视为机器人自身反射
+      obstacle_clear_radius: 0.35  # m
+
+      # NeuPAN stop 噪声抑制：[-noise_floor, 0) 范围的负距离不触发停止
+      min_distance_noise_floor: -0.20  # m
+
+      debug_print_control_frequency: true
+      debug_log_goal_reached: false
+      debug_log_python_init: true
+      debug_log_stop_events: true
