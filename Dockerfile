@@ -67,6 +67,10 @@ RUN if [[ -n "${APT_MIRROR}" ]]; then \
   libeigen3-dev \
   libomp-dev \
   python3-tk \
+  libusb-1.0-0-dev \
+  usbutils \
+  vim \
+  nano \
   && rm -rf /var/lib/apt/lists/*
 
 RUN rosdep init 2>/dev/null || true && rosdep update

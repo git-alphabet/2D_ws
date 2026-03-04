@@ -77,6 +77,9 @@ services:
       - gxu2026-nav-build:/ws/build
       - gxu2026-nav-install:/ws/install
       - gxu2026-nav-log:/ws/log
+      - /dev/bus/usb:/dev/bus/usb   # 挂载 USB 总线，支持 odin 热插拔
+    devices:
+      - /dev/bus/usb:/dev/bus/usb   # odin1 USB 设备直通
     environment:
       TERM: xterm-256color
 
