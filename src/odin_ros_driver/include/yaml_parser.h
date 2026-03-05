@@ -87,7 +87,7 @@ private:
     std::map<std::string, std::string> register_keys_str_val_;
     std::map<std::string, ParameterValue> custom_parameters_;
 
-    std::unordered_set<std::string> allowed_key_w_str_val = {"relocalization_map_abs_path", "mapping_result_dest_dir", "mapping_result_file_name"};
+    std::unordered_set<std::string> allowed_key_w_str_val = {"relocalization_map_abs_path", "mapping_result_dest_dir", "mapping_result_file_name", "robot_base_frame_id"};
 };
 
 }

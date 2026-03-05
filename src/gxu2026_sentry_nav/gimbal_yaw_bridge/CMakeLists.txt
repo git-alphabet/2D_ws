@@ -1,0 +1,30 @@
+cmake_minimum_required(VERSION 3.8)
+project(gimbal_yaw_bridge)
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(sp_msgs REQUIRED)
+find_package(rmoss_interfaces REQUIRED)
+
+add_executable(auto_aim_yaw_joint_state_bridge src/auto_aim_yaw_joint_state_bridge.cpp)
+ament_target_dependencies(auto_aim_yaw_joint_state_bridge rclcpp std_msgs sensor_msgs sp_msgs)
+
+add_executable(joint_state_to_float32_bridge src/joint_state_to_float32_bridge.cpp)
+ament_target_dependencies(joint_state_to_float32_bridge rclcpp std_msgs sensor_msgs)
+
+add_executable(gimbal_state_to_auto_aim_yaw src/gimbal_state_to_auto_aim_yaw.cpp)
+ament_target_dependencies(gimbal_state_to_auto_aim_yaw rclcpp std_msgs rmoss_interfaces sp_msgs geometry_msgs tf2_ros)
+
+install(TARGETS auto_aim_yaw_joint_state_bridge joint_state_to_float32_bridge
+  gimbal_state_to_auto_aim_yaw
+  DESTINATION lib/${PROJECT_NAME})
+
+ament_package()

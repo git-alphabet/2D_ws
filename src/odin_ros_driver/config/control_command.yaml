@@ -31,6 +31,11 @@ register_keys:
   # TF from odom to base_link. Leave it on unless you specifically need it off.
   # ATTENTION: critical for rviz to show cloud_raw.
   send_odom_baselink_tf: 1 # 0: off; 1: on.
+  # child_frame_id for odometry and TF broadcast
+  # 设为 base_footprint：驱动直接发布 odom→base_footprint TF，odin1_base_link 仅作
+  # 静态传感器 frame（由 URDF xmacro 管理安装位置），无 dual-parent 冲突。
+  # 调整传感器安装位置只需改 pb2025_sentry_robot.sdf.xmacro 里的 odin1 pose。
+  robot_base_frame_id: base_footprint
 
   # raw dtof data
   senddtof: 1             # 0: off; 1: on
@@ -73,7 +78,7 @@ register_keys:
   showpath: 0             # 0: off; 1: on
   showcamerapose: 0       # 0: off; 1: on
   
-  custom_map_mode: 0      # 0: Odometry mode 1: SLAM mode 2: Relocalization mode
+  custom_map_mode: 1      # 0: Odometry mode 1: SLAM mode 2: Relocalization mode
   custom_init_pos: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
   relocalization_map_abs_path: "" # must be set for Relocalization mode or will fail
 

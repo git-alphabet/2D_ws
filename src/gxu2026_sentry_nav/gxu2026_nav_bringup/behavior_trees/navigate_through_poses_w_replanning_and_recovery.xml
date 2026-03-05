@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="3"
+      main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <!--
+      改动说明（v3）：
+      彻底移除所有 ClearEntireCostmap 节点。
+      原因：BtServiceNode 在 XML 加载（构造）阶段就同步 wait_for_service，
+      若 global/local_costmap 尚未 active 则抛 basic_string::_M_create 异常，
+      导致 bt_navigator 激活失败、整条 lifecycle 链中止。
+      恢复策略：规划失败 → GoalUpdated 检测；跟路失败 → GoalUpdated 检测；
+      外层 → Spin(90°) + 轻量 BackUp(0.15m)。
+    -->
+    <RecoveryNode name="NavigateRecovery"
+                  number_of_retries="6">
+      <PipelineSequence name="NavigateWithReplanning">
+        <RateController hz="1.0">
+          <RecoveryNode name="ComputePathThroughPoses"
+                        number_of_retries="1">
+            <ReactiveSequence>
+              <RemovePassedGoals input_goals="{goals}"
+                                 output_goals="{goals}"
+                                 radius="0.5"
+                                 robot_base_frame="gimbal_yaw_fake"/>
+              <ComputePathThroughPoses goals="{goals}"
+                                       path="{path}"
+                                       planner_id="GridBased"/>
+            </ReactiveSequence>
+            <GoalUpdated/>
+          </RecoveryNode>
+        </RateController>
+        <RecoveryNode name="FollowPath"
+                      number_of_retries="1">
+          <FollowPath path="{path}"
+                      controller_id="FollowPath"/>
+          <GoalUpdated/>
+        </RecoveryNode>
+      </PipelineSequence>
+      <ReactiveFallback name="RecoveryFallback">
+        <GoalUpdated/>
+        <RoundRobin name="RecoveryActions">
+          <Spin spin_dist="1.57"/>
+          <BackUp backup_dist="0.15"
+                  backup_speed="0.025"/>
+        </RoundRobin>
+      </ReactiveFallback>
+    </RecoveryNode>
+  </BehaviorTree>
+</root>
