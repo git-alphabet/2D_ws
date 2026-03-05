@@ -24,7 +24,7 @@ fi
 
 # 你想加/改 launch 参数，优先改这两行（或运行时用环境变量覆盖）。
 GAZEBO_CMD=${GAZEBO_CMD:-"ros2 launch rmu_gazebo_simulator bringup_sim.launch.py"}
-NAV_CMD=${NAV_CMD:-"ros2 launch pb2025_nav_bringup rm_navigation_simulation_launch.py world:=rmul_2026 slam:=False"}
+NAV_CMD=${NAV_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_simulation_launch.py world:=rmul_2026 slam:=False"}
 export GAZEBO_CMD NAV_CMD
 
 exec python3 "$SCRIPT_DIR/launch_wrapper.py" sim_nav "$@"

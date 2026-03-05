@@ -15,6 +15,35 @@ set +u
 source "/opt/ros/${ROS_DISTRO}/setup.bash"
 set -u
 
+# 清理环境里已失效的前缀路径（例如包重命名后残留的 /ws/install/xxx）
+sanitize_prefix_path_var() {
+  local var_name="$1"
+  local value="${!var_name:-}"
+  local cleaned=""
+
+  if [[ -z "$value" ]]; then
+    return
+  fi
+
+  IFS=':' read -r -a parts <<< "$value"
+  for p in "${parts[@]}"; do
+    [[ -z "$p" ]] && continue
+    if [[ -d "$p" ]]; then
+      if [[ -n "$cleaned" ]]; then
+        cleaned+="${cleaned:+:}$p"
+      else
+        cleaned="$p"
+      fi
+    fi
+  done
+
+  export "$var_name=$cleaned"
+}
+
+sanitize_prefix_path_var AMENT_PREFIX_PATH
+sanitize_prefix_path_var CMAKE_PREFIX_PATH
+sanitize_prefix_path_var COLCON_PREFIX_PATH
+
 # Build the ROS workspace skipping NeuPAN and neupan_nav2_controller
 colcon build --executor sequential --packages-skip neupan_nav2_controller --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 

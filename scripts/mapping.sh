@@ -13,8 +13,18 @@ export __GLX_VENDOR_LIBRARY_NAME=nvidia
 
 export START_RVIZ="${START_RVIZ:-0}"
 
+# Odin1 驱动配置（参考 odin_ros_driver README）
+ODIN_CONFIG_FILE="${ODIN_CONFIG_FILE:-$SCRIPT_DIR/../src/odin_ros_driver/config/control_command.yaml}"
+if [[ -f "$ODIN_CONFIG_FILE" ]]; then
+	mode=$(sed -n 's/^[[:space:]]*custom_map_mode:[[:space:]]*\([0-9]\+\).*$/\1/p' "$ODIN_CONFIG_FILE" | head -n1 || true)
+	if [[ -n "$mode" && "$mode" != "1" ]]; then
+		echo "[mapping.sh] 警告：检测到 custom_map_mode=$mode（建议建图时为 1: SLAM mode）" >&2
+		echo "[mapping.sh] 配置文件：$ODIN_CONFIG_FILE" >&2
+	fi
+fi
+
 # 你想加/改 launch 参数，优先改这行（或运行时用环境变量覆盖 MAPPING_CMD）。
-MAPPING_CMD=${MAPPING_CMD:-"ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True"}
+MAPPING_CMD=${MAPPING_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True"}
 export MAPPING_CMD
 
 exec python3 "$SCRIPT_DIR/launch_wrapper.py" reality_mapping "$@"

@@ -350,7 +350,7 @@ def main(argv: list[str]) -> int:
 
     is_sim = mode.startswith("sim_")
     params_env_key  = "SIM_PARAMS_FILE" if is_sim else "REALITY_PARAMS_FILE"
-    params_default  = (ws_dir / "src/pb2025_sentry_nav/pb2025_nav_bringup/config"
+    params_default  = (ws_dir / "src/gxu2026_sentry_nav/gxu2026_nav_bringup/config"
                        / ("simulation" if is_sim else "reality") / "nav2_params.yaml")
     params_file = Path(os.environ.get(params_env_key, str(params_default)))
 
@@ -423,10 +423,10 @@ def main(argv: list[str]) -> int:
                 print(f"[{script_name}] Headless Gazebo (DISPLAY={os.environ.get('DISPLAY', '(unset)')!r})", file=sys.stderr)
 
         if mode == "sim_mapping":
-            ros_cmd  = os.environ.get("SLAM_CMD", "ros2 launch pb2025_nav_bringup rm_navigation_simulation_launch.py slam:=True")
+            ros_cmd  = os.environ.get("SLAM_CMD", "ros2 launch gxu2026_nav_bringup rm_navigation_simulation_launch.py slam:=True")
             fg_title = "SLAM"
         else:  # sim_nav
-            ros_cmd  = os.environ.get("NAV_CMD", "ros2 launch pb2025_nav_bringup rm_navigation_simulation_launch.py world:=rmuc_2025 slam:=False")
+            ros_cmd  = os.environ.get("NAV_CMD", "ros2 launch gxu2026_nav_bringup rm_navigation_simulation_launch.py world:=rmuc_2025 slam:=False")
             fg_title = "Nav"
 
         if extra_args:
@@ -451,11 +451,11 @@ def main(argv: list[str]) -> int:
     # ── 实车模式：SLAM/Nav (前台) ─────────────────────────────────────────────
     if mode == "reality_mapping":
         ros_cmd  = os.environ.get("MAPPING_CMD",
-                                  "ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True")
+                                  "ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True")
         fg_title = "Reality Mapping"
     else:  # reality_navigation
         ros_cmd  = os.environ.get("NAVIGATION_CMD",
-                                  "ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True")
+                                  "ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True")
         fg_title = "Reality Navigation"
 
     _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env)

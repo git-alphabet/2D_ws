@@ -12,7 +12,7 @@ echo ""
 
 # 检查关键进程
 echo "[1/5] 检查关键进程..."
-PROCS=$(ps aux | grep -E "ign gazebo server|point_lio|nav2_container" | grep -v grep | wc -l)
+PROCS=$(ps aux | grep -E "ign gazebo server|host_sdk_sample|nav2_container" | grep -v grep | wc -l)
 if [ "$PROCS" -ge 3 ]; then
     echo "✅ 关键进程运行中 (找到 $PROCS 个)"
 else
@@ -48,11 +48,11 @@ else
     echo "❌ odom → base_footprint TF 断开"
 fi
 
-# base_footprint → front_mid360
-if timeout 3 ros2 run tf2_ros tf2_echo base_footprint front_mid360 --ros-args -r /tf:=/red_standard_robot1/tf -r /tf_static:=/red_standard_robot1/tf_static 2>&1 | grep -q "Translation:"; then
-    echo "✅ base_footprint → front_mid360 TF 连接"
+# base_footprint → odin1_base_link
+if timeout 3 ros2 run tf2_ros tf2_echo base_footprint odin1_base_link --ros-args -r /tf:=/red_standard_robot1/tf -r /tf_static:=/red_standard_robot1/tf_static 2>&1 | grep -q "Translation:"; then
+    echo "✅ base_footprint → odin1_base_link TF 连接"
 else
-    echo "❌ base_footprint → front_mid360 TF 断开"
+    echo "❌ base_footprint → odin1_base_link TF 断开"
 fi
 
 # 完整链路 map → base_footprint
@@ -94,12 +94,12 @@ echo "修复内容总结："
 echo "1. loam_interface: 修复 TransformListener 传入节点参数"
 echo "2. sensor_scan_generation: 修复 TransformListener 传入节点参数" 
 echo "3. pointcloud_to_laserscan: 添加 setUsingDedicatedThread(true)"
-echo "4. small_gicp_relocalization: 修复 TransformListener"
+echo "4. odin_ros_driver + loam_interface: 打通 odin1/odometry 与 odin1/cloud_raw"
 echo "5. fake_vel_transform, terrain_analysis: 修复 TransformListener"
 echo ""
 echo "关键成果："
 echo "- odom → base_footprint TF 正常发布"
 echo "- 完整 TF 树 map → odom → base_footprint → chassis → lidar 连接"
-echo "- 数据流链路: Point-LIO → loam_interface → sensor_scan_generation 畅通"
+echo "- 数据流链路: odin_ros_driver → loam_interface → sensor_scan_generation 畅通"
 echo "- Nav2 导航功能正常"
 echo ""
