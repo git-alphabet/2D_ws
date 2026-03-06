@@ -18,9 +18,12 @@ ament_auto_add_library(pb_back_up_frees_space_behavior SHARED
   src/behaviors/back_up_free_space.cpp
 )
 
-ament_auto_add_library(layers SHARED
+ament_auto_add_library(pb_layers SHARED
   src/layers/intensity_voxel_layer.cpp
 )
+# 库名改为 pb_layers（避免与系统 /opt/ros/humble/lib/liblayers.so 命名冲突）
+# 系统 liblayers.so 持有 ObstacleLayer RTTI，必须显式链接以确保 dlopen 时可解析
+target_link_libraries(pb_layers nav2_costmap_2d::layers)
 
 if(BUILD_TESTING)
 set(ament_cmake_clang_format_CONFIG_FILE "${CMAKE_SOURCE_DIR}/.clang-format")
