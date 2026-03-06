@@ -121,7 +121,7 @@ sensor_scan_generation:
     robot_base_frame: "gimbal_yaw"
 
     # TF 调试：打印 TF lookup 是否成功，以及推导出来的 yaw(chassis->gimbal_yaw)
-    debug_tf: true
+    debug_tf: false
     debug_tf_throttle_ms: 1000
 
 # 地形分析：输出 terrain_map（用于代价地图的点云观测源）
@@ -383,7 +383,8 @@ local_costmap:
       height: 5
       resolution: 0.05
       robot_radius: 0.2
-      plugins: ["static_layer", "intensity_voxel_layer", "inflation_layer"]
+      # static_layer 已移除：Odin1 不发布 OccupancyGrid(/map)，障碍检测由 intensity_voxel_layer 负责
+      plugins: ["intensity_voxel_layer", "inflation_layer"]
       intensity_voxel_layer:
         plugin: pb_nav2_costmap_2d::IntensityVoxelLayer
         enabled: true
@@ -400,21 +401,15 @@ local_costmap:
         max_obstacle_height: 2.0
         min_obstacle_intensity: 0.1
         max_obstacle_intensity: 2.0
-        observation_sources: terrain_map
-        terrain_map:
+        observation_sources: cloud_raw
+        cloud_raw:
           data_type: PointCloud2
-          # '<robot_namespace>' keyword shall be replaced with 'namespace' where user defined.
-          # It doesn't need to start with '/'
-          topic: <robot_namespace>/terrain_map
-          # terrain_map/terrain_map_ext 由 terrain_* 节点发布在 odom
-          sensor_frame: odom
+          topic: /odin1/cloud_raw
+          sensor_frame: odin1_base_link
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 5.0
           obstacle_min_range: 0.2
-      static_layer:
-        plugin: "nav2_costmap_2d::StaticLayer"
-        map_subscribe_transient_local: True
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 4.0
@@ -433,7 +428,8 @@ global_costmap:
       robot_radius: 0.2
       resolution: 0.05
       track_unknown_space: true
-      plugins: ["static_layer", "intensity_voxel_layer", "inflation_layer"]
+      # static_layer 已移除：Odin1 不发布 OccupancyGrid(/map)，障碍检测由 intensity_voxel_layer 负责
+      plugins: ["intensity_voxel_layer", "inflation_layer"]
       intensity_voxel_layer:
         plugin: pb_nav2_costmap_2d::IntensityVoxelLayer
         enabled: true
@@ -450,20 +446,15 @@ global_costmap:
         max_obstacle_height: 2.0
         min_obstacle_intensity: 0.1
         max_obstacle_intensity: 2.0
-        observation_sources: terrain_map_ext
-        terrain_map_ext:
+        observation_sources: cloud_raw
+        cloud_raw:
           data_type: PointCloud2
-          # '<robot_namespace>' keyword shall be replaced with 'namespace' where user defined.
-          # It doesn't need to start with '/'
-          topic: <robot_namespace>/terrain_map_ext
-          sensor_frame: odom
+          topic: /odin1/cloud_raw
+          sensor_frame: odin1_base_link
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 10.0
           obstacle_min_range: 0.2
-      static_layer:
-        plugin: "nav2_costmap_2d::StaticLayer"
-        map_subscribe_transient_local: True
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 4.0
