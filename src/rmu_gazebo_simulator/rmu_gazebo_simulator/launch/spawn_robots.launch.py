@@ -23,12 +23,12 @@ def generate_launch_description():
     remappings = [("/tf", "tf"), ("/tf_static", "tf_static")]
 
     pkg_simulator = get_package_share_directory("rmu_gazebo_simulator")
-    pkg_pb2025_robot_description = get_package_share_directory(
-        "pb2025_robot_description"
+    pkg_gxu2026_robot_description = get_package_share_directory(
+        "gxu2026_robot_description"
     )
 
     robot_xmacro_path = os.path.join(
-        pkg_pb2025_robot_description,
+        pkg_gxu2026_robot_description,
         "resource",
         "xmacro",
         "simulation_robot.sdf.xmacro",

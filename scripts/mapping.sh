@@ -14,7 +14,7 @@ export __GLX_VENDOR_LIBRARY_NAME=nvidia
 export START_RVIZ="${START_RVIZ:-0}"
 
 # 你想加/改 launch 参数，优先改这行（或运行时用环境变量覆盖 MAPPING_CMD）。
-MAPPING_CMD=${MAPPING_CMD:-"ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True"}
+MAPPING_CMD=${MAPPING_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True"}
 export MAPPING_CMD
 
 exec python3 "$SCRIPT_DIR/launch_wrapper.py" reality_mapping "$@"

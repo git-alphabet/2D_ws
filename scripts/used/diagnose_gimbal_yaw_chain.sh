@@ -126,7 +126,7 @@ echo "RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-<unset>}"
 
 say "Package prefixes (what will be used if launched now)"
 ros2 pkg prefix joint_state_publisher 2>/dev/null || true
-ros2 pkg prefix pb2025_robot_description 2>/dev/null || true
+ros2 pkg prefix gxu2026_robot_description 2>/dev/null || true
 ros2 pkg prefix gimbal_yaw_bridge 2>/dev/null || true
 
 say "Processes (who actually started jsp/rsp)"

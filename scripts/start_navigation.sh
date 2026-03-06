@@ -12,7 +12,7 @@ export __NV_PRIME_RENDER_OFFLOAD=1
 export __GLX_VENDOR_LIBRARY_NAME=nvidia
 
 # 你想加/改 launch 参数，优先改这行（或运行时用环境变量覆盖 NAVIGATION_CMD）。
-NAVIGATION_CMD=${NAVIGATION_CMD:-"ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True"}
+NAVIGATION_CMD=${NAVIGATION_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True"}
 export NAVIGATION_CMD
 
 exec python3 "$SCRIPT_DIR/launch_wrapper.py" reality_navigation "$@"
