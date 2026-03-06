@@ -14,12 +14,18 @@
         <xmacro_block name="inertia_cylinder" m="0.005" r="0.04" l="0.04" />
       </inertial>
       <visual name="visual">
-        <pose>0.0 0.0 0.0 0 0 ${pi}</pose>
+        <pose>0.0 0.0 0.0 0 0 0</pose>
         <geometry>
-          <mesh>
-            <uri>model://odin1/meshes/odin1.stp</uri>
-          </mesh>
+          <!-- odin1.stp 是 STEP 格式，rviz2 不支持，改用简单圆柱代替显示 -->
+          <cylinder>
+            <radius>0.04</radius>
+            <length>0.06</length>
+          </cylinder>
         </geometry>
+        <material>
+          <ambient>0.2 0.2 0.8 1</ambient>
+          <diffuse>0.2 0.2 0.8 1</diffuse>
+        </material>
       </visual>
 
       <sensor name="${prefix}odin1_imu" type="imu">
