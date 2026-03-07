@@ -10,7 +10,7 @@ ign_sim_pointcloud_tool:
 
 pb_navigation_switches:
   ros__parameters:
-    controller_plugin: "neupan_nav2_controller"   # 控制器插件选择：neupan_nav2_controller / pb_omni_pid_pursuit_controller
+    controller_plugin: "pb_omni_pid_pursuit_controller"   # 控制器插件选择：neupan_nav2_controller / pb_omni_pid_pursuit_controller
     odometry_source: "point_lio"                   #point_lio / small_point_lio / loam_interface
     behavior_tree: "default"                       # .xml or default,none
 
@@ -308,56 +308,84 @@ sensor_scan_generation:
 
 
 
-# 地形分析：输出 terrain_map（用于代价地图的点云观测源）
+# 地形分析：输出 terrain_map（局部代价地图的点云观测源）
+#  所有参数仅在启动时读取一次，不支持动态调参，改完需重启节点
 terrain_analysis:
   ros__parameters:
-    scanVoxelSize: 0.05                 # 点云下采样
-    decayTime: 0.7                      # 点云时间差阈值 大于则不会被处理
-    noDecayDis: 0.0                     # 点云距离阈值 小于该阈值不考虑时间差
-    clearingDis: 0.0                    # 该距离外的点会被清除
-    useSorting: True                    # 这个参数开起来就能上坡了；如果 use_sorting,那么就以周围点中的分位点作为地面点，否则以最低点作为地面点；周围其余点相对于地面点的高度作为通过代价，所以对于坡面，有的点的代价是正，有的是负，就相互抵消了；不要与 consider_drop 同时开启，计算上会有冲突
-    quantileZ: 0.5                      # 上不去坡调这个 地面估计分位数 useful if use_sorting is enabled.  调高 能过的坡不会识别成墙
-    considerDrop: False                 # 考虑凹下去的地面,开启则将相对于地面点的高度取绝对值
-    limitGroundLift: False
-    maxGroundLift: 0.3
-    clearDyObs: True                    # 清除动态物体的话，有动态物体走过的地方就走不了了
-    minDyObsDis: 0.3                    # 以下参数都是在 clear_dy_obs 的情况下才有用的
-    minDyObsAngle: 0.0
-    minDyObsRelZ: -0.3
-    absDyObsRelZThre: 0.2
-    minDyObsVFOV: -28.0
-    maxDyObsVFOV: 33.0
-    minDyObsPointNum: 1
-    noDataObstacle: False               # treat no data as obstacle
-    noDataBlockSkipNum: 0
-    minBlockPointNum: 10
-    vehicleHeight: 0.5                  # 小于车辆高度的点才会进行处理
-    voxelPointUpdateThre: 50
-    voxelTimeUpdateThre: 1.0
-    minRelZ: -1.5                       # min_rel_z 以及 max_rel_z 限制了有效点云点的Z值范围，用于对天花板和地板进行处理
-    maxRelZ: 0.5
-    disRatioZ: 0.2                    # Z 值的最大最小范围由这两个值决定，但是并不等于这两个值，是有一个比例关系的，距离机器人越远，限定范围就越大，这其中考虑了坡度
+    # ── 点云预处理 ──────────────────────────────────────────────
+    scanVoxelSize: 0.05       # 输入点云体素下采样分辨率（m），越大越稀疏、越快，但细节丢失
 
-# 地形分析（扩展版）：输出 terrain_map_ext（全局代价地图常用）
+    # ── 时间衰减：控制点云在地图中保留多久 ────────────────────────
+    decayTime: 0.7            # 点云帧时间戳差超过此值（s）则丢弃，防止旧点污染地图
+    noDecayDis: 0.0           # 距离机器人小于此值（m）的点忽略衰减，始终保留（0=禁用）
+    clearingDis: 0.0          # 距离机器人超过此值（m）的点强制清除（0=禁用）
+
+    # ── 地面估计：决定哪些点算"地面"、哪些算"障碍" ────────────────
+    useSorting: false          # 开启后以周围点的分位数估计地面，能正确处理坡面（推荐开）
+                              # 关闭则以最低点为地面，坡面会被误判为障碍
+                              # 不要与 considerDrop 同时开启，逻辑冲突
+    quantileZ: 0.5            # useSorting=True 时的地面估计分位数（0~1）
+                              # 调高 → 地面估计更高 → 坡面不再被识别为墙（上不了坡时调大）
+    considerDrop: False       # 是否考虑下陷地形：开启后对高度差取绝对值，凹坑也算障碍
+                              # 不要与 useSorting 同时开启
+    limitGroundLift: False    # 是否限制地面抬升幅度（配合 maxGroundLift 使用）
+    maxGroundLift: 0.3        # limitGroundLift=True 时，单帧地面最大抬升量（m）
+
+    # ── 动态障碍清除：检测并清除运动物体留下的点 ─────────────────
+    # 开启后动态物体经过的区域会被标记为不可通行，慎用
+    clearDyObs: True          # 是否清除动态障碍点
+    minDyObsDis: 0.3          # 以下参数仅在 clearDyObs=True 时生效
+    minDyObsAngle: 0.0        # 动态障碍点与机器人连线和水平面夹角下限（°）
+    minDyObsRelZ: -0.3        # 动态障碍点相对机器人的最小 Z 值（m），过滤地面反射
+    absDyObsRelZThre: 0.2     # 动态障碍点相对地面高度的绝对值阈值（m），低于此值不算动态障碍
+    minDyObsVFOV: -28.0       # 动态障碍检测的垂直视场角下限（°，对应雷达仰角）
+    maxDyObsVFOV: 33.0        # 动态障碍检测的垂直视场角上限（°）
+    minDyObsPointNum: 1       # 判定为动态障碍所需的最少点数
+
+    # ── 无数据区域处理 ────────────────────────────────────────────
+    noDataObstacle: False     # 无点云覆盖的区域是否视为障碍（True=未知区域不可通行）
+    noDataBlockSkipNum: 0     # 判断无数据前允许跳过的空块数
+    minBlockPointNum: 10      # 每个体素块被认为有效的最少点数
+
+    # ── 有效点云范围过滤 ─────────────────────────────────────────
+    vehicleHeight: 0.5        # 相对机器人高度上限（m），高于此值的点丢弃（过滤天花板/高障碍）
+    voxelPointUpdateThre: 50  # 体素更新所需的最少累积点数
+    voxelTimeUpdateThre: 1.0  # 体素强制更新的时间间隔（s）
+    minRelZ: -1.5             # 相对机器人有效点的 Z 下限（m），过滤地板穿透点
+    maxRelZ: 0.5              # 相对机器人有效点的 Z 上限（m），过滤天花板
+    disRatioZ: 0.2            # Z 范围随距离的扩展比例：实际范围 = minRelZ - disRatioZ*dist
+                              # 距离越远允许的 Z 变化越大，以适应坡度
+
+# 地形分析（扩展版）：输出 terrain_map_ext（全局代价地图常用，覆盖范围更大）
+# 所有参数仅在启动时读取一次，不支持动态调参，改完需重启节点
 terrain_analysis_ext:
   ros__parameters:
-    scanVoxelSize: 0.1
-    decayTime: 0.7                      # 点云时间差阈值 大于则不会被处理
-    noDecayDis: 0.0
-    clearingDis: 20.0
-    useSorting: true
-    quantileZ: 0.5                #调高 能过的坡不会识别成墙
-    vehicleHeight: 1.0
-    voxelPointUpdateThre: 50
-    voxelTimeUpdateThre: 2.0
-    lowerBoundZ: -1.5
-    upperBoundZ: 0.5
-    disRatioZ: 0.2
-    checkTerrainConn: False
-    terrainUnderVehicle: -0.75
-    terrainConnThre: 0.5
-    ceilingFilteringThre: 2.0
-    localTerrainMapRadius: 4.0
+    # ── 点云预处理 ──────────────────────────────────────────────
+    scanVoxelSize: 0.1        # 下采样分辨率（m），ext 版本覆盖范围更大故用较大值
+
+    # ── 时间衰减 ─────────────────────────────────────────────────
+    decayTime: 0.7            # 同 terrain_analysis，帧时间差超过此值则丢弃（s）
+    noDecayDis: 0.0           # 近距离不衰减半径（m），0=禁用
+    clearingDis: 20.0         # 超过此距离的点强制清除（m），全局地图用较大值
+
+    # ── 地面估计 ─────────────────────────────────────────────────
+    useSorting: true          # 分位数估计地面（同 terrain_analysis）
+    quantileZ: 0.5            # 地面估计分位数，调高可放宽坡面通行判断
+
+    # ── 有效点云范围过滤 ─────────────────────────────────────────
+    vehicleHeight: 1.0        # Z 上限（m），ext 版本设高一点覆盖更多障碍
+    voxelPointUpdateThre: 50  # 体素更新最少累积点数
+    voxelTimeUpdateThre: 2.0  # 体素强制更新间隔（s），全局地图更新慢一些
+    lowerBoundZ: -1.5         # 有效点 Z 下限（m），等效 terrain_analysis 的 minRelZ
+    upperBoundZ: 0.5          # 有效点 Z 上限（m），等效 terrain_analysis 的 maxRelZ
+    disRatioZ: 0.2            # Z 范围随距离的扩展比例（同 terrain_analysis）
+
+    # ── 地形连通性检查（ext 独有）────────────────────────────────
+    checkTerrainConn: False   # 是否检查地形连通性，断开区域标记为不可通行
+    terrainUnderVehicle: -0.75 # 车辆正下方的地面 Z 偏移基准（m），用于连通性判断
+    terrainConnThre: 0.5      # 地形连通阈值（m），高度差超过此值视为不连通
+    ceilingFilteringThre: 2.0 # 天花板过滤高度（m），高于此值的点丢弃
+    localTerrainMapRadius: 4.0 # 局部地形地图半径（m），超出范围的旧点清除
 
 
 
