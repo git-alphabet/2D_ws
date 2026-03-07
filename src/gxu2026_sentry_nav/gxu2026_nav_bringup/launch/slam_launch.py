@@ -18,6 +18,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterFile
@@ -35,6 +36,9 @@ def generate_launch_description():
     autostart = LaunchConfiguration("autostart")
     use_respawn = LaunchConfiguration("use_respawn")
     log_level = LaunchConfiguration("log_level")
+    # odin Mode1 自己发布 map->odom TF，此时必须关闭 static TF 避免冲突
+    # odin Mode0 或纯 slam_toolbox 模式：需要 static identity TF
+    publish_static_map_tf = LaunchConfiguration("publish_static_map_tf")
     # Variables
     lifecycle_nodes = ["map_saver"]
 
@@ -82,6 +86,15 @@ def generate_launch_description():
 
     declare_log_level_cmd = DeclareLaunchArgument(
         "log_level", default_value="info", description="log level"
+    )
+
+    declare_publish_static_map_tf_cmd = DeclareLaunchArgument(
+        "publish_static_map_tf",
+        default_value="True",
+        description=(
+            "Whether to publish static identity map->odom TF. "
+            "Set False when odin Mode1/2 publishes map->odom TF itself."
+        ),
     )
 
     start_map_saver_server_cmd = Node(
@@ -143,6 +156,7 @@ def generate_launch_description():
         executable="static_transform_publisher",
         name="static_transform_publisher_map2odom",
         output="screen",
+        condition=IfCondition(publish_static_map_tf),
         arguments=[
             "--x",
             "0.0",
@@ -172,6 +186,7 @@ def generate_launch_description():
     ld.add_action(declare_autostart_cmd)
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_log_level_cmd)
+    ld.add_action(declare_publish_static_map_tf_cmd)
 
     # Running Map Saver Server
     ld.add_action(start_map_saver_server_cmd)

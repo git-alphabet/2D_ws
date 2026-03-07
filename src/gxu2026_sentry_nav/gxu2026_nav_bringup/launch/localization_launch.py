@@ -44,6 +44,9 @@ def generate_launch_description():
     container_name_full = (namespace, "/", container_name)
     use_respawn = LaunchConfiguration("use_respawn")
     log_level = LaunchConfiguration("log_level")
+    # odin Mode0: 无 map→odom TF，需要我们发 identity TF
+    # odin Mode1/2: odin 自己发 map→odom TF，禁止 static TF 避免冲突
+    publish_static_map_tf = LaunchConfiguration("publish_static_map_tf")
 
     lifecycle_nodes = ["map_server"]
 
@@ -120,6 +123,37 @@ def generate_launch_description():
         "log_level", default_value="info", description="log level"
     )
 
+    declare_publish_static_map_tf_cmd = DeclareLaunchArgument(
+        "publish_static_map_tf",
+        default_value="True",
+        description=(
+            "Whether to publish a static identity map->odom TF. "
+            "True for odin Mode0 (no internal map TF). "
+            "False for odin Mode1/2 where odin publishes map->odom TF itself."
+        ),
+    )
+
+    # 无 SLAM 时也需要 map→odom 的 TF，否则全局代价地图/全局规划全部失效。
+    # odin Mode0: 发布 identity TF（map=odom 起点）
+    # odin Mode1/2: 由 odin 驱动自己发布真实 map→odom TF，此节点必须关闭避免冲突
+    start_static_map_to_odom_tf = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        name="static_transform_publisher_map2odom",
+        output="screen",
+        condition=IfCondition(publish_static_map_tf),
+        arguments=[
+            "--x", "0.0",
+            "--y", "0.0",
+            "--z", "0.0",
+            "--roll", "0.0",
+            "--pitch", "0.0",
+            "--yaw", "0.0",
+            "--frame-id", "map",
+            "--child-frame-id", "odom",
+        ],
+    )
+
     load_nodes = GroupAction(
         condition=UnlessCondition(use_composition),
         actions=[
@@ -191,8 +225,10 @@ def generate_launch_description():
     ld.add_action(declare_container_name_cmd)
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_log_level_cmd)
+    ld.add_action(declare_publish_static_map_tf_cmd)
 
     # Add the actions to launch all of the localiztion nodes
+    ld.add_action(start_static_map_to_odom_tf)  # 条件性：仅 odin Mode0
     ld.add_action(load_nodes)
     ld.add_action(load_composable_nodes)
 

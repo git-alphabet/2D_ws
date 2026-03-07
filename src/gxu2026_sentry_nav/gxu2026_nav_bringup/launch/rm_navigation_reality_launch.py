@@ -127,8 +127,8 @@ def generate_launch_description():
 
     declare_rviz_config_file_cmd = DeclareLaunchArgument(
         "rviz_config_file",
-        default_value=os.path.join(bringup_dir, "rviz", "odin_reality.rviz"),
-        description="Full path to the RVIZ config file to use",
+        default_value=os.path.join(bringup_dir, "rviz", "nav2_default_view.rviz"),
+        description="Full path to the RVIZ config file to use (odin_reality.rviz for debug view)",
     )
 
     declare_use_rviz_cmd = DeclareLaunchArgument(
@@ -141,10 +141,23 @@ def generate_launch_description():
         description="Full path to odin_ros_driver control config file",
     )
 
-    declare_enable_terrain_analysis_cmd = DeclareLaunchArgument(
-        "enable_terrain_analysis",
-        default_value="false",
-        description="Whether to launch terrain_analysis nodes (disable for odin1-only testing)",
+    declare_odin_map_mode_cmd = DeclareLaunchArgument(
+        "odin_map_mode",
+        default_value="0",
+        description=(
+            "Odin1 custom_map_mode: "
+            "0=Odometry(no map TF, need static TF), "
+            "1=SLAM(odin publishes map->odom TF), "
+            "2=Relocalization(odin publishes map->odom TF after match). "
+            "Must match control_command.yaml custom_map_mode!"
+        ),
+    )
+
+    # Mode0: 需要我们发 static identity map->odom TF
+    # Mode1/2: odin 自己发 map->odom TF，我们不能再发（否则冲突）
+    from launch.substitutions import PythonExpression
+    publish_static_map_tf = PythonExpression(
+        ["'True' if '", LaunchConfiguration("odin_map_mode"), "' == '0' else 'False'"]
     )
 
     # Create our own temporary YAML files that include substitutions
@@ -203,7 +216,7 @@ def generate_launch_description():
             "autostart": autostart,
             "use_composition": use_composition,
             "use_respawn": use_respawn,
-            "enable_terrain_analysis": LaunchConfiguration("enable_terrain_analysis"),
+            "publish_static_map_tf": publish_static_map_tf,
         }.items(),
     )
 
@@ -233,7 +246,7 @@ def generate_launch_description():
     ld.add_action(declare_use_rviz_cmd)
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_odin_config_file_cmd)
-    ld.add_action(declare_enable_terrain_analysis_cmd)
+    ld.add_action(declare_odin_map_mode_cmd)
 
     # Add the actions to launch all of the navigation nodes
     ld.add_action(start_robot_state_publisher_cmd)
