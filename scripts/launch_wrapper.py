@@ -234,6 +234,7 @@ def _kill_reality(script_name: str) -> None:
         (r"(^|/)joint_state_publisher(\s|$)",            "joint_state_publisher"),
         (r"(^|/)robot_state_publisher(\s|$)",            "robot_state_publisher"),
         (r"(^|/)auto_aim_yaw_joint_state_bridge(\s|$)",  "auto_aim_yaw_bridge"),
+        (r"component_container_isolated.*nav2_container", "nav2_container"),
     ]:
         _kill_by_pattern(pat, title, script_name)
 
