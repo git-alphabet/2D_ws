@@ -70,18 +70,20 @@ services:
   dev-robot:
     <<: *base
     container_name: gxu2026-nav-robot
-    # 实车不需要 X11 / GPU，覆盖掉 base 里的 X11 挂载
     volumes:
       - ../src:/ws/src
       - ../scripts:/ws/scripts
       - gxu2026-nav-build:/ws/build
       - gxu2026-nav-install:/ws/install
       - gxu2026-nav-log:/ws/log
-      - /dev/bus/usb:/dev/bus/usb   # 挂载 USB 总线，支持 odin 热插拔
+      - /dev/bus/usb:/dev/bus/usb        # 挂载 USB 总线，支持 odin 热插拔
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw # X11 socket 转发，供 rviz2 等 GUI 使用
     devices:
       - /dev/bus/usb:/dev/bus/usb   # odin1 USB 设备直通
     environment:
       TERM: xterm-256color
+      DISPLAY: ${DISPLAY:-:0}       # X11 Display，默认 :0（宿主机本地）
+      QT_X11_NO_MITSHM: "1"        # 防止 Qt 共享内存权限问题
 
 volumes:
   gxu2026-nav-build:
