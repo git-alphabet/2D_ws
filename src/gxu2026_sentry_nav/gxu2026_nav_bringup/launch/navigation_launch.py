@@ -155,13 +155,6 @@ def generate_launch_description():
     )
 
     enable_obstacle_scan = LaunchConfiguration("enable_obstacle_scan")
-    enable_terrain_analysis = LaunchConfiguration("enable_terrain_analysis")
-
-    declare_enable_terrain_analysis_cmd = DeclareLaunchArgument(
-        "enable_terrain_analysis",
-        default_value="true",
-        description="Whether to launch terrain_analysis and terrain_analysis_ext nodes",
-    )
 
     start_pointcloud_to_laserscan_cmd = Node(
         package="pointcloud_to_laserscan",
@@ -215,7 +208,6 @@ def generate_launch_description():
         respawn_delay=2.0,
         arguments=["--ros-args", "--log-level", log_level],
         parameters=[configured_params],
-        condition=IfCondition(enable_terrain_analysis),
     )
 
     start_terrain_analysis_ext_cmd = Node(
@@ -227,7 +219,6 @@ def generate_launch_description():
         respawn_delay=2.0,
         arguments=["--ros-args", "--log-level", log_level],
         parameters=[configured_params],
-        condition=IfCondition(enable_terrain_analysis),
     )
 
     start_rm_behavior_tree_cmd = Node(
@@ -772,7 +763,6 @@ def generate_launch_description():
     # processed params defaults to original params file
     ld.add_action(SetLaunchConfiguration("processed_params_file", params_file))
     ld.add_action(SetLaunchConfiguration("enable_obstacle_scan", "false"))
-    ld.add_action(declare_enable_terrain_analysis_cmd)
     # Set switches before starting nodes
     ld.add_action(set_switches_cmd)
     # Add the actions to launch all of the navigation nodes

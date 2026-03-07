@@ -135,10 +135,10 @@ def generate_launch_description():
         "log_level", default_value="info", description="log level"
     )
 
-    declare_enable_terrain_analysis_cmd = DeclareLaunchArgument(
-        "enable_terrain_analysis",
-        default_value="true",
-        description="Whether to launch terrain_analysis and terrain_analysis_ext nodes",
+    declare_publish_static_map_tf_cmd = DeclareLaunchArgument(
+        "publish_static_map_tf",
+        default_value="True",
+        description="Pass-through to localization_launch: True for odin Mode0, False for Mode1/2",
     )
 
     # Specify the actions
@@ -167,6 +167,7 @@ def generate_launch_description():
                     "autostart": autostart,
                     "use_respawn": use_respawn,
                     "params_file": params_file,
+                    "publish_static_map_tf": LaunchConfiguration("publish_static_map_tf"),
                 }.items(),
             ),
             IncludeLaunchDescription(
@@ -184,6 +185,7 @@ def generate_launch_description():
                     "use_composition": use_composition,
                     "use_respawn": use_respawn,
                     "container_name": "nav2_container",
+                    "publish_static_map_tf": LaunchConfiguration("publish_static_map_tf"),
                 }.items(),
             ),
             IncludeLaunchDescription(
@@ -199,7 +201,6 @@ def generate_launch_description():
                     "use_composition": use_composition,
                     "use_respawn": use_respawn,
                     "container_name": "nav2_container",
-                    "enable_terrain_analysis": LaunchConfiguration("enable_terrain_analysis"),
                 }.items(),
             ),
         ]
@@ -223,7 +224,7 @@ def generate_launch_description():
     ld.add_action(declare_use_composition_cmd)
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_log_level_cmd)
-    ld.add_action(declare_enable_terrain_analysis_cmd)
+    ld.add_action(declare_publish_static_map_tf_cmd)
 
     # Add the actions to launch all of the navigation nodes
     ld.add_action(bringup_cmd_group)
