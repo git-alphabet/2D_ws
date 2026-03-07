@@ -7,6 +7,9 @@ neupan_env/
 /env.txt
 src/ros2_bag_tools/bags/
 
+# Odin1 地图文件（私有二进制格式，运行时生成，不进仓库）
+src/odin_ros_driver/map/
+
 # Python 编译缓存
 __pycache__/
 *.pyc
