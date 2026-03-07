@@ -188,20 +188,25 @@ def _kill_by_pattern(pattern: str, title: str, script_name: str) -> None:
     if not pids:
         return
     print(f"[{script_name}] Killing existing {title} pids: {' '.join(map(str, pids))}", file=sys.stderr)
-    for pid in pids:
-        try:
-            os.kill(pid, signal.SIGTERM)
-        except Exception:
-            pass
-    time.sleep(0.3)
-    pids2 = _pgrep(pattern)
-    if pids2:
-        print(f"[{script_name}] Force-killing remaining {title} pids: {' '.join(map(str, pids2))}", file=sys.stderr)
-        for pid in pids2:
+    for sig in (signal.SIGTERM, signal.SIGKILL):
+        for pid in list(pids):
             try:
-                os.kill(pid, signal.SIGKILL)
+                os.kill(pid, 0)  # 检查进程是否还存在
+            except OSError:
+                continue
+            try:
+                os.killpg(os.getpgid(pid), sig)  # 杀整个进程组（含子节点）
             except Exception:
-                pass
+                try:
+                    os.kill(pid, sig)
+                except Exception:
+                    pass
+        time.sleep(0.8)
+        pids = _pgrep(pattern)
+        if not pids:
+            break
+    if pids:
+        print(f"[{script_name}] Warning: {title} pids still alive: {' '.join(map(str, pids))}", file=sys.stderr)
 
 
 def _pid_gone(pid: int) -> bool:
