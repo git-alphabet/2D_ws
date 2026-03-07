@@ -43,6 +43,13 @@ sanitize_prefix_path_var AMENT_PREFIX_PATH
 sanitize_prefix_path_var CMAKE_PREFIX_PATH
 sanitize_prefix_path_var COLCON_PREFIX_PATH
 
+# 清理 pb_nav2_plugins 旧产物，防止切换分支/库名变更后残留 .so 导致 dlopen 符号缺失
+# （libpb_layers.so 曾命名为 liblayers.so，旧文件若留在 install 会造成 undefined symbol）
+if [[ -f "$WS_DIR/install/pb_nav2_plugins/lib/liblayers.so" ]]; then
+  echo "[quick_build.sh] 检测到旧版 liblayers.so，自动清理 pb_nav2_plugins 构建产物..."
+  rm -rf "$WS_DIR/build/pb_nav2_plugins" "$WS_DIR/install/pb_nav2_plugins"
+fi
+
 # Build the ROS workspace skipping NeuPAN and neupan_nav2_controller
 colcon build  --packages-skip neupan_nav2_controller --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 
