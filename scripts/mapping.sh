@@ -24,7 +24,10 @@ if [[ -f "$ODIN_CONFIG_FILE" ]]; then
 fi
 
 # 你想加/改 launch 参数，优先改这行（或运行时用环境变量覆盖 MAPPING_CMD）。
-MAPPING_CMD=${MAPPING_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True"}
+# odin_map_mode:=1  → odin SLAM 模式，自己发布 map->odom TF + 保存 .bin
+# publish_static_map_tf:=False → 禁用 static identity TF，避免与 odin 冲突
+# slam:=True → 启动 slam_toolbox 同步保存 pgm 地图
+MAPPING_CMD=${MAPPING_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True odin_map_mode:=1 publish_static_map_tf:=False"}
 export MAPPING_CMD
 
 exec python3 "$SCRIPT_DIR/launch_wrapper.py" reality_mapping "$@"
