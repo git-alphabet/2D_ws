@@ -20,7 +20,7 @@
             <ReactiveSequence>
               <RemovePassedGoals input_goals="{goals}"
                                  output_goals="{goals}"
-                                 radius="0.5"
+                                 radius="0.8"
                                  robot_base_frame="gimbal_yaw_fake"/>
               <ComputePathThroughPoses goals="{goals}"
                                        path="{path}"
