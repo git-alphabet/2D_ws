@@ -859,3 +859,8 @@ pb_teleop_twist_joy_node:
       roll: 0.0
       pitch: -1.5
       yaw: 3.5
+
+lifecycle_manager_navigation:
+  ros__parameters:
+    bond_timeout: 4.0
+    attempt_respawn_reconnection: true
