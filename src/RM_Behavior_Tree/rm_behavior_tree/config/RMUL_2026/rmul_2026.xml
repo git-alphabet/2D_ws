@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4"
+      main_tree_to_execute="MainBehaviorTree">
+    
+    <include path="HighHP_combat_logic.xml"/>
+    <include path="MediumHP_combat_logic.xml"/>
+    <include path="perception_and_blackboard.xml"/>
+    <include path="IsDeadAndDispelDebuff.xml"/>
+
+    <BehaviorTree ID="MainBehaviorTree">
+        <Sequence>
+            <!-- 用Sequence包裹所有节点，确保BehaviorTree只有1个子节点 -->
+            <!-- 订阅数据并写入黑板 -->
+            <SubTree ID="PerceptionAndBlackboard" _autoremap="true"/>
+            <WhileDoElse>
+                <IsGameTime name="IsGameStart"
+                        message="{game_status}"
+                        game_progress="4"
+                        lower_remain_time="0"
+                        higher_remain_time="300"/>
+                <Fallback>
+                    <!--判断战亡，若战亡，执行解除虚弱状态操作 -->
+                    <SubTree ID="IsDeadAndDispelDebuff" _autoremap="true"/>
+                    <!-- 处于存活状态则进入战斗/占点逻辑 -->
+                    <Fallback>
+                        <!--
+                          战斗决策优先级 (从高到低):
+                            1. 高血量(≥300): 检测敌人→停车射击 / 未检测→巡逻控制区
+                            2. 中血量(200~300): 检测敌人→停车射击 / 未检测→靠近补给区
+                            3. 低血量(<200): 无条件回补给区回血
+                          每个子树内部已包含 IsDetectEnemy 判断，
+                          会根据有无敌人自动切换射击/巡逻模式
+                        -->
+
+                        <!-- 高血量战斗逻辑 (HP ≥ 300) -->
+                        <SubTree ID="HighHPCombatLogic" _autoremap="true"/>
+                        <!-- 中血量战斗逻辑 (200 ≤ HP < 300) -->
+                        <SubTree ID="MediumHPCombatLogic" _autoremap="true"/>
+
+                        <!-- 非战斗时刻占点逻辑 -->
+                        <ReactiveFallback>
+                            <!-- 低血量：回补给区回血（补给区占领：每秒回 25% 上限血量） -->
+                            <ReactiveSequence>
+                                <IsHPBelow message="{robot_status}" hp_threshold="200"/>
+
+                                <RateController hz="1">
+                                    <SendGoal name="GoSupplyToHeal"
+                                            goal_x="0.21"
+                                            goal_y="-0.32"
+                                            frame_id="map"
+                                            action_name="navigate_to_pose"/>
+                                </RateController>
+
+                                <!-- ✅ 使用新的 IsAtNavGoal 节点检测是否到达 -->
+                                <IsAtNavGoal rfid_status="{rfid_status}"/>
+
+                                <!-- Fallback: 先感应补给区卡,感应不到再微动重试 -->
+                                <ReactiveFallback>
+                                    <IsSupplyCardDetected rfid_status="{rfid_status}"/>
+                                    <MoveAround expected_nearby_goal_count="5"
+                                                expected_dis="0.3"
+                                                message="{current_location}"/>
+                                </ReactiveFallback>
+                            </ReactiveSequence>
+
+                            <!-- 3) 抢控制区：对方每秒-1胜利点；离开后延迟2s失效 -->
+                            <ReactiveSequence>
+                                <RateController hz="1">
+                                    <SendGoal name="GoControlZone"
+                                            goal_x="5.13"
+                                            goal_y="-3.94"
+                                            frame_id="map"
+                                            action_name="navigate_to_pose"/>
+                                </RateController>
+
+                                <!-- ✅ 使用新的 IsAtNavGoal 节点检测是否到达 -->
+                                <IsAtNavGoal rfid_status="{rfid_status}"/>
+
+                                <!-- Fallback: 先感应控制区卡,感应不到再微动重试 -->
+                                <ReactiveFallback>
+                                    <IsControlZoneDetected rfid_status="{rfid_status}"/>
+                                    <MoveAround expected_nearby_goal_count="5"
+                                                expected_dis="0.3"
+                                                message="{current_location}"/>
+                                </ReactiveFallback>
+                            </ReactiveSequence>
+
+                        </ReactiveFallback>
+
+                    </Fallback>
+                </Fallback>
+                <!-- 非比赛阶段停止云台和旋转，回家 -->
+                <ReactiveSequence>
+                        <RateController hz="1">
+                        <SendGoal name="Home"
+                            goal_x="0.0"
+                            goal_y="0.0"
+                            frame_id="map"
+                            action_name="navigate_to_pose"/>
+                    </RateController>
+                    <RobotControl stop_gimbal_scan="True"
+                                    chassis_spin="False"/>
+                </ReactiveSequence>
+            </WhileDoElse>
+        </Sequence>
+    </BehaviorTree>
+    
+    <!-- Description of Node Models (used by Groot) -->
+    <TreeNodesModel>
+        <Action ID="GetCurrentLocation" editable="true">
+            <output_port name="current_location" default="{current_location}"/>
+        </Action>
+        <Action ID="IsDetectEnemy" editable="true">
+            <input_port name="message" default="{armors}"/>
+        </Action>
+        <Action ID="MoveAround" editable="true">
+            <input_port name="expected_nearby_goal_count" default="5"/>
+            <input_port name="expected_dis" default="0.3"/>
+            <input_port name="message" default="{current_location}"/>
+        </Action>
+        <Action ID="SendGoal" editable="true">
+            <input_port name="goal_pose" default="{goal_pose}"/>
+            <input_port name="goal_x" default="0.0"/>
+            <input_port name="goal_y" default="0.0"/>
+            <input_port name="frame_id" default="map"/>
+            <!-- 补充action_name输入端口（解决GoSupplyToHeal端口不匹配报错） -->
+            <input_port name="action_name" default="navigate_to_pose"/>
+        </Action>
+        <Action ID="IsControlZoneDetected" editable="true">
+            <input_port name="rfid_status" default="{rfid.status}"/>
+        </Action>
+        <Action ID="SubArmors" editable="true">
+            <input_port name="topic_name" default="/detector/armors"/>
+            <output_port name="armors" default="{armors}"/>
+        </Action>
+        <Action ID="SubGameStatus" editable="true">
+            <input_port name="topic_name" default="/game_status"/>
+            <output_port name="game_status" default="{game_status}"/>
+            <output_port name="now_ms" default="{time.now_ms}"/>
+        </Action>
+        <Action ID="SubRobotStatus" editable="true">
+            <input_port name="topic_name" default="/robot_status"/>
+            <output_port name="robot_status" default="{robot_status}"/>
+        </Action>
+        <Action ID="SubRFIDStatus" editable="true">
+            <input_port  name="topic_name" default="/rfid_status"/>
+            <output_port name="rfid_status" default="{rfid.status}"/>
+        </Action>
+        <Action ID="InitBlackboardConfig" editable="true">
+            <output_port name="heal_wait_ms" default="{cfg.heal_wait_ms}"/>
+            <output_port name="heal_min_ratio" default="{cfg.heal_min_ratio}"/>
+            <output_port name="search_timeout_ms" default="{cfg.search_timeout_ms}"/>
+            <output_port name="recovery_timeout_ms" default="{cfg.recovery_timeout_ms}"/>
+            <output_port name="supply_goal_x" default="{cfg.supply_goal_x}"/>
+            <output_port name="supply_goal_y" default="{cfg.supply_goal_y}"/>
+            <output_port name="arrive_radius" default="{cfg.arrive_radius}"/>
+        </Action>
+        <Action ID="SubRobotPosition" editable="true">
+            <input_port name="topic_name" default="/robot_position"/>
+            <output_port name="pose_x" default="{pose_x}"/>
+            <output_port name="pose_y" default="{pose_y}"/>
+        </Action>
+        <Action ID="KeepRunning" editable="true"/>
+        <Action ID="CancelNavGoal" editable="true">
+            <input_port name="action_name" default="navigate_to_pose"/>
+        </Action>
+        <Action ID="DetectRespawnAndSetRecovery" editable="true">
+            <inout_port name="was_dead" default="{state.was_dead}"/>
+            <input_port name="hp_cur" default="{hp.cur}"/>
+            <input_port name="now_ms" default="{time.now_ms}"/>
+            <inout_port name="need_recovery" default="{state.need_recovery}"/>
+            <inout_port name="recovery_start_ms" default="{state.recovery_start_ms}"/>
+            <inout_port name="search_start_ms" default="{state.search_start_ms}"/>
+            <inout_port name="heal_start_ms" default="{state.heal_start_ms}"/>
+        </Action>
+        <Action ID="ClearRecoveryFlag" editable="true">
+            <inout_port name="need_recovery" default="{state.need_recovery}"/>
+            <inout_port name="heal_start_ms" default="{state.heal_start_ms}"/>
+            <inout_port name="search_start_ms" default="{state.search_start_ms}"/>
+            <inout_port name="recovery_start_ms" default="{state.recovery_start_ms}"/>
+        </Action>
+        <Action ID="SetNavGoalFromConfig" editable="true">
+            <input_port  name="cfg_x" default="{cfg.supply_goal_x}"/>
+            <input_port  name="cfg_y" default="{cfg.supply_goal_y}"/>
+            <output_port name="goal_x" default="{nav.goal_x}"/>
+            <output_port name="goal_y" default="{nav.goal_y}"/>
+        </Action>
+        <Action ID="InitSearchTimerIfNeeded" editable="true">
+            <inout_port name="search_start_ms" default="{state.search_start_ms}"/>
+        </Action>
+        <Action ID="MicroSearchSupplyCard" editable="true">
+            <inout_port name="search_start_ms" default="{state.search_start_ms}"/>
+            <input_port name="timeout_ms" default="{cfg.search_timeout_ms}"/>
+            <input_port name="rfid_status" default="{rfid.status}"/>
+            <input_port name="rfid_supply_arrived" default="{rfid.supply_arrived}"/>
+        </Action>
+        <Action ID="WaitAndHeal" editable="true">
+            <input_port name="now_ms" default="{time.now_ms}"/>
+            <inout_port name="heal_start_ms" default="{state.heal_start_ms}"/>
+            <input_port name="heal_wait_ms" default="{cfg.heal_wait_ms}"/>
+            <input_port name="hp_cur" default="{hp.cur}"/>
+            <input_port name="hp_max" default="{hp.max}"/>
+            <input_port name="heal_min_ratio" default="{cfg.heal_min_ratio}"/>
+        </Action>
+        <Action ID="RobotControl" editable="true">
+            <input_port name="stop_gimbal_scan" default="False"/>
+            <input_port name="chassis_spin" default="False"/>
+        </Action>
+        <Action ID="NavControlCmd" editable="true">
+            <input_port name="cmd_type" default="0"/>
+            <input_port name="emergency_stop" default="False"/>
+        </Action>
+        <Condition ID="IsDetectEnemy" editable="true">
+            <input_port name="message" default="{robot_status}"/>
+        </Condition>
+        <Condition ID="IsFriendOK" editable="true">
+            <input_port name="message" default="{robot_status}"/>
+        </Condition>
+        <Condition ID="IsGameTime" editable="true">
+            <input_port name="message" default="{game_status}"/>
+            <input_port name="game_progress" default="4"/>
+            <input_port name="lower_remain_time" default="0"/>
+            <input_port name="higher_remain_time" default="300"/>
+        </Condition>
+        <Condition ID="IsStatusOK" editable="true">
+            <input_port name="message" default="{robot_status}"/>
+            <input_port name="hp_threshold" default="0"/>
+            <input_port name="heat_threshold" default="9999"/>
+        </Condition>
+        <Condition ID="IsHPAbove" editable="true">
+            <input_port name="message" default="{robot_status}"/>
+            <input_port name="hp_threshold" default="200"/>
+        </Condition>
+        <Condition ID="IsHPBelow" editable="true">
+            <input_port name="message" default="{robot_status}"/>
+            <input_port name="hp_threshold" default="100"/>
+        </Condition>
+        <Condition ID="IsDead" editable="true">
+            <input_port name="message" default="{robot_status}"/>
+        </Condition>
+        <Condition ID="IsRecoveryNeeded" editable="true">
+            <input_port name="need_recovery" default="{state.need_recovery}"/>
+        </Condition>
+        <Condition ID="IsSupplyCardDetected" editable="true">
+            <input_port name="rfid_status" default="{rfid.status}"/>
+        </Condition>
+        <Condition ID="IsWithinScope" editable="true">
+            <input_port name="pose_x" default="{pose.x}"/>
+            <input_port name="pose_y" default="{pose.y}"/>
+            <input_port name="goal_x" default="{cfg.supply_goal_x}"/>
+            <input_port name="goal_y" default="{cfg.supply_goal_y}"/>
+            <input_port name="arrive_radius" default="{cfg.arrive_radius}"/>
+        </Condition>
+        <Condition ID="NotArrived" editable="true">
+            <input_port name="rfid_status" default="{rfid.status}"/>
+        </Condition>
+        <Condition ID="IsAtNavGoal" editable="true">
+            <input_port name="rfid_status" default="{rfid.status}"/>
+        </Condition>
+        <Decorator ID="RateController" editable="true">
+            <input_port name="hz" default="1.0"/>
+        </Decorator>
+    </TreeNodesModel>
+</root>

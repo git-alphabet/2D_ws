@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="CriticalSurvival">
+        <ReactiveSequence>
+            <!-- 检测血量或热量是否达到危险阈值，未触发则整棵树不执行 -->
+            <IsCriticalState hp_cur="{hp.cur}" hp_critical="{cfg.hp_critical}"
+                             heat_cur="{heat.cur}" heat_critical="{cfg.heat_critical}"/>
+            <!-- 立即取消当前导航任务 -->
+            <CancelNavGoal action_name="navigate_to_pose"/>
+            <!-- 停止云台扫描、底盘旋转和开火 -->
+            <RmucRobotControl stop_gimbal_scan="False"
+                              chassis_spin="False"
+                              fire_enable="False"/>
+            <!-- 在补给区和防御锚点中选择距当前位置最近的点，写入 nav.goal_x/y -->
+            <!-- TODO：补充补给区和防御锚点的坐标 -->
+            <SelectSafeRetreatGoal pose_x="{pose.x}" pose_y="{pose.y}"
+                                   supply_x="{cfg.supply_x}" supply_y="{cfg.supply_y}"
+                                   defend_anchor_x="{cfg.defend_anchor_x}" defend_anchor_y="{cfg.defend_anchor_y}"
+                                   goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"/>
+            <!-- 以 1Hz 的频率将上一步选出的撤退点发送给 navigate_to_pose，驱动机器人导航过去 -->
+            <RateController hz="1">
+                <SendGoal name="Retreat"
+                          goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                          frame_id="map" action_name="navigate_to_pose"/>
+            </RateController>
+            <!-- 保持整棵树持续运行，直到外部条件解除 -->
+            <KeepRunning/>
+        </ReactiveSequence>
+    </BehaviorTree>
+
+</root>

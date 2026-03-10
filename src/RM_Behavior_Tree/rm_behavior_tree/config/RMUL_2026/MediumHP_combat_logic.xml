@@ -1,0 +1,74 @@
+<root BTCPP_format="4">
+  <!--
+    MediumHPCombatLogic — 中血量(200~300)战斗策略
+    ================================================================
+    设计原则 (RMUL 3v3):
+      1. 中血量时生存优先级提升,需要在作战和保命之间平衡
+      2. 检测到敌人 → 仍然停车射击（准确率优先），但开启小陀螺增强防护
+      3. 热量过高时 → 立即脱离战斗，向补给区撤退
+      4. 未检测到敌人 → 向补给区方向靠近，随时准备回血
+    ================================================================
+  -->
+  <BehaviorTree ID="MediumHPCombatLogic">
+    <ReactiveSequence>
+      <!-- 前置条件: 200 ≤ HP < 300 -->
+      <IsHPBelow message="{robot_status}" hp_threshold="300"/>
+      <IsHPAbove message="{robot_status}" hp_threshold="200"/>
+
+      <Fallback>
+        <!-- ══════════════════════════════════════════════════════════
+             分支 A: 检测到敌人 → 中血量交战
+             ══════════════════════════════════════════════════════════ -->
+        <ReactiveSequence>
+          <IsDetectEnemy message="{robot_status}"/>
+
+          <Fallback>
+            <!-- A-1: 热量安全 → 停车射击，精度优先 + 小陀螺防护 -->
+            <Sequence>
+              <IsStatusOK message="{robot_status}"
+                          hp_threshold="0"
+                          heat_threshold="200"/>
+              <NavControlCmd cmd_type="3" emergency_stop="False"/>
+              <RobotControl stop_gimbal_scan="True"
+                            chassis_spin="True"/>
+            </Sequence>
+
+            <!-- A-2: 热量过高 → 向补给区方向撤退闪避，边走边等冷却
+                 中血量热量超限比高血量更危险，需要拉远距离 -->
+            <Sequence>
+              <RobotControl stop_gimbal_scan="False"
+                            chassis_spin="True"/>
+              <NavControlCmd cmd_type="1" emergency_stop="False"/>
+              <RateController hz="1">
+                <SendGoal name="RetreatingToSupply"
+                          goal_x="0.21"
+                          goal_y="-0.32"
+                          frame_id="map"
+                          action_name="navigate_to_pose"/>
+              </RateController>
+            </Sequence>
+          </Fallback>
+        </ReactiveSequence>
+
+        <!-- ══════════════════════════════════════════════════════════
+             分支 B: 未检测到敌人 → 向补给区方向靠近，保持警戒
+             说明: 中血量时不再主动进攻控制区，而是靠近补给区
+                   以便血量继续下降时能快速到达补给区回血
+             ══════════════════════════════════════════════════════════ -->
+        <Sequence>
+          <RobotControl stop_gimbal_scan="False"
+                        chassis_spin="True"/>
+          <NavControlCmd cmd_type="1" emergency_stop="False"/>
+          <RateController hz="1">
+            <SendGoal name="HoverNearSupply"
+                      goal_x="0.21"
+                      goal_y="-0.32"
+                      frame_id="map"
+                      action_name="navigate_to_pose"/>
+          </RateController>
+        </Sequence>
+
+      </Fallback>
+    </ReactiveSequence>
+  </BehaviorTree>
+</root>

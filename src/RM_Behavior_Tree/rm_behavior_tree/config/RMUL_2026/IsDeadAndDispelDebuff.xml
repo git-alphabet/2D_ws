@@ -1,0 +1,127 @@
+<root BTCPP_format="4">
+    <!--
+      IsDeadAndDispelDebuff 子树 (修复版)
+      ======================================
+      原始 bug: 外层 Sequence 将 IsDead 和 DetectRespawn 串联，
+        导致复活后 IsDead=FAILURE → 整个子树短路退出，
+        DetectRespawnAndSetRecovery 永远不会被 tick 到。
+
+      修复方案:
+        1. DetectRespawn 提升到最外层，每次 tick 都能执行（持续跟踪 was_dead）
+        2. 用 Fallback 分叉两种互斥状态：
+           - 死亡 → 停车等待
+           - 需要恢复 → 回补给区刷卡回血
+        3. 两个分支都 FAILURE 时，整棵子树 FAILURE → 上层 Fallback 进入战斗逻辑
+
+      状态机:
+        存活(hp>0, no recovery) → FAILURE (正常退出，去战斗)
+        死亡(hp=0)             → SUCCESS (停车等待复活)
+        复活(was_dead→alive)   → DetectRespawn 置 need_recovery=true
+        恢复中(need_recovery)  → SUCCESS (导航补给区→刷卡→回血→清flag)
+    -->
+    <BehaviorTree ID="IsDeadAndDispelDebuff">
+        <Sequence>
+
+            <!-- 0. 每次 tick 都执行：持续跟踪 was_dead / 检测复活沿 -->
+            <DetectRespawnAndSetRecovery
+                topic_name="/robot_status"
+                was_dead="{was_dead}"
+                hp_cur="{hp_cur}"
+                need_recovery="{need_recovery}"
+                recovery_start_ms="{recovery_start_ms}"
+                search_start_ms="{search_start_ms}"
+                heal_start_ms="{heal_start_ms}"/>
+
+            <!-- 1. 根据当前状态选择分支（两个都 FAILURE = 正常存活，子树 FAILURE） -->
+            <Fallback>
+
+                <!-- A. 战亡：停车等待复活读条结束 -->
+                <Sequence name="IfDead_StopAndWait">
+                    <IsDead message="{robot_status}"/>
+                    <RobotControl stop_gimbal_scan="True" 
+                                  chassis_spin="False"/>
+                    <NavControlCmd cmd_type="3" 
+                                   emergency_stop="False"/>
+                </Sequence>
+
+                <!-- B. 恢复模式：复活后强制回补给区刷卡解除虚弱并回血 -->
+                <Sequence name="RecoveryMode">
+
+                    <IsRecoveryNeeded need_recovery="{need_recovery}"/>
+
+                    <Fallback name="RecoveryFlow">
+
+                        <!-- 成功分支：检测到补给区RFID -> 等待回血 -> 清除恢复flag -->
+                        <Sequence name="IfSupplyCard_Heal_Exit">
+                            <IsSupplyCardDetected rfid_status="{rfid.status}"/>
+
+                            <!-- 等待回血到指定比例 -->
+                            <WaitAndHeal
+                                topic_name="/robot_status"
+                                now_ms="{now_ms}"
+                                heal_start_ms="{heal_start_ms}"
+                                heal_wait_ms="{cfg.heal_wait_ms}"
+                                hp_cur="{hp_cur}"
+                                hp_max="{hp_max}"
+                                heal_min_ratio="{cfg.heal_min_ratio}"/>
+
+                            <!-- 退出恢复模式 -->
+                            <ClearRecoveryFlag
+                                need_recovery="{need_recovery}"
+                                heal_start_ms="{heal_start_ms}"
+                                search_start_ms="{search_start_ms}"
+                                recovery_start_ms="{recovery_start_ms}"/>
+                        </Sequence>
+
+                        <!-- 失败分支：未检测到卡 -> 去补给区 -> 到达后微搜 -->
+                        <Sequence name="GoSupply_ThenSearch">
+
+                            <!-- 1. 启动导航模式 -->
+                            <NavControlCmd cmd_type="1" emergency_stop="False"/>
+
+                            <!-- 2. 导航到补给区（到达前持续RUNNING） -->
+                            <ReactiveFallback name="NavUntilArrived">
+                                <IsAtNavGoal rfid_status="{rfid.status}"/>
+                                <ReactiveSequence>
+                                    <RateController hz="5">
+                                        <SendGoal name="GoSupplyToHeal"
+                                            goal_x="{cfg.supply_goal_x}"
+                                            goal_y="{cfg.supply_goal_y}"
+                                            frame_id="map"
+                                            action_name="navigate_to_pose"/>
+                                    </RateController>
+                                    <KeepRunning/>
+                                </ReactiveSequence>
+                            </ReactiveFallback>
+
+                            <!-- 3. 到达后刹车+原地不动 -->
+                            <RobotControl stop_gimbal_scan="True" 
+                                          chassis_spin="False"/>
+                            <NavControlCmd cmd_type="3" 
+                                           emergency_stop="False"/>
+
+                            <!-- 4. 初始化搜卡计时器 -->
+                            <InitSearchTimerIfNeeded search_start_ms="{search_start_ms}"/>
+
+                            <!-- 5. 先感应补给卡，感应不到再微动搜索 -->
+                            <ReactiveFallback name="DetectOrMicroSearch">
+                                <IsSupplyCardDetected rfid_status="{rfid.status}"/>
+                                <MicroSearchSupplyCard
+                                    search_start_ms="{search_start_ms}"
+                                    timeout_ms="{cfg.search_timeout_ms}"
+                                    rfid_status="{rfid.status}"
+                                    rfid_supply_arrived="{rfid.supply_arrived}"/>
+                            </ReactiveFallback>
+
+                        </Sequence>
+
+                    </Fallback>
+
+                </Sequence>
+
+            </Fallback>
+
+        </Sequence>
+    </BehaviorTree>
+
+</root>

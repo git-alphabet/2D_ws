@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4"
+      main_tree_to_execute="BehaviorTree">
+   <BehaviorTree ID="BehaviorTree">
+        <!-- 并行处理数据订阅与主逻辑 -->
+        <Parallel>
+            <!-- 订阅机器人状态数�?-->
+            <SubRobotStatus/>
+            <SubGameStatus/>
+            <SubAllRobotHP/>
+
+            <!-- 主逻辑序列 -->
+            <Sequence>
+                <!-- 初始化阶段 (converted to goal_x/goal_y) -->
+                <SendGoal goal_x="0.0" goal_y="0.0" frame_id="map"/>
+                
+                <!-- 持续监测循环 -->
+                <RepeatUntilSuccess _failureLimit="-1">
+                    <RateController hz="10">
+                        <Fallback>
+                            <!-- 比赛开始后的逻辑 -->
+                            <Sequence>
+                                <IsGameTime game_progress="4"/>
+                                <Fallback>
+                                    <!-- 低血量撤退逻辑 -->
+                                        <Sequence>
+                                        <IsStatusOK hp_threshold="150" operator="lt"/>
+                                        <SendGoal goal_x="2.0" goal_y="3.0" frame_id="map"/>
+                                    </Sequence>
+                                    <!-- 正常进攻逻辑 -->
+                                    <SendGoal goal_x="5.0" goal_y="6.0" frame_id="map"/>
+                                </Fallback>
+                            </Sequence>
+                            
+                            <!-- 比赛未开始保持待机 -->
+                            <SendGoal goal_x="0.0" goal_y="0.0" frame_id="map"/>
+                        </Fallback>
+                    </RateController>
+                </RepeatUntilSuccess>
+            </Sequence>
+        </Parallel>
+    </BehaviorTree>
+
+  <!-- Description of Node Models (used by Groot) -->
+  <TreeNodesModel>
+    <Action ID="GetCurrentLocation"
+            editable="true">
+      <output_port name="current_location"
+                   default="{current_location}"/>
+    </Action>
+    <Action ID="IsAttacked"
+            editable="true">
+      <input_port name="message"
+                  default="{robot_status}"/>
+    </Action>
+    <Action ID="IsDetectEnemy"
+            editable="true">
+      <input_port name="message"
+                  default="{armors}"/>
+    </Action>
+    <Action ID="IsFriendOK"
+            editable="true">
+      <input_port name="message"
+                  default="{robot_hp}"/>
+      <input_port name="friend_color"
+                  default="red"/>
+    </Action>
+    <Action ID="IsGameTime"
+            editable="true">
+      <input_port name="message"
+                  default="{game_status}"/>
+      <input_port name="game_progress"
+                  default="4"/>
+      <input_port name="lower_remain_time"
+                  default="0"/>
+      <input_port name="higher_remain_time"
+                  default="300"/>
+    </Action>
+    <Action ID="IsStatusOK"
+            editable="true">
+      <input_port name="message"
+                  default="{robot_status}"/>
+      <input_port name="hp_threshold"
+                  default="100"/>
+      <input_port name="heat_threshold"
+                  default="350"/>
+    </Action>
+    <Action ID="MoveAround"
+            editable="true">
+      <input_port name="expected_nearby_goal_count"
+                  default="5"/>
+      <input_port name="expected_dis"
+                  default="0.3"/>
+      <input_port name="message"
+                  default="{current_location}"/>
+    </Action>
+    <Decorator ID="RateController">
+      <input_port name="hz">Rate</input_port>
+    </Decorator>
+    <Action ID="RobotControl"
+            editable="true">
+      <input_port name="stop_gimbal_scan"
+                  default="True"/>
+        <input_port name="chassis_spin"
+                default="False"/>
+    </Action>
+        <Action ID="SendGoal"
+            editable="true">
+        <input_port name="goal_pose"
+                default="{goal_pose}"/>
+        <input_port name="goal_x" default="0.0"/>
+        <input_port name="goal_y" default="0.0"/>
+        <input_port name="frame_id" default="map"/>
+        </Action>
+    <Action ID="SubAllRobotHP"
+            editable="true">
+      <input_port name="topic_name"
+                default="/robot_hp"/>
+      <output_port name="robot_hp"
+                   default="{robot_hp}"/>
+    </Action>
+    <Action ID="SubArmors"
+            editable="true">
+      <input_port name="topic_name"
+                  default="/detector/armors"/>
+      <output_port name="armors"
+                   default="{armors}"/>
+    </Action>
+    <Action ID="SubGameStatus"
+            editable="true">
+      <input_port name="topic_name"
+                default="/game_status"/>
+      <output_port name="game_status"
+                   default="{game_status}"/>
+    </Action>
+    <Action ID="SubRobotStatus"
+            editable="true">
+      <input_port name="topic_name"
+                default="/robot_status"/>
+      <output_port name="robot_status"
+                   default="{robot_status}"/>
+    </Action>
+  </TreeNodesModel>
+
+</root>

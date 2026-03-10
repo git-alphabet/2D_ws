@@ -1,0 +1,79 @@
+<root BTCPP_format="4">
+  <!--
+    HighHPCombatLogic — 高血量(≥300)战斗策略
+    ================================================================
+    设计原则 (RMUL 3v3):
+      1. 检测到敌人 → 立即刹车+原地不动，停止云台扫描让瞄准程序接管，
+         开启小陀螺增强防护 → 最大化射击精度
+      2. 枪口热量过高 → 暂停射击姿态，开启小陀螺闪避等热量冷却
+      3. 未检测到敌人 → 主动巡逻占控制区，保持云台扫描搜敌
+    ================================================================
+    使用的已有插件:
+      Condition: IsHPAbove, IsDetectEnemy, IsStatusOK
+      Action:    RobotControl, NavControlCmd, SendGoal, GetCurrentLocation,
+                 MoveAround
+      Decorator: RateController
+  -->
+  <BehaviorTree ID="HighHPCombatLogic">
+    <ReactiveSequence>
+      <!-- 前置条件: 血量 ≥ 300 才进入高血量逻辑 -->
+      <IsHPAbove message="{robot_status}" hp_threshold="300"/>
+
+      <Fallback>
+        <!-- ══════════════════════════════════════════════════════════
+             分支 A: 检测到敌人 → 进入交战状态
+             ══════════════════════════════════════════════════════════ -->
+        <ReactiveSequence>
+          <IsDetectEnemy message="{robot_status}"/>
+
+          <Fallback>
+            <!-- A-1: 热量安全(≤280) → 刹车+原地，停云台扫描让自瞄接管，开小陀螺
+                 说明: 机器人停止移动以最大化射击精度，
+                       小陀螺提供被动防护减少受弹面积 -->
+            <Sequence>
+              <IsStatusOK message="{robot_status}"
+                          hp_threshold="0"
+                          heat_threshold="280"/>
+              <NavControlCmd cmd_type="3" emergency_stop="False"/>
+              <RobotControl stop_gimbal_scan="True"
+                            chassis_spin="True"/>
+            </Sequence>
+
+            <!-- A-2: 热量过高(>280) → 暂停射击姿态，小幅闪避等冷却
+                 说明: 热量超限继续射击会被裁判系统扣血,
+                       此时利用闪避拉开距离、降低被命中率 -->
+            <Sequence>
+              <RobotControl stop_gimbal_scan="False"
+                            chassis_spin="True"/>
+              <NavControlCmd cmd_type="3" emergency_stop="False"/>
+              <GetCurrentLocation current_location="{current_location}"/>
+              <MoveAround expected_nearby_goal_count="3"
+                          expected_dis="0.2"
+                          message="{current_location}"/>
+            </Sequence>
+          </Fallback>
+        </ReactiveSequence>
+
+        <!-- ══════════════════════════════════════════════════════════
+             分支 B: 未检测到敌人 → 主动巡逻+占控制区
+             ══════════════════════════════════════════════════════════ -->
+        <Sequence>
+          <!-- 保持云台扫描搜敌，开小陀螺防被偷袭 -->
+          <RobotControl stop_gimbal_scan="False"
+                        chassis_spin="True"/>
+          <!-- 允许导航移动 -->
+          <NavControlCmd cmd_type="1" emergency_stop="False"/>
+          <!-- 前往控制区巡逻: 高血量时优先争夺控制区获取战略优势 -->
+          <RateController hz="1">
+            <SendGoal name="PatrolControlZone"
+                      goal_x="5.13"
+                      goal_y="-3.94"
+                      frame_id="map"
+                      action_name="navigate_to_pose"/>
+          </RateController>
+        </Sequence>
+
+      </Fallback>
+    </ReactiveSequence>
+  </BehaviorTree>
+</root>
