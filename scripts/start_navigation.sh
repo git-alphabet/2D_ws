@@ -14,11 +14,6 @@ export __GLX_VENDOR_LIBRARY_NAME=nvidia
 # 你想加/改 launch 参数，优先改这行（或运行时用环境变量覆盖 NAVIGATION_CMD）。
 NAVIGATION_CMD=${NAVIGATION_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True"}
 export NAVIGATION_CMD
-
-# 清理 FastDDS 残留的共享内存段，防止重复启动时 DDS 初始化卡死
-rm -f /dev/shm/fastrtps_* 2>/dev/null || true
-# 杀掉可能残留的 nav2 component container（防止节点名冲突导致 LoadComposableNodes 卡死）
-pkill -f 'component_container_isolated.*nav2_container' 2>/dev/null || true
-sleep 0.3
+export KILL_EXISTING="${KILL_EXISTING:-1}"
 
 exec python3 "$SCRIPT_DIR/launch_wrapper.py" reality_navigation "$@"

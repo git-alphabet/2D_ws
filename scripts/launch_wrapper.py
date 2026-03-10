@@ -217,8 +217,110 @@ def _pid_gone(pid: int) -> bool:
         return True
 
 
+# ── PGID 文件路径：记录上次启动的前台进程组，供下次重启时精确杀干净 ────────────
+_PGID_FILES: dict[str, Path] = {
+    "sim":     Path("/tmp/ros2_nav_sim.pgid"),
+    "reality": Path("/tmp/ros2_nav_reality.pgid"),
+}
+
+
+def _cleanup_fastdds_shm() -> None:
+    """清理 FastDDS 遗留的共享内存段，避免进程重启时 DDS 初始化挂死。"""
+    import glob
+    cleaned = 0
+    for f in glob.glob("/dev/shm/fastrtps_*"):
+        try:
+            Path(f).unlink()
+            cleaned += 1
+        except Exception:
+            pass
+    if cleaned:
+        print(f"[fastdds] Cleaned {cleaned} shm segment(s).", file=sys.stderr)
+
+
+def _kill_by_pgid_file(pgid_file: Path, title: str, script_name: str) -> None:
+    """通过 PGID 文件直接终止上次启动的整个进程组（精确，无 pattern 依赖）。"""
+    if not pgid_file.exists():
+        return
+    try:
+        pgid = int(pgid_file.read_text().strip())
+    except Exception:
+        pgid_file.unlink(missing_ok=True)
+        return
+    print(f"[{script_name}] Killing {title} PGID={pgid} via pgid file ...", file=sys.stderr)
+    for sig in (signal.SIGTERM, signal.SIGKILL):
+        try:
+            os.killpg(pgid, sig)
+        except ProcessLookupError:
+            break   # 进程组已不存在
+        except Exception:
+            pass
+        time.sleep(0.8)
+        try:
+            os.killpg(pgid, 0)  # 检查是否还活着
+        except ProcessLookupError:
+            break
+    try:
+        pgid_file.unlink()
+    except FileNotFoundError:
+        pass
+
+
+def _start_watchdog(cfg: CommonConfig, topics: list[tuple[str, float]], bg: "BackgroundGroup") -> None:
+    """启动话题频率 watchdog（后台进程）。仅当 ENABLE_WATCHDOG=1 时生效。
+    topics: [(topic_name, min_expected_hz), ...]
+    每 10 秒轮询一次，低于阈值时打 WARN 日志。
+    """
+    if not _is_truthy(os.environ.get("ENABLE_WATCHDOG")):
+        return
+
+    checks = " ".join(
+        f"{shlex.quote(t)}:{hz}" for t, hz in topics
+    )
+    base_env = _build_base_env(cfg)
+    log_dir = cfg.ws_dir / "log"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / f"{Path(cfg.script_name).stem}_watchdog.log"
+
+    # Python one-liner: 每 10s 用 ros2 topic hz --window 10 轮询一次
+    py_script = r"""
+import subprocess, time, sys
+checks = []
+for item in sys.argv[1:]:
+    t, hz = item.rsplit(':', 1)
+    checks.append((t, float(hz)))
+while True:
+    for topic, min_hz in checks:
+        try:
+            out = subprocess.check_output(
+                ['ros2', 'topic', 'hz', '--window', '5', topic],
+                timeout=6, text=True, stderr=subprocess.DEVNULL
+            )
+            line = [l for l in out.splitlines() if 'average rate' in l.lower()]
+            if line:
+                hz = float(line[0].split(':')[1].strip().split()[0])
+                if hz < min_hz:
+                    print(f'[watchdog] WARN {topic}: {hz:.1f} Hz < {min_hz} Hz', flush=True)
+                else:
+                    print(f'[watchdog] OK   {topic}: {hz:.1f} Hz', flush=True)
+            else:
+                print(f'[watchdog] WARN {topic}: no data', flush=True)
+        except subprocess.TimeoutExpired:
+            print(f'[watchdog] WARN {topic}: timeout (no publisher?)', flush=True)
+        except Exception as e:
+            print(f'[watchdog] ERR  {topic}: {e}', flush=True)
+    time.sleep(10)
+"""
+    cmd = f"{base_env}; python3 -c {shlex.quote(py_script)} {checks} 2>&1 | tee -a {shlex.quote(str(log_file))}"
+    print(f"[{cfg.script_name}] (watchdog) monitoring {len(topics)} topics -> {log_file}", file=sys.stderr)
+    p = subprocess.Popen(["bash", "-lc", cmd], preexec_fn=os.setsid)
+    bg.add(p.pid)
+
+
 def _kill_sim(script_name: str) -> None:
     """启动仿真前清理残留的 Gazebo 和仿真导航/SLAM 进程。"""
+    _kill_by_pgid_file(_PGID_FILES["sim"], "sim", script_name)
+    _cleanup_fastdds_shm()
     for pat, title in [
         (r"bringup_sim\.launch\.py",               "bringup_sim"),
         (r"ruby.*ign|ign.*gazebo|gz-server|gz-gui", "Gazebo"),
@@ -229,6 +331,8 @@ def _kill_sim(script_name: str) -> None:
 
 def _kill_reality(script_name: str) -> None:
     """启动实车前清理残留进程。"""
+    _kill_by_pgid_file(_PGID_FILES["reality"], "reality", script_name)
+    _cleanup_fastdds_shm()
     for pat, title in [
         (r"rm_navigation_reality_launch\.py",            "reality nav/SLAM"),
         (r"(^|/)joint_state_publisher(\s|$)",            "joint_state_publisher"),
@@ -239,7 +343,7 @@ def _kill_reality(script_name: str) -> None:
         _kill_by_pattern(pat, title, script_name)
 
 
-def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: str, *, background: bool = False, bg: Optional[BackgroundGroup] = None) -> None:
+def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: str, *, background: bool = False, bg: Optional[BackgroundGroup] = None, pgid_file: Optional[Path] = None) -> None:
     base_env = _build_base_env(cfg)
 
     full_cmd = f"cd {shlex.quote(str(cfg.ws_dir))}; {base_env}"
@@ -274,8 +378,71 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
 
         print(f"[{cfg.script_name}] (single-terminal) {title} (foreground)", file=sys.stderr)
         print(f"[{cfg.script_name}] Log: {log_file}", file=sys.stderr)
-        # tee output
-        _run_shell(f"{full_cmd} 2>&1 | tee -a {shlex.quote(str(log_file))}")
+        # 在独立 session（setsid）中启动，使 PID==PGID，方便下次启动前按 PGID 精确杀干净。
+        # tee 通过 bash 非交互管道继承同一 PGID，killpg 可一并终止。
+        wrap_cmd = f"{full_cmd} 2>&1 | tee -a {shlex.quote(str(log_file))}"
+        p = subprocess.Popen(["bash", "-lc", wrap_cmd], preexec_fn=os.setsid)
+        if pgid_file:
+            try:
+                pgid_file.write_text(str(p.pid))
+            except Exception:
+                pass
+        _child_pgid = p.pid
+
+        # 优雅关闭超时（秒）：SIGINT 后等待这么久，超时或第二次 Ctrl+C 则 SIGKILL。
+        _shutdown_timeout = int(os.environ.get("SHUTDOWN_TIMEOUT", "15"))
+        _shutdown_requested = [False]   # mutable cell 供嵌套函数修改
+
+        def _force_kill() -> None:
+            try:
+                os.killpg(_child_pgid, signal.SIGKILL)
+            except Exception:
+                pass
+
+        def _forward_signal(signum: int, _frame: object) -> None:
+            if _shutdown_requested[0]:
+                # 第二次 Ctrl+C：立即强杀
+                print(f"\n[{cfg.script_name}] Force killing (SIGKILL)...", file=sys.stderr)
+                _force_kill()
+                return
+            _shutdown_requested[0] = True
+            print(
+                f"\n[{cfg.script_name}] Shutting down (timeout {_shutdown_timeout}s)..."
+                " Press Ctrl+C again to force kill.",
+                file=sys.stderr,
+            )
+            try:
+                os.killpg(_child_pgid, signum)
+            except Exception:
+                pass
+
+        prev_sigint  = signal.signal(signal.SIGINT,  _forward_signal)  # type: ignore[arg-type]
+        prev_sigterm = signal.signal(signal.SIGTERM, _forward_signal)  # type: ignore[arg-type]
+        try:
+            # 分段 poll：每秒检查一次，超时后强杀
+            deadline = time.monotonic() + _shutdown_timeout
+            while True:
+                try:
+                    p.wait(timeout=1.0)
+                    break   # 正常退出
+                except subprocess.TimeoutExpired:
+                    pass
+                if _shutdown_requested[0] and time.monotonic() > deadline:
+                    print(
+                        f"[{cfg.script_name}] Shutdown timeout ({_shutdown_timeout}s), force killing...",
+                        file=sys.stderr,
+                    )
+                    _force_kill()
+                    p.wait()
+                    break
+        finally:
+            signal.signal(signal.SIGINT,  prev_sigint)
+            signal.signal(signal.SIGTERM, prev_sigterm)
+            if pgid_file:
+                try:
+                    pgid_file.unlink()
+                except FileNotFoundError:
+                    pass
         return
 
     # Multi-terminal mode.
@@ -451,7 +618,11 @@ def main(argv: list[str]) -> int:
         # 单终端/Docker 模式：Gazebo 后台 Popen 写日志，SLAM/Nav 前台阻塞，Ctrl+C 统一清理。
         _launch_in_terminal(cfg, "Gazebo Sim", gazebo_cmd, "", background=True, bg=bg)
         time.sleep(1.0)
-        _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env)
+        _start_watchdog(cfg, [
+            ("/registered_scan", 5.0),
+            ("/Odometry", 10.0),
+        ], bg)
+        _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env, pgid_file=_PGID_FILES["sim"])
         return 0
 
     # ── 实车模式：SLAM/Nav (前台) ─────────────────────────────────────────────
@@ -464,7 +635,16 @@ def main(argv: list[str]) -> int:
                                   "ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True")
         fg_title = "Reality Navigation"
 
-    _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env)
+    if _is_truthy(os.environ.get("ENABLE_WATCHDOG")):
+        _wd_bg = BackgroundGroup(script_name)
+        atexit.register(_wd_bg.cleanup)
+        _start_watchdog(cfg, [
+            ("/registered_scan", 5.0),
+            ("/Odometry", 10.0),
+            ("/scan", 5.0),
+        ], _wd_bg)
+
+    _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env, pgid_file=_PGID_FILES["reality"])
     return 0
 
 
