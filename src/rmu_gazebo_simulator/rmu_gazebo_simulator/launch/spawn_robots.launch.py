@@ -31,7 +31,7 @@ def generate_launch_description():
         pkg_gxu2026_robot_description,
         "resource",
         "xmacro",
-        "simulation_robot.sdf.xmacro",
+        "pb2025_sentry_robot.sdf.xmacro",
     )
     bridge_config_with_odom = os.path.join(pkg_simulator, "config", "ros_gz_bridge.yaml")
     bridge_config_no_odom = os.path.join(pkg_simulator, "config", "ros_gz_bridge_no_odom.yaml")
