@@ -14,3 +14,7 @@ src/odin_ros_driver/map/
 __pycache__/
 *.pyc
 *.pyo
+
+# Serena MCP - 运行时数据，仅保留 project.yml
+.serena/cache/
+.serena/memories/
