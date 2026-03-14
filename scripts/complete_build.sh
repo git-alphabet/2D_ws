@@ -5,7 +5,43 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+slugify_branch_name() {
+  local raw="$1"
+  local slug
+  slug="$(echo "$raw" | tr '[:upper:]' '[:lower:]' | sed -E 's#[^a-z0-9._-]+#_#g; s#^_+##; s#_+$##')"
+  echo "${slug:-default}"
+}
+
+detect_branch_name() {
+  if [[ -n "${BUILD_BRANCH:-}" ]]; then
+    slugify_branch_name "$BUILD_BRANCH"
+    return
+  fi
+
+  local branch
+  branch="$(git -C "$WS_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  if [[ -z "$branch" || "$branch" == "HEAD" ]]; then
+    local commit
+    commit="$(git -C "$WS_DIR" rev-parse --short HEAD 2>/dev/null || true)"
+    branch="detached_${commit:-unknown}"
+  fi
+  slugify_branch_name "$branch"
+}
+
+BRANCH_NAME="$(detect_branch_name)"
+BRANCH_ROOT="$WS_DIR/.build_branches/$BRANCH_NAME"
+BUILD_BASE="$BRANCH_ROOT/build"
+INSTALL_BASE="$BRANCH_ROOT/install"
+LOG_BASE="$BRANCH_ROOT/log"
+
+mkdir -p "$BUILD_BASE" "$INSTALL_BASE" "$LOG_BASE"
+
 cd "$WS_DIR"
+
+echo "[complete_build.sh] branch=$BRANCH_NAME"
+echo "[complete_build.sh] build_base=$BUILD_BASE"
+echo "[complete_build.sh] install_base=$INSTALL_BASE"
+echo "[complete_build.sh] log_base=$LOG_BASE"
 
 # Source ROS environment（在容器内直接执行脚本时需要）
 # 临时关闭 -u，避免 ROS setup.bash 内部使用未定义变量时报错
@@ -46,13 +82,20 @@ sanitize_prefix_path_var COLCON_PREFIX_PATH
 
 # 清理 pb_nav2_plugins 旧产物，防止切换分支/库名变更后残留 .so 导致 dlopen 符号缺失
 # （libpb_layers.so 曾命名为 liblayers.so，旧文件若留在 install 会造成 undefined symbol）
-if [[ -f "$WS_DIR/install/pb_nav2_plugins/lib/liblayers.so" ]]; then
+if [[ -f "$INSTALL_BASE/pb_nav2_plugins/lib/liblayers.so" ]]; then
   echo "[complete_build.sh] 检测到旧版 liblayers.so，自动清理 pb_nav2_plugins 构建产物..."
-  rm -rf "$WS_DIR/build/pb_nav2_plugins" "$WS_DIR/install/pb_nav2_plugins"
+  rm -rf "$BUILD_BASE/pb_nav2_plugins" "$INSTALL_BASE/pb_nav2_plugins"
 fi
 
 # Build the ROS workspace skipping NeuPAN and neupan_nav2_controller
-colcon build --executor sequential --packages-skip neupan_nav2_controller --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+colcon build \
+  --build-base "$BUILD_BASE" \
+  --install-base "$INSTALL_BASE" \
+  --log-base "$LOG_BASE" \
+  --executor sequential \
+  --packages-skip neupan_nav2_controller \
+  --symlink-install \
+  --cmake-args -DCMAKE_BUILD_TYPE=Release
 
 # Activate NeuPAN virtual environment and set PYTHONPATH
 source neupan_env/bin/activate
@@ -66,6 +109,9 @@ fi
 
 # Build only the AI packages
 colcon build \
+  --build-base "$BUILD_BASE" \
+  --install-base "$INSTALL_BASE" \
+  --log-base "$LOG_BASE" \
   --packages-select neupan_nav2_controller \
   --symlink-install \
   --cmake-args -DCMAKE_BUILD_TYPE=Release

@@ -52,6 +52,40 @@ def _which(cmd: str) -> Optional[str]:
         return None
 
 
+def _slugify_branch_name(text: str) -> str:
+    s = text.lower()
+    s = re.sub(r"[^a-z0-9._-]+", "_", s)
+    s = re.sub(r"^_+|_+$", "", s)
+    return s or "default"
+
+
+def _detect_branch_overlay_setup(ws_dir: Path) -> Optional[Path]:
+    try:
+        branch = subprocess.check_output(
+            ["git", "-C", str(ws_dir), "rev-parse", "--abbrev-ref", "HEAD"],
+            text=True,
+        ).strip()
+    except Exception:
+        return None
+
+    if not branch:
+        return None
+
+    if branch == "HEAD":
+        try:
+            commit = subprocess.check_output(
+                ["git", "-C", str(ws_dir), "rev-parse", "--short", "HEAD"],
+                text=True,
+            ).strip()
+        except Exception:
+            commit = "unknown"
+        branch = f"detached_{commit}"
+
+    branch_slug = _slugify_branch_name(branch)
+    setup = ws_dir / ".build_branches" / branch_slug / "install" / "setup.bash"
+    return setup if setup.exists() else None
+
+
 def _read_yaml_params(path: Path, node_key: str) -> dict:
     try:
         import yaml  # type: ignore
@@ -336,8 +370,9 @@ def main(argv: list[str]) -> int:
     _ws_env = os.environ.get("WS_DIR", "").strip()
     ws_dir = Path(_ws_env).expanduser() if _ws_env else Path(__file__).resolve().parent.parent
 
-    ros_setup     = Path(os.environ.get("ROS_SETUP",     "/opt/ros/humble/setup.bash"))
-    overlay_setup = Path(os.environ.get("OVERLAY_SETUP", str(ws_dir / "install/setup.bash")))
+    ros_setup = Path(os.environ.get("ROS_SETUP", "/opt/ros/humble/setup.bash"))
+    default_overlay_setup = _detect_branch_overlay_setup(ws_dir) or (ws_dir / "install/setup.bash")
+    overlay_setup = Path(os.environ.get("OVERLAY_SETUP", str(default_overlay_setup)))
 
     for p, label in [(ros_setup, "ROS setup"), (overlay_setup, "workspace overlay")]:
         if not p.exists():
