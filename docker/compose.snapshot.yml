@@ -1,0 +1,58 @@
+# compose.snapshot.yml — 将当前运行中的开发容器快照为新镜像并推送
+# 用法（项目根目录执行）:
+#   docker compose -f docker/compose.snapshot.yml up --abort-on-container-exit --exit-code-from snapshot
+#
+# 可选参数（通过环境变量覆盖）:
+#   TARGET_CONTAINER=docker-nav-1   # 需要快照的容器名
+#   SNAPSHOT_TAG=20260314-2330        # 不传则自动使用北京时间时间戳
+
+name: nav-snapshot
+
+services:
+  snapshot:
+    image: docker:27-cli
+    env_file:
+      - ../.env
+    working_dir: /workspace
+    environment:
+      DOCKER_HUB_USER: ${DOCKER_HUB_USER:-}
+      IMAGE_NAME: ${IMAGE_NAME:-}
+      TARGET_CONTAINER: ${TARGET_CONTAINER:-docker-nav-1}
+      SNAPSHOT_TAG: ${SNAPSHOT_TAG:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ..:/workspace:rw
+    entrypoint:
+      - /bin/sh
+      - -lc
+      - |
+        set -eu
+        if [ -z "$$DOCKER_HUB_USER" ] || [ -z "$$IMAGE_NAME" ]; then
+          echo "[错误] 缺少 DOCKER_HUB_USER 或 IMAGE_NAME，请先在 .env 配置。"
+          exit 1
+        fi
+
+        REPO="$$DOCKER_HUB_USER/$$IMAGE_NAME"
+        TAG="$${SNAPSHOT_TAG:-$$(TZ=Asia/Shanghai date +%Y%m%d-%H%M)}"
+        TARGET="$$TARGET_CONTAINER"
+
+        if ! docker container inspect "$$TARGET" >/dev/null 2>&1; then
+          echo "[错误] 找不到目标容器: $$TARGET"
+          echo "[提示] 先用 docker ps 确认容器名，或设置 TARGET_CONTAINER=xxx"
+          exit 1
+        fi
+
+        echo "[1/4] commit $$TARGET -> $$REPO:$$TAG"
+        docker commit "$$TARGET" "$$REPO:$$TAG"
+
+        echo "[2/4] tag latest"
+        docker tag "$$REPO:$$TAG" "$$REPO:latest"
+
+        echo "[3/4] push $$REPO:$$TAG"
+        docker push "$$REPO:$$TAG"
+
+        echo "[4/4] push $$REPO:latest"
+        docker push "$$REPO:latest"
+
+        echo "$$TAG" > /workspace/.last_snapshot_tag
+        echo "[完成] 已推送 $$REPO:$$TAG 和 $$REPO:latest"
