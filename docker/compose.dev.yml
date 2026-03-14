@@ -1,4 +1,4 @@
-# ============================================================`
+# ============================================================
 # docker/compose.dev.yml — 启动开发容器
 # ============================================================
 # 两种 profile，对应两个使用场景：
@@ -20,33 +20,32 @@
 # 环境变量：
 #   DOCKERHUB_NS   Docker Hub 用户名（默认 alphabet2006）
 #   IMAGE_TAG      镜像 tag（默认 latest）
+#   LOCAL_UID      宿主机用户 UID（默认 1000）
+#   LOCAL_GID      宿主机用户 GID（默认 1000）
 # ============================================================
 
 x-base: &base
   image: ${DOCKERHUB_NS:-alphabet2006}/${IMAGE_REPO:-gxu2026-nav-env}:${IMAGE_TAG:-latest}
+  user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
   network_mode: host
   privileged: true
   stdin_open: true
   tty: true
   environment:
     DISPLAY: ${DISPLAY:-:0}
-    # /tmp/.docker.xauth 由宿主机 autostart 写入真实 cookie（FamilyWild）
-    # 双保险：xhost +local:docker （由 autostart 执行） + XAUTHORITY cookie
     XAUTHORITY: /tmp/.docker.xauth
     TERM: xterm-256color
     QT_X11_NO_MITSHM: "1"
   volumes:
     - /tmp/.X11-unix:/tmp/.X11-unix:rw
-    - type: bind
-      source: /tmp/.docker.xauth
-      target: /tmp/.docker.xauth
-      bind:
-        create_host_path: true   # 文件不存在时自动创建（冷启动尚未执行 autostart 时的安全居）
+    - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
     - ../src:/ws/src                        # 代码挂载（改代码立刻生效）
     - ../scripts:/ws/scripts
-    - gxu2026-nav-build:/ws/build           # 持久化编译缓存
-    - gxu2026-nav-install:/ws/install
-    - gxu2026-nav-log:/ws/log
+    - ../build:/ws/build                    # bind mount：宿主机可直接 rm -rf 清除
+    - ../install:/ws/install
+    - ../log:/ws/log
+    - /etc/passwd:/etc/passwd:ro
+    - /etc/group:/etc/group:ro
   working_dir: /ws
 
 services:
@@ -64,7 +63,6 @@ services:
       NVIDIA_DRIVER_CAPABILITIES: graphics,compute,display,utility
       __NV_PRIME_RENDER_OFFLOAD: "1"
       __GLX_VENDOR_LIBRARY_NAME: nvidia
-      FASTDDS_BUILTIN_TRANSPORTS: UDPv4  # 禁用 SHM 传输，强制走 UDP，避免 /dev/shm 残留导致重启挂死
     deploy:
       resources:
         reservations:
@@ -77,29 +75,17 @@ services:
   dev-robot:
     <<: *base
     container_name: gxu2026-nav-robot
+    # 实车不需要 X11 / GPU，覆盖掉 base 里的 X11 挂载
     volumes:
       - ../src:/ws/src
       - ../scripts:/ws/scripts
-      - gxu2026-nav-build:/ws/build
-      - gxu2026-nav-install:/ws/install
-      - gxu2026-nav-log:/ws/log
-      - /dev/bus/usb:/dev/bus/usb        # 挂载 USB 总线，支持 odin 热插拔
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw # X11 socket 转发，供 rviz2 等 GUI 使用
-      - type: bind
-        source: /tmp/.docker.xauth
-        target: /tmp/.docker.xauth
-        bind:
-          create_host_path: true
+      - ../build:/ws/build
+      - ../install:/ws/install
+      - ../log:/ws/log
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+      - /dev/bus/usb:/dev/bus/usb   # 挂载 USB 总线，支持 odin 热插拔
     devices:
       - /dev/bus/usb:/dev/bus/usb   # odin1 USB 设备直通
     environment:
       TERM: xterm-256color
-      DISPLAY: ${DISPLAY:-:0}       # X11 Display，默认 :0（宿主机本地）
-      XAUTHORITY: /tmp/.docker.xauth
-      QT_X11_NO_MITSHM: "1"        # 防止 Qt 共享内存权限问题
-      FASTDDS_BUILTIN_TRANSPORTS: UDPv4  # 禁用 SHM 传输，强制走 UDP，容器↔宿主机数据互通
-
-volumes:
-  gxu2026-nav-build:
-  gxu2026-nav-install:
-  gxu2026-nav-log:
