@@ -39,7 +39,9 @@ services:
       dockerfile: Dockerfile.env
       network: host                  # 构建时共享宿主机网络，127.0.0.1:7897 可达
       args:
-        APT_MIRROR:  ${APT_MIRROR:-mirrors.tuna.tsinghua.edu.cn}
+        APT_MIRROR:      ${APT_MIRROR:-mirrors.tuna.tsinghua.edu.cn}
+        PIP_INDEX_URL:   ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
+        PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST:-pypi.tuna.tsinghua.edu.cn}
         http_proxy:  ${http_proxy:-}
         https_proxy: ${https_proxy:-}
         HTTP_PROXY:  ${HTTP_PROXY:-}

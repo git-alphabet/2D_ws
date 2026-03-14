@@ -210,34 +210,60 @@ docker push ${DOCKERHUB_NS}/${IMAGE_REPO}:latest
 
 ### 7.2 宿主机前置条件（一次性）
 
+#### 步骤 1：安装 nvidia-container-toolkit（仅 NVIDIA 显卡宿主机）
+
 ```bash
-# 1. 安装 nvidia-container-toolkit（仅带有 NVIDIA 显卡的宿主机）
 sudo apt-get install -y nvidia-container-toolkit
 sudo nvidia-ctk runtime configure --runtime=docker
 sudo systemctl restart docker
-
-# 2. 允许容器访问 X11（一次性配置）
-mkdir -p ~/.config/autostart
-
-python3 -c "
-import os
-os.makedirs(os.path.expanduser('~/.local/bin'), exist_ok=True)
-open(os.path.expanduser('~/.config/autostart/xhost-docker.desktop'), 'w').write(
-'[Desktop Entry]\nType=Application\nName=Allow Docker X11 Access\n'
-'Exec=/bin/bash /home/' + os.environ['USER'] + '/.local/bin/xhost-docker.sh\n'
-'Hidden=false\nNoDisplay=true\nX-GNOME-Autostart-enabled=true\n')
-open(os.path.expanduser('~/.local/bin/xhost-docker.sh'), 'w').write(
-'#!/bin/bash\nxhost +local:docker\n'
-'xauth nlist \$DISPLAY | sed -e \"s/^..../ffff/\" | xauth -f /tmp/.docker.xauth nmerge - 2>/dev/null\ntrue\n')
-os.chmod(os.path.expanduser('~/.local/bin/xhost-docker.sh'), 0o755)
-print('done')
-"
-EOF
-# 当前会话立即生效
-xhost +local:docker
 ```
 
-> 注意：容器以 root 运行，**不要**设置 `XAUTHORITY` 或挂载 xauth cookie 文件，否则 Xlib 读到空/无效 cookie 反而报错。仅靠 `xhost +local:docker` 授权即可。
+#### 步骤 2：配置 X11 自动授权（一次性，之后重启永久生效）
+
+> **为什么需要这步**：`/tmp` 每次重启都会清空，`/tmp/.docker.xauth` 随之消失。若容器先于该文件启动，Docker 的 `create_host_path: true` 会把该路径建成**目录**，导致下次启动时 bind mount 类型冲突（`not a directory` 报错）。
+>
+> 以下方案通过 **systemd user service** 在每次登录桌面时自动重建该文件，时序上早于手动启动容器，一次配置永久生效。
+
+```bash
+# 1. 创建授权脚本
+mkdir -p ~/.local/bin
+cat > ~/.local/bin/xhost-docker.sh << 'EOF'
+#!/bin/bash
+xhost +local:docker
+xauth nlist "$DISPLAY" | sed -e 's/^..../ffff/' | xauth -f /tmp/.docker.xauth nmerge - 2>/dev/null
+true
+EOF
+chmod +x ~/.local/bin/xhost-docker.sh
+
+# 2. 创建 systemd user service（比 .desktop autostart 更可靠，有明确的依赖顺序）
+mkdir -p ~/.config/systemd/user
+cat > ~/.config/systemd/user/xhost-docker.service << 'EOF'
+[Unit]
+Description=Setup Docker X11 access (xhost + xauth cookie)
+After=graphical-session-pre.target
+Wants=graphical-session-pre.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/xhost-docker.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=graphical-session.target
+EOF
+
+# 3. 启用并立即生效（之后每次登录自动执行，无需手动干预）
+systemctl --user daemon-reload
+systemctl --user enable xhost-docker.service
+systemctl --user start xhost-docker.service
+```
+
+验证：
+
+```bash
+systemctl --user status xhost-docker.service
+ls -la /tmp/.docker.xauth   # 应为普通文件，非目录
+```
 
 ### 7.3 构建环境镜像
 

@@ -11,6 +11,6 @@ applyTo: "**"
 本项目中，仿真引入 namespace 的设计，与 ROS 相关的 node, topic, action 等都加入了 namespace 前缀。如需查看 tf tree，请使用命令 ros2 run rqt_tf_tree rqt_tf_tree --ros-args -r /tf:=tf -r /tf_static:=tf_static -r __ns:=/red_standard_robot1,实车不带ns,如/cmd_vel
 请遵循最佳实践  充分利用我的插件 并说明怎么用的这些插件
 复现 → 定位 → 排查 → 解决 → 验证 → 复盘
-当前目标：讨论实际比赛红蓝双方的地图坐标
+当前目标：
 可以自动迭代
 用英文思考 用中文回答
