@@ -79,7 +79,7 @@ register_keys:
   # 1: SLAM 建图模式（有回环检测，跑完后执行 ./set_param.sh save_map 1 保存 .bin）
   # 2: 重定位模式（需预先指定 .bin 地图路径，重定位成功后发布 map→odom TF）
   # 注意：必须与 odin_map_mode launch 参数保持一致！
-  custom_map_mode: 2
+  custom_map_mode: 1
 
   # 初始位姿（暂未使用，保留字段）[x, y, z, qx, qy, qz, qw]
   custom_init_pos: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]

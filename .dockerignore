@@ -4,6 +4,7 @@
 build
 install
 log
+.build_branches
 neupan_env
 **/__pycache__
 **/*.pyc

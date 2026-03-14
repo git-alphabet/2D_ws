@@ -1,6 +1,7 @@
 build/
 install/
-log/    
+log/
+.build_branches/
 .vscode/
 neupan_env/
 /tips.txt
