@@ -1,3 +1,28 @@
+# 8. 行为树 XML 路径配置规范
+
+行为树 XML 路径（behavior_tree 配置项）推荐写法：
+
+- 推荐：包内相对路径
+  - 例如：`config/RMUL_2026/rmul_2026.xml`
+  - 解析时会自动定位到 rm_behavior_tree 包的 share/config 目录
+- 支持：包名前缀路径
+  - 例如：`rm_behavior_tree:config/RMUL_2026/rmul_2026.xml`
+  - 解析时会先查包名，再拼接相对路径
+- 不推荐：仓库相对路径/绝对路径
+  - 例如：`src/RM_Behavior_Tree/rm_behavior_tree/config/RMUL_2026/rmul_2026.xml` 或 `/home/xxx/.../rmul_2026.xml`
+  - 容易因工作目录/包结构变化导致找不到文件
+
+> 行为树 XML 路径解析逻辑详见 `src/gxu2026_sentry_nav/gxu2026_nav_bringup/launch/navigation_launch.py` 的 `_resolve_bt_style_path`。
+
+实际配置示例：
+
+```yaml
+pb_navigation_switches:
+  ros__parameters:
+    behavior_tree: "config/RMUL_2026/rmul_2026.xml"
+```
+
+如需自定义行为树，建议将 XML 放在 rm_behavior_tree 包的 config 子目录下，并用包内相对路径引用。
 # GXU_ROBOTZ_NAV2026
 
 GXU RobotZ 2026 赛季导航工作空间。
