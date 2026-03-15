@@ -80,11 +80,15 @@ PYTHON_BIN=python3 ./scripts/setup_neupan_env.sh
 ./scripts/complete_build.sh
 ```
 
+> 建议：首次构建或切到新分支后的冷构建，优先使用 `complete_build.sh`，避免并行编译导致内存峰值过高。
+
 - 快速构建（并行，机器性能好可用）：
 
 ```bash
 ./scripts/quick_build.sh
 ```
+
+> `quick_build.sh` 更适合增量构建；脚本会在检测到“冷构建”时自动回退为串行执行（可用 `FORCE_PARALLEL=1` 强制并行）。
 
 ---
 
