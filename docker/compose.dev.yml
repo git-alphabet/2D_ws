@@ -37,6 +37,9 @@ x-base: &base
     TERM: xterm-256color
     QT_X11_NO_MITSHM: "1"
   volumes:
+    - ./ros_entrypoint.sh:/ros_entrypoint.sh:ro
+    - ../.git:/ws/.git:ro
+    - ../.buildcache:/ws/.buildcache
     - /tmp/.X11-unix:/tmp/.X11-unix:rw
     - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
     - ../src:/ws/src                        # 代码挂载（改代码立刻生效）
@@ -77,6 +80,8 @@ services:
     container_name: gxu2026-nav-robot
     # 实车不需要 X11 / GPU，覆盖掉 base 里的 X11 挂载
     volumes:
+      - ../.git:/ws/.git:ro
+      - ../.buildcache:/ws/.buildcache
       - ../src:/ws/src
       - ../scripts:/ws/scripts
       - ../build:/ws/build

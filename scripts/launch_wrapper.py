@@ -69,6 +69,50 @@ def _controller_plugin(params_file: Path) -> str:
     return p.strip() if isinstance(p, str) else ""
 
 
+def _current_branch(ws_dir: Path) -> str:
+    override = os.environ.get("BUILD_PROFILE", "").strip()
+    if override:
+        return override
+
+    head_file = ws_dir / ".git/HEAD"
+    if head_file.exists():
+        try:
+            head = head_file.read_text().strip()
+            if head.startswith("ref: refs/heads/"):
+                return head[len("ref: refs/heads/"):]
+        except Exception:
+            pass
+    return "default"
+
+
+def _resolve_overlay_setup(ws_dir: Path) -> Path:
+    env_overlay = os.environ.get("OVERLAY_SETUP", "").strip()
+    if env_overlay:
+        return Path(env_overlay)
+
+    colcon_install_base = os.environ.get("COLCON_INSTALL_BASE", "").strip()
+    if colcon_install_base:
+        candidate = Path(colcon_install_base) / "setup.bash"
+        if candidate.exists():
+            return candidate
+
+    branch = _current_branch(ws_dir)
+    branch_safe = re.sub(r"[^A-Za-z0-9._-]", "_", branch)
+
+    cache_root_env = os.environ.get("COLCON_CACHE_ROOT", "").strip()
+    cache_roots = []
+    if cache_root_env:
+        cache_roots.append(Path(cache_root_env))
+    cache_roots.extend([ws_dir / ".buildcache", ws_dir / "build/.buildcache"])
+
+    for cache_root in cache_roots:
+        candidate = cache_root / branch_safe / "install/setup.bash"
+        if candidate.exists():
+            return candidate
+
+    return ws_dir / "install/setup.bash"
+
+
 def _enable_chassis_odometry_gt(params_file: Path) -> bool:
     if not params_file.exists():
         return True
@@ -142,6 +186,40 @@ def _build_base_env(cfg: CommonConfig) -> str:
         f"source {shlex.quote(str(cfg.ros_setup))}",
         f"source {shlex.quote(str(cfg.overlay_setup))}",
     ]
+
+    home_dir = os.environ.get("HOME", "")
+    home_path = Path(home_dir) if home_dir else None
+
+    writable_home: Optional[Path] = None
+    if home_path is not None and home_path.is_dir() and os.access(home_path, os.W_OK):
+        writable_home = home_path
+    else:
+        home_candidates = [cfg.ws_dir / "log", cfg.ws_dir, Path("/tmp")]
+        for candidate in home_candidates:
+            if candidate.is_dir() and os.access(candidate, os.W_OK):
+                writable_home = candidate
+                break
+
+    if writable_home is not None:
+        parts.append(f"export HOME={shlex.quote(str(writable_home))}")
+
+    ros_home_env = os.environ.get("ROS_HOME", "").strip()
+    if ros_home_env:
+        ros_home = Path(ros_home_env)
+    else:
+        ros_home = None
+        ros_home_candidates = [cfg.ws_dir / "log/.ros", cfg.ws_dir / ".ros", Path("/tmp") / f"ros_home_{os.getuid()}"]
+        for candidate in ros_home_candidates:
+            parent = candidate.parent
+            if parent.is_dir() and os.access(parent, os.W_OK):
+                ros_home = candidate
+                break
+        if ros_home is None:
+            ros_home = Path("/tmp") / f"ros_home_{os.getuid()}"
+
+    parts.append(f"export ROS_HOME={shlex.quote(str(ros_home))}")
+    parts.append("mkdir -p \"${ROS_HOME}\"")
+
     if cfg.rcutils_logging_severity:
         parts.append(f"export RCUTILS_LOGGING_SEVERITY={shlex.quote(cfg.rcutils_logging_severity)}")
     # 显式传递 NVIDIA / Gazebo 渲染变量，确保 gnome-terminal 新窗口和后台进程都能调用 GPU
@@ -509,8 +587,8 @@ def main(argv: list[str]) -> int:
     _ws_env = os.environ.get("WS_DIR", "").strip()
     ws_dir = Path(_ws_env).expanduser() if _ws_env else Path(__file__).resolve().parent.parent
 
-    ros_setup     = Path(os.environ.get("ROS_SETUP",     "/opt/ros/humble/setup.bash"))
-    overlay_setup = Path(os.environ.get("OVERLAY_SETUP", str(ws_dir / "install/setup.bash")))
+    ros_setup = Path(os.environ.get("ROS_SETUP", "/opt/ros/humble/setup.bash"))
+    overlay_setup = _resolve_overlay_setup(ws_dir)
 
     for p, label in [(ros_setup, "ROS setup"), (overlay_setup, "workspace overlay")]:
         if not p.exists():
