@@ -2,10 +2,13 @@
 #define RM_BEHAVIOR_TREE__PLUGINS__ACTION__CALIBRATE_CENTER_ANCHOR_HPP_
 
 #include <memory>
+#include <mutex>
+#include <optional>
 #include <string>
 
 #include "behaviortree_cpp/action_node.h"
 #include "behaviortree_ros2/ros_node_params.hpp"
+#include "geometry_msgs/msg/point_stamped.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "tf2_ros/buffer.h"
@@ -29,6 +32,8 @@ public:
       BT::InputPort<std::string>("map_frame", "map", "map frame"),
       BT::InputPort<std::string>("base_frame", "base_footprint", "base frame"),
       BT::InputPort<bool>("force_recalibrate", false, "force recalibration each tick"),
+      BT::InputPort<bool>("manual_only", false, "if true, only use clicked point topic"),
+      BT::InputPort<std::string>("point_topic", "", "manual point topic (PointStamped)"),
       BT::InputPort<std::string>("marker_topic", "calibrated_points", "marker array topic"),
       BT::InputPort<std::string>("marker_namespace", "calibration_point", "marker namespace"),
       BT::InputPort<std::string>("marker_color", "red", "cross color: red or black"),
@@ -49,7 +54,11 @@ private:
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
+  rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr point_sub_;
   std::string marker_topic_{"calibrated_points"};
+  std::string point_topic_{""};
+  std::mutex point_mutex_;
+  std::optional<geometry_msgs::msg::PointStamped> latest_point_;
 
   bool calibrated_{false};
   double center_x_{0.0};
@@ -57,6 +66,7 @@ private:
   double center_yaw_{0.0};
 
   void publishOutputs(const std::string & map_frame);
+  void updatePointSubscription(const std::string & point_topic);
   void publishCrossMarker(
     const std::string & map_frame,
     const std::string & marker_namespace,
