@@ -45,6 +45,27 @@ void CalibrateCenterAnchorAction::publishOutputs(const std::string & map_frame)
   setOutput("center_pose", center_pose);
 }
 
+void CalibrateCenterAnchorAction::updatePointSubscription(const std::string & point_topic)
+{
+  if (point_topic.empty()) {
+    point_sub_.reset();
+    point_topic_.clear();
+    return;
+  }
+
+  if (point_sub_ && point_topic_ == point_topic) {
+    return;
+  }
+
+  point_topic_ = point_topic;
+  point_sub_ = node_->create_subscription<geometry_msgs::msg::PointStamped>(
+    point_topic_, 10,
+    [this](const geometry_msgs::msg::PointStamped::SharedPtr msg) {
+      std::lock_guard<std::mutex> lock(point_mutex_);
+      latest_point_ = *msg;
+    });
+}
+
 void CalibrateCenterAnchorAction::publishCrossMarker(
   const std::string & map_frame,
   const std::string & marker_namespace,
@@ -105,8 +126,26 @@ void CalibrateCenterAnchorAction::publishCrossMarker(
   marker.points.push_back(p3);
   marker.points.push_back(p4);
 
+  visualization_msgs::msg::Marker label;
+  label.header = marker.header;
+  label.ns = marker_namespace + "_label";
+  label.id = marker_id + 10000;
+  label.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
+  label.action = visualization_msgs::msg::Marker::ADD;
+  label.pose.position.x = center_x_;
+  label.pose.position.y = center_y_;
+  label.pose.position.z = 0.45;
+  label.pose.orientation.w = 1.0;
+  label.scale.z = 0.25;
+  label.color.a = 1.0;
+  label.color.r = 1.0;
+  label.color.g = 1.0;
+  label.color.b = 1.0;
+  label.text = marker_namespace;
+
   visualization_msgs::msg::MarkerArray marker_array;
   marker_array.markers.push_back(marker);
+  marker_array.markers.push_back(label);
   marker_pub_->publish(marker_array);
 }
 
@@ -114,14 +153,18 @@ BT::NodeStatus CalibrateCenterAnchorAction::tick()
 {
   std::string map_frame = "map";
   std::string base_frame = "base_footprint";
+  std::string point_topic;
   std::string marker_topic = "calibrated_points";
   std::string marker_namespace = "calibration_point";
   std::string marker_color = "red";
+  bool manual_only = false;
   bool force_recalibrate = false;
   int marker_id = 0;
   double marker_size = 0.35;
   getInput("map_frame", map_frame);
   getInput("base_frame", base_frame);
+  getInput("manual_only", manual_only);
+  getInput("point_topic", point_topic);
   getInput("force_recalibrate", force_recalibrate);
   getInput("marker_topic", marker_topic);
   getInput("marker_namespace", marker_namespace);
@@ -134,10 +177,50 @@ BT::NodeStatus CalibrateCenterAnchorAction::tick()
     marker_pub_ = node_->create_publisher<visualization_msgs::msg::MarkerArray>(marker_topic_, 10);
   }
 
+  updatePointSubscription(point_topic);
+
   if (calibrated_ && !force_recalibrate) {
     publishOutputs(map_frame);
     publishCrossMarker(map_frame, marker_namespace, marker_color, marker_id, marker_size);
+    RCLCPP_INFO_THROTTLE(
+      node_->get_logger(), *node_->get_clock(), 3000,
+      "[CALIB_POINT] ns=%s color=%s center=(%.3f, %.3f) yaw=%.3f topic=%s",
+      marker_namespace.c_str(), marker_color.c_str(), center_x_, center_y_, center_yaw_,
+      point_topic.empty() ? "<none>" : point_topic.c_str());
     return BT::NodeStatus::SUCCESS;
+  }
+
+  if (!point_topic.empty()) {
+    std::optional<geometry_msgs::msg::PointStamped> clicked_point;
+    {
+      std::lock_guard<std::mutex> lock(point_mutex_);
+      if (latest_point_) {
+        clicked_point = latest_point_;
+      }
+    }
+
+    if (clicked_point) {
+      center_x_ = clicked_point->point.x;
+      center_y_ = clicked_point->point.y;
+      center_yaw_ = 0.0;
+      calibrated_ = true;
+      publishOutputs(map_frame);
+      publishCrossMarker(map_frame, marker_namespace, marker_color, marker_id, marker_size);
+      RCLCPP_WARN(
+        node_->get_logger(),
+        "[MANUAL_CALIBRATED] ns=%s color=%s topic=%s point=(%.3f, %.3f)",
+        marker_namespace.c_str(), marker_color.c_str(), point_topic.c_str(), center_x_, center_y_);
+      return BT::NodeStatus::SUCCESS;
+    }
+  }
+
+  if (manual_only) {
+    setOutput("center_valid", false);
+    RCLCPP_WARN_THROTTLE(
+      node_->get_logger(), *node_->get_clock(), 2000,
+      "CalibrateCenterAnchor waiting manual point on topic: %s",
+      point_topic.empty() ? "<empty>" : point_topic.c_str());
+    return BT::NodeStatus::FAILURE;
   }
 
   try {
@@ -161,8 +244,9 @@ BT::NodeStatus CalibrateCenterAnchorAction::tick()
 
     RCLCPP_ERROR(
       node_->get_logger(),
-      "[CENTER_CALIBRATED] map_frame=%s base_frame=%s center=(%.3f, %.3f) yaw=%.3f rad",
-      map_frame.c_str(), base_frame.c_str(), center_x_, center_y_, center_yaw_);
+      "[CENTER_CALIBRATED] ns=%s color=%s map_frame=%s base_frame=%s center=(%.3f, %.3f) yaw=%.3f rad",
+      marker_namespace.c_str(), marker_color.c_str(), map_frame.c_str(), base_frame.c_str(), center_x_,
+      center_y_, center_yaw_);
 
     return BT::NodeStatus::SUCCESS;
   } catch (const tf2::TransformException & ex) {

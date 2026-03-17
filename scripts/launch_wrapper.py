@@ -43,6 +43,20 @@ def _ensure_launch_arg(cmd: str, name: str, value: str) -> str:
     return cmd + f" {name}:={value}"
 
 
+def _validate_extra_launch_args(args: list[str]) -> None:
+    allowed_prefixes = ("--", "__")
+    for arg in args:
+        if not arg:
+            continue
+        if arg.startswith(allowed_prefixes):
+            continue
+        if ":=" in arg:
+            continue
+        raise RuntimeError(
+            f"Malformed launch argument '{arg}', expected '<name>:=<value>'"
+        )
+
+
 def _which(cmd: str) -> Optional[str]:
     try:
         out = subprocess.check_output(["bash", "-lc", f"command -v {shlex.quote(cmd)}"], text=True)
@@ -287,6 +301,18 @@ def _kill_by_pattern(pattern: str, title: str, script_name: str) -> None:
         print(f"[{script_name}] Warning: {title} pids still alive: {' '.join(map(str, pids))}", file=sys.stderr)
 
 
+def _runtime_log_dir(cfg: CommonConfig) -> Path:
+    candidates = [cfg.ws_dir / "log", Path("/tmp") / "launch_wrapper_logs"]
+    for candidate in candidates:
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            if os.access(candidate, os.W_OK):
+                return candidate
+        except Exception:
+            continue
+    return Path("/tmp")
+
+
 def _pid_gone(pid: int) -> bool:
     try:
         os.kill(pid, 0)
@@ -356,8 +382,7 @@ def _start_watchdog(cfg: CommonConfig, topics: list[tuple[str, float]], bg: "Bac
         f"{shlex.quote(t)}:{hz}" for t, hz in topics
     )
     base_env = _build_base_env(cfg)
-    log_dir = cfg.ws_dir / "log"
-    log_dir.mkdir(parents=True, exist_ok=True)
+    log_dir = _runtime_log_dir(cfg)
     log_file = log_dir / f"{Path(cfg.script_name).stem}_watchdog.log"
 
     # Python one-liner: 每 10s 用 ros2 topic hz --window 10 轮询一次
@@ -428,11 +453,11 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
     if extra_env:
         full_cmd += f"; {extra_env}"
     full_cmd += f"; {command}"
+    print(f"[{cfg.script_name}] LaunchCmd[{title}]: {command}", file=sys.stderr)
 
     # Background processes: always run detached (log to file), regardless of terminal mode.
     if background:
-        log_dir = cfg.ws_dir / "log"
-        log_dir.mkdir(parents=True, exist_ok=True)
+        log_dir = _runtime_log_dir(cfg)
         slug = _slugify(title)
         log_file = log_dir / f"{Path(cfg.script_name).stem}_{slug}.log"
 
@@ -449,8 +474,7 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
         return
 
     if cfg.no_new_terminal or not cfg.terminal_cmd:
-        log_dir = cfg.ws_dir / "log"
-        log_dir.mkdir(parents=True, exist_ok=True)
+        log_dir = _runtime_log_dir(cfg)
         slug = _slugify(title)
         log_file = log_dir / f"{Path(cfg.script_name).stem}_{slug}.log"
 
@@ -533,21 +557,28 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
         # xterm 是前台阻塞进程（不像 gnome-terminal 会 fork daemon），
         # 必须用 Popen 非阻塞启动，否则第二个窗口永远不会打开。
         # 直接调用 xterm（而非 x-terminal-emulator 包装器），可传入样式参数。
-        subprocess.Popen(
-            [
-                "xterm",
-                "-T", title,
-                "-u8",                              # UTF-8 模式，中文正常显示
-                "-bg", "#1e1e2e",                    # 深色背景
-                "-fg", "#cdd6f4",                    # 浅色前景
-                "-fa", "Monospace",                  # 主字体，CJK 由 fontconfig 自动 fallback
-                "-fs", "13",                         # 字号 pt
-                "-geometry", "220x55",               # 列×行
-                "-sl", "5000",                       # 滚动缓冲行数
-                "-e", "bash", "-lc", keep_shell,
-            ],
-            preexec_fn=os.setsid,
-        )
+        xterm_path = _which("xterm")
+        if xterm_path:
+            subprocess.Popen(
+                [
+                    xterm_path,
+                    "-T", title,
+                    "-u8",                              # UTF-8 模式，中文正常显示
+                    "-bg", "#1e1e2e",                    # 深色背景
+                    "-fg", "#cdd6f4",                    # 浅色前景
+                    "-fa", "Monospace",                  # 主字体，CJK 由 fontconfig 自动 fallback
+                    "-fs", "13",                         # 字号 pt
+                    "-geometry", "220x55",               # 列×行
+                    "-sl", "5000",                       # 滚动缓冲行数
+                    "-e", "bash", "-lc", keep_shell,
+                ],
+                preexec_fn=os.setsid,
+            )
+        else:
+            subprocess.Popen(
+                [term, "-T", title, "-e", "bash", "-lc", keep_shell],
+                preexec_fn=os.setsid,
+            )
         return
     # fallback: 其他终端模拟器同样非阻塞处理
     subprocess.Popen(
@@ -577,6 +608,7 @@ def main(argv: list[str]) -> int:
     script_name = Path(argv[0]).name
     mode = argv[1]
     extra_args = argv[2:]
+    _validate_extra_launch_args(extra_args)
 
     VALID_MODES = {"sim_mapping", "sim_nav", "reality_mapping", "reality_navigation"}
     if mode not in VALID_MODES:

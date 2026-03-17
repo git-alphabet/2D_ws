@@ -29,13 +29,18 @@ x-base: &base
   user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
   network_mode: host
   privileged: true
+  init: true
   stdin_open: true
   tty: true
   environment:
+    HOME: /tmp/home
     DISPLAY: ${DISPLAY:-:0}
     XAUTHORITY: /tmp/.docker.xauth
     TERM: xterm-256color
     QT_X11_NO_MITSHM: "1"
+    ROS_HOME: /tmp/.ros
+    ROS_LOG_DIR: /tmp/ros_log
+    RCL_LOGGING_DISABLE_FILE_OUTPUT: "1"
   volumes:
     - ./ros_entrypoint.sh:/ros_entrypoint.sh:ro
     - ../.git:/ws/.git:ro
@@ -56,12 +61,18 @@ services:
   # ---------- 笔记本（有 NVIDIA GPU）----------
   dev-laptop:
     <<: *base
+    profiles: ["laptop"]
     container_name: gxu2026-nav-laptop
+    shm_size: "1gb"
     environment:
+      HOME: /tmp/home
       DISPLAY: ${DISPLAY:-:0}
       XAUTHORITY: /tmp/.docker.xauth
       TERM: xterm-256color
       QT_X11_NO_MITSHM: "1"
+      ROS_HOME: /tmp/.ros
+      ROS_LOG_DIR: /tmp/ros_log
+      RCL_LOGGING_DISABLE_FILE_OUTPUT: "1"
       NVIDIA_VISIBLE_DEVICES: all
       NVIDIA_DRIVER_CAPABILITIES: graphics,compute,display,utility
       __NV_PRIME_RENDER_OFFLOAD: "1"
@@ -77,6 +88,7 @@ services:
   # ---------- 小电脑实车（无 GPU）----------
   dev-robot:
     <<: *base
+    profiles: ["robot"]
     container_name: gxu2026-nav-robot
     # 实车不需要 X11 / GPU，覆盖掉 base 里的 X11 挂载
     volumes:
@@ -93,4 +105,8 @@ services:
     devices:
       - /dev/bus/usb:/dev/bus/usb   # odin1 USB 设备直通
     environment:
+      HOME: /tmp/home
       TERM: xterm-256color
+      ROS_HOME: /tmp/.ros
+      ROS_LOG_DIR: /tmp/ros_log
+      RCL_LOGGING_DISABLE_FILE_OUTPUT: "1"
