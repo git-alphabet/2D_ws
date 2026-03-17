@@ -388,6 +388,21 @@ ament_auto_add_library(set_nav_goal_from_config SHARED
 )
 add_target_dependencies(set_nav_goal_from_config)
 
+ament_auto_add_library(calibrate_center_anchor SHARED
+    plugins/rmul_2026/action/calibrate_center_anchor.cpp
+)
+add_target_dependencies(calibrate_center_anchor)
+
+ament_auto_add_library(set_goal_from_center_offset SHARED
+    plugins/rmul_2026/action/set_goal_from_center_offset.cpp
+)
+add_target_dependencies(set_goal_from_center_offset)
+
+ament_auto_add_library(execute_prepared_route SHARED
+    plugins/rmul_2026/action/execute_prepared_route.cpp
+)
+add_target_dependencies(execute_prepared_route)
+
 ament_auto_add_library(micro_search_supply_card SHARED
     plugins/rmul_2026/action/micro_search_supply_card.cpp
 )

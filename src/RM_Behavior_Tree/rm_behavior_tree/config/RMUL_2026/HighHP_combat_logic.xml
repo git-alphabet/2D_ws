@@ -65,11 +65,27 @@
           <NavControlCmd cmd_type="1" emergency_stop="False"/>
           <!-- 前往控制区巡逻: 高血量时优先争夺控制区获取战略优势 -->
           <RateController hz="1">
-            <SendGoal name="PatrolControlZone"
-                      goal_x="5.13"
-                      goal_y="-3.94"
-                      frame_id="map"
-                      action_name="navigate_to_pose"/>
+            <Fallback>
+              <Sequence>
+                <SetGoalFromCenterOffset center_x="{calib.anchor_x}"
+                                         center_y="{calib.anchor_y}"
+                                         center_yaw="{calib.anchor_yaw}"
+                                         offset_x="0.0"
+                                         offset_y="0.0"
+                                         goal_x="{nav.goal_x}"
+                                         goal_y="{nav.goal_y}"
+                                         goal_pose="{nav.goal_pose}"/>
+                <SendGoal name="PatrolControlZone_Calibrated"
+                          goal_pose="{nav.goal_pose}"
+                          frame_id="map"
+                          action_name="navigate_to_pose"/>
+              </Sequence>
+              <SendGoal name="PatrolControlZone_Fallback"
+                        goal_x="5.13"
+                        goal_y="-3.94"
+                        frame_id="map"
+                        action_name="navigate_to_pose"/>
+            </Fallback>
           </RateController>
         </Sequence>
 
