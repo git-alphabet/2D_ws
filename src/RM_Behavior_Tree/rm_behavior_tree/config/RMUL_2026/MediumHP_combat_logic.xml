@@ -40,11 +40,27 @@
                             chassis_spin="True"/>
               <NavControlCmd cmd_type="1" emergency_stop="False"/>
               <RateController hz="1">
-                <SendGoal name="RetreatingToSupply"
-                          goal_x="0.21"
-                          goal_y="-0.32"
-                          frame_id="map"
-                          action_name="navigate_to_pose"/>
+                <Fallback>
+                  <Sequence>
+                    <SetGoalFromCenterOffset center_x="{calib.spawn_x}"
+                                             center_y="{calib.spawn_y}"
+                                             center_yaw="{calib.spawn_yaw}"
+                                             offset_x="0.0"
+                                             offset_y="0.0"
+                                             goal_x="{nav.goal_x}"
+                                             goal_y="{nav.goal_y}"
+                                             goal_pose="{nav.goal_pose}"/>
+                    <SendGoal name="RetreatingToSupply_Calibrated"
+                              goal_pose="{nav.goal_pose}"
+                              frame_id="map"
+                              action_name="navigate_to_pose"/>
+                  </Sequence>
+                  <SendGoal name="RetreatingToSupply_Fallback"
+                            goal_x="0.21"
+                            goal_y="-0.32"
+                            frame_id="map"
+                            action_name="navigate_to_pose"/>
+                </Fallback>
               </RateController>
             </Sequence>
           </Fallback>
@@ -60,11 +76,27 @@
                         chassis_spin="True"/>
           <NavControlCmd cmd_type="1" emergency_stop="False"/>
           <RateController hz="1">
-            <SendGoal name="HoverNearSupply"
-                      goal_x="0.21"
-                      goal_y="-0.32"
-                      frame_id="map"
-                      action_name="navigate_to_pose"/>
+            <Fallback>
+              <Sequence>
+                <SetGoalFromCenterOffset center_x="{calib.spawn_x}"
+                                         center_y="{calib.spawn_y}"
+                                         center_yaw="{calib.spawn_yaw}"
+                                         offset_x="0.0"
+                                         offset_y="0.0"
+                                         goal_x="{nav.goal_x}"
+                                         goal_y="{nav.goal_y}"
+                                         goal_pose="{nav.goal_pose}"/>
+                <SendGoal name="HoverNearSupply_Calibrated"
+                          goal_pose="{nav.goal_pose}"
+                          frame_id="map"
+                          action_name="navigate_to_pose"/>
+              </Sequence>
+              <SendGoal name="HoverNearSupply_Fallback"
+                        goal_x="0.21"
+                        goal_y="-0.32"
+                        frame_id="map"
+                        action_name="navigate_to_pose"/>
+            </Fallback>
           </RateController>
         </Sequence>
 

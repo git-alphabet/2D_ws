@@ -63,11 +63,8 @@ private:
                    const geometry_msgs::msg::PoseStamped & b) const;
 
   geometry_msgs::msg::PoseStamped last_goal_;
-  geometry_msgs::msg::PoseStamped last_log_goal_;
   rclcpp::Time last_pub_time_{0, 0, RCL_ROS_TIME};
   bool has_last_{false};
-  bool has_log_goal_{false};
-  int log_count_{0};
 };
 
 }  // namespace rm_behavior_tree

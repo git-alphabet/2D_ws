@@ -118,23 +118,10 @@ bool SendGoalAction::setMessage(geometry_msgs::msg::PoseStamped & msg)
   msg.pose.orientation.z = 0.0;
   msg.pose.orientation.w = 1.0;
 
-  // Log at most 10 times per goal; then only when the goal changes.
-  {
-    const bool goal_changed = !has_log_goal_ || !isSameGoal_(goal, last_log_goal_);
-    if (goal_changed) {
-      last_log_goal_ = goal;
-      has_log_goal_ = true;
-      log_count_ = 0;
-    }
-
-    if (log_count_ < 10) {
-      RCLCPP_INFO(
-        rclcpp::get_logger("rm_behavior_tree"),
-        "Goal position: [ %.3f, %.3f, %.3f ]",
-        goal.pose.position.x, goal.pose.position.y, goal.pose.position.z);
-      ++log_count_;
-    }
-  }
+  RCLCPP_INFO(
+    rclcpp::get_logger("rm_behavior_tree"),
+    "Goal position: [ %.3f, %.3f, %.3f ]",
+    goal.pose.position.x, goal.pose.position.y, goal.pose.position.z);
 
   last_goal_ = goal;
   last_pub_time_ = now;
