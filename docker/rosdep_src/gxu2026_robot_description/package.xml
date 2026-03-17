@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-	<name>pb2025_robot_description</name>
+	<name>gxu2026_robot_description</name>
 	<version>1.0.0</version>
-	<description>pb2025_robot_description</description>
+	<description>gxu2026_robot_description</description>
 
 	<maintainer email="lihanchen2004@163.com">Lihan Chen</maintainer>
 	<license>MIT</license>

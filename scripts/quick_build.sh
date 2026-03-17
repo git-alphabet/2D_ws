@@ -5,43 +5,65 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-slugify_branch_name() {
-  local raw="$1"
-  local slug
-  slug="$(echo "$raw" | tr '[:upper:]' '[:lower:]' | sed -E 's#[^a-z0-9._-]+#_#g; s#^_+##; s#_+$##')"
-  echo "${slug:-default}"
-}
-
-detect_branch_name() {
-  if [[ -n "${BUILD_BRANCH:-}" ]]; then
-    slugify_branch_name "$BUILD_BRANCH"
-    return
-  fi
-
-  local branch
-  branch="$(git -C "$WS_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
-  if [[ -z "$branch" || "$branch" == "HEAD" ]]; then
-    local commit
-    commit="$(git -C "$WS_DIR" rev-parse --short HEAD 2>/dev/null || true)"
-    branch="detached_${commit:-unknown}"
-  fi
-  slugify_branch_name "$branch"
-}
-
-BRANCH_NAME="$(detect_branch_name)"
-BRANCH_ROOT="$WS_DIR/.build_branches/$BRANCH_NAME"
-BUILD_BASE="$BRANCH_ROOT/build"
-INSTALL_BASE="$BRANCH_ROOT/install"
-LOG_BASE="$BRANCH_ROOT/log"
-
-mkdir -p "$BUILD_BASE" "$INSTALL_BASE" "$LOG_BASE"
-
 cd "$WS_DIR"
 
-echo "[quick_build.sh] branch=$BRANCH_NAME"
-echo "[quick_build.sh] build_base=$BUILD_BASE"
-echo "[quick_build.sh] install_base=$INSTALL_BASE"
-echo "[quick_build.sh] log_base=$LOG_BASE"
+BRANCH_NAME="${BUILD_PROFILE:-}"
+if [[ -z "$BRANCH_NAME" && -f "$WS_DIR/.git/HEAD" ]]; then
+  git_head="$(<"$WS_DIR/.git/HEAD")"
+  if [[ "$git_head" == ref:\ refs/heads/* ]]; then
+    BRANCH_NAME="${git_head#ref: refs/heads/}"
+  fi
+fi
+BRANCH_NAME="${BRANCH_NAME:-default}"
+BRANCH_SAFE="$(echo "$BRANCH_NAME" | sed 's#[^A-Za-z0-9._-]#_#g')"
+
+CACHE_ROOT="${COLCON_CACHE_ROOT:-$WS_DIR/.buildcache}"
+mkdir -p "$CACHE_ROOT" 2>/dev/null || true
+if ! (mkdir -p "$CACHE_ROOT/.perm_check_$$" 2>/dev/null && rmdir "$CACHE_ROOT/.perm_check_$$" 2>/dev/null); then
+  FALLBACK_CACHE_ROOT="$WS_DIR/build/.buildcache"
+  mkdir -p "$FALLBACK_CACHE_ROOT"
+  CACHE_ROOT="$FALLBACK_CACHE_ROOT"
+  echo "[build-profile] cache root not writable, fallback to $CACHE_ROOT"
+fi
+BUILD_BASE="${COLCON_BUILD_BASE:-$CACHE_ROOT/$BRANCH_SAFE/build}"
+INSTALL_BASE="${COLCON_INSTALL_BASE:-$CACHE_ROOT/$BRANCH_SAFE/install}"
+LOG_BASE="${COLCON_LOG_BASE:-$CACHE_ROOT/$BRANCH_SAFE/log}"
+
+mkdir -p "$BUILD_BASE" "$INSTALL_BASE" "$LOG_BASE"
+echo "[build-profile] branch=$BRANCH_NAME"
+echo "[build-profile] build_base=$BUILD_BASE"
+echo "[build-profile] install_base=$INSTALL_BASE"
+echo "[build-profile] log_base=$LOG_BASE"
+
+stale_link_count=0
+if [[ -d "$INSTALL_BASE" ]]; then
+  while IFS= read -r stale_link; do
+    [[ -n "$stale_link" ]] || continue
+    rm -f "$stale_link"
+    stale_link_count=$((stale_link_count + 1))
+  done < <(find "$INSTALL_BASE" -type l -lname '/ws/build/.buildcache/*' 2>/dev/null || true)
+fi
+if [[ $stale_link_count -gt 0 ]]; then
+  echo "[prune] Removed $stale_link_count stale install symlink(s) from old cache root."
+fi
+
+# Cold build guard: first build on a branch can consume large memory if fully parallel.
+# Auto-fallback to sequential executor unless user explicitly overrides.
+COLCON_EXECUTOR_ARGS=()
+if [[ "${FORCE_PARALLEL:-0}" != "1" ]]; then
+  has_cache=0
+  shopt -s nullglob
+  cache_files=("$BUILD_BASE"/*/CMakeCache.txt)
+  shopt -u nullglob
+  if [[ ${#cache_files[@]} -gt 0 ]]; then
+    has_cache=1
+  fi
+  if [[ $has_cache -eq 0 ]]; then
+    COLCON_EXECUTOR_ARGS=(--executor sequential)
+    echo "[build-profile] cold branch build detected, auto-fallback to sequential to reduce memory peak"
+    echo "[build-profile] set FORCE_PARALLEL=1 to force parallel build"
+  fi
+fi
 
 # --- Prune stale build artifacts ---
 # Scan build/*/CMakeCache.txt; if the cached source dir no longer exists,
@@ -53,6 +75,15 @@ if [[ -d "$BUILD_BASE" ]]; then
     [[ -f "$cache_file" ]] || continue
     pkg_build_dir="$(dirname "$cache_file")"
     pkg_name="$(basename "$pkg_build_dir")"
+    cache_dir="$(grep -m1 '^CMAKE_CACHEFILE_DIR:' "$cache_file" | cut -d= -f2-)"
+    if [[ -n "$cache_dir" && "$cache_dir" != "$pkg_build_dir" ]]; then
+      echo "[prune] '$pkg_name': cache dir moved ('$cache_dir' -> '$pkg_build_dir'), removing stale artifacts..."
+      rm -rf "$BUILD_BASE/$pkg_name"
+      rm -rf "$INSTALL_BASE/$pkg_name"
+      rm -rf "$LOG_BASE/latest_build/$pkg_name" 2>/dev/null || true
+      stale_count=$((stale_count + 1))
+      continue
+    fi
     # CMAKE_HOME_DIRECTORY is the actual source directory colcon recorded
     src_dir="$(grep -m1 '^CMAKE_HOME_DIRECTORY:' "$cache_file" | cut -d= -f2-)"
     if [[ -n "$src_dir" && ! -d "$src_dir" ]]; then
@@ -77,47 +108,11 @@ set +u
 source "/opt/ros/${ROS_DISTRO}/setup.bash"
 set -u
 
-# 清理环境里已失效的前缀路径（例如包重命名后残留的 install 路径）
-sanitize_prefix_path_var() {
-  local var_name="$1"
-  local value="${!var_name:-}"
-  local cleaned=""
-
-  if [[ -z "$value" ]]; then
-    return
-  fi
-
-  IFS=':' read -r -a parts <<< "$value"
-  for p in "${parts[@]}"; do
-    [[ -z "$p" ]] && continue
-    if [[ -d "$p" ]]; then
-      if [[ -n "$cleaned" ]]; then
-        cleaned+="${cleaned:+:}$p"
-      else
-        cleaned="$p"
-      fi
-    fi
-  done
-
-  export "$var_name=$cleaned"
-}
-
-sanitize_prefix_path_var AMENT_PREFIX_PATH
-sanitize_prefix_path_var CMAKE_PREFIX_PATH
-sanitize_prefix_path_var COLCON_PREFIX_PATH
-
-# 清理 pb_nav2_plugins 旧产物，防止切换分支/库名变更后残留 .so 导致 dlopen 符号缺失
-# （libpb_layers.so 曾命名为 liblayers.so，旧文件若留在 install 会造成 undefined symbol）
-if [[ -f "$INSTALL_BASE/pb_nav2_plugins/lib/liblayers.so" ]]; then
-  echo "[quick_build.sh] 检测到旧版 liblayers.so，自动清理 pb_nav2_plugins 构建产物..."
-  rm -rf "$BUILD_BASE/pb_nav2_plugins" "$INSTALL_BASE/pb_nav2_plugins"
-fi
-
 # Build the ROS workspace skipping NeuPAN and neupan_nav2_controller
-colcon build \
+colcon --log-base "$LOG_BASE" build \
   --build-base "$BUILD_BASE" \
   --install-base "$INSTALL_BASE" \
-  --log-base "$LOG_BASE" \
+  "${COLCON_EXECUTOR_ARGS[@]}" \
   --packages-skip neupan_nav2_controller \
   --symlink-install \
   --cmake-args -DCMAKE_BUILD_TYPE=Release
@@ -132,10 +127,10 @@ else
 fi
 
 # Build only the AI packages
-colcon build \
+colcon --log-base "$LOG_BASE" build \
   --build-base "$BUILD_BASE" \
   --install-base "$INSTALL_BASE" \
-  --log-base "$LOG_BASE" \
+  "${COLCON_EXECUTOR_ARGS[@]}" \
   --packages-select neupan_nav2_controller \
   --symlink-install \
   --cmake-args -DCMAKE_BUILD_TYPE=Release
