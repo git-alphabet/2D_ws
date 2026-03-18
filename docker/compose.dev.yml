@@ -26,7 +26,6 @@
 
 x-base: &base
   image: ${DOCKERHUB_NS:-alphabet2006}/${IMAGE_REPO:-gxu2026-nav-env}:${IMAGE_TAG:-latest}
-  user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
   network_mode: host
   privileged: true
   init: true
@@ -52,8 +51,6 @@ x-base: &base
     - ../build:/ws/build                    # bind mount：宿主机可直接 rm -rf 清除
     - ../install:/ws/install
     - ../log:/ws/log
-    - /etc/passwd:/etc/passwd:ro
-    - /etc/group:/etc/group:ro
   working_dir: /ws
 
 services:
@@ -99,8 +96,6 @@ services:
       - ../build:/ws/build
       - ../install:/ws/install
       - ../log:/ws/log
-      - /etc/passwd:/etc/passwd:ro
-      - /etc/group:/etc/group:ro
       - /dev/bus/usb:/dev/bus/usb   # 挂载 USB 总线，支持 odin 热插拔
     devices:
       - /dev/bus/usb:/dev/bus/usb   # odin1 USB 设备直通
