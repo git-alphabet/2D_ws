@@ -52,7 +52,8 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->get_parameter("cmd_spin_topic", cmd_spin_topic_);
   this->get_parameter("input_cmd_vel_topic", input_cmd_vel_topic_);
   this->get_parameter("output_cmd_vel_topic", output_cmd_vel_topic_);
-  this->get_parameter("init_spin_speed", spin_speed_);
+  this->get_parameter("init_spin_speed", init_spin_speed_);
+  spin_speed_ = init_spin_speed_;
 
   tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
@@ -64,6 +65,14 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
     input_cmd_vel_topic_, 10,
     std::bind(&FakeVelTransform::cmdVelCallback, this, std::placeholders::_1));
+
+  goal_status_sub_ = this->create_subscription<action_msgs::msg::GoalStatusArray>(
+    "navigate_to_pose/_action/status", 10,
+    std::bind(&FakeVelTransform::goalStatusCallback, this, std::placeholders::_1));
+
+  goal_status_sub_through_poses_ = this->create_subscription<action_msgs::msg::GoalStatusArray>(
+    "navigate_through_poses/_action/status", 10,
+    std::bind(&FakeVelTransform::goalStatusCallback, this, std::placeholders::_1));
 
   odom_sub_filter_.subscribe(this, odom_topic_);
   local_plan_sub_filter_.subscribe(this, local_plan_topic_);
@@ -90,7 +99,23 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
 
 void FakeVelTransform::cmdSpinCallback(const example_interfaces::msg::Float32::SharedPtr msg)
 {
+  has_received_cmd_spin_ = true;
   spin_speed_ = msg->data;
+}
+
+void FakeVelTransform::goalStatusCallback(const action_msgs::msg::GoalStatusArray::SharedPtr msg)
+{
+  for (const auto & status : msg->status_list) {
+    if (status.status == 5 || status.status == 6) {
+      // 5 = CANCELED, 6 = ABORTED
+      spin_enabled_ = false;
+    } else if (status.status == 1 || status.status == 2) {
+      // 1 = ACCEPTED, 2 = EXECUTING
+      spin_enabled_ = true;
+    }
+    // 4 = SUCCEEDED: Do not change spin_enabled_ explicitly 
+    // to keep it spinning when reached goal
+  }
 }
 
 void FakeVelTransform::odometryCallback(const nav_msgs::msg::Odometry::ConstSharedPtr & msg)
@@ -197,7 +222,17 @@ geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
   const geometry_msgs::msg::Twist::SharedPtr & twist, float yaw_diff)
 {
   geometry_msgs::msg::Twist aft_tf_vel;
-  aft_tf_vel.angular.z = twist->angular.z + spin_speed_;
+
+  float current_spin = 0.0f;
+  if (spin_enabled_) {
+    if (has_received_cmd_spin_) {
+      current_spin = spin_speed_;
+    } else {
+      current_spin = init_spin_speed_;
+    }
+  }
+
+  aft_tf_vel.angular.z = twist->angular.z + current_spin;
   aft_tf_vel.linear.x = twist->linear.x * cos(yaw_diff) + twist->linear.y * sin(yaw_diff);
   aft_tf_vel.linear.y = -twist->linear.x * sin(yaw_diff) + twist->linear.y * cos(yaw_diff);
   return aft_tf_vel;

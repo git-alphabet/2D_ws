@@ -402,7 +402,7 @@ fake_vel_transform:
     input_cmd_vel_topic: "cmd_vel_nav2_result"
     output_cmd_vel_topic: "cmd_vel"
     cmd_spin_topic: "cmd_spin"
-    init_spin_speed: 0.0
+    init_spin_speed: 3.14
 
 # 非线性小陀螺：发布 cmd_spin（Float32，单位 rad/s），被 fake_vel_transform 叠加到 cmd_vel.angular.z
 # 注意：cmd_spin_topic 不要写成以 / 开头的绝对话题名，这样才会跟随 namespace。
@@ -447,7 +447,7 @@ nonlinear_spin_publisher:
 
     # Cancel 停转：当 trigger topic 超过 idle_timeout_sec 无新消息时，停止自旋并发布零速
     # 使得 rviz cancel / 导航完成后底盘和自旋同步停止
-    stop_on_idle: true
+    stop_on_idle: false
     idle_timeout_sec: 0.5
 
 # 重定位：GICP 基于点云的全局重定位/初始化
