@@ -4,6 +4,9 @@ set -euo pipefail
 # Thin wrapper: delegate to Python (easier to read).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# 仿真单终端开关：true=Gazebo无头 + 导航在本终端前台；false=保持原有多终端行为。
+SIM_SINGLE_TERMINAL_HEADLESS=true
+
 export QT_FONT_DPI=192
 export __NV_PRIME_RENDER_OFFLOAD=1
 export __GLX_VENDOR_LIBRARY_NAME=nvidia
@@ -14,6 +17,11 @@ export IGN_GAZEBO_RENDER_ENGINE_GUI="${IGN_GAZEBO_RENDER_ENGINE_GUI:-ogre2}"
 
 # 容器内有 xterm，允许弹多终端（覆盖 Docker 自动 no_new_terminal 逻辑）
 export NO_NEW_TERMINAL="${NO_NEW_TERMINAL:-0}"
+
+if [[ "${SIM_SINGLE_TERMINAL_HEADLESS}" == "true" ]]; then
+	export NO_NEW_TERMINAL=1
+	export GAZEBO_HEADLESS=1
+fi
 
 export RCUTILS_LOGGING_SEVERITY=${RCUTILS_LOGGING_SEVERITY:-INFO}
 
