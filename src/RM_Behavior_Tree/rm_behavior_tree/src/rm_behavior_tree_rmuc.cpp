@@ -212,8 +212,14 @@ int main(int argc, char ** argv)
   }
 
   // Groot2Publisher 端口 1668（RMUL 用 1667，避免冲突）
-  const unsigned port = 1668;
-  BT::Groot2Publisher publisher(tree, port);
+  std::unique_ptr<BT::Groot2Publisher> publisher;
+  try {
+    const unsigned port = 2668;
+    publisher = std::make_unique<BT::Groot2Publisher>(tree, port);
+    RCLCPP_INFO(node->get_logger(), "Groot2Publisher started on port %u", port);
+  } catch (const std::exception & e) {
+    RCLCPP_WARN(node->get_logger(), "Failed to start Groot2Publisher on port 2668: %s. Continuing without it.", e.what());
+  }
 
   while (rclcpp::ok()) {
     tree.tickWhileRunning(std::chrono::milliseconds(10));

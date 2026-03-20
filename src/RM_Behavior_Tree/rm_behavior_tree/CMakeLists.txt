@@ -398,10 +398,10 @@ ament_auto_add_library(set_goal_from_center_offset SHARED
 )
 add_target_dependencies(set_goal_from_center_offset)
 
-ament_auto_add_library(execute_prepared_route SHARED
-    plugins/rmul_2026/action/execute_prepared_route.cpp
+ament_auto_add_library(execute_nav2_waypoints SHARED
+    plugins/rmul_2026/action/execute_nav2_waypoints.cpp
 )
-add_target_dependencies(execute_prepared_route)
+add_target_dependencies(execute_nav2_waypoints)
 
 ament_auto_add_library(micro_search_supply_card SHARED
     plugins/rmul_2026/action/micro_search_supply_card.cpp

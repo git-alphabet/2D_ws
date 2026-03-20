@@ -45,38 +45,14 @@
                                        center_pose="{calib.anchor_pose}"/>
             
             <WhileDoElse>
-                <IsGameTime name="IsGameStart"
+                                <IsGameTime name="IsGameStart"
                         message="{game_status}"
                         game_progress="4"
                         lower_remain_time="0"
                         higher_remain_time="300"/>
                 <Fallback>
-                    <ReactiveSequence>
-                        <ExecutePreparedRoute enable="false"
-                                              pose_x="{pose.x}"
-                                              pose_y="{pose.y}"
-                                              arrive_radius="0.6"
-                                              wpt0_enable="true"
-                                              wpt0_x="1.00"
-                                              wpt0_y="-1.00"
-                                              wpt1_enable="true"
-                                              wpt1_x="3.00"
-                                              wpt1_y="-2.50"
-                                              wpt2_enable="true"
-                                              wpt2_x="5.13"
-                                              wpt2_y="-3.94"
-                                              frame_id="map"
-                                              goal_x="{prep.goal_x}"
-                                              goal_y="{prep.goal_y}"
-                                              goal_pose="{prep.goal_pose}"/>
-                        <RateController hz="1">
-                            <SendGoal name="RunPreparedRoute"
-                                      goal_pose="{prep.goal_pose}"
-                                      frame_id="map"
-                                      action_name="navigate_to_pose" min_interval_ms="1000"/>
-                        </RateController>
-                        <KeepRunning/>
-                    </ReactiveSequence>
+                    <ExecuteNav2Waypoints action_name="follow_waypoints"/>
+                    
                     <!--判断战亡，若战亡，执行解除虚弱状态操作 -->
                     <SubTree ID="IsDeadAndDispelDebuff" _autoremap="true"/>
                     <!-- 处于存活状态则进入战斗/占点逻辑 -->
@@ -197,6 +173,9 @@
     
     <!-- Description of Node Models (used by Groot) -->
     <TreeNodesModel>
+        <Action ID="ExecuteNav2Waypoints" editable="true">
+            <input_port name="action_name" default="follow_waypoints"/>
+        </Action>
         <Action ID="GetCurrentLocation" editable="true">
             <output_port name="current_location" default="{current_location}"/>
         </Action>
