@@ -88,7 +88,7 @@
                                             goal_x="{cfg.supply_goal_x}"
                                             goal_y="{cfg.supply_goal_y}"
                                             frame_id="map"
-                                            action_name="navigate_to_pose"/>
+                                            action_name="navigate_to_pose" min_interval_ms="1000"/>
                                     </RateController>
                                     <KeepRunning/>
                                 </ReactiveSequence>

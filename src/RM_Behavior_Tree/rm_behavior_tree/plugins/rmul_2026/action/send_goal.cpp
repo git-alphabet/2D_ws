@@ -1,4 +1,3 @@
-
 #include "rm_behavior_tree/plugins/rmul_2026/action/send_goal.hpp"
 #include <rclcpp/rclcpp.hpp>
 
@@ -7,7 +6,7 @@ namespace rm_behavior_tree
 
 SendGoalAction::SendGoalAction(
   const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
-: RosTopicPubNode<geometry_msgs::msg::PoseStamped>(name, conf, params)
+  : BT::SyncActionNode(name, conf), node_(params.nh)
 {
 }
 
@@ -34,8 +33,16 @@ bool SendGoalAction::isSameGoal_(const geometry_msgs::msg::PoseStamped & a,
   return true;
 }
 
-bool SendGoalAction::setMessage(geometry_msgs::msg::PoseStamped & msg)
+BT::NodeStatus SendGoalAction::tick()
 {
+  std::string topic_name = "goal_pose";
+  getInput("topic_name", topic_name);
+  if(!publisher_ || prev_topic_name_ != topic_name)
+  {
+    publisher_ = node_->create_publisher<geometry_msgs::msg::PoseStamped>(topic_name, 1);
+    prev_topic_name_ = topic_name;
+  }
+
   geometry_msgs::msg::PoseStamped goal;
   std::string frame_id = "map";
   {
@@ -49,7 +56,6 @@ bool SendGoalAction::setMessage(geometry_msgs::msg::PoseStamped & msg)
   if (res.has_value()) {
     goal = res.value();
   } else {
-    // Use the overload that returns an expected/result and check presence explicitly.
     double gx = 0.0, gy = 0.0;
     auto r_gx = getInput<double>("goal_x");
     auto r_gy = getInput<double>("goal_y");
@@ -66,17 +72,15 @@ bool SendGoalAction::setMessage(geometry_msgs::msg::PoseStamped & msg)
       goal.pose.orientation.z = 0.0;
       goal.pose.orientation.w = 1.0;
     } else {
-      RCLCPP_DEBUG(rclcpp::get_logger("rm_behavior_tree"), "no goal_pose and goal_x/goal_y not provided");
-      return false;
+      RCLCPP_DEBUG(node_->get_logger(), "no goal_pose and goal_x/goal_y not provided");
+      return BT::NodeStatus::FAILURE;
     }
   }
 
-  // If goal_pose has a valid frame_id, prefer it. Otherwise fall back to input port.
   if (!goal.header.frame_id.empty()) {
     frame_id = goal.header.frame_id;
   }
 
-  // Optional throttle: default 0 keeps old behavior (always publish).
   int min_interval_ms = 0;
   auto r_interval = getInput<int>("min_interval_ms");
   if (r_interval) {
@@ -86,7 +90,6 @@ bool SendGoalAction::setMessage(geometry_msgs::msg::PoseStamped & msg)
     }
   }
 
-  // Use node clock (ROS time) so simulation (/clock) works correctly.
   auto now = node_->get_clock()->now();
 
   if (min_interval_ms > 0 && has_last_) {
@@ -94,15 +97,15 @@ bool SendGoalAction::setMessage(geometry_msgs::msg::PoseStamped & msg)
     if (same_goal) {
       const int64_t dt_ns = (now - last_pub_time_).nanoseconds();
       const int64_t min_dt_ns = static_cast<int64_t>(min_interval_ms) * 1000000LL;
-
-      // If clock jumps backward OR interval not reached, skip publish this tick.
+      // If clock jumps backward OR interval not reached, skip publish
       if (dt_ns < 0 || dt_ns < min_dt_ns) {
-        return false;
+        // Return SUCCESS even if we skip publishing! This prevents resetting the BT branch!
+        return BT::NodeStatus::SUCCESS;
       }
     }
   }
 
-  // Convert rclcpp::Time -> builtin_interfaces::msg::Time manually
+  geometry_msgs::msg::PoseStamped msg;
   {
     const uint64_t ns = now.nanoseconds();
     msg.header.stamp.sec = static_cast<int32_t>(ns / 1000000000ULL);
@@ -112,14 +115,13 @@ bool SendGoalAction::setMessage(geometry_msgs::msg::PoseStamped & msg)
   msg.pose.position.x = goal.pose.position.x;
   msg.pose.position.y = goal.pose.position.y;
   msg.pose.position.z = goal.pose.position.z;
-  // Orientation not required; set to identity quaternion.
   msg.pose.orientation.x = 0.0;
   msg.pose.orientation.y = 0.0;
   msg.pose.orientation.z = 0.0;
   msg.pose.orientation.w = 1.0;
 
   RCLCPP_INFO(
-    rclcpp::get_logger("rm_behavior_tree"),
+    node_->get_logger(),
     "Goal position: [ %.3f, %.3f, %.3f ]",
     goal.pose.position.x, goal.pose.position.y, goal.pose.position.z);
 
@@ -127,7 +129,8 @@ bool SendGoalAction::setMessage(geometry_msgs::msg::PoseStamped & msg)
   last_pub_time_ = now;
   has_last_ = true;
 
-  return true;
+  publisher_->publish(msg);
+  return BT::NodeStatus::SUCCESS;
 }
 
 }  // namespace rm_behavior_tree
