@@ -20,6 +20,12 @@ CalibrateCenterAnchorAction::CalibrateCenterAnchorAction(
   tf2::Duration buffer_duration(tf2::durationFromSec(10.0));
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock(), buffer_duration, node_);
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+  // Automatically subscribe to literal point_topic early so we don't miss clicks during initialization
+  auto r_topic = getInput<std::string>("point_topic");
+  if (r_topic && !r_topic.value().empty() && r_topic.value().find("{") == std::string::npos) {
+    updatePointSubscription(r_topic.value());
+  }
+
 }
 
 void CalibrateCenterAnchorAction::publishOutputs(const std::string & map_frame)
@@ -151,6 +157,10 @@ void CalibrateCenterAnchorAction::publishCrossMarker(
 
 BT::NodeStatus CalibrateCenterAnchorAction::tick()
 {
+  if (node_) {
+    rclcpp::spin_some(node_);
+  }
+
   std::string map_frame = "map";
   std::string base_frame = "base_footprint";
   std::string point_topic;

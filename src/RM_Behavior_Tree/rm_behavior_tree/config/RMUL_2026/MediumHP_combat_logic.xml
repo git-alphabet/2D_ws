@@ -15,7 +15,7 @@
       <IsHPBelow message="{robot_status}" hp_threshold="300"/>
       <IsHPAbove message="{robot_status}" hp_threshold="200"/>
 
-      <Fallback>
+      <ReactiveFallback>
         <!-- ══════════════════════════════════════════════════════════
              分支 A: 检测到敌人 → 中血量交战
              ══════════════════════════════════════════════════════════ -->
@@ -35,7 +35,7 @@
 
             <!-- A-2: 热量过高 → 向补给区方向撤退闪避，边走边等冷却
                  中血量热量超限比高血量更危险，需要拉远距离 -->
-            <Sequence>
+            <ReactiveSequence>
               <RobotControl stop_gimbal_scan="False"
                             chassis_spin="True"/>
               <NavControlCmd cmd_type="1" emergency_stop="False"/>
@@ -53,16 +53,16 @@
                     <SendGoal name="RetreatingToSupply_Calibrated"
                               goal_pose="{nav.goal_pose}"
                               frame_id="map"
-                              action_name="navigate_to_pose"/>
+                              action_name="navigate_to_pose" min_interval_ms="1000"/>
                   </Sequence>
                   <SendGoal name="RetreatingToSupply_Fallback"
                             goal_x="0.21"
                             goal_y="-0.32"
                             frame_id="map"
-                            action_name="navigate_to_pose"/>
+                            action_name="navigate_to_pose" min_interval_ms="1000"/>
                 </Fallback>
               </RateController>
-            </Sequence>
+            </ReactiveSequence>
           </Fallback>
         </ReactiveSequence>
 
@@ -71,7 +71,7 @@
              说明: 中血量时不再主动进攻控制区，而是靠近补给区
                    以便血量继续下降时能快速到达补给区回血
              ══════════════════════════════════════════════════════════ -->
-        <Sequence>
+        <ReactiveSequence>
           <RobotControl stop_gimbal_scan="False"
                         chassis_spin="True"/>
           <NavControlCmd cmd_type="1" emergency_stop="False"/>
@@ -89,18 +89,18 @@
                 <SendGoal name="HoverNearSupply_Calibrated"
                           goal_pose="{nav.goal_pose}"
                           frame_id="map"
-                          action_name="navigate_to_pose"/>
+                          action_name="navigate_to_pose" min_interval_ms="1000"/>
               </Sequence>
               <SendGoal name="HoverNearSupply_Fallback"
                         goal_x="0.21"
                         goal_y="-0.32"
                         frame_id="map"
-                        action_name="navigate_to_pose"/>
+                        action_name="navigate_to_pose" min_interval_ms="1000"/>
             </Fallback>
           </RateController>
-        </Sequence>
+        </ReactiveSequence>
 
-      </Fallback>
+      </ReactiveFallback>
     </ReactiveSequence>
   </BehaviorTree>
 </root>

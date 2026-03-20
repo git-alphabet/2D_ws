@@ -19,7 +19,7 @@
       <!-- 前置条件: 血量 ≥ 300 才进入高血量逻辑 -->
       <IsHPAbove message="{robot_status}" hp_threshold="300"/>
 
-      <Fallback>
+      <ReactiveFallback>
         <!-- ══════════════════════════════════════════════════════════
              分支 A: 检测到敌人 → 进入交战状态
              ══════════════════════════════════════════════════════════ -->
@@ -57,7 +57,7 @@
         <!-- ══════════════════════════════════════════════════════════
              分支 B: 未检测到敌人 → 主动巡逻+占控制区
              ══════════════════════════════════════════════════════════ -->
-        <Sequence>
+        <ReactiveSequence>
           <!-- 保持云台扫描搜敌，开小陀螺防被偷袭 -->
           <RobotControl stop_gimbal_scan="False"
                         chassis_spin="True"/>
@@ -78,18 +78,18 @@
                 <SendGoal name="PatrolControlZone_Calibrated"
                           goal_pose="{nav.goal_pose}"
                           frame_id="map"
-                          action_name="navigate_to_pose"/>
+                          action_name="navigate_to_pose" min_interval_ms="1000"/>
               </Sequence>
               <SendGoal name="PatrolControlZone_Fallback"
                         goal_x="5.13"
                         goal_y="-3.94"
                         frame_id="map"
-                        action_name="navigate_to_pose"/>
+                        action_name="navigate_to_pose" min_interval_ms="1000"/>
             </Fallback>
           </RateController>
-        </Sequence>
+        </ReactiveSequence>
 
-      </Fallback>
+      </ReactiveFallback>
     </ReactiveSequence>
   </BehaviorTree>
 </root>

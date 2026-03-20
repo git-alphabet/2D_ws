@@ -8,11 +8,11 @@
     <include path="IsDeadAndDispelDebuff.xml"/>
 
     <BehaviorTree ID="MainBehaviorTree">
-        <Sequence>
+        <ReactiveSequence>
             <!-- 用Sequence包裹所有节点，确保BehaviorTree只有1个子节点 -->
             <!-- 订阅数据并写入黑板 -->
             <SubTree ID="PerceptionAndBlackboard" _autoremap="true"/>
-            <Fallback>
+            
                 <CalibrateCenterAnchor map_frame="map"
                                        base_frame="base_footprint"
                                        manual_only="true"
@@ -27,9 +27,8 @@
                                        center_yaw="{calib.spawn_yaw}"
                                        center_valid="{calib.spawn_valid}"
                                        center_pose="{calib.spawn_pose}"/>
-                <KeepRunning/>
-            </Fallback>
-            <Fallback>
+            
+            
                 <CalibrateCenterAnchor map_frame="map"
                                        base_frame="base_footprint"
                                        manual_only="true"
@@ -44,8 +43,7 @@
                                        center_yaw="{calib.anchor_yaw}"
                                        center_valid="{calib.anchor_valid}"
                                        center_pose="{calib.anchor_pose}"/>
-                <KeepRunning/>
-            </Fallback>
+            
             <WhileDoElse>
                 <IsGameTime name="IsGameStart"
                         message="{game_status}"
@@ -54,7 +52,7 @@
                         higher_remain_time="300"/>
                 <Fallback>
                     <ReactiveSequence>
-                        <ExecutePreparedRoute enable="true"
+                        <ExecutePreparedRoute enable="false"
                                               pose_x="{pose.x}"
                                               pose_y="{pose.y}"
                                               arrive_radius="0.6"
@@ -75,7 +73,7 @@
                             <SendGoal name="RunPreparedRoute"
                                       goal_pose="{prep.goal_pose}"
                                       frame_id="map"
-                                      action_name="navigate_to_pose"/>
+                                      action_name="navigate_to_pose" min_interval_ms="1000"/>
                         </RateController>
                         <KeepRunning/>
                     </ReactiveSequence>
@@ -103,32 +101,35 @@
                             <ReactiveSequence>
                                 <IsHPBelow message="{robot_status}" hp_threshold="200"/>
 
-                                <RateController hz="1">
-                                    <Fallback>
-                                        <Sequence>
-                                            <SetGoalFromCenterOffset center_x="{calib.spawn_x}"
-                                                                     center_y="{calib.spawn_y}"
-                                                                     center_yaw="{calib.spawn_yaw}"
-                                                                     offset_x="0.0"
-                                                                     offset_y="0.0"
-                                                                     goal_x="{nav.goal_x}"
-                                                                     goal_y="{nav.goal_y}"
-                                                                     goal_pose="{nav.goal_pose}"/>
-                                            <SendGoal name="GoSupplyToHeal_Calibrated"
-                                                    goal_pose="{nav.goal_pose}"
-                                                    frame_id="map"
-                                                    action_name="navigate_to_pose"/>
-                                        </Sequence>
-                                        <SendGoal name="GoSupplyToHeal_Fallback"
-                                                goal_x="0.21"
-                                                goal_y="-0.32"
-                                                frame_id="map"
-                                                action_name="navigate_to_pose"/>
-                                    </Fallback>
-                                </RateController>
-
-                                <!-- ✅ 使用新的 IsAtNavGoal 节点检测是否到达 -->
-                                <IsAtNavGoal rfid_status="{rfid_status}"/>
+                                <ReactiveFallback name="NavUntilArrived_Supply">
+                                    <IsAtNavGoal rfid_status="{rfid_status}"/>
+                                    <ReactiveSequence>
+                                        <RateController hz="1">
+                                            <Fallback>
+                                                <Sequence>
+                                                    <SetGoalFromCenterOffset center_x="{calib.spawn_x}"
+                                                                             center_y="{calib.spawn_y}"
+                                                                             center_yaw="{calib.spawn_yaw}"
+                                                                             offset_x="0.0"
+                                                                             offset_y="0.0"
+                                                                             goal_x="{nav.goal_x}"
+                                                                             goal_y="{nav.goal_y}"
+                                                                             goal_pose="{nav.goal_pose}"/>
+                                                    <SendGoal name="GoSupplyToHeal_Calibrated"
+                                                            goal_pose="{nav.goal_pose}"
+                                                            frame_id="map"
+                                                            action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                                </Sequence>
+                                                <SendGoal name="GoSupplyToHeal_Fallback"
+                                                        goal_x="0.21"
+                                                        goal_y="-0.32"
+                                                        frame_id="map"
+                                                        action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                            </Fallback>
+                                        </RateController>
+                                        <KeepRunning/>
+                                    </ReactiveSequence>
+                                </ReactiveFallback>
 
                                 <!-- Fallback: 先感应补给区卡,感应不到再微动重试 -->
                                 <ReactiveFallback>
@@ -141,32 +142,35 @@
 
                             <!-- 3) 抢控制区：对方每秒-1胜利点；离开后延迟2s失效 -->
                             <ReactiveSequence>
-                                <RateController hz="1">
-                                    <Fallback>
-                                        <Sequence>
-                                            <SetGoalFromCenterOffset center_x="{calib.anchor_x}"
-                                                                     center_y="{calib.anchor_y}"
-                                                                     center_yaw="{calib.anchor_yaw}"
-                                                                     offset_x="0.0"
-                                                                     offset_y="0.0"
-                                                                     goal_x="{nav.goal_x}"
-                                                                     goal_y="{nav.goal_y}"
-                                                                     goal_pose="{nav.goal_pose}"/>
-                                            <SendGoal name="GoControlZone_Calibrated"
-                                                    goal_pose="{nav.goal_pose}"
-                                                    frame_id="map"
-                                                    action_name="navigate_to_pose"/>
-                                        </Sequence>
-                                        <SendGoal name="GoControlZone_Fallback"
-                                                goal_x="5.13"
-                                                goal_y="-3.94"
-                                                frame_id="map"
-                                                action_name="navigate_to_pose"/>
-                                    </Fallback>
-                                </RateController>
-
-                                <!-- ✅ 使用新的 IsAtNavGoal 节点检测是否到达 -->
-                                <IsAtNavGoal rfid_status="{rfid_status}"/>
+                                <ReactiveFallback name="NavUntilArrived_ControlZone">
+                                    <IsAtNavGoal rfid_status="{rfid_status}"/>
+                                    <ReactiveSequence>
+                                        <RateController hz="1">
+                                            <Fallback>
+                                                <Sequence>
+                                                    <SetGoalFromCenterOffset center_x="{calib.anchor_x}"
+                                                                             center_y="{calib.anchor_y}"
+                                                                             center_yaw="{calib.anchor_yaw}"
+                                                                             offset_x="0.0"
+                                                                             offset_y="0.0"
+                                                                             goal_x="{nav.goal_x}"
+                                                                             goal_y="{nav.goal_y}"
+                                                                             goal_pose="{nav.goal_pose}"/>
+                                                    <SendGoal name="GoControlZone_Calibrated"
+                                                            goal_pose="{nav.goal_pose}"
+                                                            frame_id="map"
+                                                            action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                                </Sequence>
+                                                <SendGoal name="GoControlZone_Fallback"
+                                                        goal_x="5.13"
+                                                        goal_y="-3.94"
+                                                        frame_id="map"
+                                                        action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                            </Fallback>
+                                        </RateController>
+                                        <KeepRunning/>
+                                    </ReactiveSequence>
+                                </ReactiveFallback>
 
                                 <!-- Fallback: 先感应控制区卡,感应不到再微动重试 -->
                                 <ReactiveFallback>
@@ -181,36 +185,14 @@
 
                     </Fallback>
                 </Fallback>
-                <!-- 非比赛阶段停止云台和旋转，回家 -->
-                <ReactiveSequence>
-                        <RateController hz="1">
-                        <Fallback>
-                            <Sequence>
-                                <SetGoalFromCenterOffset center_x="{calib.spawn_x}"
-                                                         center_y="{calib.spawn_y}"
-                                                         center_yaw="{calib.spawn_yaw}"
-                                                         offset_x="0.0"
-                                                         offset_y="0.0"
-                                                         goal_x="{nav.goal_x}"
-                                                         goal_y="{nav.goal_y}"
-                                                         goal_pose="{nav.goal_pose}"/>
-                                <SendGoal name="Home_Calibrated"
-                                          goal_pose="{nav.goal_pose}"
-                                          frame_id="map"
-                                          action_name="navigate_to_pose"/>
-                            </Sequence>
-                            <SendGoal name="Home_Fallback"
-                                      goal_x="0.0"
-                                      goal_y="0.0"
-                                      frame_id="map"
-                                      action_name="navigate_to_pose"/>
-                        </Fallback>
-                    </RateController>
-                    <RobotControl stop_gimbal_scan="True"
-                                    chassis_spin="False"/>
-                </ReactiveSequence>
+                <!-- 非比赛阶段停止云台和旋转，原地待命 -->
+                <Sequence>
+                    <RobotControl stop_gimbal_scan="True" chassis_spin="False"/>
+                    <!-- 发送一个停止领航的空命令或者直接不发目标，就干等着 -->
+                    <KeepRunning/>
+                </Sequence>
             </WhileDoElse>
-        </Sequence>
+        </ReactiveSequence>
     </BehaviorTree>
     
     <!-- Description of Node Models (used by Groot) -->

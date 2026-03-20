@@ -24,9 +24,9 @@ BT::NodeStatus SetGoalFromCenterOffsetAction::tick()
   auto oy = getInput<double>("offset_y");
 
   if (!cx || !cy || !ox || !oy) {
-    RCLCPP_WARN(
-      rclcpp::get_logger("SetGoalFromCenterOffset"),
-      "missing input: center_x/center_y/offset_x/offset_y");
+    // Missing input means not calibrated yet. 
+    // We intentionally return FAILURE to trigger Fallback paths.
+    // Suppress warning to avoid spamming the log.
     return BT::NodeStatus::FAILURE;
   }
 
