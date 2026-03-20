@@ -57,7 +57,7 @@ int main(int argc, char ** argv)
     "set_nav_goal_from_config",
     "calibrate_center_anchor",
     "set_goal_from_center_offset",
-    "execute_prepared_route",
+    "execute_nav2_waypoints",
     "cancel_nav_goal",
     "is_recovery_needed",
     "is_supply_card_detected",
@@ -121,8 +121,14 @@ int main(int argc, char ** argv)
   }
 
   // Connect the Groot2Publisher. This will allow Groot2 to get the tree and poll status updates.
-  const unsigned port = 1667;
-  BT::Groot2Publisher publisher(tree, port);
+  std::unique_ptr<BT::Groot2Publisher> publisher;
+  try {
+    const unsigned port = 2667;
+    publisher = std::make_unique<BT::Groot2Publisher>(tree, port);
+    RCLCPP_INFO(node->get_logger(), "Groot2Publisher started on port %u", port);
+  } catch (const std::exception & e) {
+    RCLCPP_WARN(node->get_logger(), "Failed to start Groot2Publisher on port 2667: %s. Continuing without it.", e.what());
+  }
 
   while (rclcpp::ok()) {
     tree.tickWhileRunning(std::chrono::milliseconds(10));
