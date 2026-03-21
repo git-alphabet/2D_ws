@@ -21,7 +21,7 @@ BT::NodeStatus InitBlackboardConfigAction::tick()
   }
 
   std::uint64_t heal_wait_ms        = HEAL_WAIT_MS_DEFAULT;
-  double        heal_min_ratio      = HEAL_MIN_RATIO_DEFAULT;
+  int           heal_min_hp         = HEAL_MIN_HP_DEFAULT;
   std::uint64_t search_timeout_ms   = SEARCH_TIMEOUT_MS_DEFAULT;
   std::uint64_t recovery_timeout_ms = RECOVERY_TIMEOUT_MS_DEFAULT;
   double        arrive_radius       = ARRIVE_RADIUS_DEFAULT;
@@ -39,6 +39,11 @@ BT::NodeStatus InitBlackboardConfigAction::tick()
     if (!node_->has_parameter("is_blue_team")) {
       node_->declare_parameter("is_blue_team", false);
     }
+    if (!node_->has_parameter("supply_heal_min_hp")) {
+      node_->declare_parameter("supply_heal_min_hp", HEAL_MIN_HP_DEFAULT);
+    }
+    node_->get_parameter("supply_heal_min_hp", heal_min_hp);
+
     if (!node_->has_parameter("red_supply_goal_x")) node_->declare_parameter("red_supply_goal_x", RED_SUPPLY_GOAL_X_DEFAULT);
     if (!node_->has_parameter("red_supply_goal_y")) node_->declare_parameter("red_supply_goal_y", RED_SUPPLY_GOAL_Y_DEFAULT);
     if (!node_->has_parameter("red_control_zone_x")) node_->declare_parameter("red_control_zone_x", RED_CONTROL_ZONE_X_DEFAULT);
@@ -69,14 +74,14 @@ BT::NodeStatus InitBlackboardConfigAction::tick()
   }
 
   // 安全夹紧
-  heal_min_ratio = std::clamp(heal_min_ratio, 0.0, 1.0);
+  heal_min_hp = std::clamp(heal_min_hp, 0, 400);
   if (arrive_radius < 0.05) {
     arrive_radius = 0.05;
   }
 
   // 写入黑板 cfg.*
   setOutput("heal_wait_ms", heal_wait_ms);
-  setOutput("heal_min_ratio", heal_min_ratio);
+  setOutput("heal_min_hp", heal_min_hp);
   setOutput("search_timeout_ms", search_timeout_ms);
   setOutput("recovery_timeout_ms", recovery_timeout_ms);
   setOutput("supply_goal_x", supply_goal_x);
