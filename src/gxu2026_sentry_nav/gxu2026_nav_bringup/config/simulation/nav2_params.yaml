@@ -198,8 +198,19 @@ small_point_lio:
 # 行为树相关（RM 侧）：仿真使用 sim time
 rm_behavior_tree:
   ros__parameters:
+    is_blue_team: False
     style: rmuc_01.xml
     use_sim_time: True
+    # 红方固化战术点预设 (保底坐标)
+    red_control_zone_x: 5.13
+    red_control_zone_y: -3.94
+    red_supply_goal_x: 0.21
+    red_supply_goal_y: -0.32
+    # 蓝方固化战术点预设 (保底坐标)
+    blue_control_zone_x: 2.95
+    blue_control_zone_y: -0.54
+    blue_supply_goal_x: 7.87
+    blue_supply_goal_y: -4.16
 
 # Point-LIO：里程计/定位源之一（注意其 tf_send_en = False 时不会发布 TF）
 point_lio:
@@ -402,7 +413,7 @@ fake_vel_transform:
     input_cmd_vel_topic: "cmd_vel_nav2_result"
     output_cmd_vel_topic: "cmd_vel"
     cmd_spin_topic: "cmd_spin"
-    init_spin_speed: 3.14
+    init_spin_speed: 0.0
 
 # 非线性小陀螺：发布 cmd_spin（Float32，单位 rad/s），被 fake_vel_transform 叠加到 cmd_vel.angular.z
 # 注意：cmd_spin_topic 不要写成以 / 开头的绝对话题名，这样才会跟随 namespace。
