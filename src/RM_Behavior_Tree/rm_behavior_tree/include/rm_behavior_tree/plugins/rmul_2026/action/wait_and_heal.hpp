@@ -24,7 +24,7 @@ public:
       // 订阅 RMUL
       BT::InputPort<std::string>("topic_name"),
 
-      // 为兼容你现有 XML：保留但不使用（你要求 now_ms 不从黑板/消息取）
+      // 兼容现有 XML：保留端口
       BT::InputPort<std::uint64_t>("now_ms"),
       BT::InputPort<int>("hp_cur"),
       BT::InputPort<int>("hp_max"),
@@ -32,7 +32,7 @@ public:
       // 真正使用的端口
       BT::BidirectionalPort<std::uint64_t>("heal_start_ms"),
       BT::InputPort<std::uint64_t>("heal_wait_ms"),
-      BT::InputPort<double>("heal_min_ratio")
+      BT::InputPort<int>("heal_min_hp")
     };
   }
 
@@ -41,8 +41,6 @@ public:
 
 private:
   static constexpr int MAX_HP_FIXED = 400;
-
-  // ✅ 缓存最近一次收到的血量，避免 last_msg 为空时逻辑卡死
   bool has_hp_cache_ = false;
   int last_hp_cache_ = 0;
 };
