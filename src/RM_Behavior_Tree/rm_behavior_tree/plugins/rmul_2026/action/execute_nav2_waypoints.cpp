@@ -9,7 +9,7 @@ ExecuteNav2Waypoints::ExecuteNav2Waypoints(
   const std::string& name,
   const BT::NodeConfig& conf,
   const BT::RosNodeParams& params)
-: BT::RosActionNode<nav2_msgs::action::FollowWaypoints>(name, conf, params)
+: BT::RosActionNode<nav2_msgs::action::NavigateThroughPoses>(name, conf, params)
 {
   
   rclcpp::NodeOptions options;
@@ -61,12 +61,18 @@ bool ExecuteNav2Waypoints::setGoal(Goal& goal)
 {
   std::lock_guard<std::mutex> lock(mutex_);
   if (completed_ || waypoints_.empty()) {
-    RCLCPP_WARN(node_->get_logger(), "ExecuteNav2Waypoints: No waypoints available or already completed. Skipping.");
+    if (!skip_logged_) {
+      RCLCPP_INFO(node_->get_logger(), "ExecuteNav2Waypoints: No waypoints available or already completed. Skipping to combat logic.");
+      skip_logged_ = true;
+    }
     return false;
   }
   
   goal.poses = waypoints_;
+  // 加上指定的 behavior_tree
+  goal.behavior_tree = "";
   RCLCPP_INFO(node_->get_logger(), "Executing %zu waypoints by sending to action server...", waypoints_.size());
+  skip_logged_ = false;
   return true;
 }
 
@@ -79,7 +85,11 @@ BT::NodeStatus ExecuteNav2Waypoints::onResultReceived(const WrappedResult& wr)
 
 BT::NodeStatus ExecuteNav2Waypoints::onFailure(BT::ActionNodeErrorCode error)
 {
-  RCLCPP_WARN(node_->get_logger(), "ExecuteNav2Waypoints failed or skipped (Code %d). Handing over to combat logic.", static_cast<int>(error));
+  if (completed_ || waypoints_.empty()) {
+    // 已经通过 skip_logged_ 打印过一次了，不再刷屏报错
+    return BT::NodeStatus::FAILURE;
+  }
+  RCLCPP_WARN_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000, "ExecuteNav2Waypoints failed (Code %d). Handing over to combat logic.", static_cast<int>(error));
   return BT::NodeStatus::FAILURE;
 }
 

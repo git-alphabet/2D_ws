@@ -2,7 +2,7 @@
 #pragma once
 
 #include "behaviortree_ros2/bt_action_node.hpp"
-#include "nav2_msgs/action/follow_waypoints.hpp"
+#include "nav2_msgs/action/navigate_through_poses.hpp"
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <thread>
@@ -11,7 +11,7 @@
 namespace rm_behavior_tree
 {
 
-class ExecuteNav2Waypoints : public BT::RosActionNode<nav2_msgs::action::FollowWaypoints>
+class ExecuteNav2Waypoints : public BT::RosActionNode<nav2_msgs::action::NavigateThroughPoses>
 {
 public:
   ExecuteNav2Waypoints(const std::string& name,
@@ -39,6 +39,7 @@ private:
   std::vector<geometry_msgs::msg::PoseStamped> waypoints_;
   std::mutex mutex_;
   bool completed_ = false;
+  bool skip_logged_ = false;
 };
 
 } // namespace

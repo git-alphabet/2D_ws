@@ -13,6 +13,7 @@
             <!-- 订阅数据并写入黑板 -->
             <SubTree ID="PerceptionAndBlackboard" _autoremap="true"/>
             
+            <ForceSuccess>
                 <CalibrateCenterAnchor map_frame="map"
                                        base_frame="base_footprint"
                                        manual_only="true"
@@ -27,8 +28,9 @@
                                        center_yaw="{calib.spawn_yaw}"
                                        center_valid="{calib.spawn_valid}"
                                        center_pose="{calib.spawn_pose}"/>
+            </ForceSuccess>
             
-            
+            <ForceSuccess>
                 <CalibrateCenterAnchor map_frame="map"
                                        base_frame="base_footprint"
                                        manual_only="true"
@@ -43,6 +45,7 @@
                                        center_yaw="{calib.anchor_yaw}"
                                        center_valid="{calib.anchor_valid}"
                                        center_pose="{calib.anchor_pose}"/>
+            </ForceSuccess>
             
             <WhileDoElse>
                                 <IsGameTime name="IsGameStart"
@@ -51,7 +54,7 @@
                         lower_remain_time="0"
                         higher_remain_time="300"/>
                 <Fallback>
-                    <ExecuteNav2Waypoints action_name="follow_waypoints"/>
+                    <ExecuteNav2Waypoints action_name="navigate_through_poses"/>
                     
                     <!--判断战亡，若战亡，执行解除虚弱状态操作 -->
                     <SubTree ID="IsDeadAndDispelDebuff" _autoremap="true"/>
@@ -222,6 +225,8 @@
             <output_port name="recovery_timeout_ms" default="{cfg.recovery_timeout_ms}"/>
             <output_port name="supply_goal_x" default="{cfg.supply_goal_x}"/>
             <output_port name="supply_goal_y" default="{cfg.supply_goal_y}"/>
+            <output_port name="control_zone_goal_x" default="{cfg.control_zone_goal_x}"/>
+            <output_port name="control_zone_goal_y" default="{cfg.control_zone_goal_y}"/>
             <output_port name="arrive_radius" default="{cfg.arrive_radius}"/>
         </Action>
         <Action ID="SubRobotPosition" editable="true">
