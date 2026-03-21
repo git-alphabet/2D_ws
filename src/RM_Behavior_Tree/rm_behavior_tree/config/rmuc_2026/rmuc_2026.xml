@@ -107,37 +107,37 @@
 
         <!-- 动作：订阅节点 (独立话题) -->
         <Action ID="RmucSubGameStatus" editable="true">
-            <input_port name="topic_name" default="/game_status"/>
+            <input_port name="topic_name" default="game_status"/>
             <output_port name="game_status" default="{game_status}"/>
             <output_port name="now_ms" default="{time.now_ms}"/>
         </Action>
         <Action ID="RmucSubRobotStatus" editable="true">
-            <input_port name="topic_name" default="/robot_status"/>
+            <input_port name="topic_name" default="robot_status"/>
             <output_port name="robot_status" default="{robot_status}"/>
         </Action>
         <Action ID="RmucSubRFIDStatus" editable="true">
-            <input_port name="topic_name" default="/rfid_status"/>
+            <input_port name="topic_name" default="rfid_status"/>
             <output_port name="rfid_status" default="{rfid.status}"/>
         </Action>
         <Action ID="RmucSubRobotPosition" editable="true">
-            <input_port name="topic_name" default="/robot_position"/>
+            <input_port name="topic_name" default="robot_position"/>
             <output_port name="pose_x" default="{pose.x}"/>
             <output_port name="pose_y" default="{pose.y}"/>
             <output_port name="pose_yaw" default="{pose.yaw}"/>
             <output_port name="is_at_nav_goal" default="{is_at_nav_goal}"/>
         </Action>
         <Action ID="SubRadarTracks" editable="true">
-            <input_port name="topic_name" default="/radar/enemy_tracks"/>
+            <input_port name="topic_name" default="radar/enemy_tracks"/>
             <output_port name="radar_tracks" default="{radar.tracks}"/>
         </Action>
 
         <!-- 动作：黑板初始化/解析 -->
         <Action ID="InitSentryConfig" editable="true">
-            <output_port name="topic_game_status" default="/game_status"/>
-            <output_port name="topic_robot_status" default="/robot_status"/>
-            <output_port name="topic_rfid_status" default="/rfid_status"/>
-            <output_port name="topic_robot_pose" default="/robot_position"/>
-            <output_port name="topic_radar_tracks" default="/radar/enemy_tracks"/>
+            <output_port name="topic_game_status" default="game_status"/>
+            <output_port name="topic_robot_status" default="robot_status"/>
+            <output_port name="topic_rfid_status" default="rfid_status"/>
+            <output_port name="topic_robot_pose" default="robot_position"/>
+            <output_port name="topic_radar_tracks" default="radar/enemy_tracks"/>
 
             <!-- TODO: 以下所有坐标需根据实际地图填写（单位：米，map 坐标系） -->
             <output_port name="home_x" default="0.0"/>          <!-- TODO: 己方出生点/复活点 x -->

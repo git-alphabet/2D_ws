@@ -3,7 +3,7 @@
   <BehaviorTree ID="MainBehaviorTree">
     <Sequence name="root_sequence">
       <!-- Detect respawn and set recovery flags on the blackboard (uses default /robot_status) -->
-      <DetectRespawnAndSetRecovery topic_name="/robot_status" />
+      <DetectRespawnAndSetRecovery topic_name="robot_status" />
     </Sequence>
   </BehaviorTree>
 </root>

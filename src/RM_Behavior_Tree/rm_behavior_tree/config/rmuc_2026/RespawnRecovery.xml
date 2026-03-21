@@ -21,7 +21,7 @@
 
             <!-- 0. 每次 tick 都执行：持续跟踪 was_dead / 检测复活沿 -->
             <RmucDetectRespawnAndSetRecovery
-                topic_name="/robot_status"
+                topic_name="robot_status"
                 was_dead="{was_dead}"
                 hp_cur="{hp_cur}"
                 need_recovery="{need_recovery}"
@@ -54,7 +54,7 @@
 
                             <!-- 等待回血到指定比例 -->
                             <RmucWaitAndHeal
-                                topic_name="/robot_status"
+                                topic_name="robot_status"
                                 now_ms="{now_ms}"
                                 heal_start_ms="{heal_start_ms}"
                                 heal_wait_ms="{cfg.heal_wait_ms}"

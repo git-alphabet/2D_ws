@@ -11,9 +11,9 @@
   -->
   <BehaviorTree ID="MediumHPCombatLogic">
     <ReactiveSequence>
-      <!-- 前置条件: 200 ≤ HP < 300 -->
-      <IsHPBelow message="{robot_status}" hp_threshold="300"/>
-      <IsHPAbove message="{robot_status}" hp_threshold="200"/>
+      <!-- 前置条件: 100 ≤ HP < 200 -->
+      <IsHPBelow message="{robot_status}" hp_threshold="200"/>
+      <IsHPAbove message="{robot_status}" hp_threshold="100"/>
 
       <ReactiveFallback>
         <!-- ══════════════════════════════════════════════════════════

@@ -16,8 +16,8 @@
   -->
   <BehaviorTree ID="HighHPCombatLogic">
     <ReactiveSequence>
-      <!-- 前置条件: 血量 ≥ 300 才进入高血量逻辑 -->
-      <IsHPAbove message="{robot_status}" hp_threshold="300"/>
+      <!-- 前置条件: 血量 ≥ 200 才进入高血量逻辑 -->
+      <IsHPAbove message="{robot_status}" hp_threshold="200"/>
 
       <ReactiveFallback>
         <!-- ══════════════════════════════════════════════════════════

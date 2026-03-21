@@ -1,11 +1,11 @@
 <root BTCPP_format="4">
     <BehaviorTree ID="PerceptionAndBlackboard">
         <Sequence>
-            <SubRobotStatus topic_name="/robot_status"
+            <SubRobotStatus topic_name="robot_status"
                             robot_status="{robot_status}"/>
-            <SubGameStatus topic_name="/game_status"
+            <SubGameStatus topic_name="game_status"
                            game_status="{game_status}"/>
-            <SubRFIDStatus topic_name="/rfid_status"
+            <SubRFIDStatus topic_name="rfid_status"
                            rfid_status="{rfid.status}"/>
             <InitBlackboardConfig
                         heal_wait_ms="{cfg.heal_wait_ms}"
@@ -17,7 +17,7 @@
                         control_zone_goal_x="{cfg.control_zone_goal_x}"
                         control_zone_goal_y="{cfg.control_zone_goal_y}"
                         arrive_radius="{cfg.arrive_radius}"/>
-            <SubRobotPosition topic_name="/robot_position"
+            <SubRobotPosition topic_name="robot_position"
                               pose_x="{pose.x}"
                               pose_y="{pose.y}"/>
         </Sequence>

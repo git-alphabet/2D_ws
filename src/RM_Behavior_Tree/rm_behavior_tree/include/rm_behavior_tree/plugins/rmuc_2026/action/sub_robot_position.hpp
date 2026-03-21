@@ -20,7 +20,7 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
-      BT::InputPort<std::string>("topic_name", "/robot_position", "订阅的话题名"),
+      BT::InputPort<std::string>("topic_name", "robot_position", "订阅的话题名"),
       BT::OutputPort<double>("pose_x"),
       BT::OutputPort<double>("pose_y"),
       BT::OutputPort<double>("pose_yaw"),

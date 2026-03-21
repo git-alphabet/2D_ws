@@ -15,11 +15,11 @@ BT::NodeStatus InitSentryConfigAction::tick()
   auto set = [this](const char * key, auto val) {
     setOutput(key, val);
   };
-  set("topic_game_status", std::string("/game_status"));
-  set("topic_robot_status", std::string("/robot_status"));
-  set("topic_rfid_status", std::string("/rfid_status"));
-  set("topic_robot_pose", std::string("/robot_position"));
-  set("topic_radar_tracks", std::string("/radar/enemy_tracks"));
+  set("topic_game_status", std::string("game_status"));
+  set("topic_robot_status", std::string("robot_status"));
+  set("topic_rfid_status", std::string("rfid_status"));
+  set("topic_robot_pose", std::string("robot_position"));
+  set("topic_radar_tracks", std::string("radar/enemy_tracks"));
 
   // 坐标默认为 0，由 XML 参数或上层设置覆盖
   for (auto * k : {"home_x","home_y","supply_x","supply_y",

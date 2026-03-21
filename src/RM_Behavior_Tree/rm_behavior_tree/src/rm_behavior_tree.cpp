@@ -38,7 +38,7 @@ int main(int argc, char ** argv)
 
   BT::RosNodeParams params_nav_control;
   params_nav_control.nh = std::make_shared<rclcpp::Node>("nav_control_cmd");
-  params_nav_control.default_port_value = "/nav_control_cmd";
+  params_nav_control.default_port_value = "nav_control_cmd";
 
  
 

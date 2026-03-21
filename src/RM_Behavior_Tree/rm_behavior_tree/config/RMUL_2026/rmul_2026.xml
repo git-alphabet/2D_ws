@@ -17,9 +17,9 @@
                 <CalibrateCenterAnchor map_frame="map"
                                        base_frame="base_footprint"
                                        manual_only="true"
-                                       point_topic="/calib/spawn_point"
+                                       point_topic="calib/spawn_point"
                                        force_recalibrate="false"
-                                       marker_topic="/calibrated_points"
+                                       marker_topic="calibrated_points"
                                        marker_namespace="spawn_point"
                                        marker_color="black"
                                        marker_id="2001"
@@ -34,9 +34,9 @@
                 <CalibrateCenterAnchor map_frame="map"
                                        base_frame="base_footprint"
                                        manual_only="true"
-                                       point_topic="/calib/control_point"
+                                       point_topic="calib/control_point"
                                        force_recalibrate="false"
-                                       marker_topic="/calibrated_points"
+                                       marker_topic="calibrated_points"
                                        marker_namespace="control_zone_point"
                                        marker_color="red"
                                        marker_id="2002"
@@ -62,26 +62,26 @@
                     <Fallback>
                         <!--
                           战斗决策优先级 (从高到低):
-                            1. 高血量(≥300): 检测敌人→停车射击 / 未检测→巡逻控制区
-                            2. 中血量(200~300): 检测敌人→停车射击 / 未检测→靠近补给区
-                            3. 低血量(<200): 无条件回补给区回血
+                            1. 高血量(≥200): 检测敌人→停车射击 / 未检测→巡逻控制区
+                            2. 中血量(100~200): 检测敌人→停车射击 / 未检测→靠近补给区
+                            3. 低血量(<100): 无条件回补给区回血
                           每个子树内部已包含 IsDetectEnemy 判断，
                           会根据有无敌人自动切换射击/巡逻模式
                         -->
 
-                        <!-- 高血量战斗逻辑 (HP ≥ 300) -->
+                        <!-- 高血量战斗逻辑 (HP ≥ 200) -->
                         <SubTree ID="HighHPCombatLogic" _autoremap="true"/>
-                        <!-- 中血量战斗逻辑 (200 ≤ HP < 300) -->
+                        <!-- 中血量战斗逻辑 (100 ≤ HP < 200) -->
                         <SubTree ID="MediumHPCombatLogic" _autoremap="true"/>
 
                         <!-- 非战斗时刻占点逻辑 -->
                         <ReactiveFallback>
                             <!-- 低血量：回补给区回血（补给区占领：每秒回 25% 上限血量） -->
                             <ReactiveSequence>
-                                <IsHPBelow message="{robot_status}" hp_threshold="200"/>
+                                <IsHPBelow message="{robot_status}" hp_threshold="100"/>
 
                                 <ReactiveFallback name="NavUntilArrived_Supply">
-                                    <IsAtNavGoal rfid_status="{rfid_status}"/>
+                                    <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}" goal_x="{cfg.supply_goal_x}" goal_y="{cfg.supply_goal_y}" arrive_radius="{cfg.arrive_radius}"/>
                                     <ReactiveSequence>
                                         <RateController hz="1">
                                             <Fallback>
@@ -100,8 +100,8 @@
                                                             action_name="navigate_to_pose" min_interval_ms="1000"/>
                                                 </Sequence>
                                                 <SendGoal name="GoSupplyToHeal_Fallback"
-                                                        goal_x="0.21"
-                                                        goal_y="-0.32"
+                                                        goal_x="{cfg.supply_goal_x}"
+                                                        goal_y="{cfg.supply_goal_y}"
                                                         frame_id="map"
                                                         action_name="navigate_to_pose" min_interval_ms="1000"/>
                                             </Fallback>
@@ -122,7 +122,7 @@
                             <!-- 3) 抢控制区：对方每秒-1胜利点；离开后延迟2s失效 -->
                             <ReactiveSequence>
                                 <ReactiveFallback name="NavUntilArrived_ControlZone">
-                                    <IsAtNavGoal rfid_status="{rfid_status}"/>
+                                    <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}" goal_x="{cfg.control_zone_goal_x}" goal_y="{cfg.control_zone_goal_y}" arrive_radius="{cfg.arrive_radius}"/>
                                     <ReactiveSequence>
                                         <RateController hz="1">
                                             <Fallback>
@@ -141,8 +141,8 @@
                                                             action_name="navigate_to_pose" min_interval_ms="1000"/>
                                                 </Sequence>
                                                 <SendGoal name="GoControlZone_Fallback"
-                                                        goal_x="5.13"
-                                                        goal_y="-3.94"
+                                                        goal_x="{cfg.control_zone_goal_x}"
+                                                        goal_y="{cfg.control_zone_goal_y}"
                                                         frame_id="map"
                                                         action_name="navigate_to_pose" min_interval_ms="1000"/>
                                             </Fallback>
@@ -202,20 +202,20 @@
             <input_port name="rfid_status" default="{rfid.status}"/>
         </Action>
         <Action ID="SubArmors" editable="true">
-            <input_port name="topic_name" default="/detector/armors"/>
+            <input_port name="topic_name" default="detector/armors"/>
             <output_port name="armors" default="{armors}"/>
         </Action>
         <Action ID="SubGameStatus" editable="true">
-            <input_port name="topic_name" default="/game_status"/>
+            <input_port name="topic_name" default="game_status"/>
             <output_port name="game_status" default="{game_status}"/>
             <output_port name="now_ms" default="{time.now_ms}"/>
         </Action>
         <Action ID="SubRobotStatus" editable="true">
-            <input_port name="topic_name" default="/robot_status"/>
+            <input_port name="topic_name" default="robot_status"/>
             <output_port name="robot_status" default="{robot_status}"/>
         </Action>
         <Action ID="SubRFIDStatus" editable="true">
-            <input_port  name="topic_name" default="/rfid_status"/>
+            <input_port  name="topic_name" default="rfid_status"/>
             <output_port name="rfid_status" default="{rfid.status}"/>
         </Action>
         <Action ID="InitBlackboardConfig" editable="true">
@@ -230,7 +230,7 @@
             <output_port name="arrive_radius" default="{cfg.arrive_radius}"/>
         </Action>
         <Action ID="SubRobotPosition" editable="true">
-            <input_port name="topic_name" default="/robot_position"/>
+            <input_port name="topic_name" default="robot_position"/>
             <output_port name="pose_x" default="{pose_x}"/>
             <output_port name="pose_y" default="{pose_y}"/>
         </Action>

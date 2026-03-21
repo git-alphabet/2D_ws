@@ -19,7 +19,7 @@ int main(int argc, char ** argv)
 
   BT::RosNodeParams params_update_msg;
   params_update_msg.nh = std::make_shared<rclcpp::Node>("update_msg_minimal");
-  params_update_msg.default_port_value = std::string("/robot_status");
+  params_update_msg.default_port_value = std::string("robot_status");
 
   // Only register the minimal message-update plugins required
   const std::vector<std::string> msg_update_plugin_libs = {
