@@ -65,6 +65,8 @@ private:
   boost::signals2::connection fallback_signal_conn_;
   // 7. 机器人最大血量
   static constexpr int MAX_HP = 400;
+  // 8. 恢复模式退出阈值（固定硬编码，独立于任何参数配置）
+  static constexpr int RECOVERY_EXIT_HP = 400;
 };
 
 }  // namespace rm_behavior_tree

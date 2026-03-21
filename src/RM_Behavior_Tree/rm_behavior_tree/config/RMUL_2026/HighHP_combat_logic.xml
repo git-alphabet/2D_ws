@@ -46,10 +46,7 @@
               <RobotControl stop_gimbal_scan="False"
                             chassis_spin="True"/>
               <NavControlCmd cmd_type="3" emergency_stop="False"/>
-              <GetCurrentLocation current_location="{current_location}"/>
-              <MoveAround expected_nearby_goal_count="3"
-                          expected_dis="0.2"
-                          message="{current_location}"/>
+              <KeepRunning/>
             </Sequence>
           </Fallback>
         </ReactiveSequence>
