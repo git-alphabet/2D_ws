@@ -118,11 +118,22 @@ BT::NodeStatus DetectRespawnAndSetRecoveryAction::onTick(
   }
 
   if (!got_hp) {
-    RCLCPP_WARN(node_->get_logger(), "未获取到机器人血量，跳过复活沿检测");
-    // 即使跳过检测，也要保证 need_recovery 键存在于黑板中，
-    // 否则下游 IsRecoveryNeeded 节点会因找不到该键而抛异常崩溃
-    setOutput("need_recovery", false);
-    setOutput("was_dead", false);
+    bool was_dead_cached = false;
+    bool need_recovery_cached = false;
+    if (auto res = getInput<bool>("was_dead")) {
+      was_dead_cached = res.value();
+    }
+    if (auto res = getInput<bool>("need_recovery")) {
+      need_recovery_cached = res.value();
+    }
+
+    RCLCPP_WARN_THROTTLE(
+      node_->get_logger(), *node_->get_clock(), 5000,
+      "未获取到机器人血量，跳过复活沿检测（保持现有恢复状态）");
+
+    // 保持已有状态，避免输入瞬时丢失导致恢复状态被误清。
+    setOutput("need_recovery", need_recovery_cached);
+    setOutput("was_dead", was_dead_cached);
     return BT::NodeStatus::SUCCESS;
   }
 
@@ -143,11 +154,6 @@ BT::NodeStatus DetectRespawnAndSetRecoveryAction::onTick(
 
   // 4. 直接从ROS节点获取当前时间（毫秒级）+ 空指针保护
   std::uint64_t now_ms = static_cast<std::uint64_t>(node_->now().nanoseconds() / 1000000ULL);
-
-  RCLCPP_DEBUG(node_->get_logger(), 
-    "[DetectRespawn] hp=%d, was_dead=%d, need_recovery=%d, alive_frames=%d/%d",
-    current_hp_, static_cast<int>(was_dead), static_cast<int>(need_recovery),
-    alive_stable_frames_, RESPAWN_STABLE_FRAMES);
 
   // 5. 优化1：血量合法性过滤（避免电控解析异常值）
   const bool hp_is_valid = (current_hp_ >= 0 && current_hp_ <= MAX_HP);
@@ -188,9 +194,36 @@ BT::NodeStatus DetectRespawnAndSetRecoveryAction::onTick(
                             hp_is_valid && 
                             !respawn_locked_);
 
+  // 新增：如果当前血量较低，且存活，且未在恢复模式，强制进入恢复模式
+  // 这里设为 <= 100，覆盖临界值
+  const bool low_hp_edge = (!need_recovery && 
+                            current_hp_ > 0 && 
+                            current_hp_ <= 100 && 
+                            hp_is_valid && 
+                            !respawn_locked_);
+
+  if (need_recovery && hp_is_valid && current_hp_ >= RECOVERY_EXIT_HP) {
+    need_recovery = false;
+    setOutput("need_recovery", false);
+    setOutput("heal_start_ms", static_cast<std::uint64_t>(0));
+    setOutput("search_start_ms", static_cast<std::uint64_t>(0));
+    setOutput("recovery_start_ms", static_cast<std::uint64_t>(0));
+    RCLCPP_INFO(node_->get_logger(),
+      "恢复模式自动退出：当前血量=%d 已达到满血", current_hp_);
+  }
+
+  // 临时开启 INFO 以排查低血量问题 (每隔两秒打印一次以防刷屏)
+  RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 2000,
+    "[DetectRespawn] hp=%d, was_dead=%d, need_recovery=%d, is_dead_now=%d, low_hp_edge=%d (valid=%d, lock=%d)",
+    current_hp_, static_cast<int>(was_dead), static_cast<int>(need_recovery), 
+    static_cast<int>(is_dead_now), 
+    static_cast<int>(low_hp_edge),
+    static_cast<int>(hp_is_valid), static_cast<int>(respawn_locked_));
+
   // 9. 触发复活沿：初始化恢复参数 + 加锁防重复
-  if (respawn_edge) {
+  if (respawn_edge || low_hp_edge) {
     need_recovery = true;
+    setOutput("need_recovery", true); // 立即写回黑板
     setOutput("recovery_start_ms", now_ms);                       // 记录恢复开始时间
     setOutput("search_start_ms", static_cast<std::uint64_t>(0));  // 重置搜卡时间
     setOutput("heal_start_ms", static_cast<std::uint64_t>(0));    // 重置回血时间

@@ -227,7 +227,7 @@ BT::NodeStatus CalibrateCenterAnchorAction::tick()
   if (manual_only) {
     setOutput("center_valid", false);
     RCLCPP_WARN_THROTTLE(
-      node_->get_logger(), *node_->get_clock(), 2000,
+      node_->get_logger(), *node_->get_clock(), 30000,
       "CalibrateCenterAnchor waiting manual point on topic: %s",
       point_topic.empty() ? "<empty>" : point_topic.c_str());
     return BT::NodeStatus::FAILURE;
