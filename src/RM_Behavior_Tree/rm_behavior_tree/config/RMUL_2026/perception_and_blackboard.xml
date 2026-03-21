@@ -14,6 +14,8 @@
                         recovery_timeout_ms="{cfg.recovery_timeout_ms}"
                         supply_goal_x="{cfg.supply_goal_x}"
                         supply_goal_y="{cfg.supply_goal_y}"
+                        control_zone_goal_x="{cfg.control_zone_goal_x}"
+                        control_zone_goal_y="{cfg.control_zone_goal_y}"
                         arrive_radius="{cfg.arrive_radius}"/>
             <SubRobotPosition topic_name="/robot_position"
                               pose_x="{pose.x}"
