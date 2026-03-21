@@ -120,9 +120,13 @@ BT::NodeStatus SendGoalAction::tick()
   msg.pose.orientation.z = 0.0;
   msg.pose.orientation.w = 1.0;
 
-  RCLCPP_INFO(
+  // 使用 throttle 限制重复发导航点时的刷屏日志 (每2秒最多打印一次相同或不同动作的 Goal)
+  RCLCPP_INFO_THROTTLE(
     node_->get_logger(),
-    "Goal position: [ %.3f, %.3f, %.3f ]",
+    *node_->get_clock(),
+    2000,
+    "[%s] Goal position: [ %.3f, %.3f, %.3f ]",
+    name().c_str(),
     goal.pose.position.x, goal.pose.position.y, goal.pose.position.z);
 
   last_goal_ = goal;
