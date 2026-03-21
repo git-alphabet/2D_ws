@@ -24,7 +24,7 @@ public:
   {
     return {
       BT::OutputPort<std::uint64_t>("heal_wait_ms"),
-      BT::OutputPort<double>("heal_min_ratio"),
+      BT::OutputPort<int>("heal_min_hp"),
       BT::OutputPort<std::uint64_t>("search_timeout_ms"),
       BT::OutputPort<std::uint64_t>("recovery_timeout_ms"),
       BT::OutputPort<double>("supply_goal_x"),
@@ -43,7 +43,7 @@ private:
 
   // ====== 纯代码配置区（保底默认值，优先从参数服务器读取） ======
   static constexpr std::uint64_t HEAL_WAIT_MS_DEFAULT        = 2000ULL;
-  static constexpr double        HEAL_MIN_RATIO_DEFAULT      = 1.0;
+  static constexpr int           HEAL_MIN_HP_DEFAULT         = 400;
   static constexpr std::uint64_t SEARCH_TIMEOUT_MS_DEFAULT   = 3000ULL;
   static constexpr std::uint64_t RECOVERY_TIMEOUT_MS_DEFAULT = 15000ULL;
   
@@ -66,26 +66,3 @@ private:
 
 #endif  // RM_BEHAVIOR_TREE__PLUGINS__ACTION__INIT_BLACKBOARD_CONFIG_HPP_
 
-/*后续怎么维护/增添（按你要求：只改 hpp/cpp）
-
-比如你想新增 cfg.spiral_radius：
-
-hpp：providedPorts 增加
-
-BT::OutputPort<double>("spiral_radius")
-
-
-hpp：加一个 constexpr 默认值
-
-static constexpr double SPIRAL_RADIUS_DEFAULT = 0.25;
-
-
-cpp：tick 里增加 setOutput
-
-double spiral_radius = SPIRAL_RADIUS_DEFAULT;
-setOutput("spiral_radius", spiral_radius);
-
-
-TreeNodesModel + XML 加对应 output_port 映射到 {cfg.spiral_radius}
-
-之后所有节点就能用 {cfg.spiral_radius} 了.*/

@@ -54,10 +54,9 @@
                         lower_remain_time="0"
                         higher_remain_time="300"/>
                 <Fallback>
-                    <ExecuteNav2Waypoints action_name="navigate_through_poses"/>
-                    
                     <!--判断战亡，若战亡，执行解除虚弱状态操作 -->
                     <SubTree ID="IsDeadAndDispelDebuff" _autoremap="true"/>
+                    <ExecuteNav2Waypoints action_name="navigate_through_poses"/>
                     <!-- 处于存活状态则进入战斗/占点逻辑 -->
                     <Fallback>
                         <!--
@@ -76,48 +75,6 @@
 
                         <!-- 非战斗时刻占点逻辑 -->
                         <ReactiveFallback>
-                            <!-- 低血量：回补给区回血（补给区占领：每秒回 25% 上限血量） -->
-                            <ReactiveSequence>
-                                <IsHPBelow message="{robot_status}" hp_threshold="100"/>
-
-                                <ReactiveFallback name="NavUntilArrived_Supply">
-                                    <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}" goal_x="{cfg.supply_goal_x}" goal_y="{cfg.supply_goal_y}" arrive_radius="{cfg.arrive_radius}"/>
-                                    <ReactiveSequence>
-                                        <RateController hz="1">
-                                            <Fallback>
-                                                <Sequence>
-                                                    <SetGoalFromCenterOffset center_x="{calib.spawn_x}"
-                                                                             center_y="{calib.spawn_y}"
-                                                                             center_yaw="{calib.spawn_yaw}"
-                                                                             offset_x="0.0"
-                                                                             offset_y="0.0"
-                                                                             goal_x="{nav.goal_x}"
-                                                                             goal_y="{nav.goal_y}"
-                                                                             goal_pose="{nav.goal_pose}"/>
-                                                    <SendGoal name="GoSupplyToHeal_Calibrated"
-                                                            goal_pose="{nav.goal_pose}"
-                                                            frame_id="map"
-                                                            action_name="navigate_to_pose" min_interval_ms="1000"/>
-                                                </Sequence>
-                                                <SendGoal name="GoSupplyToHeal_Fallback"
-                                                        goal_x="{cfg.supply_goal_x}"
-                                                        goal_y="{cfg.supply_goal_y}"
-                                                        frame_id="map"
-                                                        action_name="navigate_to_pose" min_interval_ms="1000"/>
-                                            </Fallback>
-                                        </RateController>
-                                        <KeepRunning/>
-                                    </ReactiveSequence>
-                                </ReactiveFallback>
-
-                                <!-- Fallback: 先感应补给区卡,感应不到再微动重试 -->
-                                <ReactiveFallback>
-                                    <IsSupplyCardDetected rfid_status="{rfid_status}"/>
-                                    <MoveAround expected_nearby_goal_count="5"
-                                                expected_dis="0.3"
-                                                message="{current_location}"/>
-                                </ReactiveFallback>
-                            </ReactiveSequence>
 
                             <!-- 3) 抢控制区：对方每秒-1胜利点；离开后延迟2s失效 -->
                             <ReactiveSequence>
@@ -151,13 +108,8 @@
                                     </ReactiveSequence>
                                 </ReactiveFallback>
 
-                                <!-- Fallback: 先感应控制区卡,感应不到再微动重试 -->
-                                <ReactiveFallback>
-                                    <IsControlZoneDetected rfid_status="{rfid_status}"/>
-                                    <MoveAround expected_nearby_goal_count="5"
-                                                expected_dis="0.3"
-                                                message="{current_location}"/>
-                                </ReactiveFallback>
+                                <!-- 无 RFID 版本：到达控制区后保持运行，不再发布随机目标点 -->
+                                <KeepRunning/>
                             </ReactiveSequence>
 
                         </ReactiveFallback>
@@ -220,7 +172,7 @@
         </Action>
         <Action ID="InitBlackboardConfig" editable="true">
             <output_port name="heal_wait_ms" default="{cfg.heal_wait_ms}"/>
-            <output_port name="heal_min_ratio" default="{cfg.heal_min_ratio}"/>
+            <output_port name="heal_min_hp" default="{cfg.heal_min_hp}"/>
             <output_port name="search_timeout_ms" default="{cfg.search_timeout_ms}"/>
             <output_port name="recovery_timeout_ms" default="{cfg.recovery_timeout_ms}"/>
             <output_port name="supply_goal_x" default="{cfg.supply_goal_x}"/>
@@ -274,7 +226,7 @@
             <input_port name="heal_wait_ms" default="{cfg.heal_wait_ms}"/>
             <input_port name="hp_cur" default="{hp.cur}"/>
             <input_port name="hp_max" default="{hp.max}"/>
-            <input_port name="heal_min_ratio" default="{cfg.heal_min_ratio}"/>
+            <input_port name="heal_min_hp" default="{cfg.heal_min_hp}"/>
         </Action>
         <Action ID="RobotControl" editable="true">
             <input_port name="stop_gimbal_scan" default="False"/>
