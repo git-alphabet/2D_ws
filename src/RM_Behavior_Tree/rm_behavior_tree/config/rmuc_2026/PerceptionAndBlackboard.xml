@@ -3,19 +3,19 @@
 
     <BehaviorTree ID="PerceptionAndBlackboard">
         <Sequence>
-            <RmucSubGameStatus topic_name="/game_status"
+            <RmucSubGameStatus topic_name="game_status"
                                game_status="{game_status}"
                                now_ms="{time.now_ms}"/>
-            <RmucSubRobotStatus topic_name="/robot_status"
+            <RmucSubRobotStatus topic_name="robot_status"
                                 robot_status="{robot_status}"/>
-            <RmucSubRFIDStatus topic_name="/rfid_status"
+            <RmucSubRFIDStatus topic_name="rfid_status"
                                rfid_status="{rfid.status}"/>
-            <RmucSubRobotPosition topic_name="/robot_position"
+            <RmucSubRobotPosition topic_name="robot_position"
                                   pose_x="{pose.x}"
                                   pose_y="{pose.y}"
                                   pose_yaw="{pose.yaw}"
                                   is_at_nav_goal="{is_at_nav_goal}"/>
-            <SubRadarTracks topic_name="/radar/enemy_tracks"
+            <SubRadarTracks topic_name="radar/enemy_tracks"
                             radar_tracks="{radar.tracks}"/>
 
             <!-- Parse/derive common fields used by tactics -->

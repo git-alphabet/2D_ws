@@ -15,7 +15,7 @@ SentryFollower::SentryFollower(
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
   armor_sub_ = node_->create_subscription<geometry_msgs::msg::PoseStamped>(
-    "/armor_position", rclcpp::SensorDataQoS(),
+    "armor_position", rclcpp::SensorDataQoS(),
     [this](const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
       try {
         geometry_msgs::msg::PoseStamped transformed;
@@ -46,7 +46,7 @@ SentryFollower::SentryFollower(
 BT::PortsList SentryFollower::providedPorts()
 {
   return {
-    BT::InputPort<std::string>("topic", "/goal_pose"),
+    BT::InputPort<std::string>("topic", "goal_pose"),
     BT::InputPort<double>("follow_distance", 2.0, "Following distance (meters)"),
     BT::OutputPort<geometry_msgs::msg::PoseStamped>("current_goal", "Current target position")
   };

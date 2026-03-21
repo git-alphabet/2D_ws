@@ -3,7 +3,7 @@
       main_tree_to_execute="BehaviorTree">
   <BehaviorTree ID="BehaviorTree">
     <ReactiveSequence>
-      <SubDecisionNum topic_name="/decision_num"
+      <SubDecisionNum topic_name="decision_num"
                       decision_num="{decision_num}"/>
       <Sequence>
         <DecisionSwitch decision_num="{decision_num}">
@@ -79,28 +79,28 @@
     <Action ID="SubAllRobotHP"
             editable="true">
       <input_port name="topic_name"
-          default="/robot_hp"/>
+          default="robot_hp"/>
       <output_port name="robot_hp"
                    default="{robot_hp}"/>
     </Action>
     <Action ID="SubGameStatus"
             editable="true">
       <input_port name="topic_name"
-          default="/game_status"/>
+          default="game_status"/>
       <output_port name="game_status"
                    default="{game_status}"/>
     </Action>
     <Action ID="SubRobotStatus"
             editable="true">
       <input_port name="topic_name"
-          default="/robot_status"/>
+          default="robot_status"/>
       <output_port name="robot_status"
                    default="{robot_status}"/>
     </Action>
     <Action ID="SubDecisionNum"
             editable="true">
       <input_port name="topic_name"
-          default="/decision_num"/>
+          default="decision_num"/>
       <output_port name="decision_num"
                    default="{decision_num}"/>
     </Action>

@@ -23,7 +23,7 @@ RmucDetectRespawnAndSetRecoveryAction::RmucDetectRespawnAndSetRecoveryAction(
     }
 
     std::string topic = params.default_port_value.empty()
-      ? std::string("/robot_status") : params.default_port_value;
+      ? std::string("robot_status") : params.default_port_value;
 
     if (sub_instance_) {
       fallback_signal_conn_ = sub_instance_->broadcaster.connect(

@@ -43,7 +43,7 @@ private:
 
   // ====== 纯代码配置区（保底默认值，优先从参数服务器读取） ======
   static constexpr std::uint64_t HEAL_WAIT_MS_DEFAULT        = 2000ULL;
-  static constexpr double        HEAL_MIN_RATIO_DEFAULT      = 0.60;
+  static constexpr double        HEAL_MIN_RATIO_DEFAULT      = 1.0;
   static constexpr std::uint64_t SEARCH_TIMEOUT_MS_DEFAULT   = 3000ULL;
   static constexpr std::uint64_t RECOVERY_TIMEOUT_MS_DEFAULT = 15000ULL;
   

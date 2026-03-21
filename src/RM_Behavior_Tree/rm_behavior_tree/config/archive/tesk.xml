@@ -3,10 +3,10 @@
   <BehaviorTree ID="BehaviorTree">
     <ReactiveSequence>
       <!-- 数据订阅模块 -->
-      <SubAllRobotHP topic_name="/robot_hp" robot_hp="{robot_hp}"/>
-      <SubArmors topic_name="/detector/armors" armors="{armors}"/>
-      <SubRobotStatus topic_name="/robot_status" robot_status="{robot_status}"/>
-      <SubGameStatus topic_name="/game_status" game_status="{game_status}"/>
+      <SubAllRobotHP topic_name="robot_hp" robot_hp="{robot_hp}"/>
+      <SubArmors topic_name="detector/armors" armors="{armors}"/>
+      <SubRobotStatus topic_name="robot_status" robot_status="{robot_status}"/>
+      <SubGameStatus topic_name="game_status" game_status="{game_status}"/>
 
       <WhileDoElse>
         <!-- 比赛状态判�?-->
@@ -39,7 +39,7 @@
               <!-- 动态跟随逻辑 -->
               <RateController hz="5">
                 <SentryFollower name="AutoFollow" 
-                               topic="/goal_pose" 
+                               topic="goal_pose" 
                                follow_distance="2.0"/>
               </RateController>
 
@@ -116,7 +116,7 @@
     
     <!-- 新增跟随节点 -->
     <Action ID="SentryFollower">
-      <input_port name="topic" default="/goal_pose"/>
+      <input_port name="topic" default="goal_pose"/>
       <input_port name="follow_distance" default="2.0"/>
       <output_port name="current_goal" default="{current_goal}"/>
     </Action>
@@ -162,19 +162,19 @@
       <input_port name="frame_id" default="map"/>
     </Action>
     <Action ID="SubAllRobotHP">
-      <input_port name="topic_name" default="/robot_hp"/>
+      <input_port name="topic_name" default="robot_hp"/>
       <output_port name="robot_hp" default="{robot_hp}"/>
     </Action>
     <Action ID="SubArmors">
-      <input_port name="topic_name" default="/detector/armors"/>
+      <input_port name="topic_name" default="detector/armors"/>
       <output_port name="armors" default="{armors}"/>
     </Action>
     <Action ID="SubGameStatus">
-      <input_port name="topic_name" default="/game_status"/>
+      <input_port name="topic_name" default="game_status"/>
       <output_port name="game_status" default="{game_status}"/>
     </Action>
     <Action ID="SubRobotStatus">
-      <input_port name="topic_name" default="/robot_status"/>
+      <input_port name="topic_name" default="robot_status"/>
       <output_port name="robot_status" default="{robot_status}"/>
     </Action>
   </TreeNodesModel>

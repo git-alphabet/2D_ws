@@ -3,13 +3,13 @@
       main_tree_to_execute="BehaviorTree">
   <BehaviorTree ID="BehaviorTree">
     <ReactiveSequence>
-      <SubAllRobotHP topic_name="/robot_hp"
+      <SubAllRobotHP topic_name="robot_hp"
                      robot_hp="{robot_hp}"/>
-      <SubArmors topic_name="/detector/armors"
+      <SubArmors topic_name="detector/armors"
                  armors="{armors}"/>
-      <SubRobotStatus topic_name="/robot_status"
+      <SubRobotStatus topic_name="robot_status"
                       robot_status="{robot_status}"/>
-      <SubGameStatus topic_name="/game_status"
+      <SubGameStatus topic_name="game_status"
                      game_status="{game_status}"/>
       <WhileDoElse>
         <IsGameTime name="IsGameStart"
@@ -215,28 +215,28 @@
     <Action ID="SubAllRobotHP"
             editable="true">
       <input_port name="topic_name"
-          default="/robot_hp"/>
+          default="robot_hp"/>
       <output_port name="robot_hp"
                    default="{robot_hp}"/>
     </Action>
     <Action ID="SubArmors"
             editable="true">
       <input_port name="topic_name"
-                  default="/detector/armors"/>
+                  default="detector/armors"/>
       <output_port name="armors"
                    default="{armors}"/>
     </Action>
     <Action ID="SubGameStatus"
             editable="true">
       <input_port name="topic_name"
-          default="/game_status"/>
+          default="game_status"/>
       <output_port name="game_status"
                    default="{game_status}"/>
     </Action>
     <Action ID="SubRobotStatus"
             editable="true">
       <input_port name="topic_name"
-          default="/robot_status"/>
+          default="robot_status"/>
       <output_port name="robot_status"
                    default="{robot_status}"/>
     </Action>

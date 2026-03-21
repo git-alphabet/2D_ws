@@ -3,7 +3,7 @@
       main_tree_to_execute="MainTree">
   <BehaviorTree ID="MainTree">
     <Sequence name="GetStatusThenPrioritize">
-      <SubRobotStatus topic_name="/robot_status"
+      <SubRobotStatus topic_name="robot_status"
                       robot_status="{robot_status}"/>
       <Fallback name="PrioritizeAttackOrNormalLogic">
         <Sequence name="ExecuteAttackLogic">
@@ -25,7 +25,7 @@
           </Fallback>
         </Sequence>
         <Sequence name="OriginalComplexLogic">
-          <SubGameStatus topic_name="/game_status"
+          <SubGameStatus topic_name="game_status"
                          game_status="{game_status}"/>
           <Fallback>
             <Sequence name="HandleGameNotStarted">
@@ -126,14 +126,14 @@
     <Action ID="SubGameStatus"
             editable="true">
       <input_port name="topic_name"
-          default="/game_status"/>
+          default="game_status"/>
       <output_port name="game_status"
                    default="{game_status}"/>
     </Action>
     <Action ID="SubRobotStatus"
             editable="true">
       <input_port name="topic_name"
-          default="/robot_status"/>
+          default="robot_status"/>
       <output_port name="robot_status"
                    default="{robot_status}"/>
     </Action>

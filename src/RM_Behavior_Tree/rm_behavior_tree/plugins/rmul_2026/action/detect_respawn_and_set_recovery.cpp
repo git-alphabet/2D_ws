@@ -27,7 +27,7 @@ DetectRespawnAndSetRecoveryAction::DetectRespawnAndSetRecoveryAction(
       return;
     }
 
-    std::string topic = params.default_port_value.empty() ? std::string("/robot_status") : params.default_port_value;
+    std::string topic = params.default_port_value.empty() ? std::string("robot_status") : params.default_port_value;
     
     // If the registry-based SubscriberInstance already exists, attach to its
     // broadcaster so we get callbacks via the same executor used by the

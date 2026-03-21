@@ -51,41 +51,41 @@ int main(int argc, char ** argv)
   // ── 输入话题（订阅者） ──
   BT::RosNodeParams params_game_status;
   params_game_status.nh = std::make_shared<rclcpp::Node>("rmuc_game_status_io");
-  params_game_status.default_port_value = "/game_status";
+  params_game_status.default_port_value = "game_status";
 
   BT::RosNodeParams params_robot_status;
   params_robot_status.nh = std::make_shared<rclcpp::Node>("rmuc_robot_status_io");
-  params_robot_status.default_port_value = "/robot_status";
+  params_robot_status.default_port_value = "robot_status";
 
   BT::RosNodeParams params_rfid_status;
   params_rfid_status.nh = std::make_shared<rclcpp::Node>("rmuc_rfid_status_io");
-  params_rfid_status.default_port_value = "/rfid_status";
+  params_rfid_status.default_port_value = "rfid_status";
 
   BT::RosNodeParams params_robot_position;
   params_robot_position.nh = std::make_shared<rclcpp::Node>("rmuc_robot_position_io");
-  params_robot_position.default_port_value = "/robot_position";
+  params_robot_position.default_port_value = "robot_position";
 
   BT::RosNodeParams params_radar;
   params_radar.nh = std::make_shared<rclcpp::Node>("rmuc_radar_io");
-  params_radar.default_port_value = "/radar/enemy_tracks";
+  params_radar.default_port_value = "radar/enemy_tracks";
 
   // ── 输出话题（发布者） ──
   BT::RosNodeParams params_sentry_cmd;
   params_sentry_cmd.nh = std::make_shared<rclcpp::Node>("rmuc_sentry_cmd_io");
-  params_sentry_cmd.default_port_value = "/sentry_cmd";
+  params_sentry_cmd.default_port_value = "sentry_cmd";
 
   BT::RosNodeParams params_robot_ctrl;
   params_robot_ctrl.nh = std::make_shared<rclcpp::Node>("rmuc_robot_ctrl_io");
-  params_robot_ctrl.default_port_value = "/robot_control";
+  params_robot_ctrl.default_port_value = "robot_control";
 
   BT::RosNodeParams params_nav_cmd;
   params_nav_cmd.nh = std::make_shared<rclcpp::Node>("rmuc_nav_cmd_io");
-  params_nav_cmd.default_port_value = "/nav_control_cmd";
+  params_nav_cmd.default_port_value = "nav_control_cmd";
 
   // ── 发布者：aim_target (/aim_target → PointStamped) ──
   BT::RosNodeParams params_aim_target;
   params_aim_target.nh = std::make_shared<rclcpp::Node>("rmuc_aim_target_io");
-  params_aim_target.default_port_value = "/aim_target";
+  params_aim_target.default_port_value = "aim_target";
 
   // ── 通用 ROS 节点（不绑定特定消息话题，供工具类插件使用） ──
   BT::RosNodeParams params_utility;
