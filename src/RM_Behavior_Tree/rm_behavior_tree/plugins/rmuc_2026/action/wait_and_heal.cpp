@@ -53,7 +53,7 @@ BT::NodeStatus RmucWaitAndHealAction::onTick(
   const int current_hp = last_hp_cache_;
 
   if (current_hp <= 0) {
-    setOutput("heal_start_ms", 0ULL);
+    setOutput("heal_start_ms", static_cast<std::uint64_t>(0));
     return BT::NodeStatus::FAILURE;
   }
 
@@ -81,7 +81,7 @@ BT::NodeStatus RmucWaitAndHealAction::onTick(
   const bool hp_ok = (hp_ratio >= heal_min_ratio);
 
   if (time_ok && hp_ok) {
-    setOutput("heal_start_ms", 0ULL);
+    setOutput("heal_start_ms", static_cast<std::uint64_t>(0));
     return BT::NodeStatus::SUCCESS;
   }
 
