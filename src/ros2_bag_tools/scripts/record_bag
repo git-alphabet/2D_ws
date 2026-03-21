@@ -1,4 +1,3 @@
-done
 #!/usr/bin/env python3
 
 from __future__ import annotations
@@ -69,7 +68,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--out-dir", default="", help="输出根目录（默认工作区 src/ros2_bag_tools/bags）")
     parser.add_argument("--max-bag-size-mb", type=int, default=2048)
     parser.add_argument("--compress", choices=["", "zstd"], default="")
-    parser.add_argument("--storage", choices=["sqlite3", "mcap"], default="sqlite3")
+    parser.add_argument("--storage", choices=["sqlite3", "mcap"], default="mcap")
     args = parser.parse_args(argv)
 
     if not _ros2_in_path():

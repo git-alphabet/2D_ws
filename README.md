@@ -153,7 +153,7 @@ PYTHON_BIN=python3 ./scripts/setup_neupan_env.sh
 
 当前阶段建议：**实车每次运行都录包**，用于复现与回放验证算法。
 
-- 最小录包（默认 sqlite3，按时间命名输出目录）：
+- 最小录包（默认 mcap，按时间命名输出目录）：
 
 ```bash
 ./scripts/record_bag.sh
