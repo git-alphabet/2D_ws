@@ -64,7 +64,10 @@
           <!-- 允许导航移动 -->
           <NavControlCmd cmd_type="1" emergency_stop="False"/>
           <!-- 前往控制区巡逻: 高血量时优先争夺控制区获取战略优势 -->
-          <RateController hz="1">
+          <ReactiveFallback name="NavUntilArrived_ControlZone">
+            <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}" goal_x="{cfg.control_zone_goal_x}" goal_y="{cfg.control_zone_goal_y}" arrive_radius="{cfg.arrive_radius}"/>
+            <ReactiveSequence>
+              <RateController hz="1">
             <Fallback>
               <Sequence>
                 <SetGoalFromCenterOffset center_x="{calib.anchor_x}"
@@ -81,12 +84,15 @@
                           action_name="navigate_to_pose" min_interval_ms="1000"/>
               </Sequence>
               <SendGoal name="PatrolControlZone_Fallback"
-                        goal_x="5.13"
-                        goal_y="-3.94"
+                        goal_x="{cfg.control_zone_goal_x}"
+                        goal_y="{cfg.control_zone_goal_y}"
                         frame_id="map"
                         action_name="navigate_to_pose" min_interval_ms="1000"/>
             </Fallback>
           </RateController>
+              <KeepRunning/>
+            </ReactiveSequence>
+          </ReactiveFallback>
         </ReactiveSequence>
 
       </ReactiveFallback>

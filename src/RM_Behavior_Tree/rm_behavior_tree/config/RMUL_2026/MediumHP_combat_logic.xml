@@ -39,29 +39,35 @@
               <RobotControl stop_gimbal_scan="False"
                             chassis_spin="True"/>
               <NavControlCmd cmd_type="1" emergency_stop="False"/>
-              <RateController hz="1">
-                <Fallback>
-                  <Sequence>
-                    <SetGoalFromCenterOffset center_x="{calib.spawn_x}"
-                                             center_y="{calib.spawn_y}"
-                                             center_yaw="{calib.spawn_yaw}"
-                                             offset_x="0.0"
-                                             offset_y="0.0"
-                                             goal_x="{nav.goal_x}"
-                                             goal_y="{nav.goal_y}"
-                                             goal_pose="{nav.goal_pose}"/>
-                    <SendGoal name="RetreatingToSupply_Calibrated"
-                              goal_pose="{nav.goal_pose}"
-                              frame_id="map"
-                              action_name="navigate_to_pose" min_interval_ms="1000"/>
-                  </Sequence>
-                  <SendGoal name="RetreatingToSupply_Fallback"
-                            goal_x="0.21"
-                            goal_y="-0.32"
-                            frame_id="map"
-                            action_name="navigate_to_pose" min_interval_ms="1000"/>
-                </Fallback>
-              </RateController>
+              <ReactiveFallback name="NavUntilArrived_Supply">
+                <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}" goal_x="{cfg.supply_goal_x}" goal_y="{cfg.supply_goal_y}" arrive_radius="{cfg.arrive_radius}"/>
+                <ReactiveSequence>
+                  <RateController hz="1">
+                    <Fallback>
+                      <Sequence>
+                        <SetGoalFromCenterOffset center_x="{calib.spawn_x}"
+                                                 center_y="{calib.spawn_y}"
+                                                 center_yaw="{calib.spawn_yaw}"
+                                                 offset_x="0.0"
+                                                 offset_y="0.0"
+                                                 goal_x="{nav.goal_x}"
+                                                 goal_y="{nav.goal_y}"
+                                                 goal_pose="{nav.goal_pose}"/>
+                        <SendGoal name="RetreatingToSupply_Calibrated"
+                                  goal_pose="{nav.goal_pose}"
+                                  frame_id="map"
+                                  action_name="navigate_to_pose" min_interval_ms="1000"/>
+                      </Sequence>
+                      <SendGoal name="RetreatingToSupply_Fallback"
+                                goal_x="{cfg.supply_goal_x}"
+                                goal_y="{cfg.supply_goal_y}"
+                                frame_id="map"
+                                action_name="navigate_to_pose" min_interval_ms="1000"/>
+                    </Fallback>
+                  </RateController>
+                  <KeepRunning/>
+                </ReactiveSequence>
+              </ReactiveFallback>
             </ReactiveSequence>
           </Fallback>
         </ReactiveSequence>
@@ -75,32 +81,40 @@
           <RobotControl stop_gimbal_scan="False"
                         chassis_spin="True"/>
           <NavControlCmd cmd_type="1" emergency_stop="False"/>
-          <RateController hz="1">
-            <Fallback>
-              <Sequence>
-                <SetGoalFromCenterOffset center_x="{calib.spawn_x}"
-                                         center_y="{calib.spawn_y}"
-                                         center_yaw="{calib.spawn_yaw}"
-                                         offset_x="0.0"
-                                         offset_y="0.0"
-                                         goal_x="{nav.goal_x}"
-                                         goal_y="{nav.goal_y}"
-                                         goal_pose="{nav.goal_pose}"/>
-                <SendGoal name="HoverNearSupply_Calibrated"
-                          goal_pose="{nav.goal_pose}"
-                          frame_id="map"
-                          action_name="navigate_to_pose" min_interval_ms="1000"/>
-              </Sequence>
-              <SendGoal name="HoverNearSupply_Fallback"
-                        goal_x="0.21"
-                        goal_y="-0.32"
-                        frame_id="map"
-                        action_name="navigate_to_pose" min_interval_ms="1000"/>
-            </Fallback>
-          </RateController>
+          <ReactiveFallback name="NavUntilArrived_Supply">
+            <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}" goal_x="{cfg.supply_goal_x}" goal_y="{cfg.supply_goal_y}" arrive_radius="{cfg.arrive_radius}"/>
+            <ReactiveSequence>
+              <RateController hz="1">
+                <Fallback>
+                  <Sequence>
+                    <SetGoalFromCenterOffset center_x="{calib.spawn_x}"
+                                             center_y="{calib.spawn_y}"
+                                             center_yaw="{calib.spawn_yaw}"
+                                             offset_x="0.0"
+                                             offset_y="0.0"
+                                             goal_x="{nav.goal_x}"
+                                             goal_y="{nav.goal_y}"
+                                             goal_pose="{nav.goal_pose}"/>
+                    <SendGoal name="HoverNearSupply_Calibrated"
+                              goal_pose="{nav.goal_pose}"
+                              frame_id="map"
+                              action_name="navigate_to_pose" min_interval_ms="1000"/>
+                  </Sequence>
+                  <SendGoal name="HoverNearSupply_Fallback"
+                            goal_x="{cfg.supply_goal_x}"
+                            goal_y="{cfg.supply_goal_y}"
+                            frame_id="map"
+                            action_name="navigate_to_pose" min_interval_ms="1000"/>
+                </Fallback>
+              </RateController>
+              <KeepRunning/>
+            </ReactiveSequence>
+          </ReactiveFallback>
         </ReactiveSequence>
 
       </ReactiveFallback>
     </ReactiveSequence>
   </BehaviorTree>
 </root>
+
+
