@@ -25,6 +25,8 @@ public:
     return {
       BT::OutputPort<std::uint64_t>("heal_wait_ms"),
       BT::OutputPort<int>("heal_min_hp"),
+      BT::OutputPort<int>("hp_high_threshold"),
+      BT::OutputPort<int>("hp_medium_threshold"),
       BT::OutputPort<std::uint64_t>("search_timeout_ms"),
       BT::OutputPort<std::uint64_t>("recovery_timeout_ms"),
       BT::OutputPort<double>("supply_goal_x"),
@@ -44,6 +46,8 @@ private:
   // ====== 纯代码配置区（保底默认值，优先从参数服务器读取） ======
   static constexpr std::uint64_t HEAL_WAIT_MS_DEFAULT        = 2000ULL;
   static constexpr int           HEAL_MIN_HP_DEFAULT         = 400;
+  static constexpr int           HP_HIGH_THRESHOLD_DEFAULT    = 200;
+  static constexpr int           HP_MEDIUM_THRESHOLD_DEFAULT  = 100;
   static constexpr std::uint64_t SEARCH_TIMEOUT_MS_DEFAULT   = 3000ULL;
   static constexpr std::uint64_t RECOVERY_TIMEOUT_MS_DEFAULT = 15000ULL;
   
