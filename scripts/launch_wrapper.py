@@ -428,6 +428,9 @@ def _kill_sim(script_name: str) -> None:
         (r"bringup_sim\.launch\.py",               "bringup_sim"),
         (r"ruby.*ign|ign.*gazebo|gz-server|gz-gui", "Gazebo"),
         (r"rm_navigation_simulation_launch\.py",   "sim nav/SLAM"),
+        (r"(^|/)rviz2(\s|$)",                      "rviz2"),
+        (r"(^|/)rm_behavior_tree(\s|$)",           "rm_behavior_tree"),
+        (r"component_container_isolated.*nav2_container", "nav2_container"),
     ]:
         _kill_by_pattern(pat, title, script_name)
 
@@ -438,6 +441,8 @@ def _kill_reality(script_name: str) -> None:
     _cleanup_fastdds_shm()
     for pat, title in [
         (r"rm_navigation_reality_launch\.py",            "reality nav/SLAM"),
+        (r"(^|/)rviz2(\s|$)",                            "rviz2"),
+        (r"(^|/)rm_behavior_tree(\s|$)",                 "rm_behavior_tree"),
         (r"(^|/)joint_state_publisher(\s|$)",            "joint_state_publisher"),
         (r"(^|/)robot_state_publisher(\s|$)",            "robot_state_publisher"),
         (r"(^|/)auto_aim_yaw_joint_state_bridge(\s|$)",  "auto_aim_yaw_bridge"),
