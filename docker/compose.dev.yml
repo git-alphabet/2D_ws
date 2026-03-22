@@ -88,11 +88,13 @@ services:
     <<: *base
     profiles: ["robot"]
     container_name: gxu2026-nav-robot
-    # 实车不需要 X11 / GPU，覆盖掉 base 里的 X11 挂载
+    # 实车不需要 GPU，但在你目前的配置下由于需要跑 Rviz，保留了 X11 挂载
     volumes:
       - ./ros_entrypoint.sh:/ros_entrypoint.sh:ro
       - ../.git:/ws/.git:ro
       - ../.buildcache:/ws/.buildcache
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
       - ../src:/ws/src
       - ../scripts:/ws/scripts
       - ../build:/ws/build
@@ -103,6 +105,9 @@ services:
       - /dev/bus/usb:/dev/bus/usb   # odin1 USB 设备直通
     environment:
       HOME: /tmp/home
+      DISPLAY: ${DISPLAY:-:0}
+      XAUTHORITY: /tmp/.docker.xauth
+      QT_X11_NO_MITSHM: "1"
       TERM: xterm-256color
       ROS_HOME: /tmp/.ros
       ROS_LOG_DIR: /tmp/ros_log
