@@ -27,6 +27,7 @@ BT::NodeStatus InitBlackboardConfigAction::tick()
   std::uint64_t search_timeout_ms   = SEARCH_TIMEOUT_MS_DEFAULT;
   std::uint64_t recovery_timeout_ms = RECOVERY_TIMEOUT_MS_DEFAULT;
   double        arrive_radius       = ARRIVE_RADIUS_DEFAULT;
+  double        stuck_check_radius  = STUCK_CHECK_RADIUS_DEFAULT;
 
   double supply_goal_x = RED_SUPPLY_GOAL_X_DEFAULT;
   double supply_goal_y = RED_SUPPLY_GOAL_Y_DEFAULT;
@@ -89,6 +90,12 @@ BT::NodeStatus InitBlackboardConfigAction::tick()
 
     node_->get_parameter("control_zone_offset_x", control_zone_offset_x);
     node_->get_parameter("control_zone_offset_y", control_zone_offset_y);
+
+    if (!node_->has_parameter("arrive_radius")) node_->declare_parameter("arrive_radius", ARRIVE_RADIUS_DEFAULT);
+    node_->get_parameter("arrive_radius", arrive_radius);
+
+    if (!node_->has_parameter("stuck_check_radius")) node_->declare_parameter("stuck_check_radius", STUCK_CHECK_RADIUS_DEFAULT);
+    node_->get_parameter("stuck_check_radius", stuck_check_radius);
   }
 
   // 安全夹紧
@@ -113,6 +120,7 @@ BT::NodeStatus InitBlackboardConfigAction::tick()
   setOutput("control_zone_offset_x", control_zone_offset_x);
   setOutput("control_zone_offset_y", control_zone_offset_y);
   setOutput("arrive_radius", arrive_radius);
+  setOutput("stuck_check_radius", stuck_check_radius);
 
   initialized_ = true;
   return BT::NodeStatus::SUCCESS;

@@ -77,6 +77,24 @@
                                     <ReactiveSequence>
                                         <RateController hz="1">
                                             <Fallback>
+                                                <!-- 1) 未卡住：前往原始控制区目标点 -->
+                                                <Sequence>
+                                                    <Inverter>
+                                                        <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
+                                                                           goal_x="{cfg.control_zone_goal_x}"
+                                                                           goal_y="{cfg.control_zone_goal_y}"
+                                                                           stuck_check_radius="{cfg.stuck_check_radius}"
+                                                                           stuck_timeout_ms="5000"
+                                                                           movement_threshold="0.15"
+                                                                           reset_distance="0.5"/>
+                                                    </Inverter>
+                                                    <SendGoal name="GoControlZone_Normal"
+                                                            goal_x="{cfg.control_zone_goal_x}"
+                                                            goal_y="{cfg.control_zone_goal_y}"
+                                                            frame_id="map"
+                                                            action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                                </Sequence>
+                                                <!-- 2) 卡住：使用校准偏移目标点 -->
                                                 <Sequence>
                                                     <SetGoalFromCenterOffset center_x="{calib.anchor_x}"
                                                                              center_y="{calib.anchor_y}"
@@ -86,11 +104,12 @@
                                                                              goal_x="{nav.goal_x}"
                                                                              goal_y="{nav.goal_y}"
                                                                              goal_pose="{nav.goal_pose}"/>
-                                                    <SendGoal name="GoControlZone_Calibrated"
+                                                    <SendGoal name="GoControlZone_Offset"
                                                             goal_pose="{nav.goal_pose}"
                                                             frame_id="map"
                                                             action_name="navigate_to_pose" min_interval_ms="1000"/>
                                                 </Sequence>
+                                                <!-- 3) 无校准数据后备 -->
                                                 <SendGoal name="GoControlZone_Fallback"
                                                         goal_x="{cfg.control_zone_goal_x}"
                                                         goal_y="{cfg.control_zone_goal_y}"
@@ -178,6 +197,7 @@
             <output_port name="control_zone_offset_x" default="{cfg.control_zone_offset_x}"/>
             <output_port name="control_zone_offset_y" default="{cfg.control_zone_offset_y}"/>
             <output_port name="arrive_radius" default="{cfg.arrive_radius}"/>
+            <output_port name="stuck_check_radius" default="{cfg.stuck_check_radius}"/>
         </Action>
         <Action ID="SubRobotPosition" editable="true">
             <input_port name="topic_name" default="robot_position"/>

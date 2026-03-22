@@ -35,7 +35,8 @@ public:
       BT::OutputPort<double>("control_zone_goal_y"),
       BT::OutputPort<double>("control_zone_offset_x"),
       BT::OutputPort<double>("control_zone_offset_y"),
-      BT::OutputPort<double>("arrive_radius")
+      BT::OutputPort<double>("arrive_radius"),
+      BT::OutputPort<double>("stuck_check_radius")
     };
   }
 
@@ -70,6 +71,7 @@ private:
   static constexpr double        CONTROL_ZONE_OFFSET_Y_DEFAULT = 0.6;
 
   static constexpr double        ARRIVE_RADIUS_DEFAULT       = 0.6;
+  static constexpr double        STUCK_CHECK_RADIUS_DEFAULT  = 1.6;
 };
 
 }  // namespace rm_behavior_tree
