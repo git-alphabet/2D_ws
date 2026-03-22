@@ -16,6 +16,8 @@
             <InitBlackboardConfig
                         heal_wait_ms="{cfg.heal_wait_ms}"
                         heal_min_hp="{cfg.heal_min_hp}"
+                        hp_high_threshold="{cfg.hp_high_threshold}"
+                        hp_medium_threshold="{cfg.hp_medium_threshold}"
                         search_timeout_ms="{cfg.search_timeout_ms}"
                         recovery_timeout_ms="{cfg.recovery_timeout_ms}"
                         supply_goal_x="{cfg.supply_goal_x}"
