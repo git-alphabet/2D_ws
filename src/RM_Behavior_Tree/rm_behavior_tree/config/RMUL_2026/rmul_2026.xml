@@ -3,7 +3,6 @@
       main_tree_to_execute="MainBehaviorTree">
     
     <include path="HighHP_combat_logic.xml"/>
-    <include path="MediumHP_combat_logic.xml"/>
     <include path="perception_and_blackboard.xml"/>
     <include path="IsDeadAndDispelDebuff.xml"/>
 
@@ -59,19 +58,14 @@
                     <ExecuteNav2Waypoints action_name="navigate_through_poses"/>
                     <!-- 处于存活状态则进入战斗/占点逻辑 -->
                     <Fallback>
-                        <!--
-                          战斗决策优先级 (从高到低):
-                            1. 高血量(≥200): 检测敌人→停车射击 / 未检测→巡逻控制区
-                            2. 中血量(100~200): 检测敌人→停车射击 / 未检测→靠近补给区
-                            3. 低血量(<100): 无条件回补给区回血
-                          每个子树内部已包含 IsDetectEnemy 判断，
-                          会根据有无敌人自动切换射击/巡逻模式
-                        -->
+                                                <!--
+                                                    二段制决策：
+                                                        1. 高血量(HP >= 阈值): 进入高血战斗逻辑
+                                                        2. 低血量(HP < 阈值): 由恢复子树接管，回补给区回血
+                                                -->
 
-                        <!-- 高血量战斗逻辑 (HP ≥ 200) -->
+                                                <!-- 高血量战斗逻辑 (HP >= cfg.hp_high_threshold) -->
                         <SubTree ID="HighHPCombatLogic" _autoremap="true"/>
-                        <!-- 中血量战斗逻辑 (100 ≤ HP < 200) -->
-                        <SubTree ID="MediumHPCombatLogic" _autoremap="true"/>
 
                         <!-- 非战斗时刻占点逻辑 -->
                         <ReactiveFallback>
@@ -173,6 +167,8 @@
         <Action ID="InitBlackboardConfig" editable="true">
             <output_port name="heal_wait_ms" default="{cfg.heal_wait_ms}"/>
             <output_port name="heal_min_hp" default="{cfg.heal_min_hp}"/>
+            <output_port name="hp_high_threshold" default="{cfg.hp_high_threshold}"/>
+            <output_port name="hp_medium_threshold" default="{cfg.hp_medium_threshold}"/>
             <output_port name="search_timeout_ms" default="{cfg.search_timeout_ms}"/>
             <output_port name="recovery_timeout_ms" default="{cfg.recovery_timeout_ms}"/>
             <output_port name="supply_goal_x" default="{cfg.supply_goal_x}"/>
