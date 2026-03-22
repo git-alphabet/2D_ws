@@ -19,3 +19,6 @@ __pycache__/
 # Serena MCP - 运行时数据，仅保留 project.yml
 .serena/cache/
 .serena/memories/
+
+
+.github/
