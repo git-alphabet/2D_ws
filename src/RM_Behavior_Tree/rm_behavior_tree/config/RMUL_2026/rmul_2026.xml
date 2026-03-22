@@ -81,8 +81,8 @@
                                                     <SetGoalFromCenterOffset center_x="{calib.anchor_x}"
                                                                              center_y="{calib.anchor_y}"
                                                                              center_yaw="{calib.anchor_yaw}"
-                                                                             offset_x="0.0"
-                                                                             offset_y="0.0"
+                                                                             offset_x="{cfg.control_zone_offset_x}"
+                                                                             offset_y="{cfg.control_zone_offset_y}"
                                                                              goal_x="{nav.goal_x}"
                                                                              goal_y="{nav.goal_y}"
                                                                              goal_pose="{nav.goal_pose}"/>
@@ -175,6 +175,8 @@
             <output_port name="supply_goal_y" default="{cfg.supply_goal_y}"/>
             <output_port name="control_zone_goal_x" default="{cfg.control_zone_goal_x}"/>
             <output_port name="control_zone_goal_y" default="{cfg.control_zone_goal_y}"/>
+            <output_port name="control_zone_offset_x" default="{cfg.control_zone_offset_x}"/>
+            <output_port name="control_zone_offset_y" default="{cfg.control_zone_offset_y}"/>
             <output_port name="arrive_radius" default="{cfg.arrive_radius}"/>
         </Action>
         <Action ID="SubRobotPosition" editable="true">

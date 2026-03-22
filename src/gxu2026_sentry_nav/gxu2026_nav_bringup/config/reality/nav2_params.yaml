@@ -193,6 +193,9 @@ rm_behavior_tree:
     blue_control_zone_y: -0.54
     blue_supply_goal_x: 7.87
     blue_supply_goal_y: -4.16
+    # 控制区目标点偏移（哨兵专用，避开控制区中心被队友占据；3m正方形区域内有效范围约±1.0）
+    control_zone_offset_x: 0.6
+    control_zone_offset_y: 0.6
 
 # Point-LIO：里程计/定位源之一（注意其 tf_send_en = False 时不会发布 TF）
 point_lio:

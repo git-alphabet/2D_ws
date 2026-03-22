@@ -70,8 +70,8 @@
                 <SetGoalFromCenterOffset center_x="{calib.anchor_x}"
                                          center_y="{calib.anchor_y}"
                                          center_yaw="{calib.anchor_yaw}"
-                                         offset_x="0.0"
-                                         offset_y="0.0"
+                                         offset_x="{cfg.control_zone_offset_x}"
+                                         offset_y="{cfg.control_zone_offset_y}"
                                          goal_x="{nav.goal_x}"
                                          goal_y="{nav.goal_y}"
                                          goal_pose="{nav.goal_pose}"/>
