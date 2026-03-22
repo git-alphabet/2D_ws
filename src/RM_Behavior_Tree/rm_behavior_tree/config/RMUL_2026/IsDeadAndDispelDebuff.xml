@@ -49,21 +49,12 @@
 
                     <IsRecoveryNeeded need_recovery="{need_recovery}"/>
 
-                    <Fallback name="RecoveryFlow">
-
-                        <!-- 快速退出分支：若已回血到阈值，直接退出恢复模式 -->
-                        <Sequence name="IfAlreadyHealed_Exit">
-                            <IsHPAbove message="{robot_status}"
-                                       hp_threshold="{cfg.heal_min_hp}"/>
-                            <ClearRecoveryFlag
-                                need_recovery="{need_recovery}"
-                                heal_start_ms="{heal_start_ms}"
-                                search_start_ms="{search_start_ms}"
-                                recovery_start_ms="{recovery_start_ms}"/>
-                        </Sequence>
-
-                        <!-- 恢复主流程：去补给区 -> 到点等待回血 -> 退出恢复模式 -->
-                        <Sequence name="GoSupply_ThenHeal">
+                    <!--
+                      恢复主流程：去补给区 -> 到点等待回血 -> 退出恢复模式
+                      说明：不再使用 IsHPAbove(message={robot_status}) 的“快速退出”分支，
+                      避免与 DetectRespawn 读取血量存在消息时序差时误清 need_recovery。
+                    -->
+                    <Sequence name="GoSupply_ThenHeal">
 
                             <!-- 1. 启动导航模式 -->
                             <NavControlCmd cmd_type="1" emergency_stop="False"/>
@@ -108,9 +99,7 @@
                                 search_start_ms="{search_start_ms}"
                                 recovery_start_ms="{recovery_start_ms}"/>
 
-                        </Sequence>
-
-                    </Fallback>
+                    </Sequence>
 
                 </Sequence>
 
