@@ -27,6 +27,17 @@ DetectRespawnAndSetRecoveryAction::DetectRespawnAndSetRecoveryAction(
       return;
     }
 
+    if (!node_->has_parameter("supply_heal_min_hp")) {
+      node_->declare_parameter("supply_heal_min_hp", MAX_HP);
+    }
+    if (!node_->has_parameter("hp_medium_threshold")) {
+      node_->declare_parameter("hp_medium_threshold", 100);
+    }
+    node_->get_parameter("supply_heal_min_hp", recovery_exit_hp_);
+    node_->get_parameter("hp_medium_threshold", low_hp_trigger_);
+    recovery_exit_hp_ = std::clamp(recovery_exit_hp_, 0, MAX_HP);
+    low_hp_trigger_ = std::clamp(low_hp_trigger_, 0, MAX_HP);
+
     std::string topic = params.default_port_value.empty() ? std::string("robot_status") : params.default_port_value;
     
     // If the registry-based SubscriberInstance already exists, attach to its
@@ -194,22 +205,22 @@ BT::NodeStatus DetectRespawnAndSetRecoveryAction::onTick(
                             hp_is_valid && 
                             !respawn_locked_);
 
-  // 新增：如果当前血量较低，且存活，且未在恢复模式，强制进入恢复模式
-  // 这里设为 <= 100，覆盖临界值
+  // 如果当前血量较低，且存活，且未在恢复模式，强制进入恢复模式
+  // 低血阈值来自参数 hp_medium_threshold
   const bool low_hp_edge = (!need_recovery && 
                             current_hp_ > 0 && 
-                            current_hp_ <= 100 && 
+                            current_hp_ < low_hp_trigger_ && 
                             hp_is_valid && 
                             !respawn_locked_);
 
-  if (need_recovery && hp_is_valid && current_hp_ >= RECOVERY_EXIT_HP) {
+  if (need_recovery && hp_is_valid && current_hp_ >= recovery_exit_hp_) {
     need_recovery = false;
     setOutput("need_recovery", false);
     setOutput("heal_start_ms", static_cast<std::uint64_t>(0));
     setOutput("search_start_ms", static_cast<std::uint64_t>(0));
     setOutput("recovery_start_ms", static_cast<std::uint64_t>(0));
     RCLCPP_INFO(node_->get_logger(),
-      "恢复模式自动退出：当前血量=%d 已达到满血", current_hp_);
+      "恢复模式自动退出：当前血量=%d 达到阈值=%d", current_hp_, recovery_exit_hp_);
   }
 
   // 临时开启 INFO 以排查低血量问题 (每隔两秒打印一次以防刷屏)

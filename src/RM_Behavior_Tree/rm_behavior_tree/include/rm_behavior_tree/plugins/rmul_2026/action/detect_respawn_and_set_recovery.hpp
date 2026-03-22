@@ -57,16 +57,18 @@ private:
   std::uint64_t last_respawn_ms_ = 0;
   // 6. 当前血量（成员变量，避免局部变量未定义问题）
   int current_hp_ = 0;
+  // 7. 恢复模式退出阈值（从参数服务器读取）
+  int recovery_exit_hp_ = 400;
+  // 8. 低血触发恢复阈值（从参数服务器读取）
+  int low_hp_trigger_ = 100;
   // Fallback subscription in case the RosTopicSubNode registry-based subscriber
   // does not deliver messages to this instance (diagnostic fallback).
   rclcpp::Subscription<rm_decision_interfaces::msg::RMUL>::SharedPtr fallback_sub_;
   std::shared_ptr<rm_decision_interfaces::msg::RMUL> fallback_last_msg_ = nullptr;
   // connection to the shared SubscriberInstance broadcaster (diagnostic fallback)
   boost::signals2::connection fallback_signal_conn_;
-  // 7. 机器人最大血量
+  // 9. 机器人最大血量
   static constexpr int MAX_HP = 400;
-  // 8. 恢复模式退出阈值（固定硬编码，独立于任何参数配置）
-  static constexpr int RECOVERY_EXIT_HP = 400;
 };
 
 }  // namespace rm_behavior_tree
