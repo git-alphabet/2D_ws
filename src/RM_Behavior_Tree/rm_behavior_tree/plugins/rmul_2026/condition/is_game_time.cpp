@@ -1,4 +1,5 @@
 #include "rm_behavior_tree/plugins/rmul_2026/condition/is_game_time.hpp"
+#include "behaviortree_cpp/bt_factory.h"
 
 namespace rm_behavior_tree
 {
@@ -10,6 +11,11 @@ IsGameTimeCondition::IsGameTimeCondition(const std::string & name, const BT::Nod
 
 BT::NodeStatus IsGameTimeCondition::checkGameStart()
 {
+  // 已锁存则直接返回
+  if (game_started_) {
+    return BT::NodeStatus::SUCCESS;
+  }
+
   int game_progress, lower_remain_time, higher_remain_time;
   auto msg = getInput<rm_decision_interfaces::msg::RMUL>("message");
   getInput("game_progress", game_progress);
@@ -19,17 +25,26 @@ BT::NodeStatus IsGameTimeCondition::checkGameStart()
     return BT::NodeStatus::FAILURE;
   }
 
+  // 条件1: game_progress 正常匹配
   if (
     msg->game_progress == game_progress && msg->stage_remain_time >= lower_remain_time &&
     msg->stage_remain_time <= higher_remain_time) {
+    game_started_ = true;
     return BT::NodeStatus::SUCCESS;
-  } else {
-    return BT::NodeStatus::FAILURE;
   }
+
+  // 条件2: HP 下降 → 比赛已在进行（电控丢包容错）
+  int cur_hp = static_cast<int>(msg->current_hp);
+  if (last_hp_ >= 0 && cur_hp < last_hp_) {
+    game_started_ = true;
+    return BT::NodeStatus::SUCCESS;
+  }
+  last_hp_ = cur_hp;
+
+  return BT::NodeStatus::FAILURE;
 }
 }  // namespace rm_behavior_tree
 
-#include "behaviortree_cpp/bt_factory.h"
 BT_REGISTER_NODES(factory)
 {
   factory.registerNodeType<rm_behavior_tree::IsGameTimeCondition>("IsGameTime");
