@@ -8,13 +8,43 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 
 # 仿真启动后等待时间（秒）：用于等待 Gazebo 物理仿真稳定再拉起 SLAM/Nav。
 # 可通过环境变量 GAZEBO_STARTUP_DELAY 覆盖，默认 3 秒。
 GAZEBO_STARTUP_DELAY = float(os.environ.get("GAZEBO_STARTUP_DELAY", "3"))
+AUTO_MAP_DIR_NAME = "maps"
+AUTO_MAP_SIM_NS = os.environ.get("AUTO_MAP_SIM_NS", "/red_standard_robot1").strip() or "/red_standard_robot1"
+RUNTIME_LOG_DIR_NAME = "launch_logs"
+BEIJING_TZ = timezone(timedelta(hours=8), name="Asia/Shanghai")
+
+
+def _beijing_timestamp() -> str:
+    return datetime.now(BEIJING_TZ).strftime("%Y%m%d_%H%M")
+
+
+def _init_dirs(ws_dir: Path) -> None:
+    """启动最开始就创建必要的目录."""
+    dirs_to_create = [
+        ws_dir / AUTO_MAP_DIR_NAME / "sim",
+        ws_dir / AUTO_MAP_DIR_NAME / "reality",
+        ws_dir / RUNTIME_LOG_DIR_NAME,
+    ]
+    for d in dirs_to_create:
+        try:
+            d.mkdir(parents=True, exist_ok=True)
+            print(f"[launch_wrapper] Init dir: {d} (exists={d.is_dir()})", file=sys.stderr)
+        except Exception as exc:
+            print(f"[launch_wrapper] Failed to create {d}: {exc}", file=sys.stderr)
+
+
+def _auto_map_prefix(ws_dir: Path, mode: str, timestamp: str | None = None) -> Path:
+    maps_dir = ws_dir / AUTO_MAP_DIR_NAME / mode
+    ts = timestamp or _beijing_timestamp()
+    return maps_dir / f"map_{ts}"
 
 
 def _is_truthy(value: str | None) -> bool:
@@ -307,7 +337,7 @@ def _kill_by_pattern(pattern: str, title: str, script_name: str) -> None:
 
 
 def _runtime_log_dir(cfg: CommonConfig) -> Path:
-    candidates = [cfg.ws_dir / "log", Path("/tmp") / "launch_wrapper_logs"]
+    candidates = [cfg.ws_dir / RUNTIME_LOG_DIR_NAME, Path("/tmp") / "launch_wrapper_logs"]
     for candidate in candidates:
         try:
             candidate.mkdir(parents=True, exist_ok=True)
@@ -316,6 +346,56 @@ def _runtime_log_dir(cfg: CommonConfig) -> Path:
         except Exception:
             continue
     return Path("/tmp")
+
+
+def _save_map_now(cfg: CommonConfig, mode: str, timestamp: str, namespace: str | None = None) -> None:
+    map_prefix = _auto_map_prefix(cfg.ws_dir, mode, timestamp)
+    base_env = _build_base_env(cfg)
+    cmd = f"{base_env}; ros2 run nav2_map_server map_saver_cli -f {shlex.quote(str(map_prefix))}"
+    if namespace:
+        cmd += f" --ros-args -r __ns:={shlex.quote(namespace)}"
+    print(f"[{cfg.script_name}] Auto-saving map to {map_prefix}.*", file=sys.stderr)
+    if namespace:
+        print(f"[{cfg.script_name}] Auto-save cmd: ros2 run nav2_map_server map_saver_cli -f {map_prefix.name} --ros-args -r __ns:={namespace}", file=sys.stderr)
+    else:
+        print(f"[{cfg.script_name}] Auto-save cmd: ros2 run nav2_map_server map_saver_cli -f {map_prefix.name}", file=sys.stderr)
+    try:
+        _run_shell(cmd)
+        print(f"[{cfg.script_name}] Auto-save map done: {map_prefix}.yaml / {map_prefix}.pgm", file=sys.stderr)
+    except Exception as exc:
+        print(f"[{cfg.script_name}] Auto-save map failed: {exc}", file=sys.stderr)
+
+
+def _map_save_shell_cmd(ws_dir: Path, mode: str, timestamp: str, namespace: str | None = None) -> str:
+    map_prefix = _auto_map_prefix(ws_dir, mode, timestamp)
+    maps_dir = map_prefix.parent
+    cmd = (
+        f"mkdir -p {shlex.quote(str(maps_dir))}; "
+        f"echo '[launch_wrapper.py] Auto-saving map to {map_prefix}.*' >&2; "
+        f"ros2 run nav2_map_server map_saver_cli -f {shlex.quote(str(map_prefix))} "
+    )
+    if namespace:
+        cmd += f"--ros-args -r __ns:={shlex.quote(namespace)}"
+    return cmd
+
+
+def _extract_ros2_target(command: str) -> str:
+    try:
+        parts = shlex.split(command)
+    except Exception:
+        return "unknown"
+
+    if len(parts) >= 4 and parts[0] == "ros2" and parts[1] == "launch":
+        return f"launch pkg={parts[2]} file={parts[3]}"
+    if len(parts) >= 4 and parts[0] == "ros2" and parts[1] == "run":
+        return f"run pkg={parts[2]} exec={parts[3]}"
+    return "unknown"
+
+
+def _log_start_status(script_name: str, title: str, command: str, log_file: Path) -> None:
+    target = _extract_ros2_target(command)
+    print(f"[{script_name}] START {title} ({target})", file=sys.stderr)
+    print(f"[{script_name}] LOG {title} -> {log_file}", file=sys.stderr)
 
 
 def _pid_gone(pid: int) -> bool:
@@ -532,44 +612,39 @@ def _kill_reality(script_name: str) -> None:
         _kill_by_pattern(pat, title, script_name)
 
 
-def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: str, *, background: bool = False, bg: Optional[BackgroundGroup] = None, pgid_file: Optional[Path] = None) -> None:
+def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: str, *, background: bool = False, bg: Optional[BackgroundGroup] = None, pgid_file: Optional[Path] = None, before_shutdown: Optional[Callable[[], None]] = None, post_command: str = "") -> None:
     base_env = _build_base_env(cfg)
+    log_dir = _runtime_log_dir(cfg)
+    slug = _slugify(title)
+    log_file = log_dir / f"{Path(cfg.script_name).stem}_{slug}.log"
 
     full_cmd = f"cd {shlex.quote(str(cfg.ws_dir))}; {base_env}"
     if extra_env:
         full_cmd += f"; {extra_env}"
     full_cmd += f"; {command}"
+    wrap_cmd = f"{full_cmd} 2>&1 | tee -a {shlex.quote(str(log_file))}"
     print(f"[{cfg.script_name}] LaunchCmd[{title}]: {command}", file=sys.stderr)
+    _log_start_status(cfg.script_name, title, command, log_file)
 
-    # Background processes: always run detached (log to file), regardless of terminal mode.
+    # Background processes: detached, but keep logging to current terminal and file.
     if background:
-        log_dir = _runtime_log_dir(cfg)
-        slug = _slugify(title)
-        log_file = log_dir / f"{Path(cfg.script_name).stem}_{slug}.log"
-
-        print(f"[{cfg.script_name}] (background) {title} -> {log_file}", file=sys.stderr)
+        print(f"[{cfg.script_name}] (background) {title}", file=sys.stderr)
         # Start in its own session so we can kill the whole group (when tracked).
         p = subprocess.Popen(
-            ["bash", "-lc", full_cmd],
-            stdout=open(log_file, "w"),
-            stderr=subprocess.STDOUT,
+            ["bash", "-lc", wrap_cmd],
             preexec_fn=os.setsid,
         )
+        print(f"[{cfg.script_name}] STARTED {title} pid={p.pid}", file=sys.stderr)
         if bg is not None:
             bg.add(p.pid)
         return
 
     if cfg.no_new_terminal or not cfg.terminal_cmd:
-        log_dir = _runtime_log_dir(cfg)
-        slug = _slugify(title)
-        log_file = log_dir / f"{Path(cfg.script_name).stem}_{slug}.log"
-
         print(f"[{cfg.script_name}] (single-terminal) {title} (foreground)", file=sys.stderr)
-        print(f"[{cfg.script_name}] Log: {log_file}", file=sys.stderr)
         # 在独立 session（setsid）中启动，使 PID==PGID，方便下次启动前按 PGID 精确杀干净。
         # tee 通过 bash 非交互管道继承同一 PGID，killpg 可一并终止。
-        wrap_cmd = f"{full_cmd} 2>&1 | tee -a {shlex.quote(str(log_file))}"
         p = subprocess.Popen(["bash", "-lc", wrap_cmd], preexec_fn=os.setsid)
+        print(f"[{cfg.script_name}] STARTED {title} pid={p.pid}", file=sys.stderr)
         if pgid_file:
             try:
                 pgid_file.write_text(str(p.pid))
@@ -594,6 +669,13 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
                 _force_kill()
                 return
             _shutdown_requested[0] = True
+
+            if before_shutdown is not None:
+                try:
+                    before_shutdown()
+                except Exception as exc:
+                    print(f"[{cfg.script_name}] before_shutdown failed: {exc}", file=sys.stderr)
+
             print(
                 f"\n[{cfg.script_name}] Shutting down (timeout {_shutdown_timeout}s)..."
                 " Press Ctrl+C again to force kill.",
@@ -635,9 +717,13 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
 
     # Multi-terminal mode.
     term = cfg.terminal_cmd
-    keep_shell = f"{full_cmd}; exec bash"
+    keep_core = full_cmd
+    if post_command:
+        keep_core += f"; {post_command}"
+    keep_shell = f"{keep_core} 2>&1 | tee -a {shlex.quote(str(log_file))}; exec bash"
     if term == "gnome-terminal":
         _run_shell(f"gnome-terminal --title={shlex.quote(title)} -- bash -c {shlex.quote(keep_shell)}")
+        print(f"[{cfg.script_name}] STARTED {title} in gnome-terminal", file=sys.stderr)
         return
     if term == "x-terminal-emulator":
         # xterm 是前台阻塞进程（不像 gnome-terminal 会 fork daemon），
@@ -665,12 +751,14 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
                 [term, "-T", title, "-e", "bash", "-lc", keep_shell],
                 preexec_fn=os.setsid,
             )
+        print(f"[{cfg.script_name}] STARTED {title} in x-terminal-emulator", file=sys.stderr)
         return
     # fallback: 其他终端模拟器同样非阻塞处理
     subprocess.Popen(
         [term, "-T", title, "-e", "bash", "-lc", keep_shell],
         preexec_fn=os.setsid,
     )
+    print(f"[{cfg.script_name}] STARTED {title} in {term}", file=sys.stderr)
 
 
 def _wait_for_background(bg: BackgroundGroup, script_name: str) -> int:
@@ -718,6 +806,8 @@ def main(argv: list[str]) -> int:
     no_new_terminal   = _is_truthy(no_new_terminal_e) or (_in_docker() and not no_new_terminal_e)
 
     is_sim = mode.startswith("sim_")
+    # 整个会话用同一个时间戳（北京时间），确保auto-save逻辑时间戳一致（不因跨分钟而变化）
+    map_timestamp = _beijing_timestamp()
     params_env_key  = "SIM_PARAMS_FILE" if is_sim else "REALITY_PARAMS_FILE"
     params_default  = (ws_dir / "src/gxu2026_sentry_nav/gxu2026_nav_bringup/config"
                        / ("simulation" if is_sim else "reality") / "nav2_params.yaml")
@@ -737,6 +827,9 @@ def main(argv: list[str]) -> int:
     cfg.terminal_cmd = _pick_terminal_cmd(cfg)
     if not cfg.terminal_cmd:
         cfg.no_new_terminal = True
+
+    # 启动最开始就创建目录
+    _init_dirs(cfg.ws_dir)
 
     # NeuPAN 虚拟环境片段
     controller_plugin = _controller_plugin(cfg.params_file)
@@ -794,9 +887,13 @@ def main(argv: list[str]) -> int:
         if mode == "sim_mapping":
             ros_cmd  = os.environ.get("SLAM_CMD", "ros2 launch gxu2026_nav_bringup rm_navigation_simulation_launch.py slam:=True")
             fg_title = "SLAM"
+            auto_save_cb = lambda: _save_map_now(cfg, "sim", map_timestamp, AUTO_MAP_SIM_NS)
+            auto_save_post_cmd = _map_save_shell_cmd(cfg.ws_dir, "sim", map_timestamp, AUTO_MAP_SIM_NS)
         else:  # sim_nav
             ros_cmd  = os.environ.get("NAV_CMD", "ros2 launch gxu2026_nav_bringup rm_navigation_simulation_launch.py world:=rmuc_2025 slam:=False")
             fg_title = "Nav"
+            auto_save_cb = None
+            auto_save_post_cmd = ""
 
         if extra_args:
             ros_cmd += " " + " ".join(map(shlex.quote, extra_args))
@@ -808,7 +905,7 @@ def main(argv: list[str]) -> int:
             # wrapper 弹完两个窗口后直接退出，不需要 atexit/BackgroundGroup。
             _launch_in_terminal(cfg, "Gazebo Sim", gazebo_cmd, "")
             time.sleep(GAZEBO_STARTUP_DELAY)  # 等待 Gazebo 物理仿真稳定后再启动 SLAM/rviz2，避免漂移
-            _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env)
+            _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env, post_command=auto_save_post_cmd)
             return 0
 
         # 单终端/Docker 模式：Gazebo 后台 Popen 写日志，SLAM/Nav 前台阻塞，Ctrl+C 统一清理。
@@ -818,7 +915,7 @@ def main(argv: list[str]) -> int:
             ("/registered_scan", 5.0),
             ("/Odometry", 10.0),
         ], bg)
-        _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env, pgid_file=_PGID_FILES["sim"])
+        _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env, pgid_file=_PGID_FILES["sim"], before_shutdown=auto_save_cb)
         return 0
 
     # ── 实车模式：SLAM/Nav (前台) ─────────────────────────────────────────────
@@ -826,10 +923,14 @@ def main(argv: list[str]) -> int:
         ros_cmd  = os.environ.get("MAPPING_CMD",
                                   "ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True")
         fg_title = "Reality Mapping"
+        auto_save_cb = lambda: _save_map_now(cfg, "reality", map_timestamp)
+        auto_save_post_cmd = _map_save_shell_cmd(cfg.ws_dir, "reality", map_timestamp)
     else:  # reality_navigation
         ros_cmd  = os.environ.get("NAVIGATION_CMD",
                                   "ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True")
         fg_title = "Reality Navigation"
+        auto_save_cb = None
+        auto_save_post_cmd = ""
 
     if _is_truthy(os.environ.get("ENABLE_WATCHDOG")):
         _wd_bg = BackgroundGroup(script_name)
@@ -840,7 +941,7 @@ def main(argv: list[str]) -> int:
             ("/scan", 5.0),
         ], _wd_bg)
 
-    _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env, pgid_file=_PGID_FILES["reality"])
+    _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env, pgid_file=_PGID_FILES["reality"], before_shutdown=auto_save_cb, post_command=auto_save_post_cmd)
     return 0
 
 
