@@ -47,11 +47,38 @@
             </ForceSuccess>
             
             <WhileDoElse>
-                                <IsGameTime name="IsGameStart"
+                <IsGameTime name="IsGameStart"
                         message="{game_status}"
                         game_progress="4"
                         lower_remain_time="0"
                         higher_remain_time="300"/>
+                <ReactiveSequence>
+                    <!--
+                        全局脱困检测：不依赖距离目标点远近
+                        场景：开场拥挤、雷达被队友遮挡导致 costmap 堵死
+                        策略：8秒未移动且未处于战斗状态 → 清空 local costmap → 用新鲜观测重建
+                        排除1：检测到敌人时不判定卡住（战斗中原地停车是正常行为）
+                        排除2：已到达控制区时不判定卡住（霸占控制区不动是正常行为）
+                    -->
+                    <ForceSuccess>
+                        <ReactiveSequence>
+                            <Inverter>
+                                <IsDetectEnemy message="{robot_status}"/>
+                            </Inverter>
+                            <Inverter>
+                                <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
+                                               goal_x="{cfg.control_zone_goal_x}"
+                                               goal_y="{cfg.control_zone_goal_y}"
+                                               arrive_radius="{cfg.arrive_radius}"/>
+                            </Inverter>
+                            <IsRobotStuck pose_x="{pose.x}" pose_y="{pose.y}"
+                                          stuck_timeout_ms="8000"
+                                          movement_threshold="0.15"
+                                          reset_distance="0.5"/>
+                            <ClearCostmap service_name="local_costmap/clear_entirely" timeout_ms="1000"/>
+                        </ReactiveSequence>
+                    </ForceSuccess>
+
                 <ReactiveFallback>
                     <!--判断战亡/低血量，若战亡或需要恢复，执行恢复操作 -->
                     <SubTree ID="IsDeadAndDispelDebuff" _autoremap="true"/>
@@ -129,6 +156,7 @@
 
                     </Fallback>
                 </ReactiveFallback>
+                </ReactiveSequence>
                 <!-- 非比赛阶段停止云台和旋转，原地待命 -->
                 <Sequence>
                     <RobotControl stop_gimbal_scan="True" chassis_spin="False"/>
@@ -141,6 +169,17 @@
     
     <!-- Description of Node Models (used by Groot) -->
     <TreeNodesModel>
+        <Condition ID="IsRobotStuck" editable="true">
+            <input_port name="pose_x" default="{pose.x}"/>
+            <input_port name="pose_y" default="{pose.y}"/>
+            <input_port name="stuck_timeout_ms" default="8000"/>
+            <input_port name="movement_threshold" default="0.15"/>
+            <input_port name="reset_distance" default="0.5"/>
+        </Condition>
+        <Action ID="ClearCostmap" editable="true">
+            <input_port name="service_name" default="local_costmap/clear_entirely"/>
+            <input_port name="timeout_ms" default="1000"/>
+        </Action>
         <Action ID="ExecuteNav2Waypoints" editable="true">
             <input_port name="action_name" default="follow_waypoints"/>
         </Action>

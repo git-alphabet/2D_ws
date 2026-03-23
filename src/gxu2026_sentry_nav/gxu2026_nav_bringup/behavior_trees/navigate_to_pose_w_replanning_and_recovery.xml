@@ -3,12 +3,13 @@
       main_tree_to_execute="MainTree">
   <BehaviorTree ID="MainTree">
     <!--
-      改动说明（v3）：
-      彻底移除所有 ClearEntireCostmap 节点。
-      原因：BtServiceNode 在 XML 加载（构造）阶段就同步 wait_for_service，
-      若 global/local_costmap 尚未 active 则抛异常，导致 bt_navigator 激活失败。
-      恢复策略：规划失败 → GoalUpdated 检测；跟路失败 → GoalUpdated 检测；
-      外层 → Spin(90°) + 轻量 BackUp(0.15m)。
+      改动说明（v4）：
+      移除 Spin+BackUp 恢复动作，恢复逻辑由 RMUL 行为树层处理。
+      Nav2 内部仅做规划+跟踪的重试，不做实体恢复动作。
+      
+      RMUL BT 层通过 IsRobotStuck + ClearCostmap 实现全局脱困：
+      - 不受距目标点距离限制
+      - 适用于开场拥挤、雷达被遮挡等场景
     -->
     <RecoveryNode name="NavigateRecovery"
                   number_of_retries="6">
@@ -29,14 +30,8 @@
           <GoalUpdated/>
         </RecoveryNode>
       </PipelineSequence>
-      <ReactiveFallback name="RecoveryFallback">
-        <GoalUpdated/>
-        <RoundRobin name="RecoveryActions">
-          <Spin spin_dist="1.57"/>
-          <BackUp backup_dist="0.15"
-                  backup_speed="0.025"/>
-        </RoundRobin>
-      </ReactiveFallback>
+      <!-- 恢复策略：仅检查目标是否更新，不执行 Spin/BackUp -->
+      <GoalUpdated/>
     </RecoveryNode>
   </BehaviorTree>
 </root>
