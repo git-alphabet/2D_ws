@@ -1,4 +1,4 @@
-#!/bin/bash
+ros2_ws/src/RM_Behavior_Tree/rm_behavior_tree/config/RMUL_2026/sim_referee.sh#!/bin/bash
 set -euo pipefail
 
 # Thin wrapper: delegate to Python (easier to read).
