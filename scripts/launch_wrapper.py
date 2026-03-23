@@ -12,6 +12,11 @@ from pathlib import Path
 from typing import Optional
 
 
+# 仿真启动后等待时间（秒）：用于等待 Gazebo 物理仿真稳定再拉起 SLAM/Nav。
+# 可通过环境变量 GAZEBO_STARTUP_DELAY 覆盖，默认 3 秒。
+GAZEBO_STARTUP_DELAY = float(os.environ.get("GAZEBO_STARTUP_DELAY", "3"))
+
+
 def _is_truthy(value: str | None) -> bool:
     if value is None:
         return False
@@ -802,13 +807,13 @@ def main(argv: list[str]) -> int:
             # 多终端模式：Gazebo 和 SLAM/Nav 各弹一个 gnome 窗口，用户可直接在窗口内 Ctrl+C 关闭。
             # wrapper 弹完两个窗口后直接退出，不需要 atexit/BackgroundGroup。
             _launch_in_terminal(cfg, "Gazebo Sim", gazebo_cmd, "")
-            time.sleep(10.0)  # 等待 Gazebo 物理仿真稳定后再启动 SLAM/rviz2，避免漂移
+            time.sleep(GAZEBO_STARTUP_DELAY)  # 等待 Gazebo 物理仿真稳定后再启动 SLAM/rviz2，避免漂移
             _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env)
             return 0
 
         # 单终端/Docker 模式：Gazebo 后台 Popen 写日志，SLAM/Nav 前台阻塞，Ctrl+C 统一清理。
         _launch_in_terminal(cfg, "Gazebo Sim", gazebo_cmd, "", background=True, bg=bg)
-        time.sleep(10.0)  # 等待 Gazebo 物理仿真稳定后再启动 SLAM/rviz2，避免漂移
+        time.sleep(GAZEBO_STARTUP_DELAY)  # 等待 Gazebo 物理仿真稳定后再启动 SLAM/rviz2，避免漂移
         _start_watchdog(cfg, [
             ("/registered_scan", 5.0),
             ("/Odometry", 10.0),
