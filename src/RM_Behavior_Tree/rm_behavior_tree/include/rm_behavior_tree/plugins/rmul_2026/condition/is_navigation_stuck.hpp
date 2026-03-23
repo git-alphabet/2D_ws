@@ -49,7 +49,6 @@ public:
 	}
 
 	BT::NodeStatus tick() override;
-	void halt() override;
 
 private:
 	BT::RosNodeParams params_;

@@ -61,6 +61,19 @@ BT::NodeStatus IsNavigationStuckCondition::tick()
 		return BT::NodeStatus::FAILURE;
 	}
 
+	// ConditionNode::halt() 为 final 无法重写，改用时间间隔检测陈旧状态
+	// 如果距上次移动的时间远超检测超时（节点被暂停后重新启动），重新初始化
+	if (!stuck_latched_) {
+		const auto gap =
+			std::chrono::duration_cast<std::chrono::milliseconds>(now - last_move_time_);
+		if (gap.count() > stuck_timeout_ms * 2) {
+			last_moved_x_ = px;
+			last_moved_y_ = py;
+			last_move_time_ = now;
+			return BT::NodeStatus::FAILURE;
+		}
+	}
+
 	// 锁存中：检查是否已从卡住点移开足够距离
 	if (stuck_latched_) {
 		const double dist_from_stuck =
@@ -96,13 +109,6 @@ BT::NodeStatus IsNavigationStuckCondition::tick()
 	}
 
 	return BT::NodeStatus::FAILURE;  // 还没超时，继续等待
-}
-
-void IsNavigationStuckCondition::halt()
-{
-	initialized_ = false;
-	stuck_latched_ = false;
-	BT::ConditionNode::halt();
 }
 
 }  // namespace rm_behavior_tree
