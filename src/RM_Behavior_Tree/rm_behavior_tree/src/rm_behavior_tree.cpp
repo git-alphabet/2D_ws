@@ -65,6 +65,7 @@ int main(int argc, char ** argv)
     "is_within_scope",
     "clear_costmap",
     "is_robot_stuck",
+    "is_navigation_stuck",
   };
 
   const std::vector<std::string> bt_plugin_libs = {
