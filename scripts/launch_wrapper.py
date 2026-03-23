@@ -321,6 +321,67 @@ def _pid_gone(pid: int) -> bool:
         return True
 
 
+def _pids_holding_file(path: Path) -> set[int]:
+    """返回当前打开了指定文件的进程 PID 集合。"""
+    holders: set[int] = set()
+    proc_root = Path("/proc")
+    target = str(path)
+    if not proc_root.is_dir():
+        return holders
+
+    for proc_entry in proc_root.iterdir():
+        if not proc_entry.name.isdigit():
+            continue
+        pid = int(proc_entry.name)
+        fd_dir = proc_entry / "fd"
+        if not fd_dir.is_dir():
+            continue
+        try:
+            for fd in fd_dir.iterdir():
+                try:
+                    link = os.readlink(fd)
+                except Exception:
+                    continue
+                if link == target or link.startswith(target + " "):
+                    holders.add(pid)
+                    break
+        except Exception:
+            continue
+    return holders
+
+
+def _kill_pids(pids: set[int], title: str, script_name: str) -> None:
+    if not pids:
+        return
+    alive = {pid for pid in pids if pid != os.getpid() and not _pid_gone(pid)}
+    if not alive:
+        return
+
+    print(f"[{script_name}] Killing {title} pids: {' '.join(map(str, sorted(alive)))}", file=sys.stderr)
+
+    for sig in (signal.SIGTERM, signal.SIGKILL):
+        for pid in list(alive):
+            if _pid_gone(pid):
+                continue
+            try:
+                os.killpg(os.getpgid(pid), sig)
+            except Exception:
+                try:
+                    os.kill(pid, sig)
+                except Exception:
+                    pass
+        time.sleep(0.8)
+        alive = {pid for pid in alive if not _pid_gone(pid)}
+        if not alive:
+            break
+
+    if alive:
+        print(
+            f"[{script_name}] Warning: {title} pids still alive: {' '.join(map(str, sorted(alive)))}",
+            file=sys.stderr,
+        )
+
+
 # ── PGID 文件路径：记录上次启动的前台进程组，供下次重启时精确杀干净 ────────────
 _PGID_FILES: dict[str, Path] = {
     "sim":     Path("/tmp/ros2_nav_sim.pgid"),
@@ -328,18 +389,33 @@ _PGID_FILES: dict[str, Path] = {
 }
 
 
-def _cleanup_fastdds_shm() -> None:
+def _cleanup_fastdds_shm(script_name: str) -> None:
     """清理 FastDDS 遗留的共享内存段，避免进程重启时 DDS 初始化挂死。"""
     import glob
+
+    shm_files = sorted(Path(f) for f in glob.glob("/dev/shm/fastrtps_*"))
+    if not shm_files:
+        return
+
+    holders: set[int] = set()
+    for shm_file in shm_files:
+        holders |= _pids_holding_file(shm_file)
+
+    _kill_pids(holders, "FastDDS SHM holders", script_name)
+
     cleaned = 0
-    for f in glob.glob("/dev/shm/fastrtps_*"):
+    failed = 0
+    for shm_file in shm_files:
         try:
-            Path(f).unlink()
+            shm_file.unlink()
             cleaned += 1
         except Exception:
-            pass
-    if cleaned:
-        print(f"[fastdds] Cleaned {cleaned} shm segment(s).", file=sys.stderr)
+            failed += 1
+
+    print(
+        f"[{script_name}] FastDDS SHM cleanup: total={len(shm_files)} cleaned={cleaned} failed={failed}",
+        file=sys.stderr,
+    )
 
 
 def _kill_by_pgid_file(pgid_file: Path, title: str, script_name: str) -> None:
@@ -423,11 +499,14 @@ while True:
 def _kill_sim(script_name: str) -> None:
     """启动仿真前清理残留的 Gazebo 和仿真导航/SLAM 进程。"""
     _kill_by_pgid_file(_PGID_FILES["sim"], "sim", script_name)
-    _cleanup_fastdds_shm()
+    _cleanup_fastdds_shm(script_name)
     for pat, title in [
         (r"bringup_sim\.launch\.py",               "bringup_sim"),
         (r"ruby.*ign|ign.*gazebo|gz-server|gz-gui", "Gazebo"),
         (r"rm_navigation_simulation_launch\.py",   "sim nav/SLAM"),
+        (r"(^|/)rviz2(\s|$)",                      "rviz2"),
+        (r"(^|/)rm_behavior_tree(\s|$)",           "rm_behavior_tree"),
+        (r"component_container_isolated.*nav2_container", "nav2_container"),
     ]:
         _kill_by_pattern(pat, title, script_name)
 
@@ -435,9 +514,11 @@ def _kill_sim(script_name: str) -> None:
 def _kill_reality(script_name: str) -> None:
     """启动实车前清理残留进程。"""
     _kill_by_pgid_file(_PGID_FILES["reality"], "reality", script_name)
-    _cleanup_fastdds_shm()
+    _cleanup_fastdds_shm(script_name)
     for pat, title in [
         (r"rm_navigation_reality_launch\.py",            "reality nav/SLAM"),
+        (r"(^|/)rviz2(\s|$)",                            "rviz2"),
+        (r"(^|/)rm_behavior_tree(\s|$)",                 "rm_behavior_tree"),
         (r"(^|/)joint_state_publisher(\s|$)",            "joint_state_publisher"),
         (r"(^|/)robot_state_publisher(\s|$)",            "robot_state_publisher"),
         (r"(^|/)auto_aim_yaw_joint_state_bridge(\s|$)",  "auto_aim_yaw_bridge"),
