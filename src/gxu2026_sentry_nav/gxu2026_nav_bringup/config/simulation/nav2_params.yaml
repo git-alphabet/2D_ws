@@ -203,7 +203,7 @@ rm_behavior_tree:
     use_sim_time: True
     hp_high_threshold: 120  #先保留两个参数口，其实应该只用保留一个，这两个数值要一样
     hp_medium_threshold: 120
-    supply_heal_min_hp: 300
+    supply_heal_min_hp: 400
     # 红方固化战术点预设 (保底坐标)
     red_control_zone_x: 5.13
     red_control_zone_y: -3.94
