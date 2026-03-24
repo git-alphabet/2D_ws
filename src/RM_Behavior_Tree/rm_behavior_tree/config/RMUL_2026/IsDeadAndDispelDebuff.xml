@@ -59,16 +59,51 @@
                             <!-- 1. 启动导航模式 -->
                             <NavControlCmd cmd_type="1" emergency_stop="False"/>
 
-                            <!-- 2. 导航到补给区（到达前持续RUNNING） -->
+                            <!-- 2. 导航到补给区（到达前持续RUNNING，含卡住检测+偏移恢复） -->
                             <ReactiveFallback name="NavUntilArrived">
                                 <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}" goal_x="{cfg.supply_goal_x}" goal_y="{cfg.supply_goal_y}" arrive_radius="{cfg.arrive_radius}"/>
                                 <ReactiveSequence>
-                                    <RateController hz="5">
-                                        <SendGoal name="GoSupplyToHeal"
-                                            goal_x="{cfg.supply_goal_x}"
-                                            goal_y="{cfg.supply_goal_y}"
-                                            frame_id="map"
-                                            action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                    <RateController hz="1">
+                                        <Fallback>
+                                            <!-- 1) 未卡住：前往原始补给区目标点 -->
+                                            <Sequence>
+                                                <Inverter>
+                                                    <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
+                                                                       goal_x="{cfg.supply_goal_x}"
+                                                                       goal_y="{cfg.supply_goal_y}"
+                                                                       stuck_check_radius="{cfg.stuck_check_radius}"
+                                                                       stuck_timeout_ms="5000"
+                                                                       movement_threshold="0.15"
+                                                                       reset_distance="0.5"/>
+                                                </Inverter>
+                                                <SendGoal name="GoSupplyToHeal_Normal"
+                                                          goal_x="{cfg.supply_goal_x}"
+                                                          goal_y="{cfg.supply_goal_y}"
+                                                          frame_id="map"
+                                                          action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                            </Sequence>
+                                            <!-- 2) 卡住：使用校准偏移目标点（基于出生点校准） -->
+                                            <Sequence>
+                                                <SetGoalFromCenterOffset center_x="{calib.spawn_x}"
+                                                                         center_y="{calib.spawn_y}"
+                                                                         center_yaw="{calib.spawn_yaw}"
+                                                                         offset_x="{cfg.control_zone_offset_x}"
+                                                                         offset_y="{cfg.control_zone_offset_y}"
+                                                                         goal_x="{nav.goal_x}"
+                                                                         goal_y="{nav.goal_y}"
+                                                                         goal_pose="{nav.goal_pose}"/>
+                                                <SendGoal name="GoSupplyToHeal_Offset"
+                                                          goal_pose="{nav.goal_pose}"
+                                                          frame_id="map"
+                                                          action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                            </Sequence>
+                                            <!-- 3) 无校准数据后备 -->
+                                            <SendGoal name="GoSupplyToHeal_Fallback"
+                                                      goal_x="{cfg.supply_goal_x}"
+                                                      goal_y="{cfg.supply_goal_y}"
+                                                      frame_id="map"
+                                                      action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                        </Fallback>
                                     </RateController>
                                     <KeepRunning/>
                                 </ReactiveSequence>
