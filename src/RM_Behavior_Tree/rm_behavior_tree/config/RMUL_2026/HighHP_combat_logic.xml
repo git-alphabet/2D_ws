@@ -98,12 +98,21 @@
                           frame_id="map"
                           action_name="navigate_to_pose" min_interval_ms="1000"/>
               </Sequence>
-              <!-- 3) 无校准数据后备 -->
-              <SendGoal name="PatrolControlZone_Fallback"
-                        goal_x="{cfg.control_zone_goal_x}"
-                        goal_y="{cfg.control_zone_goal_y}"
-                        frame_id="map"
-                        action_name="navigate_to_pose" min_interval_ms="1000"/>
+              <!-- 3) 无校准数据：基于原始配置点偏移 -->
+              <Sequence>
+                <SetGoalFromCenterOffset center_x="{cfg.control_zone_goal_x}"
+                                         center_y="{cfg.control_zone_goal_y}"
+                                         center_yaw="0.0"
+                                         offset_x="{cfg.control_zone_offset_x}"
+                                         offset_y="{cfg.control_zone_offset_y}"
+                                         goal_x="{nav.goal_x}"
+                                         goal_y="{nav.goal_y}"
+                                         goal_pose="{nav.goal_pose}"/>
+                <SendGoal name="PatrolControlZone_Fallback"
+                          goal_pose="{nav.goal_pose}"
+                          frame_id="map"
+                          action_name="navigate_to_pose" min_interval_ms="1000"/>
+              </Sequence>
             </Fallback>
           </RateController>
               <KeepRunning/>
