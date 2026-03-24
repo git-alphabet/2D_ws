@@ -66,6 +66,7 @@ int main(int argc, char ** argv)
     "clear_costmap",
     "is_robot_stuck",
     "is_navigation_stuck",
+    "snap_goal_to_free_space",
   };
 
   const std::vector<std::string> bt_plugin_libs = {

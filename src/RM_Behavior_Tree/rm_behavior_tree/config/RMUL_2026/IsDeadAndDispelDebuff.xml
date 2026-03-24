@@ -104,6 +104,9 @@
                                                                                  goal_x="{nav.goal_x}"
                                                                                  goal_y="{nav.goal_y}"
                                                                                  goal_pose="{nav.goal_pose}"/>
+                                                        <SnapGoalToFreeSpace goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                                                                             goal_pose="{nav.goal_pose}"
+                                                                             max_search_radius="1.0" search_step="0.1"/>
                                                         <SendGoal name="GoSupplyToHeal_Offset"
                                                                   goal_pose="{nav.goal_pose}"
                                                                   frame_id="map"
@@ -119,6 +122,9 @@
                                                                                  goal_x="{nav.goal_x}"
                                                                                  goal_y="{nav.goal_y}"
                                                                                  goal_pose="{nav.goal_pose}"/>
+                                                        <SnapGoalToFreeSpace goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                                                                             goal_pose="{nav.goal_pose}"
+                                                                             max_search_radius="1.0" search_step="0.1"/>
                                                         <SendGoal name="GoSupplyToHeal_Fallback"
                                                                   goal_pose="{nav.goal_pose}"
                                                                   frame_id="map"

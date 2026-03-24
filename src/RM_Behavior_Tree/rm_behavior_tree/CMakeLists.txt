@@ -409,6 +409,11 @@ ament_auto_add_library(set_goal_from_center_offset SHARED
 )
 add_target_dependencies(set_goal_from_center_offset)
 
+ament_auto_add_library(snap_goal_to_free_space SHARED
+    plugins/rmul_2026/action/snap_goal_to_free_space.cpp
+)
+add_target_dependencies(snap_goal_to_free_space)
+
 ament_auto_add_library(execute_nav2_waypoints SHARED
     plugins/rmul_2026/action/execute_nav2_waypoints.cpp
 )

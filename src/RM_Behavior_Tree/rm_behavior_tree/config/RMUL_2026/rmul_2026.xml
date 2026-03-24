@@ -76,6 +76,7 @@
                                           movement_threshold="0.15"
                                           reset_distance="0.5"/>
                             <ClearCostmap service_name="local_costmap/clear_entirely" timeout_ms="1000"/>
+                            <ClearCostmap service_name="global_costmap/clear_entirely" timeout_ms="1000"/>
                         </ReactiveSequence>
                     </ForceSuccess>
 
@@ -140,6 +141,9 @@
                                                                                      goal_x="{nav.goal_x}"
                                                                                      goal_y="{nav.goal_y}"
                                                                                      goal_pose="{nav.goal_pose}"/>
+                                                            <SnapGoalToFreeSpace goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                                                                                 goal_pose="{nav.goal_pose}"
+                                                                                 max_search_radius="1.0" search_step="0.1"/>
                                                             <SendGoal name="GoControlZone_Offset"
                                                                     goal_pose="{nav.goal_pose}"
                                                                     frame_id="map"
@@ -155,6 +159,9 @@
                                                                                      goal_x="{nav.goal_x}"
                                                                                      goal_y="{nav.goal_y}"
                                                                                      goal_pose="{nav.goal_pose}"/>
+                                                            <SnapGoalToFreeSpace goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                                                                                 goal_pose="{nav.goal_pose}"
+                                                                                 max_search_radius="1.0" search_step="0.1"/>
                                                             <SendGoal name="GoControlZone_Fallback"
                                                                     goal_pose="{nav.goal_pose}"
                                                                     frame_id="map"
