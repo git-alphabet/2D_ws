@@ -44,8 +44,11 @@
                                    emergency_stop="False"/>
                 </Sequence>
 
-                <!-- B. 恢复模式：复活后强制回补给区并回血 -->
-                <Sequence name="RecoveryMode">
+                <!-- B. 恢复模式：复活后强制回补给区并回血
+                     使用 ReactiveSequence 确保每次 tick 重新检查 need_recovery，
+                     当 DetectRespawnAndSetRecovery 检测到 hp >= recovery_exit_hp 时
+                     自动清除 need_recovery=false，本节点立即 FAILURE 退出恢复流程 -->
+                <ReactiveSequence name="RecoveryMode">
 
                     <IsRecoveryNeeded need_recovery="{need_recovery}"/>
 
@@ -156,7 +159,7 @@
 
                     </Sequence>
 
-                </Sequence>
+                </ReactiveSequence>
 
             </Fallback>
 
