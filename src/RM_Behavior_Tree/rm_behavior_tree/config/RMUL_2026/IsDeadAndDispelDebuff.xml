@@ -88,7 +88,7 @@
                                                           frame_id="map"
                                                           action_name="navigate_to_pose" min_interval_ms="1000"/>
                                             </Sequence>
-                                            <!-- 2) 卡住：清除代价地图 + 偏移目标点 -->
+                                            <!-- 2) 卡住：清除代价地图 + 搜索逃脱点 -->
                                             <Sequence>
                                                 <ForceSuccess>
                                                     <ClearCostmap service_name="local_costmap/clear_entirely" timeout_ms="1000"/>
@@ -96,44 +96,16 @@
                                                 <ForceSuccess>
                                                     <ClearCostmap service_name="global_costmap/clear_entirely" timeout_ms="1000"/>
                                                 </ForceSuccess>
-                                                <Fallback>
-                                                    <!-- 2a) 校准偏移（基于出生点校准） -->
-                                                    <Sequence>
-                                                        <SetGoalFromCenterOffset center_x="{calib.spawn_x}"
-                                                                                 center_y="{calib.spawn_y}"
-                                                                                 center_yaw="{calib.spawn_yaw}"
-                                                                                 offset_x="{cfg.control_zone_offset_x}"
-                                                                                 offset_y="{cfg.control_zone_offset_y}"
-                                                                                 goal_x="{nav.goal_x}"
-                                                                                 goal_y="{nav.goal_y}"
-                                                                                 goal_pose="{nav.goal_pose}"/>
-                                                        <SnapGoalToFreeSpace goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
-                                                                             goal_pose="{nav.goal_pose}"
-                                                                             max_search_radius="1.0" search_step="0.1"/>
-                                                        <SendGoal name="GoSupplyToHeal_Offset"
-                                                                  goal_pose="{nav.goal_pose}"
-                                                                  frame_id="map"
-                                                                  action_name="navigate_to_pose" min_interval_ms="1000"/>
-                                                    </Sequence>
-                                                    <!-- 2b) 无校准数据：基于原始配置点偏移 -->
-                                                    <Sequence>
-                                                        <SetGoalFromCenterOffset center_x="{cfg.supply_goal_x}"
-                                                                                 center_y="{cfg.supply_goal_y}"
-                                                                                 center_yaw="0.0"
-                                                                                 offset_x="{cfg.control_zone_offset_x}"
-                                                                                 offset_y="{cfg.control_zone_offset_y}"
-                                                                                 goal_x="{nav.goal_x}"
-                                                                                 goal_y="{nav.goal_y}"
-                                                                                 goal_pose="{nav.goal_pose}"/>
-                                                        <SnapGoalToFreeSpace goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
-                                                                             goal_pose="{nav.goal_pose}"
-                                                                             max_search_radius="1.0" search_step="0.1"/>
-                                                        <SendGoal name="GoSupplyToHeal_Fallback"
-                                                                  goal_pose="{nav.goal_pose}"
-                                                                  frame_id="map"
-                                                                  action_name="navigate_to_pose" min_interval_ms="1000"/>
-                                                    </Sequence>
-                                                </Fallback>
+                                                <FindEscapePoint robot_x="{pose.x}" robot_y="{pose.y}"
+                                                                 goal_x="{cfg.supply_goal_x}"
+                                                                 goal_y="{cfg.supply_goal_y}"
+                                                                 escape_x="{nav.goal_x}"
+                                                                 escape_y="{nav.goal_y}"
+                                                                 escape_pose="{nav.goal_pose}"/>
+                                                <SendGoal name="GoSupplyToHeal_Escape"
+                                                          goal_pose="{nav.goal_pose}"
+                                                          frame_id="map"
+                                                          action_name="navigate_to_pose" min_interval_ms="1000"/>
                                             </Sequence>
                                         </Fallback>
                                     </RateController>

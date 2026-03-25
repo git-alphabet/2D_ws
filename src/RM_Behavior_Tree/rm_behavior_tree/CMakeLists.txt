@@ -414,6 +414,11 @@ ament_auto_add_library(snap_goal_to_free_space SHARED
 )
 add_target_dependencies(snap_goal_to_free_space)
 
+ament_auto_add_library(find_escape_point SHARED
+    plugins/rmul_2026/action/find_escape_point.cpp
+)
+add_target_dependencies(find_escape_point)
+
 ament_auto_add_library(execute_nav2_waypoints SHARED
     plugins/rmul_2026/action/execute_nav2_waypoints.cpp
 )
