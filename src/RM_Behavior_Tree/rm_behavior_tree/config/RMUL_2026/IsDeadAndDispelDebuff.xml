@@ -35,9 +35,12 @@
             <!-- 1. 根据当前状态选择分支（两个都 FAILURE = 正常存活，子树 FAILURE） -->
             <Fallback>
 
-                <!-- A. 战亡：停车等待复活读条结束 -->
+                <!-- A. 战亡：取消导航+停车等待复活读条结束 -->
                 <Sequence name="IfDead_StopAndWait">
                     <IsDead message="{robot_status}"/>
+                    <ForceSuccess>
+                        <CancelNavGoal action_name="navigate_to_pose" min_interval_ms="1000"/>
+                    </ForceSuccess>
                     <RobotControl stop_gimbal_scan="True" 
                                   chassis_spin="False"/>
                     <NavControlCmd cmd_type="3" 

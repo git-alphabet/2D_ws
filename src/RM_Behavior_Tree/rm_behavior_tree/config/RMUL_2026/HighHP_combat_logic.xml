@@ -26,6 +26,11 @@
         <ReactiveSequence>
           <IsDetectEnemy message="{robot_status}"/>
 
+          <!-- 检测到敌人后立即取消正在执行的Nav2导航目标，否则Nav2会继续驱动机器人移动 -->
+          <ForceSuccess>
+            <CancelNavGoal action_name="navigate_to_pose" min_interval_ms="1000"/>
+          </ForceSuccess>
+
           <Fallback>
             <!-- A-1: 热量安全(≤280) → 刹车+原地，停云台扫描让自瞄接管，开小陀螺
                  说明: 机器人停止移动以最大化射击精度，
