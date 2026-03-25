@@ -49,6 +49,7 @@ def generate_launch_description():
     container_name_full = (namespace, "/", container_name)
     use_respawn = LaunchConfiguration("use_respawn")
     log_level = LaunchConfiguration("log_level")
+    enable_relocalization = LaunchConfiguration("enable_relocalization")
 
     lifecycle_nodes = ["map_server"]
 
@@ -178,8 +179,9 @@ def generate_launch_description():
                 output="screen",
                 respawn=use_respawn,
                 respawn_delay=2.0,
-                parameters=[configured_params, {"prior_pcd_file": prior_pcd_file}],
+                parameters=[configured_params],
                 arguments=["--ros-args", "--log-level", log_level],
+                condition=IfCondition(enable_relocalization),
             ),
             Node(
                 package="nav2_lifecycle_manager",
@@ -207,12 +209,6 @@ def generate_launch_description():
                 parameters=[configured_params],
             ),
             ComposableNode(
-                package="small_gicp_relocalization",
-                plugin="small_gicp_relocalization::SmallGicpRelocalizationNode",
-                name="small_gicp_relocalization",
-                parameters=[configured_params, {"prior_pcd_file": prior_pcd_file}],
-            ),
-            ComposableNode(
                 package="nav2_lifecycle_manager",
                 plugin="nav2_lifecycle_manager::LifecycleManager",
                 name="lifecycle_manager_localization",
@@ -227,10 +223,26 @@ def generate_launch_description():
         ],
     )
 
+    load_relocalization_composable_node = LoadComposableNodes(
+        condition=IfCondition(
+            PythonExpression([use_composition, " and ", enable_relocalization])
+        ),
+        target_container=container_name_full,
+        composable_node_descriptions=[
+            ComposableNode(
+                package="small_gicp_relocalization",
+                plugin="small_gicp_relocalization::SmallGicpRelocalizationNode",
+                name="small_gicp_relocalization",
+                parameters=[configured_params],
+            ),
+        ],
+    )
+
     def _set_localization_switches(context, *, params_file, namespace):
         params_path = Path(params_file.perform(context)).expanduser()
         ns_value = namespace.perform(context)
         odometry_selection = "point_lio"
+        enable_reloc_flag = True
         if params_path.is_file():
             try:
                 raw_data = yaml.safe_load(params_path.read_text()) or {}
@@ -246,10 +258,30 @@ def generate_launch_description():
                     legacy_enable_small = switches.get("enable_small_point_lio")
                     if isinstance(legacy_enable_small, bool) and legacy_enable_small:
                         odometry_selection = "small_point_lio"
+
+                reloc_params = (
+                    (raw_data.get("small_gicp_relocalization", {}) or {}).get(
+                        "ros__parameters", {}
+                    )
+                    or {}
+                )
+                reloc_enable_raw = reloc_params.get("enable", True)
+                if isinstance(reloc_enable_raw, bool):
+                    enable_reloc_flag = reloc_enable_raw
+                elif isinstance(reloc_enable_raw, str):
+                    enable_reloc_flag = reloc_enable_raw.strip().lower() in (
+                        "1",
+                        "true",
+                        "yes",
+                        "on",
+                    )
             except Exception:
                 odometry_selection = "point_lio"
+                enable_reloc_flag = True
+        use_reloc_str = "True" if enable_reloc_flag else "False"
         return [
-            SetLaunchConfiguration("odometry_source", odometry_selection)
+            SetLaunchConfiguration("odometry_source", odometry_selection),
+            SetLaunchConfiguration("enable_relocalization", use_reloc_str),
         ]
 
     set_switches_cmd = OpaqueFunction(
@@ -284,5 +316,6 @@ def generate_launch_description():
     ld.add_action(start_point_lio_node)
     ld.add_action(load_nodes)
     ld.add_action(load_composable_nodes)
+    ld.add_action(load_relocalization_composable_node)
 
     return ld
