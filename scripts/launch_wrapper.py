@@ -337,14 +337,26 @@ def _kill_by_pattern(pattern: str, title: str, script_name: str) -> None:
 
 
 def _runtime_log_dir(cfg: CommonConfig) -> Path:
-    candidates = [cfg.ws_dir / RUNTIME_LOG_DIR_NAME, Path("/tmp") / "launch_wrapper_logs"]
+    preferred = cfg.ws_dir / RUNTIME_LOG_DIR_NAME
+    fallback = Path("/tmp") / "launch_wrapper_logs"
+    candidates = [preferred, fallback]
+    fallback_used = False
     for candidate in candidates:
         try:
             candidate.mkdir(parents=True, exist_ok=True)
             if os.access(candidate, os.W_OK):
+                if candidate == fallback and not fallback_used:
+                    print(
+                        f"[{cfg.script_name}] WARNING: runtime log dir fallback to {candidate} (workspace dir not writable/available)",
+                        file=sys.stderr,
+                    )
                 return candidate
         except Exception:
+            if candidate == preferred:
+                fallback_used = True
             continue
+        if candidate == preferred:
+            fallback_used = True
     return Path("/tmp")
 
 
@@ -830,6 +842,12 @@ def main(argv: list[str]) -> int:
 
     # 启动最开始就创建目录
     _init_dirs(cfg.ws_dir)
+    selected_log_dir = _runtime_log_dir(cfg)
+    log_source = "workspace" if selected_log_dir == cfg.ws_dir / RUNTIME_LOG_DIR_NAME else "fallback"
+    print(
+        f"[{script_name}] Runtime logs dir: {selected_log_dir} (source={log_source})",
+        file=sys.stderr,
+    )
 
     # NeuPAN 虚拟环境片段
     controller_plugin = _controller_plugin(cfg.params_file)
