@@ -27,11 +27,14 @@ BT::NodeStatus InitBlackboardConfigAction::tick()
   std::uint64_t search_timeout_ms   = SEARCH_TIMEOUT_MS_DEFAULT;
   std::uint64_t recovery_timeout_ms = RECOVERY_TIMEOUT_MS_DEFAULT;
   double        arrive_radius       = ARRIVE_RADIUS_DEFAULT;
+  double        stuck_check_radius  = STUCK_CHECK_RADIUS_DEFAULT;
 
   double supply_goal_x = RED_SUPPLY_GOAL_X_DEFAULT;
   double supply_goal_y = RED_SUPPLY_GOAL_Y_DEFAULT;
   double control_zone_goal_x = RED_CONTROL_ZONE_X_DEFAULT;
   double control_zone_goal_y = RED_CONTROL_ZONE_Y_DEFAULT;
+  double control_zone_offset_x = CONTROL_ZONE_OFFSET_X_DEFAULT;
+  double control_zone_offset_y = CONTROL_ZONE_OFFSET_Y_DEFAULT;
 
   // 直接从 ROS 参数获取红蓝方阵营，避免依赖 namespace（实车不带 ns）
   bool is_blue = false;
@@ -64,6 +67,9 @@ BT::NodeStatus InitBlackboardConfigAction::tick()
     if (!node_->has_parameter("blue_control_zone_x")) node_->declare_parameter("blue_control_zone_x", BLUE_CONTROL_ZONE_X_DEFAULT);
     if (!node_->has_parameter("blue_control_zone_y")) node_->declare_parameter("blue_control_zone_y", BLUE_CONTROL_ZONE_Y_DEFAULT);
 
+    if (!node_->has_parameter("control_zone_offset_x")) node_->declare_parameter("control_zone_offset_x", CONTROL_ZONE_OFFSET_X_DEFAULT);
+    if (!node_->has_parameter("control_zone_offset_y")) node_->declare_parameter("control_zone_offset_y", CONTROL_ZONE_OFFSET_Y_DEFAULT);
+
     node_->get_parameter("is_blue_team", is_blue);
 
     if (is_blue) {
@@ -81,6 +87,15 @@ BT::NodeStatus InitBlackboardConfigAction::tick()
       RCLCPP_INFO(node_->get_logger(), "Team parsing result: RED. Applied RED fallbacks. Supply(%.2f, %.2f) Control(%.2f, %.2f)", 
                   supply_goal_x, supply_goal_y, control_zone_goal_x, control_zone_goal_y);
     }
+
+    node_->get_parameter("control_zone_offset_x", control_zone_offset_x);
+    node_->get_parameter("control_zone_offset_y", control_zone_offset_y);
+
+    if (!node_->has_parameter("arrive_radius")) node_->declare_parameter("arrive_radius", ARRIVE_RADIUS_DEFAULT);
+    node_->get_parameter("arrive_radius", arrive_radius);
+
+    if (!node_->has_parameter("stuck_check_radius")) node_->declare_parameter("stuck_check_radius", STUCK_CHECK_RADIUS_DEFAULT);
+    node_->get_parameter("stuck_check_radius", stuck_check_radius);
   }
 
   // 安全夹紧
@@ -102,7 +117,10 @@ BT::NodeStatus InitBlackboardConfigAction::tick()
   setOutput("supply_goal_y", supply_goal_y);
   setOutput("control_zone_goal_x", control_zone_goal_x);
   setOutput("control_zone_goal_y", control_zone_goal_y);
+  setOutput("control_zone_offset_x", control_zone_offset_x);
+  setOutput("control_zone_offset_y", control_zone_offset_y);
   setOutput("arrive_radius", arrive_radius);
+  setOutput("stuck_check_radius", stuck_check_radius);
 
   initialized_ = true;
   return BT::NodeStatus::SUCCESS;

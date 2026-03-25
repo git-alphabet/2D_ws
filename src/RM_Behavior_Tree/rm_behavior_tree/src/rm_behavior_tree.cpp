@@ -63,7 +63,10 @@ int main(int argc, char ** argv)
     "is_supply_card_detected",
     "is_control_zone_detected",
     "is_within_scope",
-    
+    "clear_costmap",
+    "is_robot_stuck",
+    "is_navigation_stuck",
+    "snap_goal_to_free_space",
   };
 
   const std::vector<std::string> bt_plugin_libs = {
@@ -82,8 +85,6 @@ int main(int argc, char ** argv)
     "print_message",
     "is_at_nav_goal",
     "is_detect_enemy",
-
-    
   };
   // clang-format on
 

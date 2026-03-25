@@ -157,7 +157,7 @@ ros2 launch pb2025_nav_bringup rm_navigation_simulation_launch.py \
 slam:=True
 ```
 
-保存栅格地图：`ros2 run nav2_map_server map_saver_cli -f <YOUR_MAP_NAME>  --ros-args -r __ns:=/red_standard_robot1`
+保存栅格地图：`ros2 run nav2_map_server map_saver_cli -f maps/sim/map_$(TZ=Asia/Shanghai date +%Y%m%d_%H%M) --ros-args -r __ns:=/red_standard_robot1`
 
 多机器人 (实验性功能) :
 
@@ -182,7 +182,7 @@ slam:=True \
 use_robot_state_pub:=True
 ```
 
-保存栅格地图：`ros2 run nav2_map_server map_saver_cli -f <YOUR_MAP_NAME>  --ros-args -r __ns:=/red_standard_robot1`
+保存栅格地图：`ros2 run nav2_map_server map_saver_cli -f maps/reality/map_$(TZ=Asia/Shanghai date +%Y%m%d_%H%M)`
 
 导航模式：
 

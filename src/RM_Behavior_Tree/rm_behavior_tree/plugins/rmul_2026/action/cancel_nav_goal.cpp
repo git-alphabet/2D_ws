@@ -44,14 +44,12 @@ std::string CancelNavGoalAction::makeCancelServiceName_(std::string action_name)
     action_name = "navigate_to_pose";
   }
 
-  // 如果用户已经填了完整 cancel service 名字，就原样用（容错）
   const std::string suffix = "/_action/cancel_goal";
+
+  // 如果用户已经填了完整 cancel service 名字，就原样用（容错）
   if (action_name.size() >= suffix.size() &&
       action_name.compare(action_name.size() - suffix.size(), suffix.size(), suffix) == 0)
   {
-    if (!action_name.empty() && action_name.front() != '/') {
-      action_name = "/" + action_name;
-    }
     return action_name;
   }
 
@@ -59,11 +57,11 @@ std::string CancelNavGoalAction::makeCancelServiceName_(std::string action_name)
   while (!action_name.empty() && action_name.back() == '/') {
     action_name.pop_back();
   }
-  // 确保以 '/' 开头
-  if (!action_name.empty() && action_name.front() != '/') {
-    action_name = "/" + action_name;
-  }
 
+  // 使用相对名称，让 ROS2 根据节点的命名空间自动解析
+  // 例如节点在 /red_standard_robot1 命名空间下，
+  // "navigate_to_pose/_action/cancel_goal" 会解析为
+  // "/red_standard_robot1/navigate_to_pose/_action/cancel_goal"
   return action_name + suffix;
 }
 
@@ -122,8 +120,10 @@ BT::NodeStatus CancelNavGoalAction::tick()
   }
 
   if (!service_ready) {
-    RCLCPP_WARN(
+    RCLCPP_WARN_THROTTLE(
       node_->get_logger(),
+      *node_->get_clock(),
+      3000,
       "CancelNavGoal: service not available: %s",
       service_name_.c_str());
 

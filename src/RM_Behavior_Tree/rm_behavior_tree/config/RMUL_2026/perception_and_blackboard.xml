@@ -24,6 +24,8 @@
                         supply_goal_y="{cfg.supply_goal_y}"
                         control_zone_goal_x="{cfg.control_zone_goal_x}"
                         control_zone_goal_y="{cfg.control_zone_goal_y}"
+                        control_zone_offset_x="{cfg.control_zone_offset_x}"
+                        control_zone_offset_y="{cfg.control_zone_offset_y}"
                         arrive_radius="{cfg.arrive_radius}"/>
             <SubRobotPosition topic_name="robot_position"
                               pose_x="{pose.x}"

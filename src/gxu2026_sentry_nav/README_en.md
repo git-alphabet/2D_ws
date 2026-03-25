@@ -157,7 +157,7 @@ ros2 launch pb2025_nav_bringup rm_navigation_simulation_launch.py \
 slam:=True
 ```
 
-Save map：`ros2 run nav2_map_server map_saver_cli -f <YOUR_MAP_NAME>  --ros-args -r __ns:=/red_standard_robot1`
+Save map：`ros2 run nav2_map_server map_saver_cli -f maps/sim/map_$(TZ=Asia/Shanghai date +%Y%m%d_%H%M) --ros-args -r __ns:=/red_standard_robot1`
 
 Navigation mode:
 
@@ -184,7 +184,7 @@ slam:=True \
 use_robot_state_pub:=True
 ```
 
-Save map：`ros2 run nav2_map_server map_saver_cli -f <YOUR_MAP_NAME>  --ros-args -r __ns:=/red_standard_robot1`
+Save map：`ros2 run nav2_map_server map_saver_cli -f maps/reality/map_$(TZ=Asia/Shanghai date +%Y%m%d_%H%M)`
 
 Navigation mode:
 

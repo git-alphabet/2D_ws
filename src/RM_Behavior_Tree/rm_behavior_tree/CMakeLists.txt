@@ -25,6 +25,7 @@ set(PACKAGE_INCLUDE_DEPENDS
     std_msgs
     behaviortree_cpp
     behaviortree_ros2
+    nav2_msgs
 )
 
 # 定义宏函数 add_target_dependencies
@@ -299,6 +300,16 @@ ament_auto_add_library(is_within_scope SHARED
 )
 add_target_dependencies(is_within_scope)
 
+ament_auto_add_library(is_navigation_stuck SHARED 
+    plugins/rmul_2026/condition/is_navigation_stuck.cpp
+)
+add_target_dependencies(is_navigation_stuck)
+
+ament_auto_add_library(is_robot_stuck SHARED 
+    plugins/rmul_2026/condition/is_robot_stuck.cpp
+)
+add_target_dependencies(is_robot_stuck)
+
 # Actions
 ament_auto_add_library(send_goal SHARED 
     plugins/rmul_2026/action/send_goal.cpp
@@ -398,6 +409,14 @@ ament_auto_add_library(set_goal_from_center_offset SHARED
 )
 add_target_dependencies(set_goal_from_center_offset)
 
+<<<<<<< HEAD
+=======
+ament_auto_add_library(snap_goal_to_free_space SHARED
+    plugins/rmul_2026/action/snap_goal_to_free_space.cpp
+)
+add_target_dependencies(snap_goal_to_free_space)
+
+>>>>>>> Alphabet
 ament_auto_add_library(execute_nav2_waypoints SHARED
     plugins/rmul_2026/action/execute_nav2_waypoints.cpp
 )
@@ -442,6 +461,12 @@ ament_auto_add_library(cancel_nav_goal SHARED
     plugins/rmul_2026/action/cancel_nav_goal.cpp
 )
 add_target_dependencies(cancel_nav_goal)
+
+ament_auto_add_library(clear_costmap SHARED 
+    plugins/rmul_2026/action/clear_costmap.cpp
+)
+add_target_dependencies(clear_costmap)
+target_link_libraries(clear_costmap ${nav2_msgs_TARGETS})
 
 ament_auto_package(
   INSTALL_TO_SHARE

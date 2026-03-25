@@ -35,17 +35,23 @@
             <!-- 1. 根据当前状态选择分支（两个都 FAILURE = 正常存活，子树 FAILURE） -->
             <Fallback>
 
-                <!-- A. 战亡：停车等待复活读条结束 -->
+                <!-- A. 战亡：取消导航+停车等待复活读条结束 -->
                 <Sequence name="IfDead_StopAndWait">
                     <IsDead message="{robot_status}"/>
+                    <ForceSuccess>
+                        <CancelNavGoal action_name="navigate_to_pose" min_interval_ms="1000"/>
+                    </ForceSuccess>
                     <RobotControl stop_gimbal_scan="True" 
                                   chassis_spin="False"/>
                     <NavControlCmd cmd_type="3" 
                                    emergency_stop="False"/>
                 </Sequence>
 
-                <!-- B. 恢复模式：复活后强制回补给区并回血 -->
-                <Sequence name="RecoveryMode">
+                <!-- B. 恢复模式：复活后强制回补给区并回血
+                     使用 ReactiveSequence 确保每次 tick 重新检查 need_recovery，
+                     当 DetectRespawnAndSetRecovery 检测到 hp >= recovery_exit_hp 时
+                     自动清除 need_recovery=false，本节点立即 FAILURE 退出恢复流程 -->
+                <ReactiveSequence name="RecoveryMode">
 
                     <IsRecoveryNeeded need_recovery="{need_recovery}"/>
 
@@ -59,16 +65,77 @@
                             <!-- 1. 启动导航模式 -->
                             <NavControlCmd cmd_type="1" emergency_stop="False"/>
 
-                            <!-- 2. 导航到补给区（到达前持续RUNNING） -->
+                            <!-- 2. 导航到补给区（到达前持续RUNNING，含卡住检测+偏移恢复） -->
                             <ReactiveFallback name="NavUntilArrived">
                                 <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}" goal_x="{cfg.supply_goal_x}" goal_y="{cfg.supply_goal_y}" arrive_radius="{cfg.arrive_radius}"/>
                                 <ReactiveSequence>
-                                    <RateController hz="5">
-                                        <SendGoal name="GoSupplyToHeal"
-                                            goal_x="{cfg.supply_goal_x}"
-                                            goal_y="{cfg.supply_goal_y}"
-                                            frame_id="map"
-                                            action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                    <RateController hz="1">
+                                        <Fallback>
+                                            <!-- 1) 未卡住：前往原始补给区目标点 -->
+                                            <Sequence>
+                                                <Inverter>
+                                                    <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
+                                                                       goal_x="{cfg.supply_goal_x}"
+                                                                       goal_y="{cfg.supply_goal_y}"
+                                                                       stuck_check_radius="{cfg.stuck_check_radius}"
+                                                                       stuck_timeout_ms="5000"
+                                                                       movement_threshold="0.15"
+                                                                       reset_distance="0.5"/>
+                                                </Inverter>
+                                                <SendGoal name="GoSupplyToHeal_Normal"
+                                                          goal_x="{cfg.supply_goal_x}"
+                                                          goal_y="{cfg.supply_goal_y}"
+                                                          frame_id="map"
+                                                          action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                            </Sequence>
+                                            <!-- 2) 卡住：清除代价地图 + 偏移目标点 -->
+                                            <Sequence>
+                                                <ForceSuccess>
+                                                    <ClearCostmap service_name="local_costmap/clear_entirely" timeout_ms="1000"/>
+                                                </ForceSuccess>
+                                                <ForceSuccess>
+                                                    <ClearCostmap service_name="global_costmap/clear_entirely" timeout_ms="1000"/>
+                                                </ForceSuccess>
+                                                <Fallback>
+                                                    <!-- 2a) 校准偏移（基于出生点校准） -->
+                                                    <Sequence>
+                                                        <SetGoalFromCenterOffset center_x="{calib.spawn_x}"
+                                                                                 center_y="{calib.spawn_y}"
+                                                                                 center_yaw="{calib.spawn_yaw}"
+                                                                                 offset_x="{cfg.control_zone_offset_x}"
+                                                                                 offset_y="{cfg.control_zone_offset_y}"
+                                                                                 goal_x="{nav.goal_x}"
+                                                                                 goal_y="{nav.goal_y}"
+                                                                                 goal_pose="{nav.goal_pose}"/>
+                                                        <SnapGoalToFreeSpace goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                                                                             goal_pose="{nav.goal_pose}"
+                                                                             max_search_radius="1.0" search_step="0.1"/>
+                                                        <SendGoal name="GoSupplyToHeal_Offset"
+                                                                  goal_pose="{nav.goal_pose}"
+                                                                  frame_id="map"
+                                                                  action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                                    </Sequence>
+                                                    <!-- 2b) 无校准数据：基于原始配置点偏移 -->
+                                                    <Sequence>
+                                                        <SetGoalFromCenterOffset center_x="{cfg.supply_goal_x}"
+                                                                                 center_y="{cfg.supply_goal_y}"
+                                                                                 center_yaw="0.0"
+                                                                                 offset_x="{cfg.control_zone_offset_x}"
+                                                                                 offset_y="{cfg.control_zone_offset_y}"
+                                                                                 goal_x="{nav.goal_x}"
+                                                                                 goal_y="{nav.goal_y}"
+                                                                                 goal_pose="{nav.goal_pose}"/>
+                                                        <SnapGoalToFreeSpace goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                                                                             goal_pose="{nav.goal_pose}"
+                                                                             max_search_radius="1.0" search_step="0.1"/>
+                                                        <SendGoal name="GoSupplyToHeal_Fallback"
+                                                                  goal_pose="{nav.goal_pose}"
+                                                                  frame_id="map"
+                                                                  action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                                    </Sequence>
+                                                </Fallback>
+                                            </Sequence>
+                                        </Fallback>
                                     </RateController>
                                     <KeepRunning/>
                                 </ReactiveSequence>
@@ -101,7 +168,7 @@
 
                     </Sequence>
 
-                </Sequence>
+                </ReactiveSequence>
 
             </Fallback>
 

@@ -22,6 +22,11 @@
         <ReactiveSequence>
           <IsDetectEnemy message="{robot_status}"/>
 
+          <!-- 检测到敌人后立即取消正在执行的Nav2导航目标 -->
+          <ForceSuccess>
+            <CancelNavGoal action_name="navigate_to_pose" min_interval_ms="1000"/>
+          </ForceSuccess>
+
           <Fallback>
             <!-- A-1: 热量安全 → 停车射击，精度优先 + 小陀螺防护 -->
             <Sequence>

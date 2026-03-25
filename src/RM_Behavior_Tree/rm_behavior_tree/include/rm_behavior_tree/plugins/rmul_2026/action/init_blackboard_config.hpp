@@ -33,7 +33,10 @@ public:
       BT::OutputPort<double>("supply_goal_y"),
       BT::OutputPort<double>("control_zone_goal_x"),
       BT::OutputPort<double>("control_zone_goal_y"),
-      BT::OutputPort<double>("arrive_radius")
+      BT::OutputPort<double>("control_zone_offset_x"),
+      BT::OutputPort<double>("control_zone_offset_y"),
+      BT::OutputPort<double>("arrive_radius"),
+      BT::OutputPort<double>("stuck_check_radius")
     };
   }
 
@@ -63,7 +66,12 @@ private:
   static constexpr double        BLUE_CONTROL_ZONE_X_DEFAULT     = 2.95; 
   static constexpr double        BLUE_CONTROL_ZONE_Y_DEFAULT     = -0.54; 
 
+  // 控制区目标点偏移（哨兵专用，避开控制区中心被队友占据；3m正方形区域内有效范围约±1.0）
+  static constexpr double        CONTROL_ZONE_OFFSET_X_DEFAULT = 0.6;
+  static constexpr double        CONTROL_ZONE_OFFSET_Y_DEFAULT = 0.6;
+
   static constexpr double        ARRIVE_RADIUS_DEFAULT       = 0.6;
+  static constexpr double        STUCK_CHECK_RADIUS_DEFAULT  = 1.6;
 };
 
 }  // namespace rm_behavior_tree

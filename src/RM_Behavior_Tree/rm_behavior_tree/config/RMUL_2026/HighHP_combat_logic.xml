@@ -26,6 +26,11 @@
         <ReactiveSequence>
           <IsDetectEnemy message="{robot_status}"/>
 
+          <!-- 检测到敌人后立即取消正在执行的Nav2导航目标，否则Nav2会继续驱动机器人移动 -->
+          <ForceSuccess>
+            <CancelNavGoal action_name="navigate_to_pose" min_interval_ms="1000"/>
+          </ForceSuccess>
+
           <Fallback>
             <!-- A-1: 热量安全(≤280) → 刹车+原地，停云台扫描让自瞄接管，开小陀螺
                  说明: 机器人停止移动以最大化射击精度，
@@ -66,25 +71,70 @@
             <ReactiveSequence>
               <RateController hz="1">
             <Fallback>
+              <!-- 1) 未卡住：前往原始控制区目标点 -->
               <Sequence>
-                <SetGoalFromCenterOffset center_x="{calib.anchor_x}"
-                                         center_y="{calib.anchor_y}"
-                                         center_yaw="{calib.anchor_yaw}"
-                                         offset_x="0.0"
-                                         offset_y="0.0"
-                                         goal_x="{nav.goal_x}"
-                                         goal_y="{nav.goal_y}"
-                                         goal_pose="{nav.goal_pose}"/>
-                <SendGoal name="PatrolControlZone_Calibrated"
-                          goal_pose="{nav.goal_pose}"
+                <Inverter>
+                  <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
+                                     goal_x="{cfg.control_zone_goal_x}"
+                                     goal_y="{cfg.control_zone_goal_y}"
+                                     stuck_check_radius="{cfg.stuck_check_radius}"
+                                     stuck_timeout_ms="5000"
+                                     movement_threshold="0.15"
+                                     reset_distance="0.5"/>
+                </Inverter>
+                <SendGoal name="PatrolControlZone_Normal"
+                          goal_x="{cfg.control_zone_goal_x}"
+                          goal_y="{cfg.control_zone_goal_y}"
                           frame_id="map"
                           action_name="navigate_to_pose" min_interval_ms="1000"/>
               </Sequence>
-              <SendGoal name="PatrolControlZone_Fallback"
-                        goal_x="{cfg.control_zone_goal_x}"
-                        goal_y="{cfg.control_zone_goal_y}"
-                        frame_id="map"
-                        action_name="navigate_to_pose" min_interval_ms="1000"/>
+              <!-- 2) 卡住：清除代价地图 + 偏移目标点 -->
+              <Sequence>
+                <ForceSuccess>
+                  <ClearCostmap service_name="local_costmap/clear_entirely" timeout_ms="1000"/>
+                </ForceSuccess>
+                <ForceSuccess>
+                  <ClearCostmap service_name="global_costmap/clear_entirely" timeout_ms="1000"/>
+                </ForceSuccess>
+                <Fallback>
+                  <!-- 2a) 校准偏移 -->
+                  <Sequence>
+                    <SetGoalFromCenterOffset center_x="{calib.anchor_x}"
+                                             center_y="{calib.anchor_y}"
+                                             center_yaw="{calib.anchor_yaw}"
+                                             offset_x="{cfg.control_zone_offset_x}"
+                                             offset_y="{cfg.control_zone_offset_y}"
+                                             goal_x="{nav.goal_x}"
+                                             goal_y="{nav.goal_y}"
+                                             goal_pose="{nav.goal_pose}"/>
+                    <SnapGoalToFreeSpace goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                                         goal_pose="{nav.goal_pose}"
+                                         max_search_radius="1.0" search_step="0.1"/>
+                    <SendGoal name="PatrolControlZone_Offset"
+                              goal_pose="{nav.goal_pose}"
+                              frame_id="map"
+                              action_name="navigate_to_pose" min_interval_ms="1000"/>
+                  </Sequence>
+                  <!-- 2b) 无校准数据：基于原始配置点偏移 -->
+                  <Sequence>
+                    <SetGoalFromCenterOffset center_x="{cfg.control_zone_goal_x}"
+                                             center_y="{cfg.control_zone_goal_y}"
+                                             center_yaw="0.0"
+                                             offset_x="{cfg.control_zone_offset_x}"
+                                             offset_y="{cfg.control_zone_offset_y}"
+                                             goal_x="{nav.goal_x}"
+                                             goal_y="{nav.goal_y}"
+                                             goal_pose="{nav.goal_pose}"/>
+                    <SnapGoalToFreeSpace goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                                         goal_pose="{nav.goal_pose}"
+                                         max_search_radius="1.0" search_step="0.1"/>
+                    <SendGoal name="PatrolControlZone_Fallback"
+                              goal_pose="{nav.goal_pose}"
+                              frame_id="map"
+                              action_name="navigate_to_pose" min_interval_ms="1000"/>
+                  </Sequence>
+                </Fallback>
+              </Sequence>
             </Fallback>
           </RateController>
               <KeepRunning/>

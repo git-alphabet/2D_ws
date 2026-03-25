@@ -52,6 +52,8 @@ x-base: &base
     - ../build:/ws/build                    # bind mount：宿主机可直接 rm -rf 清除
     - ../install:/ws/install
     - ../log:/ws/log
+    - ../maps:/ws/maps                      # 自动保存的地图（容器生成→宿主机可见）
+    - ../launch_logs:/ws/launch_logs        # 启动日志（容器生成→宿主机可见）
   working_dir: /ws
 
 services:

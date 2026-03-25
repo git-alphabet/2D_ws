@@ -12,7 +12,7 @@ pb_navigation_switches:
   ros__parameters:
     controller_plugin: "pb_omni_pid_pursuit_controller"   # 控制器插件选择：neupan_nav2_controller / pb_omni_pid_pursuit_controller
     odometry_source: "point_lio"                   #point_lio / small_point_lio / loam_interface
-    behavior_tree: "none"                       # .xml or default,none
+    behavior_tree: "config/RMUL_2026/rmul_2026.xml"                       # .xml or default,none
 
 
     enable_gimbal_yaw_bridge: false               # 仿真中 TF 由 Gazebo bringup 的 robot_state_publisher 直接提供，无需此通路。
@@ -214,6 +214,13 @@ rm_behavior_tree:
     blue_control_zone_y: -0.54
     blue_supply_goal_x: 7.87
     blue_supply_goal_y: -4.16
+    # 控制区目标点偏移（哨兵专用，避开控制区中心被队友占据；3m正方形区域内有效范围约±1.0）
+    control_zone_offset_x: 0.6
+    control_zone_offset_y: 0.6
+    # BT到达判定半径（应 >= Nav2 的 xy_goal_tolerance = 0.2，否则BT认为没到但Nav2已停止）
+    arrive_radius: 0.6
+    # 卡住检测判定半径：仅在距目标点此范围内才启动卡住计时（IsNavigationStuck）
+    stuck_check_radius: 1.6
 
 # Point-LIO：里程计/定位源之一（注意其 tf_send_en = False 时不会发布 TF）
 point_lio:
