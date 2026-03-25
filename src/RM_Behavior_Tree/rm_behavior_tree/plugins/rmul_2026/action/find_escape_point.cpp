@@ -173,9 +173,36 @@ BT::NodeStatus FindEscapePointAction::tick()
   last_tick_time_ = now;
   last_tick_time_set_ = true;
 
-  // 超时后持续 FAILURE，直到心跳检测认定新脱困场景
+  // 超时后持续 FAILURE，但如果机器人已远离旧脱困点（强制返航后又卡住了）
+  // 则重置状态，允许搜索新脱困点 → 新一轮脱困循环
   if (timed_out_) {
-    return BT::NodeStatus::FAILURE;
+    auto rx_t = getInput<double>("robot_x");
+    auto ry_t = getInput<double>("robot_y");
+    if (rx_t && ry_t) {
+      double arrive_radius = 0.3;
+      getInput("arrive_radius", arrive_radius);
+      const double cdx = rx_t.value() - committed_x_;
+      const double cdy = ry_t.value() - committed_y_;
+      const double cdist = std::sqrt(cdx * cdx + cdy * cdy);
+      if (cdist > arrive_radius * 3.0) {
+        // 机器人已远离旧脱困点 → 重置，允许新脱困搜索
+        has_committed_ = false;
+        committed_x_ = 0.0;
+        committed_y_ = 0.0;
+        at_escape_ = false;
+        timed_out_ = false;
+        if (node_) {
+          RCLCPP_INFO(node_->get_logger(),
+            "[FindEscapePoint] Timeout reset: robot moved %.2fm from old escape, starting new cycle",
+            cdist);
+        }
+        // 继续执行 → 搜索新脱困点
+      } else {
+        return BT::NodeStatus::FAILURE;
+      }
+    } else {
+      return BT::NodeStatus::FAILURE;
+    }
   }
 
   // 1. 确保 costmap 订阅就绪
