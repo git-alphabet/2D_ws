@@ -65,13 +65,15 @@
                             <!-- 1. 启动导航模式 -->
                             <NavControlCmd cmd_type="1" emergency_stop="False"/>
 
-                            <!-- 2. 导航到补给区（到达前持续RUNNING，含卡住检测+偏移恢复） -->
+                            <!-- 2. 导航到补给区（到达前持续RUNNING，含卡住检测+逃脱恢复） -->
                             <ReactiveFallback name="NavUntilArrived">
                                 <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}" goal_x="{cfg.supply_goal_x}" goal_y="{cfg.supply_goal_y}" arrive_radius="{cfg.arrive_radius}"/>
+                                <!-- HP在回升 → 脱困点恰好在补给区内，视为已到达 -->
+                                <IsHPIncreasing message="{robot_status}"/>
                                 <ReactiveSequence>
                                     <RateController hz="1">
                                         <Fallback>
-                                            <!-- 1) 未卡住且目标区域可通行：前往原始补给区目标点 -->
+                                            <!-- 1) 未卡住 + 目标区域安全 → 正常前往补给区 -->
                                             <Sequence>
                                                 <Inverter>
                                                     <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
@@ -93,7 +95,7 @@
                                                           frame_id="map"
                                                           action_name="navigate_to_pose" min_interval_ms="1000"/>
                                             </Sequence>
-                                            <!-- 2) 卡住：清除代价地图 + 搜索逃脱点 -->
+                                            <!-- 2) 脱困：清除代价地图 + 搜索逃脱点（在脱困点等待最多3秒） -->
                                             <Sequence>
                                                 <ForceSuccess>
                                                     <ClearCostmap service_name="local_costmap/clear_entirely" timeout_ms="1000"/>
@@ -104,6 +106,7 @@
                                                 <FindEscapePoint robot_x="{pose.x}" robot_y="{pose.y}"
                                                                  goal_x="{cfg.supply_goal_x}"
                                                                  goal_y="{cfg.supply_goal_y}"
+                                                                 escape_timeout_ms="3000"
                                                                  escape_x="{nav.goal_x}"
                                                                  escape_y="{nav.goal_y}"
                                                                  escape_pose="{nav.goal_pose}"/>
@@ -112,6 +115,12 @@
                                                           frame_id="map"
                                                           action_name="navigate_to_pose" min_interval_ms="1000"/>
                                             </Sequence>
+                                            <!-- 3) 脱困超时3秒 → 不顾风险，强制返航补给区 -->
+                                            <SendGoal name="GoSupplyToHeal_Forced"
+                                                      goal_x="{cfg.supply_goal_x}"
+                                                      goal_y="{cfg.supply_goal_y}"
+                                                      frame_id="map"
+                                                      action_name="navigate_to_pose" min_interval_ms="1000"/>
                                         </Fallback>
                                     </RateController>
                                     <KeepRunning/>

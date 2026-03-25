@@ -76,6 +76,7 @@ int main(int argc, char ** argv)
     "is_game_time",
     "is_hp_above",
     "is_hp_below",
+    "is_hp_increasing",
     "is_dead",
     "is_status_ok",
     "is_friend_ok",

@@ -156,6 +156,28 @@ bool FindEscapePointAction::searchPhase(
 
 BT::NodeStatus FindEscapePointAction::tick()
 {
+  // 心跳检测：如果距上次 tick 超过 2 秒，说明树已切走并重新进入（新脱困场景），
+  // 重置所有状态。正常 RateController(1hz) 间隔约 1 秒，不会触发。
+  const auto now = std::chrono::steady_clock::now();
+  if (last_tick_time_set_) {
+    const auto gap_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+      now - last_tick_time_).count();
+    if (gap_ms > 2000) {
+      has_committed_ = false;
+      committed_x_ = 0.0;
+      committed_y_ = 0.0;
+      at_escape_ = false;
+      timed_out_ = false;
+    }
+  }
+  last_tick_time_ = now;
+  last_tick_time_set_ = true;
+
+  // 超时后持续 FAILURE，直到心跳检测认定新脱困场景
+  if (timed_out_) {
+    return BT::NodeStatus::FAILURE;
+  }
+
   // 1. 确保 costmap 订阅就绪
   std::string topic = "global_costmap/costmap_raw";
   getInput("costmap_topic", topic);
@@ -199,12 +221,48 @@ BT::NodeStatus FindEscapePointAction::tick()
     const double cdist = std::sqrt(cdx * cdx + cdy * cdy);
 
     if (ccost < 235 && cdist < MAX_COMMIT_DISTANCE) {
+      // 检查是否已到达逃脱点（用于超时机制）
+      double arrive_radius = 0.3;
+      getInput("arrive_radius", arrive_radius);
+      int escape_timeout_ms = 0;
+      getInput("escape_timeout_ms", escape_timeout_ms);
+
+      if (cdist < arrive_radius) {
+        // 已到达逃脱点
+        if (!at_escape_) {
+          at_escape_ = true;
+          escape_arrival_time_ = std::chrono::steady_clock::now();
+        }
+
+        // 检查超时（仅当 escape_timeout_ms > 0 时启用）
+        if (escape_timeout_ms > 0) {
+          const auto elapsed = std::chrono::steady_clock::now() - escape_arrival_time_;
+          const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+          if (elapsed_ms >= escape_timeout_ms) {
+            // 超时：设置 timed_out_ 标志，后续 tick 持续返回 FAILURE
+            // 不清除 has_committed_，防止搜索新脱困点导致错误重定向
+            // 行为树 Fallback 会落入下一分支（强制返航目标）
+            timed_out_ = true;
+            if (node_) {
+              RCLCPP_INFO(node_->get_logger(),
+                "[FindEscapePoint] Escape timeout (%dms) at (%.2f,%.2f), forcing return to goal",
+                escape_timeout_ms, committed_x_, committed_y_);
+            }
+            return BT::NodeStatus::FAILURE;
+          }
+        }
+      } else {
+        // 尚未到达，重置到达状态
+        at_escape_ = false;
+      }
+
       // 已提交点仍然有效且距离合理，继续返回同一个点
       outputResult(committed_x_, committed_y_);
       return BT::NodeStatus::SUCCESS;
     }
     // 已提交点失效（被障碍覆盖或距离太远），重新搜索
     has_committed_ = false;
+    at_escape_ = false;
     if (node_) {
       RCLCPP_INFO(node_->get_logger(),
         "[FindEscapePoint] Committed point (%.2f,%.2f) invalidated (cost=%d, dist=%.2f)",

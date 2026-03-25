@@ -87,6 +87,11 @@ ament_auto_add_library(is_hp_below SHARED
 )
 add_target_dependencies(is_hp_below)
 
+ament_auto_add_library(is_hp_increasing SHARED
+    plugins/rmul_2026/condition/is_hp_increasing.cpp
+)
+add_target_dependencies(is_hp_increasing)
+
 ament_auto_add_library(is_dead SHARED 
     plugins/rmul_2026/condition/is_dead.cpp
 )

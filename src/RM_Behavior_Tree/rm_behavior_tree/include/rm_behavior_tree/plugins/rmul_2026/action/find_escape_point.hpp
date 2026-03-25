@@ -1,6 +1,7 @@
 #ifndef RM_BEHAVIOR_TREE__PLUGINS__ACTION__FIND_ESCAPE_POINT_HPP_
 #define RM_BEHAVIOR_TREE__PLUGINS__ACTION__FIND_ESCAPE_POINT_HPP_
 
+#include <chrono>
 #include <cstdint>
 #include <mutex>
 #include <string>
@@ -49,6 +50,10 @@ public:
       BT::InputPort<double>("robot_y", "robot current y"),
       BT::InputPort<double>("goal_x", "original goal x"),
       BT::InputPort<double>("goal_y", "original goal y"),
+      BT::InputPort<int>("escape_timeout_ms", 0,
+                          "max ms to stay at escape point before returning FAILURE (0=no timeout)"),
+      BT::InputPort<double>("arrive_radius", 0.3,
+                             "distance to escape point considered arrived"),
       BT::OutputPort<double>("escape_x", "escape point x"),
       BT::OutputPort<double>("escape_y", "escape point y"),
       BT::OutputPort<geometry_msgs::msg::PoseStamped>("escape_pose", "escape point as PoseStamped"),
@@ -108,6 +113,15 @@ private:
   double committed_x_ = 0.0;
   double committed_y_ = 0.0;
   static constexpr double MAX_COMMIT_DISTANCE = 5.0;  // 超过此距离认为已离开脱困流程
+
+  // ---- 到达脱困点计时（超时后返回FAILURE，用于补给区紧急场景） ----
+  bool at_escape_ = false;
+  bool timed_out_ = false;  // 超时后持续返回FAILURE，直到心跳检测重置
+  std::chrono::steady_clock::time_point escape_arrival_time_;
+
+  // ---- 心跳检测（替代 status()==IDLE，因为 SyncActionNode::halt() 是 final） ----
+  bool last_tick_time_set_ = false;
+  std::chrono::steady_clock::time_point last_tick_time_;
 };
 
 }  // namespace rm_behavior_tree

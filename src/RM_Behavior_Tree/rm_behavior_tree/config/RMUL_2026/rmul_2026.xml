@@ -332,6 +332,9 @@
             <input_port name="message" default="{robot_status}"/>
             <input_port name="hp_threshold" default="100"/>
         </Condition>
+        <Condition ID="IsHPIncreasing" editable="true">
+            <input_port name="message" default="{robot_status}"/>
+        </Condition>
         <Condition ID="IsDead" editable="true">
             <input_port name="message" default="{robot_status}"/>
         </Condition>
