@@ -419,6 +419,11 @@ ament_auto_add_library(find_escape_point SHARED
 )
 add_target_dependencies(find_escape_point)
 
+ament_auto_add_library(is_goal_area_clear SHARED
+    plugins/rmul_2026/condition/is_goal_area_clear.cpp
+)
+add_target_dependencies(is_goal_area_clear)
+
 ament_auto_add_library(execute_nav2_waypoints SHARED
     plugins/rmul_2026/action/execute_nav2_waypoints.cpp
 )

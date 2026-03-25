@@ -71,7 +71,7 @@
                                 <ReactiveSequence>
                                     <RateController hz="1">
                                         <Fallback>
-                                            <!-- 1) 未卡住：前往原始补给区目标点 -->
+                                            <!-- 1) 未卡住且目标区域可通行：前往原始补给区目标点 -->
                                             <Sequence>
                                                 <Inverter>
                                                     <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
@@ -82,6 +82,11 @@
                                                                        movement_threshold="0.15"
                                                                        reset_distance="0.5"/>
                                                 </Inverter>
+                                                <IsGoalAreaClear goal_x="{cfg.supply_goal_x}"
+                                                                 goal_y="{cfg.supply_goal_y}"
+                                                                 check_radius="0.3"
+                                                                 min_free_neighbors="2"
+                                                                 free_threshold="200"/>
                                                 <SendGoal name="GoSupplyToHeal_Normal"
                                                           goal_x="{cfg.supply_goal_x}"
                                                           goal_y="{cfg.supply_goal_y}"

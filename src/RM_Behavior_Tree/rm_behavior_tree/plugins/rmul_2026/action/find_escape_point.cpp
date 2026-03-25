@@ -191,7 +191,28 @@ BT::NodeStatus FindEscapePointAction::tick()
   const double goal_x = gx.value();
   const double goal_y = gy.value();
 
-  // 3. 计算后退方向 = normalize(robot - goal)
+  // 3. 检查是否有已提交的逃脱点（状态保持）
+  if (has_committed_) {
+    const uint8_t ccost = getCost(committed_x_, committed_y_);
+    const double cdx = robot_x - committed_x_;
+    const double cdy = robot_y - committed_y_;
+    const double cdist = std::sqrt(cdx * cdx + cdy * cdy);
+
+    if (ccost < 235 && cdist < MAX_COMMIT_DISTANCE) {
+      // 已提交点仍然有效且距离合理，继续返回同一个点
+      outputResult(committed_x_, committed_y_);
+      return BT::NodeStatus::SUCCESS;
+    }
+    // 已提交点失效（被障碍覆盖或距离太远），重新搜索
+    has_committed_ = false;
+    if (node_) {
+      RCLCPP_INFO(node_->get_logger(),
+        "[FindEscapePoint] Committed point (%.2f,%.2f) invalidated (cost=%d, dist=%.2f)",
+        committed_x_, committed_y_, ccost, cdist);
+    }
+  }
+
+  // 4. 计算后退方向 = normalize(robot - goal)
   double retreat_dx = robot_x - goal_x;
   double retreat_dy = robot_y - goal_y;
   const double retreat_len = std::sqrt(retreat_dx * retreat_dx + retreat_dy * retreat_dy);
@@ -203,40 +224,28 @@ BT::NodeStatus FindEscapePointAction::tick()
     retreat_dy = 0.0;
   }
 
-  // 4. 三阶段搜索
+  // 5. 三阶段搜索
   const double step = 0.15;  // 搜索步长
 
-  // 阶段①: cost<50, 1.0~2.0m, 优先后退
+  // 阶段①: cost<50, 0.5~2.0m, 优先后退
   SearchParams phase1{0.5, 2.0, step, 50, true};
   double ex = 0.0, ey = 0.0;
   if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, phase1, ex, ey)) {
-    if (node_) {
-      RCLCPP_INFO(node_->get_logger(),
-        "[FindEscapePoint] Phase1 found (%.2f,%.2f) → escape (%.2f,%.2f)", robot_x, robot_y, ex, ey);
-    }
-    outputResult(ex, ey);
+    commitAndOutput(ex, ey, "Phase1", robot_x, robot_y);
     return BT::NodeStatus::SUCCESS;
   }
 
-  // 阶段②: cost<150, 1.0~3.0m, 优先后退
+  // 阶段②: cost<150, 0.5~3.0m, 优先后退
   SearchParams phase2{0.5, 3.0, step, 150, true};
   if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, phase2, ex, ey)) {
-    if (node_) {
-      RCLCPP_INFO(node_->get_logger(),
-        "[FindEscapePoint] Phase2 found (%.2f,%.2f) → escape (%.2f,%.2f)", robot_x, robot_y, ex, ey);
-    }
-    outputResult(ex, ey);
+    commitAndOutput(ex, ey, "Phase2", robot_x, robot_y);
     return BT::NodeStatus::SUCCESS;
   }
 
-  // 阶段③: cost<235, 1.0~3.0m, 任意方向
+  // 阶段③: cost<235, 0.5~3.0m, 任意方向
   SearchParams phase3{0.5, 3.0, step, 235, false};
   if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, phase3, ex, ey)) {
-    if (node_) {
-      RCLCPP_INFO(node_->get_logger(),
-        "[FindEscapePoint] Phase3 found (%.2f,%.2f) → escape (%.2f,%.2f)", robot_x, robot_y, ex, ey);
-    }
-    outputResult(ex, ey);
+    commitAndOutput(ex, ey, "Phase3", robot_x, robot_y);
     return BT::NodeStatus::SUCCESS;
   }
 
@@ -261,6 +270,20 @@ void FindEscapePointAction::outputResult(double x, double y)
   pose.pose.position.z = 0.0;
   pose.pose.orientation.w = 1.0;
   setOutput("escape_pose", pose);
+}
+
+void FindEscapePointAction::commitAndOutput(
+  double x, double y, const char * phase, double robot_x, double robot_y)
+{
+  has_committed_ = true;
+  committed_x_ = x;
+  committed_y_ = y;
+  if (node_) {
+    RCLCPP_INFO(node_->get_logger(),
+      "[FindEscapePoint] %s: robot(%.2f,%.2f) → escape(%.2f,%.2f) [committed]",
+      phase, robot_x, robot_y, x, y);
+  }
+  outputResult(x, y);
 }
 
 }  // namespace rm_behavior_tree

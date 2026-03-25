@@ -105,7 +105,7 @@
                                     <ReactiveSequence>
                                         <RateController hz="1">
                                             <Fallback>
-                                                <!-- 1) 未卡住：前往原始控制区目标点 -->
+                                                <!-- 1) 未卡住且目标区域可通行：前往原始控制区目标点 -->
                                                 <Sequence>
                                                     <Inverter>
                                                         <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
@@ -116,6 +116,11 @@
                                                                            movement_threshold="0.15"
                                                                            reset_distance="0.5"/>
                                                     </Inverter>
+                                                    <IsGoalAreaClear goal_x="{cfg.control_zone_goal_x}"
+                                                                     goal_y="{cfg.control_zone_goal_y}"
+                                                                     check_radius="0.3"
+                                                                     min_free_neighbors="2"
+                                                                     free_threshold="200"/>
                                                     <SendGoal name="GoControlZone_Normal"
                                                             goal_x="{cfg.control_zone_goal_x}"
                                                             goal_y="{cfg.control_zone_goal_y}"
@@ -342,6 +347,14 @@
             <input_port name="goal_x" default="{cfg.supply_goal_x}"/>
             <input_port name="goal_y" default="{cfg.supply_goal_y}"/>
             <input_port name="arrive_radius" default="{cfg.arrive_radius}"/>
+        </Condition>
+        <Condition ID="IsGoalAreaClear" editable="true">
+            <input_port name="costmap_topic" default="global_costmap/costmap_raw"/>
+            <input_port name="goal_x"/>
+            <input_port name="goal_y"/>
+            <input_port name="check_radius" default="0.3"/>
+            <input_port name="min_free_neighbors" default="2"/>
+            <input_port name="free_threshold" default="200"/>
         </Condition>
         <Condition ID="NotArrived" editable="true">
             <input_port name="rfid_status" default="{rfid.status}"/>

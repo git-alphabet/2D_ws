@@ -18,15 +18,19 @@ namespace rm_behavior_tree
  * 卡住脱困专用插件：从机器人当前位置搜索安全逃脱点。
  *
  * 三阶段搜索策略：
- *   ① cost < 50,  半径 1.0~2.0m, 优先后退方向
- *   ② cost < 150, 半径 1.0~3.0m, 优先后退方向
- *   ③ cost < 235, 半径 1.0~3.0m, 任意方向
+ *   ① cost < 50,  半径 0.5~2.0m, 优先后退方向
+ *   ② cost < 150, 半径 0.5~3.0m, 优先后退方向
+ *   ③ cost < 235, 半径 0.5~3.0m, 任意方向
  *
  * "后退方向" = normalize(robot - goal)，即远离目标的方向。
  *
+ * 状态保持：一旦选定逃脱点，后续 tick 返回同一个点，直到：
+ *   - 该点代价值升高变为障碍（cost >= 235）
+ *   - 机器人距该点 > max_commit_distance（5.0m，说明已不在脱困流程中）
+ *
  * 输入：robot_x, robot_y (机器人位置), goal_x, goal_y (原始目标)
  * 输出：escape_x, escape_y, escape_pose (逃脱点)
- * 返回：SUCCESS=找到逃脱点  FAILURE=三阶段均无可用点
+ * 返回：SUCCESS=找到/已有逃脱点  FAILURE=三阶段均无可用点
  */
 class FindEscapePointAction : public BT::SyncActionNode
 {
@@ -95,6 +99,15 @@ private:
 
   /// 输出逃脱点到端口
   void outputResult(double x, double y);
+
+  /// 提交并输出逃脱点（记录状态 + 日志）
+  void commitAndOutput(double x, double y, const char * phase, double robot_x, double robot_y);
+
+  // ---- 状态保持 ----
+  bool has_committed_ = false;
+  double committed_x_ = 0.0;
+  double committed_y_ = 0.0;
+  static constexpr double MAX_COMMIT_DISTANCE = 5.0;  // 超过此距离认为已离开脱困流程
 };
 
 }  // namespace rm_behavior_tree
