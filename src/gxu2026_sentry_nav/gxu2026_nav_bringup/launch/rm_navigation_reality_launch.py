@@ -154,6 +154,7 @@ def generate_launch_description():
         launch_arguments={
             "namespace": namespace,
             "use_sim_time": use_sim_time,
+            "params_file": params_file,
         }.items(),
     )
 

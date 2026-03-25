@@ -15,9 +15,13 @@ mid360_driver:
     # 多雷达时可打开，让话题名后缀带雷达 ip
     is_topic_name_with_lidar_ip: false
 
-# 里程计 控制器 行为树 配置
+
 pb_navigation_switches:
   ros__parameters:
+    # 机器人模型唯一入口：
+    # 这里只改一次，robot_state_publisher 会据此选择 xmacro（<robot_name>.sdf.xmacro）
+    # 例如：simulation_robot / reality_robot（需在 gxu2026_robot_description/resource/xmacro 下存在同名文件）
+    robot_name: "simulation_robot"
     controller_plugin: "pb_omni_pid_pursuit_controller"
     odometry_source: "point_lio"
     behavior_tree: "default"
@@ -767,43 +771,6 @@ velocity_smoother:
     odom_duration: 0.1
     deadband_velocity: [0.0, 0.0, 0.0]
     velocity_timeout: 1.0
-
-# 手柄遥控：auto/manual 控制模式切换
-pb_teleop_twist_joy_node:
-  ros__parameters:
-    use_sim_time: False
-    robot_base_frame: gimbal_yaw
-    control_mode: auto_control    # Option: auto_control, manual_control
-
-    require_enable_button: true
-    enable_button: 4              # L1 shoulder button
-    enable_turbo_button: 5        # R1 shoulder button
-
-    axis_chassis:
-      x: 1                        # Left thumb stick vertical
-      y: 0                        # Left thumb stick horizontal
-      yaw: 6                      # button_left and button_right
-    scale_chassis:
-      x: 2.5
-      y: 2.5
-      yaw: 3.0
-    scale_chassis_turbo:
-      x: 4.0
-      y: 4.0
-      yaw: 6.0
-
-    axis_gimbal:
-      roll: -1                    # Disable
-      pitch: 4                    # Right thumb stick vertical
-      yaw: 3                      # Right thumb stick horizontal
-    scale_gimbal:
-      roll: 0.0
-      pitch: -1.0
-      yaw: 2.5
-    scale_gimbal_turbo:
-      roll: 0.0
-      pitch: -1.5
-      yaw: 3.5
 
 lifecycle_manager_navigation:
   ros__parameters:
