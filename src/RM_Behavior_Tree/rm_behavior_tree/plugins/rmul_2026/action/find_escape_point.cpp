@@ -244,7 +244,7 @@ BT::NodeStatus FindEscapePointAction::tick()
             // 行为树 Fallback 会落入下一分支（强制返航目标）
             timed_out_ = true;
             if (node_) {
-              RCLCPP_INFO(node_->get_logger(),
+              RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 3000,
                 "[FindEscapePoint] Escape timeout (%dms) at (%.2f,%.2f), forcing return to goal",
                 escape_timeout_ms, committed_x_, committed_y_);
             }
@@ -264,7 +264,7 @@ BT::NodeStatus FindEscapePointAction::tick()
     has_committed_ = false;
     at_escape_ = false;
     if (node_) {
-      RCLCPP_INFO(node_->get_logger(),
+      RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 3000,
         "[FindEscapePoint] Committed point (%.2f,%.2f) invalidated (cost=%d, dist=%.2f)",
         committed_x_, committed_y_, ccost, cdist);
     }
@@ -309,7 +309,7 @@ BT::NodeStatus FindEscapePointAction::tick()
 
   // 三阶段都没找到
   if (node_) {
-    RCLCPP_WARN(node_->get_logger(),
+    RCLCPP_WARN_THROTTLE(node_->get_logger(), *node_->get_clock(), 3000,
       "[FindEscapePoint] No escape point found from (%.2f,%.2f) toward goal (%.2f,%.2f)",
       robot_x, robot_y, goal_x, goal_y);
   }
@@ -337,7 +337,7 @@ void FindEscapePointAction::commitAndOutput(
   committed_x_ = x;
   committed_y_ = y;
   if (node_) {
-    RCLCPP_INFO(node_->get_logger(),
+    RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 3000,
       "[FindEscapePoint] %s: robot(%.2f,%.2f) → escape(%.2f,%.2f) [committed]",
       phase, robot_x, robot_y, x, y);
   }
