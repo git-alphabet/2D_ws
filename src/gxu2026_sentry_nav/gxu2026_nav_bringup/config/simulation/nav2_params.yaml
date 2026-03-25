@@ -112,12 +112,12 @@ pb_controller_profiles:
       use_interpolation: false
       use_rotate_to_heading: false
       use_rotate_to_heading_treshold: 0.1
-      min_approach_linear_velocity: 0.15
+      min_approach_linear_velocity: 0.5
       approach_velocity_scaling_dist: 1.0
-      v_linear_min: -0.5
-      v_linear_max: 0.5
-      v_angular_min: -1.0
-      v_angular_max: 1.0
+      v_linear_min: -2.5
+      v_linear_max: 2.5
+      v_angular_min: -3.0
+      v_angular_max: 3.0
       curvature_min: 0.4
       curvature_max: 0.7
       reduction_ratio_at_high_curvature: 0.5
@@ -203,7 +203,7 @@ rm_behavior_tree:
     use_sim_time: True
     hp_high_threshold: 120  #先保留两个参数口，其实应该只用保留一个，这两个数值要一样
     hp_medium_threshold: 120
-    supply_heal_min_hp: 400
+    supply_heal_min_hp: 300
     # 红方固化战术点预设 (保底坐标)
     red_control_zone_x: 5.13
     red_control_zone_y: -3.94
@@ -835,10 +835,10 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: False
     feedback: "OPEN_LOOP"
-    max_velocity: [0.5, 0.5, 1.0]
-    min_velocity: [-0.5, -0.5, -1.0]
-    max_accel: [1.0, 1.0, 1.5]
-    max_decel: [-1.0, -1.0, -1.5]
+    max_velocity: [2.5, 2.5, 3.0]
+    min_velocity: [-2.5, -2.5, -3.0]
+    max_accel: [4.5, 4.5, 5.0]
+    max_decel: [-4.5, -4.5, -5.0]
     odom_topic: "odometry"
     odom_duration: 0.1
     deadband_velocity: [0.0, 0.0, 0.0]
