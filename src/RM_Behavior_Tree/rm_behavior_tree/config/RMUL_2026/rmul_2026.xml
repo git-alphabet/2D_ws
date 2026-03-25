@@ -47,7 +47,7 @@
             </ForceSuccess>
             
             <WhileDoElse>
-                                <IsGameTime name="IsGameStart"
+                <IsGameTime name="IsGameStart"
                         message="{game_status}"
                         game_progress="4"
                         lower_remain_time="0"
