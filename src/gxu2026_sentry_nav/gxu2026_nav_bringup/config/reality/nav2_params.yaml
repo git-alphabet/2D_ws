@@ -361,7 +361,7 @@ fake_vel_transform:
     input_cmd_vel_topic: "cmd_vel_nav2_result"
     output_cmd_vel_topic: "cmd_vel"
     robot_control_topic: "robot_control"
-    init_spin_speed: 0.0
+    init_spin_speed: 2.0
 
 # 非线性小陀螺（实车）：同仿真，发布 cmd_spin（Float32，单位 rad/s）
 nonlinear_spin_publisher:

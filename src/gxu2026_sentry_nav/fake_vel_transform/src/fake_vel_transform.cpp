@@ -14,6 +14,8 @@
 
 #include "fake_vel_transform/fake_vel_transform.hpp"
 
+#include <cmath>
+
 #include "tf2/utils.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
@@ -23,6 +25,7 @@ namespace fake_vel_transform
 constexpr double EPSILON = 1e-5;
 constexpr double CONTROLLER_TIMEOUT = 0.5;
 constexpr double OUTPUT_HOLD_PUBLISH_TIMEOUT = 0.1;
+constexpr double SPIN_LINEAR_STOP_THRESHOLD = 0.05;
 
 FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
 : Node("fake_vel_transform", options)
@@ -242,7 +245,10 @@ geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
 
   const bool effective_spin_enabled =
     use_manual_spin_override_ ? manual_spin_override_enabled_ : spin_enabled_;
-  const float current_spin = effective_spin_enabled ? init_spin_speed_ : 0.0f;
+  const bool is_chassis_stationary =
+    std::hypot(twist->linear.x, twist->linear.y) < SPIN_LINEAR_STOP_THRESHOLD;
+  const float current_spin =
+    (effective_spin_enabled && is_chassis_stationary) ? init_spin_speed_ : 0.0f;
 
   aft_tf_vel.angular.z = twist->angular.z + current_spin;
   aft_tf_vel.linear.x = twist->linear.x * cos(yaw_diff) + twist->linear.y * sin(yaw_diff);
