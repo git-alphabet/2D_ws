@@ -80,7 +80,7 @@
                                                arrive_radius="4.5"/>
                             </Inverter>
                             <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
-                                               stuck_timeout_ms="8000"
+                                               stuck_timeout_ms="15000"
                                                movement_threshold="0.15"
                                                reset_distance="0.5"/>
                             <ClearCostmap service_name="local_costmap/clear_entirely" timeout_ms="1000"/>
@@ -101,7 +101,7 @@
                     <SubTree ID="IsDeadAndDispelDebuff" _autoremap="true"/>
                     <ExecuteNav2Waypoints action_name="navigate_through_poses"/>
                     <!-- 处于存活状态则进入战斗/占点逻辑 -->
-                    <Fallback>
+                    <ReactiveFallback>
                                                 <!--
                                                     二段制决策：
                                                         1. 高血量(HP >= 阈值): 进入高血战斗逻辑
@@ -170,13 +170,15 @@
                                     </ReactiveSequence>
                                 </ReactiveFallback>
 
-                                <!-- 无 RFID 版本：到达控制区后保持运行，不再发布随机目标点 -->
+                                <!-- 到达控制区后：开启小陀螺+原地不动 -->
+                                <RobotControl stop_gimbal_scan="False" chassis_spin="True"/>
+                                <NavControlCmd cmd_type="3" emergency_stop="False"/>
                                 <KeepRunning/>
                             </ReactiveSequence>
 
                         </ReactiveFallback>
 
-                    </Fallback>
+                    </ReactiveFallback>
                 </ReactiveFallback>
                 </ReactiveSequence>
                 <!-- 非比赛阶段停止云台和旋转，原地待命 -->
