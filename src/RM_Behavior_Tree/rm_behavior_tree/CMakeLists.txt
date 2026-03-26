@@ -425,6 +425,16 @@ ament_auto_add_library(is_goal_area_clear SHARED
 )
 add_target_dependencies(is_goal_area_clear)
 
+ament_auto_add_library(is_nav_goal_rejected SHARED
+    plugins/rmul_2026/condition/is_nav_goal_rejected.cpp
+)
+add_target_dependencies(is_nav_goal_rejected)
+
+ament_auto_add_library(find_approach_point SHARED
+    plugins/rmul_2026/action/find_approach_point.cpp
+)
+add_target_dependencies(find_approach_point)
+
 ament_auto_add_library(execute_nav2_waypoints SHARED
     plugins/rmul_2026/action/execute_nav2_waypoints.cpp
 )
