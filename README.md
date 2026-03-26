@@ -344,5 +344,106 @@ docker exec -it gxu2026-nav-robot bash
 | `/ws/log` | Docker 命名 volume | 持久化 |
 | `/ws/neupan_env` | 镜像内 | 已预置，不被 src/ 覆盖 |
 
+### 7.5 小电脑（miniPC）systemd 自启动：容器 + 导航/建图 + 自瞄
+
+需求覆盖：
+- 开机后由 systemd 拉起容器 `dev-robot`
+- 在容器内按参数选择 `navigation` 或 `mapping`
+- 默认开启 `START_RVIZ=1`（配合 HDMI 欺骗器保活图形输出）
+- 自瞄二进制由 systemd 托管，但默认不设为开机自启（需要时手动启动）
+
+#### 1) 用 GitHub 同步到小电脑并安装
+
+```bash
+# 小电脑执行
+cd ~/ros2_ws
+git pull
+bash scripts/systemd/install_on_minipc.sh --mode navigation
+```
+
+默认行为：
+- `gxu2026-nav-stack.service`：enable + restart（开机自启）
+- `gxu2026-auto-aim.service`：disable + stop（仅手动）
+
+#### 2) 小电脑本地手动安装（可选）
+
+```bash
+cd ~/ros2_ws
+chmod +x scripts/systemd/*.sh
+bash scripts/systemd/install_on_minipc.sh --mode navigation
+```
+
+#### 3) 运行时切换导航/建图
+
+```bash
+cd ~/ros2_ws
+bash scripts/systemd/use_mapping.sh
+bash scripts/systemd/use_navigation.sh
+```
+
+#### 4) 调试时怎么关掉（你关心的点）
+
+临时关闭（仅本次，重启后若 service 已 enable 会自动回来）：
+
+```bash
+cd ~/ros2_ws
+bash scripts/systemd/nav_stop.sh
+```
+
+恢复：
+
+```bash
+bash scripts/systemd/nav_start.sh
+```
+
+彻底关闭开机自启（调试阶段常用）：
+
+```bash
+bash scripts/systemd/service_ctl.sh disable
+```
+
+重新启用开机自启：
+
+```bash
+bash scripts/systemd/service_ctl.sh enable
+bash scripts/systemd/service_ctl.sh restart
+```
+
+#### 5) 自瞄（手动敲，但交给 systemd 管）
+
+```bash
+# 手动启动自瞄（不改开机策略）
+bash scripts/systemd/autoaim_start.sh
+
+# 手动停止
+bash scripts/systemd/autoaim_stop.sh
+
+# 如果你也想让自瞄开机自启
+bash scripts/systemd/service_ctl.sh enable autoaim
+```
+
+#### 6) 最常用免参数命令（少手敲）
+
+```bash
+cd ~/ros2_ws
+bash scripts/systemd/use_navigation.sh   # 切导航并重启导航服务
+bash scripts/systemd/use_mapping.sh      # 切建图并重启导航服务
+bash scripts/systemd/nav_start.sh        # 启动导航/建图服务
+bash scripts/systemd/nav_stop.sh         # 停止导航/建图服务
+bash scripts/systemd/mapping_stop.sh     # 停止建图（等价于 nav_stop）
+bash scripts/systemd/autoaim_start.sh    # 启动自瞄服务
+bash scripts/systemd/autoaim_stop.sh     # 停止自瞄服务
+bash scripts/systemd/all_stop.sh         # 全停
+bash scripts/systemd/status.sh           # 看两个服务状态
+```
+
+查看状态与日志：
+
+```bash
+bash scripts/systemd/service_ctl.sh status all
+journalctl --user -u gxu2026-nav-stack.service -f
+journalctl --user -u gxu2026-auto-aim.service -f
+```
+
 
 

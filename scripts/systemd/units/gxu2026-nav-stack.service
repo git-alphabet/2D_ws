@@ -1,0 +1,25 @@
+[Unit]
+Description=GXU2026 Nav stack in dev-robot container
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/gxu2026/nav-stack.env
+WorkingDirectory=%h/ros2_ws
+ExecStartPre=/usr/bin/docker compose -f %h/ros2_ws/docker/compose.dev.yml --profile robot up -d dev-robot
+ExecStart=/usr/bin/docker exec -i \
+  -e NAV_MODE=${NAV_MODE} \
+  -e START_RVIZ=${START_RVIZ} \
+  -e KILL_EXISTING=${KILL_EXISTING} \
+  -e NO_NEW_TERMINAL=${NO_NEW_TERMINAL} \
+  gxu2026-nav-robot /bin/bash -lc 'cd /ws && /ws/scripts/systemd/nav_mode_launcher.sh'
+ExecStop=/usr/bin/docker exec -i gxu2026-nav-robot /bin/bash -lc 'pkill -f rm_navigation_reality_launch.py || true'
+ExecStopPost=/usr/bin/docker compose -f %h/ros2_ws/docker/compose.dev.yml --profile robot stop dev-robot
+Restart=always
+RestartSec=3
+TimeoutStopSec=20
+KillMode=process
+
+[Install]
+WantedBy=default.target

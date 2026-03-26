@@ -1,0 +1,15 @@
+[Unit]
+Description=GXU2026 Auto Aim Sentry
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/gxu_robotz_26_auto_aim
+ExecStart=%h/gxu_robotz_26_auto_aim/build/auto_aim_sentry
+Restart=always
+RestartSec=2
+KillMode=process
+
+[Install]
+WantedBy=default.target
