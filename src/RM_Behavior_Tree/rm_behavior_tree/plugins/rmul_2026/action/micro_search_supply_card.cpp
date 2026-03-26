@@ -86,7 +86,7 @@ BT::NodeStatus MicroSearchSupplyCardAction::onStart()
     return BT::NodeStatus::SUCCESS;
   }
   if (!arrived) {
-    auto rfid_msg = getInput<rm_decision_interfaces::msg::RMUL>("rfid_status");
+    auto rfid_msg = getInput<sp_msgs::msg::RMUL>("rfid_status");
     if (rfid_msg && rfid_msg.value().rfid_supply_arrived) {
       arrived = true;
     }
@@ -149,7 +149,7 @@ BT::NodeStatus MicroSearchSupplyCardAction::onRunning()
     return BT::NodeStatus::SUCCESS;
   }
   if (!arrived) {
-    auto rfid_msg = getInput<rm_decision_interfaces::msg::RMUL>("rfid_status");
+    auto rfid_msg = getInput<sp_msgs::msg::RMUL>("rfid_status");
     if (rfid_msg && rfid_msg.value().rfid_supply_arrived) {
       arrived = true;
     }

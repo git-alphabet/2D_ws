@@ -11,6 +11,7 @@ find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Float32Stamped.msg"
+  "msg/RMUL.msg"
   DEPENDENCIES std_msgs
 )
 

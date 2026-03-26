@@ -13,14 +13,14 @@ IsControlZoneDetectedCondition::IsControlZoneDetectedCondition(
 
 BT::NodeStatus IsControlZoneDetectedCondition::tick()
 {
-  auto res = getInput<rm_decision_interfaces::msg::RMUL>("rfid_status");
+  auto res = getInput<sp_msgs::msg::RMUL>("rfid_status");
   if (!res) {
     // 黑板没有该数据：保守认为没有与控制区产生交互
     return BT::NodeStatus::FAILURE;
   }
 
   const auto & msg = res.value();
-  // rm_decision_interfaces::msg::RMUL provides:
+  // sp_msgs::msg::RMUL provides:
   //   bool rfid_supply_arrived   - 补给区交互卡反馈
   //   bool rfid_control_arrived  - 控制区交互卡反馈
   // 判断控制区交互应使用 `rfid_control_arrived` 字段

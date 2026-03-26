@@ -11,7 +11,7 @@ IsStatusOKAction::IsStatusOKAction(const std::string & name, const BT::NodeConfi
 BT::NodeStatus IsStatusOKAction::tick()
 {
   // 获取输入参数
-  auto msg = getInput<std::shared_ptr<rm_decision_interfaces::msg::RMUL>>("message");
+  auto msg = getInput<std::shared_ptr<sp_msgs::msg::RMUL>>("message");
   int hp_threshold = 0;
   int heat_threshold = 9999;
 

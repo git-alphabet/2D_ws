@@ -67,7 +67,7 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   cmd_vel_chassis_pub_ =
     this->create_publisher<geometry_msgs::msg::Twist>(output_cmd_vel_topic_, 1);
 
-  robot_control_sub_ = this->create_subscription<rm_decision_interfaces::msg::RMUL>(
+  robot_control_sub_ = this->create_subscription<sp_msgs::msg::RMUL>(
     robot_control_topic_, 10,
     std::bind(&FakeVelTransform::robotControlCallback, this, std::placeholders::_1));
   if (use_manual_spin_override_) {
@@ -106,7 +106,7 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
     std::bind(&FakeVelTransform::publishTransform, this));
 }
 
-void FakeVelTransform::robotControlCallback(const rm_decision_interfaces::msg::RMUL::SharedPtr msg)
+void FakeVelTransform::robotControlCallback(const sp_msgs::msg::RMUL::SharedPtr msg)
 {
   if (use_manual_spin_override_) {
     return;

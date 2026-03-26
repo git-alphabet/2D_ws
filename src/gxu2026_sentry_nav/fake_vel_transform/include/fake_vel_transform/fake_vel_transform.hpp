@@ -26,7 +26,7 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "rm_decision_interfaces/msg/rmul.hpp"
+#include "sp_msgs/msg/rmul.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 
@@ -44,7 +44,7 @@ private:
   void odometryCallback(const nav_msgs::msg::Odometry::ConstSharedPtr & msg);
   void localPlanCallback(const nav_msgs::msg::Path::ConstSharedPtr & msg);
   void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg);
-  void robotControlCallback(const rm_decision_interfaces::msg::RMUL::SharedPtr msg);
+  void robotControlCallback(const sp_msgs::msg::RMUL::SharedPtr msg);
   void manualSpinOverrideCallback(const std_msgs::msg::Bool::SharedPtr msg);
   void publishTransform();
   void publishHoldCmdVelIfNeeded(const rclcpp::Time & now);
@@ -52,7 +52,7 @@ private:
     const geometry_msgs::msg::Twist::SharedPtr & twist, float yaw_diff);
 
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
-  rclcpp::Subscription<rm_decision_interfaces::msg::RMUL>::SharedPtr robot_control_sub_;
+  rclcpp::Subscription<sp_msgs::msg::RMUL>::SharedPtr robot_control_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr manual_spin_override_sub_;
 
   message_filters::Subscriber<nav_msgs::msg::Odometry> odom_sub_filter_;

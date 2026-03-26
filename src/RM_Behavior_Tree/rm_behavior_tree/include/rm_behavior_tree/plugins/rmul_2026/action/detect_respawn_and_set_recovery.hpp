@@ -8,14 +8,14 @@
 
 #include <boost/signals2/connection.hpp>
 #include "behaviortree_ros2/bt_topic_sub_node.hpp"
-#include "rm_decision_interfaces/msg/rmul.hpp"
+#include "sp_msgs/msg/rmul.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace rm_behavior_tree
 {
 
 class DetectRespawnAndSetRecoveryAction
-: public BT::RosTopicSubNode<rm_decision_interfaces::msg::RMUL>
+: public BT::RosTopicSubNode<sp_msgs::msg::RMUL>
 {
 public:
   // 构造函数（保持原有）
@@ -42,7 +42,7 @@ public:
   }
 
   BT::NodeStatus onTick(
-    const std::shared_ptr<rm_decision_interfaces::msg::RMUL> & last_msg) override;
+    const std::shared_ptr<sp_msgs::msg::RMUL> & last_msg) override;
 
 private:
   // 1. 复活防抖配置：连续N帧存活才判定真复活（10Hz下2帧=200ms，适配竞赛）
@@ -63,8 +63,8 @@ private:
   int low_hp_trigger_ = 100;
   // Fallback subscription in case the RosTopicSubNode registry-based subscriber
   // does not deliver messages to this instance (diagnostic fallback).
-  rclcpp::Subscription<rm_decision_interfaces::msg::RMUL>::SharedPtr fallback_sub_;
-  std::shared_ptr<rm_decision_interfaces::msg::RMUL> fallback_last_msg_ = nullptr;
+  rclcpp::Subscription<sp_msgs::msg::RMUL>::SharedPtr fallback_sub_;
+  std::shared_ptr<sp_msgs::msg::RMUL> fallback_last_msg_ = nullptr;
   // connection to the shared SubscriberInstance broadcaster (diagnostic fallback)
   boost::signals2::connection fallback_signal_conn_;
   // 9. 机器人最大血量

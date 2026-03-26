@@ -5,11 +5,11 @@ namespace rm_behavior_tree
 
 RobotControlAction::RobotControlAction(
   const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
-: RosTopicPubNode<rm_decision_interfaces::msg::RMUL>(name, conf, params)
+: RosTopicPubNode<sp_msgs::msg::RMUL>(name, conf, params)
 {
 }
 
-bool RobotControlAction::setMessage(rm_decision_interfaces::msg::RMUL & msg)
+bool RobotControlAction::setMessage(sp_msgs::msg::RMUL & msg)
 {
   msg.stop_gimbal_scan = false;
   msg.chassis_spin = false;

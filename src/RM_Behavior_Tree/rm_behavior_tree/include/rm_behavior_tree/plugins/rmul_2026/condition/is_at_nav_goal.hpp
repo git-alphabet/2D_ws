@@ -4,7 +4,7 @@
 #include <string>
 
 #include "behaviortree_cpp/condition_node.h"
-#include "rm_decision_interfaces/msg/rmul.hpp"
+#include "sp_msgs/msg/rmul.hpp"
 
 namespace rm_behavior_tree
 {
@@ -13,7 +13,7 @@ namespace rm_behavior_tree
  * @brief 判断机器人是否到达导航目标点
  *
  * 黑板输入：
- *   - rfid_status: rm_decision_interfaces::msg::RMUL
+ *   - rfid_status: sp_msgs::msg::RMUL
  *
  * 语义：
  *   - is_at_nav_goal == true  -> SUCCESS（已到达目标点）
@@ -32,7 +32,7 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
-      BT::InputPort<rm_decision_interfaces::msg::RMUL>("rfid_status")
+      BT::InputPort<sp_msgs::msg::RMUL>("rfid_status")
     };
   }
 
