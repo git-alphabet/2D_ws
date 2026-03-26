@@ -5,7 +5,7 @@ namespace rm_behavior_tree
 
 BT::NodeStatus IsHPIncreasingCondition::tick()
 {
-  auto msg = getInput<std::shared_ptr<rm_decision_interfaces::msg::RMUL>>("message");
+  auto msg = getInput<std::shared_ptr<sp_msgs::msg::RMUL>>("message");
   if (!msg || !(*msg)) {
     return BT::NodeStatus::FAILURE;
   }

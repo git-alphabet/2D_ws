@@ -14,6 +14,7 @@
 
 #include "fake_vel_transform/fake_vel_transform.hpp"
 
+#include "example_interfaces/msg/float32.hpp"
 #include "tf2/utils.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
@@ -40,6 +41,7 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->declare_parameter<std::string>("odom_topic", "odom");
   this->declare_parameter<std::string>("local_plan_topic", "local_plan");
   this->declare_parameter<std::string>("robot_control_topic", "robot_control");
+  this->declare_parameter<std::string>("cmd_spin_topic", "cmd_spin");
   this->declare_parameter<bool>("use_manual_spin_override", false);
   this->declare_parameter<std::string>("manual_spin_override_topic", "manual_chassis_spin");
   this->declare_parameter<std::string>("input_cmd_vel_topic", "");
@@ -51,6 +53,7 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->get_parameter("odom_topic", odom_topic_);
   this->get_parameter("local_plan_topic", local_plan_topic_);
   this->get_parameter("robot_control_topic", robot_control_topic_);
+  this->get_parameter("cmd_spin_topic", cmd_spin_topic_);
   this->get_parameter("use_manual_spin_override", use_manual_spin_override_);
   this->get_parameter("manual_spin_override_topic", manual_spin_override_topic_);
   this->get_parameter("input_cmd_vel_topic", input_cmd_vel_topic_);
@@ -70,6 +73,9 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   robot_control_sub_ = this->create_subscription<sp_msgs::msg::RMUL>(
     robot_control_topic_, 10,
     std::bind(&FakeVelTransform::robotControlCallback, this, std::placeholders::_1));
+  cmd_spin_sub_ = this->create_subscription<example_interfaces::msg::Float32>(
+    cmd_spin_topic_, 10,
+    std::bind(&FakeVelTransform::cmdSpinCallback, this, std::placeholders::_1));
   if (use_manual_spin_override_) {
     manual_spin_override_sub_ = this->create_subscription<std_msgs::msg::Bool>(
       manual_spin_override_topic_, 10,
@@ -120,6 +126,12 @@ void FakeVelTransform::robotControlCallback(const sp_msgs::msg::RMUL::SharedPtr 
       spin_enabled_ ? "true" : "false");
     last_spin_enabled_logged_ = true;
   }
+}
+
+void FakeVelTransform::cmdSpinCallback(const example_interfaces::msg::Float32::SharedPtr msg)
+{
+  spin_speed_ = msg->data;
+  has_received_cmd_spin_ = true;
 }
 
 void FakeVelTransform::manualSpinOverrideCallback(const std_msgs::msg::Bool::SharedPtr msg)

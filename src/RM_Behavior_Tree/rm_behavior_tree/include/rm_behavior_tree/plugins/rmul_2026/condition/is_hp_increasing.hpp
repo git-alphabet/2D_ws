@@ -2,7 +2,7 @@
 #define RM_BEHAVIOR_TREE__PLUGINS__CONDITION__IS_HP_INCREASING_HPP_
 
 #include "behaviortree_cpp/condition_node.h"
-#include "rm_decision_interfaces/msg/rmul.hpp"
+#include "sp_msgs/msg/rmul.hpp"
 
 namespace rm_behavior_tree
 {
@@ -26,7 +26,7 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
-      BT::InputPort<std::shared_ptr<rm_decision_interfaces::msg::RMUL>>("message", "robot_status message"),
+      BT::InputPort<std::shared_ptr<sp_msgs::msg::RMUL>>("message", "robot_status message"),
     };
   }
 

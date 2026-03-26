@@ -36,9 +36,9 @@ BT::NodeStatus IsGameTimeCondition::checkGameStart()
   // 条件2: HP 下降 → 比赛已在进行（电控丢包容错）
   // 优先从 robot_msg（robot_status 话题）读取 HP，因为 game_status 话题不含 HP
   int cur_hp = 0;
-  auto robot_msg = getInput<std::shared_ptr<rm_decision_interfaces::msg::RMUL>>("robot_msg");
-  if (robot_msg && *robot_msg) {
-    cur_hp = static_cast<int>((*robot_msg)->current_hp);
+  auto robot_msg = getInput<std::shared_ptr<sp_msgs::msg::RMUL>>("robot_msg");
+  if (robot_msg && robot_msg.value()) {
+    cur_hp = static_cast<int>(robot_msg.value()->current_hp);
   } else {
     // 回退：从 game_status 消息读（实车可能合并到同一话题）
     cur_hp = static_cast<int>(msg->current_hp);
