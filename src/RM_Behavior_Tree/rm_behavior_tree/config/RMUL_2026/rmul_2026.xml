@@ -49,6 +49,7 @@
             <WhileDoElse>
                 <IsGameTime name="IsGameStart"
                         message="{game_status}"
+                        robot_msg="{robot_status}"
                         game_progress="4"
                         lower_remain_time="0"
                         higher_remain_time="300"/>
@@ -315,6 +316,7 @@
         </Condition>
         <Condition ID="IsGameTime" editable="true">
             <input_port name="message" default="{game_status}"/>
+            <input_port name="robot_msg" default="{robot_status}"/>
             <input_port name="game_progress" default="4"/>
             <input_port name="lower_remain_time" default="0"/>
             <input_port name="higher_remain_time" default="300"/>

@@ -29,6 +29,8 @@ public:
   {
     return {
       BT::InputPort<rm_decision_interfaces::msg::RMUL>("message"),
+      BT::InputPort<std::shared_ptr<rm_decision_interfaces::msg::RMUL>>("robot_msg",
+        "robot_status message for HP-drop detection (optional)"),
       BT::InputPort<int>("game_progress"), BT::InputPort<int>("lower_remain_time"),
       BT::InputPort<int>("higher_remain_time")};
   }
