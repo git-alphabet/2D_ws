@@ -95,7 +95,7 @@
                                                use_path_distance="true"/>
                             </Inverter>
                             <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
-                                               stuck_timeout_ms="8000"
+                                               stuck_timeout_ms="5000"
                                                movement_threshold="0.15"
                                                reset_distance="0.5"/>
                             <ClearCostmap service_name="local_costmap/clear_entirely" timeout_ms="1000"/>
