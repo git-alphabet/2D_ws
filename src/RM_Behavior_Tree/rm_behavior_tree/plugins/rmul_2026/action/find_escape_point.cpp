@@ -118,6 +118,7 @@ bool FindEscapePointAction::searchPhase(
   double robot_x, double robot_y,
   double goal_x, double goal_y,
   double retreat_dx, double retreat_dy,
+  bool has_goal,
   const SearchParams & params,
   double & out_x, double & out_y) const
 {
@@ -168,7 +169,13 @@ bool FindEscapePointAction::searchPhase(
     return false;
   }
 
-  if (params.prefer_retreat) {
+  if (!has_goal) {
+    // 全局脱困模式：纯按 clearance 排序（最开阔的点优先）
+    std::sort(candidates.begin(), candidates.end(),
+      [](const CandidatePoint & a, const CandidatePoint & b) {
+        return a.clearance > b.clearance;
+      });
+  } else if (params.prefer_retreat) {
     // 优先后退方向的点(dot>0)，然后按 距离目标近 + clearance bonus 排序
     // score 越小越好: dist_to_goal - 0.1 * clearance, 后退方向优先
     std::sort(candidates.begin(), candidates.end(),
@@ -262,15 +269,17 @@ BT::NodeStatus FindEscapePointAction::tick()
   auto gx = getInput<double>("goal_x");
   auto gy = getInput<double>("goal_y");
 
-  if (!rx || !ry || !gx || !gy) {
-    RCLCPP_WARN(node_->get_logger(), "[FindEscapePoint] Missing input ports");
+  if (!rx || !ry) {
+    RCLCPP_WARN(node_->get_logger(), "[FindEscapePoint] Missing robot_x/robot_y");
     return BT::NodeStatus::FAILURE;
   }
 
   const double robot_x = rx.value();
   const double robot_y = ry.value();
-  const double goal_x = gx.value();
-  const double goal_y = gy.value();
+  // goal_x/goal_y 可选：未提供时进入全局开阔区搜索模式（clearance-only）
+  const bool has_goal = gx.has_value() && gy.has_value();
+  const double goal_x = has_goal ? gx.value() : robot_x;
+  const double goal_y = has_goal ? gy.value() : robot_y;
 
   // 3. 检查是否有已提交的逃脱点（状态保持）
   if (has_committed_) {
@@ -367,47 +376,54 @@ do_search:
   }
 
   // 4. 计算后退方向 = normalize(robot - goal)
-  double retreat_dx = robot_x - goal_x;
-  double retreat_dy = robot_y - goal_y;
-  const double retreat_len = std::sqrt(retreat_dx * retreat_dx + retreat_dy * retreat_dy);
-  if (retreat_len > 1e-6) {
-    retreat_dx /= retreat_len;
-    retreat_dy /= retreat_len;
-  } else {
-    retreat_dx = 1.0;
-    retreat_dy = 0.0;
+  //    无目标时 retreat 方向为零向量，searchPhase 将只按 clearance 排序
+  double retreat_dx = 0.0;
+  double retreat_dy = 0.0;
+  if (has_goal) {
+    retreat_dx = robot_x - goal_x;
+    retreat_dy = robot_y - goal_y;
+    const double retreat_len = std::sqrt(retreat_dx * retreat_dx + retreat_dy * retreat_dy);
+    if (retreat_len > 1e-6) {
+      retreat_dx /= retreat_len;
+      retreat_dy /= retreat_len;
+    } else {
+      retreat_dx = 1.0;
+      retreat_dy = 0.0;
+    }
   }
 
   // 5. 三阶段搜索
   const double step = 0.15;  // 搜索步长
 
-  // 阶段①: cost<50, 0.5~2.0m, 优先后退
-  SearchParams phase1{0.5, 2.0, step, 50, true};
+  // 阶段①: cost<50, 0.5~2.0m, 有目标时优先后退方向
+  SearchParams phase1{0.5, 2.0, step, 50, has_goal};
   double ex = 0.0, ey = 0.0;
-  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, phase1, ex, ey)) {
-    commitAndOutput(ex, ey, "Phase1", robot_x, robot_y);
+  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase1, ex, ey)) {
+    commitAndOutput(ex, ey, has_goal ? "Phase1" : "Phase1(global)", robot_x, robot_y);
     return BT::NodeStatus::SUCCESS;
   }
 
-  // 阶段②: cost<150, 0.5~3.0m, 优先后退
-  SearchParams phase2{0.5, 3.0, step, 150, true};
-  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, phase2, ex, ey)) {
-    commitAndOutput(ex, ey, "Phase2", robot_x, robot_y);
+  // 阶段②: cost<150, 0.5~3.0m, 有目标时优先后退方向
+  SearchParams phase2{0.5, 3.0, step, 150, has_goal};
+  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase2, ex, ey)) {
+    commitAndOutput(ex, ey, has_goal ? "Phase2" : "Phase2(global)", robot_x, robot_y);
     return BT::NodeStatus::SUCCESS;
   }
 
   // 阶段③: cost<235, 0.5~3.0m, 任意方向
   SearchParams phase3{0.5, 3.0, step, 235, false};
-  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, phase3, ex, ey)) {
-    commitAndOutput(ex, ey, "Phase3", robot_x, robot_y);
+  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase3, ex, ey)) {
+    commitAndOutput(ex, ey, has_goal ? "Phase3" : "Phase3(global)", robot_x, robot_y);
     return BT::NodeStatus::SUCCESS;
   }
 
   // 三阶段都没找到
   if (node_) {
     RCLCPP_WARN_THROTTLE(node_->get_logger(), *node_->get_clock(), 3000,
-      "[FindEscapePoint] No escape point found from (%.2f,%.2f) toward goal (%.2f,%.2f)",
-      robot_x, robot_y, goal_x, goal_y);
+      "[FindEscapePoint] No escape point found from (%.2f,%.2f)%s",
+      robot_x, robot_y,
+      has_goal ? (" toward goal (" + std::to_string(goal_x) + "," + std::to_string(goal_y) + ")").c_str()
+               : " (global clearance mode)");
   }
   return BT::NodeStatus::FAILURE;
 }

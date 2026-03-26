@@ -64,7 +64,6 @@ int main(int argc, char ** argv)
     "is_control_zone_detected",
     "is_within_scope",
     "clear_costmap",
-    "is_robot_stuck",
     "is_navigation_stuck",
     "snap_goal_to_free_space",
     "find_escape_point",

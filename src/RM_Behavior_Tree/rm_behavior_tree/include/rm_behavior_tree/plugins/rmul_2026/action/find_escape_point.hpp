@@ -29,7 +29,9 @@ namespace rm_behavior_tree
  *   - 该点代价值升高变为障碍（cost >= 235）
  *   - 机器人距该点 > max_commit_distance（5.0m，说明已不在脱困流程中）
  *
- * 输入：robot_x, robot_y (机器人位置), goal_x, goal_y (原始目标)
+ * 输入：robot_x, robot_y (机器人位置), goal_x, goal_y (原始目标, 可选)
+ *   - 有目标时：后退方向 = normalize(robot - goal)，优先远离目标
+ *   - 无目标时：全局开阔区搜索模式，纯按 clearance 排序
  * 输出：escape_x, escape_y, escape_pose (逃脱点)
  * 返回：SUCCESS=找到/已有逃脱点  FAILURE=三阶段均无可用点
  */
@@ -95,10 +97,12 @@ private:
   };
 
   /// 在给定参数下搜索候选点，返回最佳逃脱点
+  /// has_goal=false 时进入全局开阔区搜索模式（纯 clearance 排序）
   bool searchPhase(
     double robot_x, double robot_y,
     double goal_x, double goal_y,
     double retreat_dx, double retreat_dy,
+    bool has_goal,
     const SearchParams & params,
     double & out_x, double & out_y) const;
 

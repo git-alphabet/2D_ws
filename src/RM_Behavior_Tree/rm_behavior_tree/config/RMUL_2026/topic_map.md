@@ -63,8 +63,7 @@
 | **IsGameTime** | `game_status` | 比赛阶段和剩余时间 |
 | **IsRecoveryNeeded** | `state.need_recovery` | 布尔检查 |
 | **IsWithinScope** | `pose.x/y`, `goal_x/y`, `arrive_radius` | 距离 < arrive_radius |
-| **IsNavigationStuck** | `pose.x/y`, `goal_x/y` | 近目标处移动检测（5s+锁存） |
-| **IsRobotStuck** | `pose.x/y` | 全局移动检测（8s+锁存） |
+| **IsNavigationStuck** | `pose.x/y`, `goal_x/y`(可选) | 移动检测：有目标时近/远双超时，无目标时全局8s检测 |
 | **IsControlZoneDetected** | `rfid.status` | `rfid_control_arrived == true` |
 | **IsSupplyCardDetected** | `rfid.status` | RFID 补给卡检测 |
 | **IsAtNavGoal** | `rfid.status` | `is_at_nav_goal == true` |

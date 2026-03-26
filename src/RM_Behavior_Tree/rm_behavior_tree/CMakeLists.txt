@@ -310,11 +310,6 @@ ament_auto_add_library(is_navigation_stuck SHARED
 )
 add_target_dependencies(is_navigation_stuck)
 
-ament_auto_add_library(is_robot_stuck SHARED 
-    plugins/rmul_2026/condition/is_robot_stuck.cpp
-)
-add_target_dependencies(is_robot_stuck)
-
 # Actions
 ament_auto_add_library(send_goal SHARED 
     plugins/rmul_2026/action/send_goal.cpp

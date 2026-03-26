@@ -7,9 +7,9 @@
       移除 Spin+BackUp 恢复动作，恢复逻辑由 RMUL 行为树层处理。
       Nav2 内部仅做规划+跟踪的重试，不做实体恢复动作。
       
-      RMUL BT 层通过 IsRobotStuck + ClearCostmap 实现全局脱困：
-      - 不受距目标点距离限制
-      - 适用于开场拥挤、雷达被遮挡等场景
+      RMUL BT 层通过 IsNavigationStuck + FindEscapePoint 实现统一脱困：
+      - 全局脱困：不受距目标点距离限制，搜索最开阔位置
+      - 局部脱困：靠近目标时搜索后退方向逃脱点
     -->
     <RecoveryNode name="NavigateRecovery"
                   number_of_retries="6">
