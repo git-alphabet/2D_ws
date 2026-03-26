@@ -62,6 +62,10 @@
                     -->
                     <Sequence name="GoSupply_ThenHeal">
 
+                            <!-- 0. 关闭小陀螺（避免从战斗模式切入恢复时 spin 残留） -->
+                            <RobotControl stop_gimbal_scan="False"
+                                          chassis_spin="False"/>
+
                             <!-- 1. 启动导航模式 -->
                             <NavControlCmd cmd_type="1" emergency_stop="False"/>
 
