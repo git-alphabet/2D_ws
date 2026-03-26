@@ -5,7 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # 仿真单终端开关：true=Gazebo无头 + 建图在本终端前台；false=保持原有多终端行为。
-SIM_SINGLE_TERMINAL_HEADLESS=true
+SIM_SINGLE_TERMINAL_HEADLESS=false
 
 export QT_FONT_DPI=192
 export __NV_PRIME_RENDER_OFFLOAD=1

@@ -60,9 +60,9 @@
              分支 B: 未检测到敌人 → 主动巡逻+占控制区
              ══════════════════════════════════════════════════════════ -->
         <ReactiveSequence>
-          <!-- 保持云台扫描搜敌，开小陀螺防被偷袭 -->
+          <!-- 保持云台扫描搜敌，移动中不开小陀螺 -->
           <RobotControl stop_gimbal_scan="False"
-                        chassis_spin="True"/>
+                        chassis_spin="False"/>
           <!-- 允许导航移动 -->
           <NavControlCmd cmd_type="1" emergency_stop="False"/>
           <!-- 前往控制区巡逻: 高血量时优先争夺控制区获取战略优势 -->

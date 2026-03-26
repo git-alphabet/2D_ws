@@ -42,7 +42,7 @@
                  中血量热量超限比高血量更危险，需要拉远距离 -->
             <ReactiveSequence>
               <RobotControl stop_gimbal_scan="False"
-                            chassis_spin="True"/>
+                            chassis_spin="False"/>
               <NavControlCmd cmd_type="1" emergency_stop="False"/>
               <ReactiveFallback name="NavUntilArrived_Supply">
                 <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}" goal_x="{cfg.supply_goal_x}" goal_y="{cfg.supply_goal_y}" arrive_radius="{cfg.arrive_radius}"/>
