@@ -55,11 +55,12 @@
                         higher_remain_time="300"/>
                 <ReactiveSequence>
                     <!--
-                        全局脱困：不依赖距离目标点远近，统一使用 IsNavigationStuck + FindEscapePoint
-                        场景：开场拥挤、雷达被队友遮挡导致 costmap 堵死、任意位置卡住
+                        全局脱困：不依赖距离目标点远近，使用 IsNavigationStuck + FindEscapePoint
+                        场景：非增益点附近卡住（开场拥挤、过道堵塞、雷达遮挡等）
                         策略：8秒未移动 → 清代价地图 → FindEscapePoint(全局开阔区模式) → SendGoal
                         排除1：检测到敌人时不判定卡住（战斗中原地停车是正常行为）
-                        排除2：已到达控制区时不判定卡住（霸占控制区不动是正常行为）
+                        排除2：距控制区 < 4.5m 时不触发（由局部控制区脱困处理，避免目标竞争）
+                        排除3：距补给区 < 4.5m 时不触发（由局部补给区脱困处理，避免目标竞争）
                     -->
                     <ForceSuccess>
                         <ReactiveSequence>
@@ -70,7 +71,13 @@
                                 <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
                                                goal_x="{cfg.control_zone_goal_x}"
                                                goal_y="{cfg.control_zone_goal_y}"
-                                               arrive_radius="{cfg.arrive_radius}"/>
+                                               arrive_radius="4.5"/>
+                            </Inverter>
+                            <Inverter>
+                                <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
+                                               goal_x="{cfg.supply_goal_x}"
+                                               goal_y="{cfg.supply_goal_y}"
+                                               arrive_radius="4.5"/>
                             </Inverter>
                             <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
                                                stuck_timeout_ms="8000"
