@@ -68,6 +68,9 @@ int main(int argc, char ** argv)
     "snap_goal_to_free_space",
     "find_escape_point",
     "is_goal_area_clear",
+    "is_nav_goal_rejected",
+    "find_approach_point",
+    "apply_calibration_override",
   };
 
   const std::vector<std::string> bt_plugin_libs = {

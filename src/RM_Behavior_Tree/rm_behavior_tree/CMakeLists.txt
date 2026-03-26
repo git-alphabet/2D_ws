@@ -435,6 +435,11 @@ ament_auto_add_library(find_approach_point SHARED
 )
 add_target_dependencies(find_approach_point)
 
+ament_auto_add_library(apply_calibration_override SHARED
+    plugins/rmul_2026/action/apply_calibration_override.cpp
+)
+add_target_dependencies(apply_calibration_override)
+
 ament_auto_add_library(execute_nav2_waypoints SHARED
     plugins/rmul_2026/action/execute_nav2_waypoints.cpp
 )

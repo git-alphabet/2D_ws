@@ -45,6 +45,19 @@
                                        center_valid="{calib.anchor_valid}"
                                        center_pose="{calib.anchor_pose}"/>
             </ForceSuccess>
+
+            <!-- 标定覆盖：有标定点时用标定坐标替代硬编码，无标定时保持原值 -->
+            <ApplyCalibrationOverride
+                control_valid="{calib.anchor_valid}"
+                control_x="{calib.anchor_x}"
+                control_y="{calib.anchor_y}"
+                supply_valid="{calib.spawn_valid}"
+                supply_x="{calib.spawn_x}"
+                supply_y="{calib.spawn_y}"
+                control_zone_goal_x="{cfg.control_zone_goal_x}"
+                control_zone_goal_y="{cfg.control_zone_goal_y}"
+                supply_goal_x="{cfg.supply_goal_x}"
+                supply_goal_y="{cfg.supply_goal_y}"/>
             
             <WhileDoElse>
                 <IsGameTime name="IsGameStart"
@@ -71,18 +84,18 @@
                                 <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
                                                goal_x="{cfg.control_zone_goal_x}"
                                                goal_y="{cfg.control_zone_goal_y}"
-                                               arrive_radius="4.5"
+                                               arrive_radius="3.0"
                                                use_path_distance="true"/>
                             </Inverter>
                             <Inverter>
                                 <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
                                                goal_x="{cfg.supply_goal_x}"
                                                goal_y="{cfg.supply_goal_y}"
-                                               arrive_radius="4.5"
+                                               arrive_radius="3.0"
                                                use_path_distance="true"/>
                             </Inverter>
                             <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
-                                               stuck_timeout_ms="15000"
+                                               stuck_timeout_ms="8000"
                                                movement_threshold="0.15"
                                                reset_distance="0.5"/>
                             <ClearCostmap service_name="local_costmap/clear_entirely" timeout_ms="1000"/>
@@ -134,12 +147,12 @@
                                      退出条件: 控制区恢复通行(Inverter返回FAILURE) → B-3接管 -->
                                 <ReactiveSequence>
                                     <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
-                                                   goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
-                                                   arrive_radius="{cfg.arrive_radius}"/>
+                                                   goal_x="{escape.goal_x}" goal_y="{escape.goal_y}"
+                                                   arrive_radius="0.5"/>
                                     <Inverter>
                                         <IsGoalAreaClear goal_x="{cfg.control_zone_goal_x}"
                                                          goal_y="{cfg.control_zone_goal_y}"
-                                                         check_radius="0.3"
+                                                         check_radius="1.0"
                                                          min_free_neighbors="2"
                                                          free_threshold="200"/>
                                     </Inverter>
@@ -150,9 +163,11 @@
 
                                 <!-- B-3: 未到达 → 导航前往控制区 -->
                                 <ReactiveSequence>
+                                    <RobotControl stop_gimbal_scan="False" chassis_spin="False"/>
+                                    <NavControlCmd cmd_type="1" emergency_stop="False"/>
                                     <RateController hz="1">
                                         <Fallback>
-                                            <!-- 1) 未卡住且目标区域可通行且Nav2未拒绝：前往原始控制区目标点 -->
+                                            <!-- 1) 未卡住+目标可通行+Nav2未拒绝 → 正常前往控制区 -->
                                             <Sequence>
                                                 <Inverter>
                                                     <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
@@ -167,7 +182,7 @@
                                                 </Inverter>
                                                 <IsGoalAreaClear goal_x="{cfg.control_zone_goal_x}"
                                                                  goal_y="{cfg.control_zone_goal_y}"
-                                                                 check_radius="0.3"
+                                                                 check_radius="1.0"
                                                                  min_free_neighbors="2"
                                                                  free_threshold="200"/>
                                                 <Inverter>
@@ -180,42 +195,30 @@
                                                           frame_id="map"
                                                           action_name="navigate_to_pose" min_interval_ms="1000"/>
                                             </Sequence>
-                                            <!-- 1.5) 控制区恢复可通行且Nav2未拒绝但导航仍锁存卡住 → 清地图直接前往 -->
+                                            <!-- 2) 未卡住+远距(>4.5m路径)+目标被阻 → 接近点 -->
                                             <Sequence>
-                                                <IsGoalAreaClear goal_x="{cfg.control_zone_goal_x}"
-                                                                 goal_y="{cfg.control_zone_goal_y}"
-                                                                 check_radius="0.3"
-                                                                 min_free_neighbors="2"
-                                                                 free_threshold="200"/>
                                                 <Inverter>
-                                                    <IsNavGoalRejected action_name="navigate_to_pose"
-                                                                       latch_timeout_ms="10000"/>
+                                                    <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
+                                                                       goal_x="{cfg.control_zone_goal_x}"
+                                                                       goal_y="{cfg.control_zone_goal_y}"
+                                                                       stuck_check_radius="{cfg.stuck_check_radius}"
+                                                                       stuck_timeout_ms="5000"
+                                                                       far_stuck_timeout_ms="10000"
+                                                                       movement_threshold="0.15"
+                                                                       reset_distance="0.5"
+                                                                       near_goal_skip_radius="0.4"/>
                                                 </Inverter>
-                                                <ForceSuccess>
-                                                    <ClearCostmap service_name="local_costmap/clear_entirely" timeout_ms="1000"/>
-                                                </ForceSuccess>
-                                                <ForceSuccess>
-                                                    <ClearCostmap service_name="global_costmap/clear_entirely" timeout_ms="1000"/>
-                                                </ForceSuccess>
-                                                <SendGoal name="GoControlZone_Recovery"
-                                                          goal_x="{cfg.control_zone_goal_x}"
-                                                          goal_y="{cfg.control_zone_goal_y}"
-                                                          frame_id="map"
-                                                          action_name="navigate_to_pose" min_interval_ms="1000"/>
-                                            </Sequence>
-                                            <!-- 2) 目标被阻且距目标>4.5m(路径距离)：搜索目标附近低代价接近点 -->
-                                            <Sequence>
                                                 <Inverter>
                                                     <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
                                                                    goal_x="{cfg.control_zone_goal_x}"
                                                                    goal_y="{cfg.control_zone_goal_y}"
-                                                                   arrive_radius="4.5"
+                                                                   arrive_radius="3.0"
                                                                    use_path_distance="true"/>
                                                 </Inverter>
                                                 <FindApproachPoint robot_x="{pose.x}" robot_y="{pose.y}"
                                                                    goal_x="{cfg.control_zone_goal_x}"
                                                                    goal_y="{cfg.control_zone_goal_y}"
-                                                                   search_radius="4.5"
+                                                                   search_radius="3.0"
                                                                    cost_threshold="150"
                                                                    approach_x="{nav.goal_x}"
                                                                    approach_y="{nav.goal_y}"
@@ -225,22 +228,16 @@
                                                           frame_id="map"
                                                           action_name="navigate_to_pose" min_interval_ms="1000"/>
                                             </Sequence>
-                                            <!-- 3) 距目标<=4.5m(近距离)：局部脱困策略 → 搜索后方脱困点 -->
+                                            <!-- 3) 兜底：卡住/近距被阻/Nav2拒绝 → 脱困点(单实例) -->
                                             <Sequence>
-                                                <ForceSuccess>
-                                                    <ClearCostmap service_name="local_costmap/clear_entirely" timeout_ms="1000"/>
-                                                </ForceSuccess>
-                                                <ForceSuccess>
-                                                    <ClearCostmap service_name="global_costmap/clear_entirely" timeout_ms="1000"/>
-                                                </ForceSuccess>
                                                 <FindEscapePoint robot_x="{pose.x}" robot_y="{pose.y}"
                                                                  goal_x="{cfg.control_zone_goal_x}"
                                                                  goal_y="{cfg.control_zone_goal_y}"
-                                                                 escape_x="{nav.goal_x}"
-                                                                 escape_y="{nav.goal_y}"
-                                                                 escape_pose="{nav.goal_pose}"/>
+                                                                 escape_x="{escape.goal_x}"
+                                                                 escape_y="{escape.goal_y}"
+                                                                 escape_pose="{escape.goal_pose}"/>
                                                 <SendGoal name="GoControlZone_Escape"
-                                                          goal_pose="{nav.goal_pose}"
+                                                          goal_pose="{escape.goal_pose}"
                                                           frame_id="map"
                                                           action_name="navigate_to_pose" min_interval_ms="1000"/>
                                             </Sequence>
@@ -478,6 +475,18 @@
             <output_port name="approach_x"/>
             <output_port name="approach_y"/>
             <output_port name="approach_pose"/>
+        </Action>
+        <Action ID="ApplyCalibrationOverride" editable="true">
+            <input_port name="control_valid" default="false"/>
+            <input_port name="control_x" default="0.0"/>
+            <input_port name="control_y" default="0.0"/>
+            <input_port name="supply_valid" default="false"/>
+            <input_port name="supply_x" default="0.0"/>
+            <input_port name="supply_y" default="0.0"/>
+            <output_port name="control_zone_goal_x"/>
+            <output_port name="control_zone_goal_y"/>
+            <output_port name="supply_goal_x"/>
+            <output_port name="supply_goal_y"/>
         </Action>
         <Condition ID="NotArrived" editable="true">
             <input_port name="rfid_status" default="{rfid.status}"/>
