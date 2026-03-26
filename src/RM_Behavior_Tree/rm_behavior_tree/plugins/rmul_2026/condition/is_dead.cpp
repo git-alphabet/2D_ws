@@ -13,7 +13,7 @@ IsDeadCondition::IsDeadCondition(const std::string & name, const BT::NodeConfig 
 BT::NodeStatus IsDeadCondition::checkDead()
 {
   // 获取机器人状态消息输入
-   auto msg = getInput<std::shared_ptr<rm_decision_interfaces::msg::RMUL>>("message");
+   auto msg = getInput<std::shared_ptr<sp_msgs::msg::RMUL>>("message");
 
   // 缺消息：保守返回失败（未获取到状态则无法判定死亡）
   if (!msg) {

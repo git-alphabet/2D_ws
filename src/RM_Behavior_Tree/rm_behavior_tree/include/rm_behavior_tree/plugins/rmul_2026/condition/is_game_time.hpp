@@ -2,7 +2,7 @@
 #define RM_BEHAVIOR_TREE__PLUGINS__ACTION__IS_GAME_TIME_HPP_
 
 #include "behaviortree_cpp/condition_node.h"
-#include "rm_decision_interfaces/msg/rmul.hpp"
+#include "sp_msgs/msg/rmul.hpp"
 
 namespace rm_behavior_tree
 {
@@ -28,9 +28,13 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
+<<<<<<< HEAD
       BT::InputPort<rm_decision_interfaces::msg::RMUL>("message"),
       BT::InputPort<std::shared_ptr<rm_decision_interfaces::msg::RMUL>>("robot_msg",
         "robot_status message for HP-drop detection (optional)"),
+=======
+      BT::InputPort<sp_msgs::msg::RMUL>("message"),
+>>>>>>> 1169be1d62c10fbe9ca45e78037a24135a252a23
       BT::InputPort<int>("game_progress"), BT::InputPort<int>("lower_remain_time"),
       BT::InputPort<int>("higher_remain_time")};
   }

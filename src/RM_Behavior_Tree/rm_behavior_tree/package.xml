@@ -10,6 +10,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>behaviortree_cpp</depend>
   <depend>behaviortree_ros2</depend>
+  <depend>sp_msgs</depend>
   <depend>rm_decision_interfaces</depend>
   <depend>auto_aim_interfaces</depend>
   <depend>rclcpp</depend>

@@ -5,12 +5,12 @@ namespace rm_behavior_tree
 
 SubRobotStatusAction::SubRobotStatusAction(
   const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
-: BT::RosTopicSubNode<rm_decision_interfaces::msg::RMUL>(name, conf, params)
+: BT::RosTopicSubNode<sp_msgs::msg::RMUL>(name, conf, params)
 {
 }
 
 BT::NodeStatus SubRobotStatusAction::onTick(
-  const std::shared_ptr<rm_decision_interfaces::msg::RMUL> & last_msg)
+  const std::shared_ptr<sp_msgs::msg::RMUL> & last_msg)
 {
   if (last_msg)  // empty if no new message received, since the last tick
   {

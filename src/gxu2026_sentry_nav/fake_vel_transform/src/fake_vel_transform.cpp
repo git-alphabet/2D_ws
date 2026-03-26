@@ -31,7 +31,6 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
 
   // Initialize state
   current_robot_base_angle_ = 0.0;
-  spin_speed_ = 0.0f;
   last_controller_activate_time_ = this->get_clock()->now();
   last_cmd_vel_rx_time_ = last_controller_activate_time_;
   last_cmd_vel_pub_time_ = last_controller_activate_time_;
@@ -40,7 +39,9 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->declare_parameter<std::string>("fake_robot_base_frame", "gimbal_link_fake");
   this->declare_parameter<std::string>("odom_topic", "odom");
   this->declare_parameter<std::string>("local_plan_topic", "local_plan");
-  this->declare_parameter<std::string>("cmd_spin_topic", "cmd_spin");
+  this->declare_parameter<std::string>("robot_control_topic", "robot_control");
+  this->declare_parameter<bool>("use_manual_spin_override", false);
+  this->declare_parameter<std::string>("manual_spin_override_topic", "manual_chassis_spin");
   this->declare_parameter<std::string>("input_cmd_vel_topic", "");
   this->declare_parameter<std::string>("output_cmd_vel_topic", "");
   this->declare_parameter<float>("init_spin_speed", 0.0);
@@ -49,30 +50,38 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->get_parameter("fake_robot_base_frame", fake_robot_base_frame_);
   this->get_parameter("odom_topic", odom_topic_);
   this->get_parameter("local_plan_topic", local_plan_topic_);
-  this->get_parameter("cmd_spin_topic", cmd_spin_topic_);
+  this->get_parameter("robot_control_topic", robot_control_topic_);
+  this->get_parameter("use_manual_spin_override", use_manual_spin_override_);
+  this->get_parameter("manual_spin_override_topic", manual_spin_override_topic_);
   this->get_parameter("input_cmd_vel_topic", input_cmd_vel_topic_);
   this->get_parameter("output_cmd_vel_topic", output_cmd_vel_topic_);
   this->get_parameter("init_spin_speed", init_spin_speed_);
-  spin_speed_ = init_spin_speed_;
+
+  RCLCPP_INFO(
+    get_logger(),
+    "Spin control: topic=%s, init_spin_speed=%.3f rad/s (enabled when RMUL.chassis_spin=true)",
+    robot_control_topic_.c_str(), init_spin_speed_);
 
   tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
   cmd_vel_chassis_pub_ =
     this->create_publisher<geometry_msgs::msg::Twist>(output_cmd_vel_topic_, 1);
 
-  cmd_spin_sub_ = this->create_subscription<example_interfaces::msg::Float32>(
-    cmd_spin_topic_, 1, std::bind(&FakeVelTransform::cmdSpinCallback, this, std::placeholders::_1));
+  robot_control_sub_ = this->create_subscription<sp_msgs::msg::RMUL>(
+    robot_control_topic_, 10,
+    std::bind(&FakeVelTransform::robotControlCallback, this, std::placeholders::_1));
+  if (use_manual_spin_override_) {
+    manual_spin_override_sub_ = this->create_subscription<std_msgs::msg::Bool>(
+      manual_spin_override_topic_, 10,
+      std::bind(&FakeVelTransform::manualSpinOverrideCallback, this, std::placeholders::_1));
+    RCLCPP_WARN(
+      get_logger(),
+      "Manual spin override enabled: topic=%s (this overrides RMUL.chassis_spin)",
+      manual_spin_override_topic_.c_str());
+  }
   cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
     input_cmd_vel_topic_, 10,
     std::bind(&FakeVelTransform::cmdVelCallback, this, std::placeholders::_1));
-
-  goal_status_sub_ = this->create_subscription<action_msgs::msg::GoalStatusArray>(
-    "navigate_to_pose/_action/status", 10,
-    std::bind(&FakeVelTransform::goalStatusCallback, this, std::placeholders::_1));
-
-  goal_status_sub_through_poses_ = this->create_subscription<action_msgs::msg::GoalStatusArray>(
-    "navigate_through_poses/_action/status", 10,
-    std::bind(&FakeVelTransform::goalStatusCallback, this, std::placeholders::_1));
 
   odom_sub_filter_.subscribe(this, odom_topic_);
   local_plan_sub_filter_.subscribe(this, local_plan_topic_);
@@ -97,24 +106,32 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
     std::bind(&FakeVelTransform::publishTransform, this));
 }
 
-void FakeVelTransform::cmdSpinCallback(const example_interfaces::msg::Float32::SharedPtr msg)
+void FakeVelTransform::robotControlCallback(const sp_msgs::msg::RMUL::SharedPtr msg)
 {
-  has_received_cmd_spin_ = true;
-  spin_speed_ = msg->data;
+  if (use_manual_spin_override_) {
+    return;
+  }
+
+  const bool prev = spin_enabled_;
+  spin_enabled_ = msg->chassis_spin;
+  if (spin_enabled_ != prev || !last_spin_enabled_logged_) {
+    RCLCPP_INFO(
+      get_logger(), "Spin switch updated: chassis_spin=%s",
+      spin_enabled_ ? "true" : "false");
+    last_spin_enabled_logged_ = true;
+  }
 }
 
-void FakeVelTransform::goalStatusCallback(const action_msgs::msg::GoalStatusArray::SharedPtr msg)
+void FakeVelTransform::manualSpinOverrideCallback(const std_msgs::msg::Bool::SharedPtr msg)
 {
-  for (const auto & status : msg->status_list) {
-    if (status.status == 5 || status.status == 6) {
-      // 5 = CANCELED, 6 = ABORTED
-      spin_enabled_ = false;
-    } else if (status.status == 1 || status.status == 2) {
-      // 1 = ACCEPTED, 2 = EXECUTING
-      spin_enabled_ = true;
-    }
-    // 4 = SUCCEEDED: Do not change spin_enabled_ explicitly 
-    // to keep it spinning when reached goal
+  const bool prev = manual_spin_override_enabled_;
+  manual_spin_override_enabled_ = msg->data;
+
+  if (manual_spin_override_enabled_ != prev || !last_spin_enabled_logged_) {
+    RCLCPP_INFO(
+      get_logger(), "Manual spin override updated: enabled=%s",
+      manual_spin_override_enabled_ ? "true" : "false");
+    last_spin_enabled_logged_ = true;
   }
 }
 
@@ -231,7 +248,6 @@ geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
   } else {
     current_spin = init_spin_speed_;
   }
-
   aft_tf_vel.angular.z = twist->angular.z + current_spin;
   aft_tf_vel.linear.x = twist->linear.x * cos(yaw_diff) + twist->linear.y * sin(yaw_diff);
   aft_tf_vel.linear.y = -twist->linear.x * sin(yaw_diff) + twist->linear.y * cos(yaw_diff);

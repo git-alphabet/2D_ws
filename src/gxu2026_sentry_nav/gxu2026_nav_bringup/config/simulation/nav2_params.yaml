@@ -203,7 +203,7 @@ rm_behavior_tree:
     use_sim_time: True
     hp_high_threshold: 120  #先保留两个参数口，其实应该只用保留一个，这两个数值要一样
     hp_medium_threshold: 120
-    supply_heal_min_hp: 400
+    supply_heal_min_hp: 300
     # 红方固化战术点预设 (保底坐标)
     red_control_zone_x: 5.13
     red_control_zone_y: -3.94
@@ -422,8 +422,8 @@ fake_vel_transform:
     local_plan_topic: "local_plan"
     input_cmd_vel_topic: "cmd_vel_nav2_result"
     output_cmd_vel_topic: "cmd_vel"
-    cmd_spin_topic: "cmd_spin"
-    init_spin_speed: 0.0
+    robot_control_topic: "robot_control"
+    init_spin_speed: 2.0
 
 # 非线性小陀螺：发布 cmd_spin（Float32，单位 rad/s），被 fake_vel_transform 叠加到 cmd_vel.angular.z
 # 注意：cmd_spin_topic 不要写成以 / 开头的绝对话题名，这样才会跟随 namespace。
@@ -473,8 +473,10 @@ nonlinear_spin_publisher:
     robot_control_topic: "robot_control"
 
 # 重定位：GICP 基于点云的全局重定位/初始化
+
 small_gicp_relocalization:
   ros__parameters:
+    enable: True
     use_sim_time: True
     num_threads: 4
     num_neighbors: 20
@@ -487,8 +489,7 @@ small_gicp_relocalization:
     robot_base_frame: "gimbal_yaw"
     lidar_frame: "front_mid360"
     init_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]   # [x, y, z, roll, pitch, yaw]
-    # The prior_pcd_file does not need to be specified since it going to be set by defaults in launch.
-    # prior_pcd_file: ""
+    prior_pcd_file: "$(find-pkg-share gxu2026_nav_bringup)/pcd/simulation/scans.pcd"
 
 # PointCloud2 -> LaserScan：用于传统 2D 代价地图/SLAM
 pointcloud_to_laserscan:

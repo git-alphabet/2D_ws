@@ -19,15 +19,15 @@
 #include <mutex>
 #include <string>
 
-#include "example_interfaces/msg/float32.hpp"
 #include "geometry_msgs/msg/twist.hpp"
-#include "action_msgs/msg/goal_status_array.hpp"
 #include "message_filters/subscriber.h"
 #include "message_filters/sync_policies/approximate_time.h"
 #include "message_filters/synchronizer.h"
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "sp_msgs/msg/rmul.hpp"
+#include "std_msgs/msg/bool.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 
 namespace fake_vel_transform
@@ -44,17 +44,16 @@ private:
   void odometryCallback(const nav_msgs::msg::Odometry::ConstSharedPtr & msg);
   void localPlanCallback(const nav_msgs::msg::Path::ConstSharedPtr & msg);
   void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg);
-  void cmdSpinCallback(example_interfaces::msg::Float32::SharedPtr msg);
+  void robotControlCallback(const sp_msgs::msg::RMUL::SharedPtr msg);
+  void manualSpinOverrideCallback(const std_msgs::msg::Bool::SharedPtr msg);
   void publishTransform();
   void publishHoldCmdVelIfNeeded(const rclcpp::Time & now);
   geometry_msgs::msg::Twist transformVelocity(
     const geometry_msgs::msg::Twist::SharedPtr & twist, float yaw_diff);
-  void goalStatusCallback(const action_msgs::msg::GoalStatusArray::SharedPtr msg);
 
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
-  rclcpp::Subscription<example_interfaces::msg::Float32>::SharedPtr cmd_spin_sub_;
-  rclcpp::Subscription<action_msgs::msg::GoalStatusArray>::SharedPtr goal_status_sub_;
-  rclcpp::Subscription<action_msgs::msg::GoalStatusArray>::SharedPtr goal_status_sub_through_poses_;
+  rclcpp::Subscription<sp_msgs::msg::RMUL>::SharedPtr robot_control_sub_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr manual_spin_override_sub_;
 
   message_filters::Subscriber<nav_msgs::msg::Odometry> odom_sub_filter_;
   message_filters::Subscriber<nav_msgs::msg::Path> local_plan_sub_filter_;
@@ -72,13 +71,15 @@ private:
   std::string fake_robot_base_frame_;
   std::string odom_topic_;
   std::string local_plan_topic_;
-  std::string cmd_spin_topic_;
+  std::string robot_control_topic_;
+  std::string manual_spin_override_topic_;
   std::string input_cmd_vel_topic_;
   std::string output_cmd_vel_topic_;
-  float spin_speed_;
   float init_spin_speed_;
-  bool has_received_cmd_spin_{false};
-  bool spin_enabled_{true};
+  bool spin_enabled_{false};
+  bool last_spin_enabled_logged_{false};
+  bool use_manual_spin_override_{false};
+  bool manual_spin_override_enabled_{false};
 
   std::mutex cmd_vel_mutex_;
   geometry_msgs::msg::Twist::SharedPtr latest_cmd_vel_;

@@ -32,16 +32,16 @@ SubRobotPositionAction::SubRobotPositionAction(
   rclcpp::QoS qos(10);
   qos.reliable();
 
-  sub_ = node_->create_subscription<rm_decision_interfaces::msg::RMUL>(
+  sub_ = node_->create_subscription<sp_msgs::msg::RMUL>(
     topic,
     qos,
-    [this](const rm_decision_interfaces::msg::RMUL::SharedPtr msg) {
+    [this](const sp_msgs::msg::RMUL::SharedPtr msg) {
       this->robot_position_callback(msg);
     });
 }
 
 void SubRobotPositionAction::robot_position_callback(
-  const rm_decision_interfaces::msg::RMUL::SharedPtr msg)
+  const sp_msgs::msg::RMUL::SharedPtr msg)
 {
   std::lock_guard<std::mutex> lock(mutex_);
 
