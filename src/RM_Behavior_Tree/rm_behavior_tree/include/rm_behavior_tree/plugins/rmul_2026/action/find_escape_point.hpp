@@ -116,8 +116,9 @@ private:
 
   // ---- 到达脱困点计时（超时后返回FAILURE，用于补给区紧急场景） ----
   bool at_escape_ = false;
-  bool timed_out_ = false;  // 超时后持续返回FAILURE，直到心跳检测重置
+  bool timed_out_ = false;  // 超时后持续返回FAILURE，冷却2秒后自动重置
   std::chrono::steady_clock::time_point escape_arrival_time_;
+  std::chrono::steady_clock::time_point timeout_set_time_;  // timed_out_置位的时刻
 
   // ---- 心跳检测（替代 status()==IDLE，因为 SyncActionNode::halt() 是 final） ----
   bool last_tick_time_set_ = false;

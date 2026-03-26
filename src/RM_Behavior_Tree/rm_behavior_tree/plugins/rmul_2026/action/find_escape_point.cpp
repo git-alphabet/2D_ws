@@ -173,33 +173,22 @@ BT::NodeStatus FindEscapePointAction::tick()
   last_tick_time_ = now;
   last_tick_time_set_ = true;
 
-  // 超时后持续 FAILURE，但如果机器人已远离旧脱困点（强制返航后又卡住了）
-  // 则重置状态，允许搜索新脱困点 → 新一轮脱困循环
+  // 超时后持续 FAILURE，给强制返航留出执行时间（6秒冷却）
+  // 冷却结束后自动重置 → 允许搜索新脱困点 → 新一轮脱困循环
   if (timed_out_) {
-    auto rx_t = getInput<double>("robot_x");
-    auto ry_t = getInput<double>("robot_y");
-    if (rx_t && ry_t) {
-      double arrive_radius = 0.3;
-      getInput("arrive_radius", arrive_radius);
-      const double cdx = rx_t.value() - committed_x_;
-      const double cdy = ry_t.value() - committed_y_;
-      const double cdist = std::sqrt(cdx * cdx + cdy * cdy);
-      if (cdist > arrive_radius * 3.0) {
-        // 机器人已远离旧脱困点 → 重置，允许新脱困搜索
-        has_committed_ = false;
-        committed_x_ = 0.0;
-        committed_y_ = 0.0;
-        at_escape_ = false;
-        timed_out_ = false;
-        if (node_) {
-          RCLCPP_INFO(node_->get_logger(),
-            "[FindEscapePoint] Timeout reset: robot moved %.2fm from old escape, starting new cycle",
-            cdist);
-        }
-        // 继续执行 → 搜索新脱困点
-      } else {
-        return BT::NodeStatus::FAILURE;
+    const auto since_timeout_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+      now - timeout_set_time_).count();
+    if (since_timeout_ms > 6000) {
+      has_committed_ = false;
+      committed_x_ = 0.0;
+      committed_y_ = 0.0;
+      at_escape_ = false;
+      timed_out_ = false;
+      if (node_) {
+        RCLCPP_INFO(node_->get_logger(),
+          "[FindEscapePoint] Cooldown elapsed (6s), starting new escape cycle");
       }
+      // 继续执行 → 搜索新脱困点
     } else {
       return BT::NodeStatus::FAILURE;
     }
@@ -270,6 +259,7 @@ BT::NodeStatus FindEscapePointAction::tick()
             // 不清除 has_committed_，防止搜索新脱困点导致错误重定向
             // 行为树 Fallback 会落入下一分支（强制返航目标）
             timed_out_ = true;
+            timeout_set_time_ = std::chrono::steady_clock::now();
             if (node_) {
               RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 3000,
                 "[FindEscapePoint] Escape timeout (%dms) at (%.2f,%.2f), forcing return to goal",
