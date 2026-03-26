@@ -624,6 +624,14 @@ def _kill_reality(script_name: str) -> None:
         _kill_by_pattern(pat, title, script_name)
 
 
+def _kill_bag_recorders(script_name: str) -> None:
+    for pat, title in [
+        (r"(^|/)record_bag(\s|$)", "record_bag wrapper"),
+        (r"(^|\s)ros2\s+bag\s+record(\s|$)", "ros2 bag recorder"),
+    ]:
+        _kill_by_pattern(pat, title, script_name)
+
+
 def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: str, *, background: bool = False, bg: Optional[BackgroundGroup] = None, pgid_file: Optional[Path] = None, before_shutdown: Optional[Callable[[], None]] = None, post_command: str = "") -> None:
     base_env = _build_base_env(cfg)
     log_dir = _runtime_log_dir(cfg)
@@ -784,6 +792,18 @@ def _wait_for_background(bg: BackgroundGroup, script_name: str) -> int:
     except (KeyboardInterrupt, SystemExit):
         pass
     return 0
+
+
+def _bag_record_command(cfg: CommonConfig) -> str:
+    mode = os.environ.get("AUTO_RECORD_BAG_MODE", "full").strip().lower() or "full"
+    if mode not in {"basic", "full"}:
+        print(
+            f"[{cfg.script_name}] Invalid AUTO_RECORD_BAG_MODE={mode!r}, fallback to 'full'",
+            file=sys.stderr,
+        )
+        mode = "full"
+    bag_script = cfg.ws_dir / "scripts/record_bag.sh"
+    return f"{shlex.quote(str(bag_script))} --mode {shlex.quote(mode)}"
 
 
 def main(argv: list[str]) -> int:
@@ -950,14 +970,26 @@ def main(argv: list[str]) -> int:
         auto_save_cb = None
         auto_save_post_cmd = ""
 
-    if _is_truthy(os.environ.get("ENABLE_WATCHDOG")):
-        _wd_bg = BackgroundGroup(script_name)
-        atexit.register(_wd_bg.cleanup)
+    use_watchdog = _is_truthy(os.environ.get("ENABLE_WATCHDOG"))
+    auto_record_bag = _is_truthy(os.environ.get("AUTO_RECORD_BAG"))
+
+    reality_bg: Optional[BackgroundGroup] = None
+    if use_watchdog or auto_record_bag:
+        reality_bg = BackgroundGroup(script_name)
+        atexit.register(reality_bg.cleanup)
+
+    if auto_record_bag:
+        if cfg.kill_existing:
+            _kill_bag_recorders(script_name)
+        bag_cmd = _bag_record_command(cfg)
+        _launch_in_terminal(cfg, "Reality Full Bag", bag_cmd, "", background=True, bg=reality_bg)
+
+    if use_watchdog and reality_bg is not None:
         _start_watchdog(cfg, [
             ("/registered_scan", 5.0),
             ("/Odometry", 10.0),
             ("/scan", 5.0),
-        ], _wd_bg)
+        ], reality_bg)
 
     _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env, pgid_file=_PGID_FILES["reality"], before_shutdown=auto_save_cb, post_command=auto_save_post_cmd)
     return 0

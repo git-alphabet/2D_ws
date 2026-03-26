@@ -15,5 +15,7 @@ export __GLX_VENDOR_LIBRARY_NAME=nvidia
 NAVIGATION_CMD=${NAVIGATION_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True"}
 export NAVIGATION_CMD
 export KILL_EXISTING="${KILL_EXISTING:-1}"
+export AUTO_RECORD_BAG="${AUTO_RECORD_BAG:-1}"
+export AUTO_RECORD_BAG_MODE="${AUTO_RECORD_BAG_MODE:-full}"
 
 exec python3 "$SCRIPT_DIR/launch_wrapper.py" reality_navigation "$@"

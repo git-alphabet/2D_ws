@@ -141,10 +141,22 @@ PYTHON_BIN=python3 ./scripts/setup_neupan_env.sh
 ./scripts/start_navigation.sh
 ```
 
+默认会同时启动 ros2 bag 全量录包（`--mode full`）。如需临时关闭：
+
+```bash
+AUTO_RECORD_BAG=0 ./scripts/start_navigation.sh
+```
+
 ### 4.4 实车：建图（SLAM）
 
 ```bash
 ./scripts/mapping.sh
+```
+
+默认会同时启动 ros2 bag 全量录包（`--mode full`）。如需临时关闭：
+
+```bash
+AUTO_RECORD_BAG=0 ./scripts/mapping.sh
 ```
 
 
@@ -348,9 +360,9 @@ docker exec -it gxu2026-nav-robot bash
 
 需求覆盖：
 - 开机后由 systemd 拉起容器 `dev-robot`
-- 在容器内按参数选择 `navigation` 或 `mapping`
+- 导航/建图由你手动启动（不设为开机自启）
 - 默认开启 `START_RVIZ=1`（配合 HDMI 欺骗器保活图形输出）
-- 自瞄二进制由 systemd 托管，但默认不设为开机自启（需要时手动启动）
+- 自瞄二进制由 systemd 托管并默认开机自启，且启动后先等待 10 秒再进入程序
 
 #### 1) 用 GitHub 同步到小电脑并安装
 
@@ -362,8 +374,9 @@ bash scripts/systemd/install_on_minipc.sh --mode navigation
 ```
 
 默认行为：
-- `gxu2026-nav-stack.service`：enable + restart（开机自启）
-- `gxu2026-auto-aim.service`：disable + stop（仅手动）
+- `gxu2026-nav-stack.service`：disable + stop（你手动启动）
+- `gxu2026-auto-aim.service`：enable + restart（开机自启，`ExecStartPre=/bin/sleep 10`）
+- `gxu2026-nav-stack.service` 在 `navigation/mapping` 模式下默认同时启动全量录包（`AUTO_RECORD_BAG=1`, `AUTO_RECORD_BAG_MODE=full`）
 
 #### 2) 小电脑本地手动安装（可选）
 

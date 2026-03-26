@@ -13,6 +13,8 @@ export __GLX_VENDOR_LIBRARY_NAME=nvidia
 
 export START_RVIZ="${START_RVIZ:-0}"
 export KILL_EXISTING="${KILL_EXISTING:-1}"
+export AUTO_RECORD_BAG="${AUTO_RECORD_BAG:-1}"
+export AUTO_RECORD_BAG_MODE="${AUTO_RECORD_BAG_MODE:-full}"
 
 # 你想加/改 launch 参数，优先改这行（或运行时用环境变量覆盖 MAPPING_CMD）。
 export MAPPING_CMD=${MAPPING_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True"}

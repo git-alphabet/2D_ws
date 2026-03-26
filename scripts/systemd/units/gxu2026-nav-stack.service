@@ -13,6 +13,8 @@ ExecStart=/usr/bin/docker exec -i \
   -e START_RVIZ=${START_RVIZ} \
   -e KILL_EXISTING=${KILL_EXISTING} \
   -e NO_NEW_TERMINAL=${NO_NEW_TERMINAL} \
+  -e AUTO_RECORD_BAG=${AUTO_RECORD_BAG} \
+  -e AUTO_RECORD_BAG_MODE=${AUTO_RECORD_BAG_MODE} \
   gxu2026-nav-robot /bin/bash -lc 'cd /ws && /ws/scripts/systemd/nav_mode_launcher.sh'
 ExecStop=/usr/bin/docker exec -i gxu2026-nav-robot /bin/bash -lc 'pkill -f rm_navigation_reality_launch.py || true'
 ExecStopPost=/usr/bin/docker compose -f %h/ros2_ws/docker/compose.dev.yml --profile robot stop dev-robot

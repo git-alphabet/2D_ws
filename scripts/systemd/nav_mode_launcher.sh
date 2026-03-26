@@ -6,6 +6,8 @@ MODE="${NAV_MODE:-navigation}"
 export NO_NEW_TERMINAL="${NO_NEW_TERMINAL:-1}"
 export KILL_EXISTING="${KILL_EXISTING:-1}"
 export START_RVIZ="${START_RVIZ:-1}"
+export AUTO_RECORD_BAG="${AUTO_RECORD_BAG:-1}"
+export AUTO_RECORD_BAG_MODE="${AUTO_RECORD_BAG_MODE:-full}"
 
 case "$MODE" in
   mapping)

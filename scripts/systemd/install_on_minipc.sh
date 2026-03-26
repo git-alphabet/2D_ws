@@ -2,8 +2,8 @@
 set -euo pipefail
 
 MODE="navigation"
-ENABLE_NAV=1
-ENABLE_AUTO_AIM=0
+ENABLE_NAV=0
+ENABLE_AUTO_AIM=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -25,8 +25,8 @@ Usage: ./scripts/systemd/install_on_minipc.sh [options]
 
 Options:
   --mode <navigation|mapping>    Set nav startup mode (default: navigation)
-  --enable-nav <0|1>             Enable nav systemd service (default: 1)
-  --enable-auto-aim <0|1>        Enable auto-aim systemd service (default: 0)
+  --enable-nav <0|1>             Enable nav systemd service (default: 0)
+  --enable-auto-aim <0|1>        Enable auto-aim systemd service (default: 1)
 EOF
       exit 0
       ;;
@@ -61,6 +61,8 @@ NAV_MODE=$MODE
 START_RVIZ=1
 KILL_EXISTING=1
 NO_NEW_TERMINAL=1
+AUTO_RECORD_BAG=1
+AUTO_RECORD_BAG_MODE=full
 EOF
 
 chmod +x "$SCRIPT_DIR/nav_mode_launcher.sh"
