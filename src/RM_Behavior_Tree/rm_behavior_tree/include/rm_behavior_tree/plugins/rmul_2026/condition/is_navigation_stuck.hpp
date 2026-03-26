@@ -38,13 +38,17 @@ public:
 			BT::InputPort<double>("goal_x"),
 			BT::InputPort<double>("goal_y"),
 			BT::InputPort<double>("stuck_check_radius", "1.6",
-				"仅在距目标点此范围内才检测卡住 (m)"),
+				"距目标点此范围内使用 stuck_timeout_ms；超出则使用 far_stuck_timeout_ms"),
 			BT::InputPort<int>("stuck_timeout_ms", "5000",
-				"判定卡住的超时时间 (ms)"),
+				"进入 stuck_check_radius 后判定卡住的超时 (ms)"),
+			BT::InputPort<int>("far_stuck_timeout_ms", "10000",
+				"远离目标点时判定卡住的超时 (ms)，0=远处不检测"),
 			BT::InputPort<double>("movement_threshold", "0.15",
 				"认为发生移动的最小距离 (m)"),
 			BT::InputPort<double>("reset_distance", "0.5",
-				"从卡住点移动此距离后解除锁存 (m)")
+				"从卡住点移动此距离后解除锁存 (m)"),
+			BT::InputPort<double>("near_goal_skip_radius", "0.0",
+				"距目标点 < 此距离时不判卡住—已到达 (m)，0=禁用")
 		};
 	}
 

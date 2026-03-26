@@ -114,8 +114,10 @@
                                                                            goal_y="{cfg.control_zone_goal_y}"
                                                                            stuck_check_radius="{cfg.stuck_check_radius}"
                                                                            stuck_timeout_ms="5000"
+                                                                           far_stuck_timeout_ms="10000"
                                                                            movement_threshold="0.15"
-                                                                           reset_distance="0.5"/>
+                                                                           reset_distance="0.5"
+                                                                           near_goal_skip_radius="0.8"/>
                                                     </Inverter>
                                                     <IsGoalAreaClear goal_x="{cfg.control_zone_goal_x}"
                                                                      goal_y="{cfg.control_zone_goal_y}"

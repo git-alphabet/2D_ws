@@ -29,26 +29,43 @@ BT::NodeStatus IsNavigationStuckCondition::tick()
 	const auto now = std::chrono::steady_clock::now();
 
 	int stuck_timeout_ms = 5000;
+	int far_stuck_timeout_ms = 10000;
 	double movement_threshold = 0.15;
 	double reset_distance = 0.5;
 	double stuck_check_radius = 1.6;
+	double near_goal_skip_radius = 0.0;
 	getInput("stuck_timeout_ms", stuck_timeout_ms);
+	getInput("far_stuck_timeout_ms", far_stuck_timeout_ms);
 	getInput("movement_threshold", movement_threshold);
 	getInput("reset_distance", reset_distance);
 	getInput("stuck_check_radius", stuck_check_radius);
+	getInput("near_goal_skip_radius", near_goal_skip_radius);
 
-	// 仅在距目标点 stuck_check_radius 范围内才进行卡住检测
-	// 距离太远说明还在路上，不算卡住
+	// 根据距离目标点的远近选择不同的超时
+	// 近处（<= stuck_check_radius）：使用 stuck_timeout_ms
+	// 远处（> stuck_check_radius）：使用 far_stuck_timeout_ms，0 = 不检测
+	int effective_timeout_ms = stuck_timeout_ms;
 	auto res_gx = getInput<double>("goal_x");
 	auto res_gy = getInput<double>("goal_y");
 	if (res_gx && res_gy) {
 		const double dist_to_goal =
 			std::hypot(px - res_gx.value(), py - res_gy.value());
-		if (dist_to_goal > stuck_check_radius) {
-			// 距目标太远，重置状态，不检测卡住
+
+		// 排除2：距目标 < near_goal_skip_radius 时不检测（已到达）
+		if (near_goal_skip_radius > 0.0 && dist_to_goal < near_goal_skip_radius) {
 			stuck_latched_ = false;
 			initialized_ = false;
 			return BT::NodeStatus::FAILURE;
+		}
+
+		if (dist_to_goal > stuck_check_radius) {
+			if (far_stuck_timeout_ms <= 0) {
+				// 远处不检测（保持原始行为）
+				stuck_latched_ = false;
+				initialized_ = false;
+				return BT::NodeStatus::FAILURE;
+			}
+			effective_timeout_ms = far_stuck_timeout_ms;
 		}
 	}
 
@@ -66,7 +83,7 @@ BT::NodeStatus IsNavigationStuckCondition::tick()
 	if (!stuck_latched_) {
 		const auto gap =
 			std::chrono::duration_cast<std::chrono::milliseconds>(now - last_move_time_);
-		if (gap.count() > stuck_timeout_ms * 2) {
+		if (gap.count() > effective_timeout_ms * 2) {
 			last_moved_x_ = px;
 			last_moved_y_ = py;
 			last_move_time_ = now;
@@ -101,7 +118,7 @@ BT::NodeStatus IsNavigationStuckCondition::tick()
 	// 未移动，检查是否超时
 	const auto elapsed =
 		std::chrono::duration_cast<std::chrono::milliseconds>(now - last_move_time_);
-	if (elapsed.count() >= stuck_timeout_ms) {
+	if (elapsed.count() >= effective_timeout_ms) {
 		stuck_latched_ = true;
 		stuck_detection_x_ = px;
 		stuck_detection_y_ = py;

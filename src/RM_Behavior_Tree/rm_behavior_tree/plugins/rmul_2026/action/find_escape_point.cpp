@@ -56,6 +56,39 @@ uint8_t FindEscapePointAction::getCost(double world_x, double world_y) const
   return latest_costmap_->data[idx];
 }
 
+bool FindEscapePointAction::isPathClear(
+  double ax, double ay, double bx, double by,
+  uint8_t lethal_threshold, double sample_step) const
+{
+  const double dx = bx - ax;
+  const double dy = by - ay;
+  const double dist = std::sqrt(dx * dx + dy * dy);
+  if (dist < sample_step) {
+    return true;  // 太近，不需要检查
+  }
+  const int num_samples = static_cast<int>(std::ceil(dist / sample_step));
+  for (int i = 1; i < num_samples; ++i) {
+    const double t = static_cast<double>(i) / num_samples;
+    const double sx = ax + dx * t;
+    const double sy = ay + dy * t;
+    if (getCost(sx, sy) >= lethal_threshold) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool FindEscapePointAction::isBlacklisted(double x, double y) const
+{
+  for (const auto & entry : blacklist_) {
+    const double d = std::hypot(x - entry.x, y - entry.y);
+    if (d < BLACKLIST_RADIUS) {
+      return true;
+    }
+  }
+  return false;
+}
+
 double FindEscapePointAction::getNeighborClearance(
   double wx, double wy, double step) const
 {
@@ -103,6 +136,16 @@ bool FindEscapePointAction::searchPhase(
       const uint8_t cost = getCost(px, py);
 
       if (cost >= params.cost_threshold) {
+        continue;
+      }
+
+      // 方案1：路径可达性验证 — 跳过路径上有致命障碍的候选点
+      if (!isPathClear(robot_x, robot_y, px, py)) {
+        continue;
+      }
+
+      // 方案2：黑名单过滤 — 跳过之前被判定不可达的区域
+      if (isBlacklisted(px, py)) {
         continue;
       }
 
@@ -237,6 +280,32 @@ BT::NodeStatus FindEscapePointAction::tick()
     const double cdist = std::sqrt(cdx * cdx + cdy * cdy);
 
     if (ccost < 235 && cdist < MAX_COMMIT_DISTANCE) {
+      // 方案2：进展超时检测 — 如果 committed point 存在超过 PROGRESS_TIMEOUT_MS
+      // 且机器人没有明显接近，判定不可达并加入黑名单
+      {
+        const auto since_commit_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+          now - commit_time_).count();
+        if (since_commit_ms >= PROGRESS_TIMEOUT_MS) {
+          // 检查是否有进展：当前距离是否比初始距离减少了至少 PROGRESS_MIN_APPROACH
+          if (cdist >= commit_initial_dist_ - PROGRESS_MIN_APPROACH) {
+            // 无进展 → 加入黑名单并重搜
+            blacklist_.push_back({committed_x_, committed_y_,
+              std::chrono::steady_clock::now() + std::chrono::milliseconds(BLACKLIST_EXPIRE_MS)});
+            if (node_) {
+              RCLCPP_WARN(node_->get_logger(),
+                "[FindEscapePoint] No progress toward (%.2f,%.2f) after %dms "
+                "(init_dist=%.2f, cur_dist=%.2f), blacklisted and re-searching",
+                committed_x_, committed_y_, PROGRESS_TIMEOUT_MS,
+                commit_initial_dist_, cdist);
+            }
+            has_committed_ = false;
+            at_escape_ = false;
+            // 不 return，继续往下执行重新搜索
+            goto do_search;
+          }
+        }
+      }
+
       // 检查是否已到达逃脱点（用于超时机制）
       double arrive_radius = 0.3;
       getInput("arrive_radius", arrive_radius);
@@ -285,6 +354,16 @@ BT::NodeStatus FindEscapePointAction::tick()
         "[FindEscapePoint] Committed point (%.2f,%.2f) invalidated (cost=%d, dist=%.2f)",
         committed_x_, committed_y_, ccost, cdist);
     }
+  }
+
+do_search:
+  // 清理过期的黑名单条目
+  {
+    const auto now_bl = std::chrono::steady_clock::now();
+    blacklist_.erase(
+      std::remove_if(blacklist_.begin(), blacklist_.end(),
+        [&now_bl](const BlacklistEntry & e) { return now_bl >= e.expire_time; }),
+      blacklist_.end());
   }
 
   // 4. 计算后退方向 = normalize(robot - goal)
@@ -353,6 +432,8 @@ void FindEscapePointAction::commitAndOutput(
   has_committed_ = true;
   committed_x_ = x;
   committed_y_ = y;
+  commit_time_ = std::chrono::steady_clock::now();
+  commit_initial_dist_ = std::hypot(robot_x - x, robot_y - y);
   if (node_) {
     RCLCPP_INFO_THROTTLE(node_->get_logger(), *node_->get_clock(), 3000,
       "[FindEscapePoint] %s: robot(%.2f,%.2f) → escape(%.2f,%.2f) [committed]",

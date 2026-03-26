@@ -102,6 +102,13 @@ private:
     const SearchParams & params,
     double & out_x, double & out_y) const;
 
+  /// 射线检查：沿 (ax,ay)->(bx,by) 采样，若路径上有 cost>=lethal 的像素则返回 false
+  bool isPathClear(double ax, double ay, double bx, double by,
+                   uint8_t lethal_threshold = 253, double sample_step = 0.1) const;
+
+  /// 检查候选点是否在黑名单中
+  bool isBlacklisted(double x, double y) const;
+
   /// 输出逃脱点到端口
   void outputResult(double x, double y);
 
@@ -123,6 +130,19 @@ private:
   // ---- 心跳检测（替代 status()==IDLE，因为 SyncActionNode::halt() 是 final） ----
   bool last_tick_time_set_ = false;
   std::chrono::steady_clock::time_point last_tick_time_;
+
+  // ---- 进展超时 + 黑名单（方案2） ----
+  std::chrono::steady_clock::time_point commit_time_;       // committed point 创建时刻
+  double commit_initial_dist_ = 0.0;                        // commit 时机器人到该点的距离
+  static constexpr int PROGRESS_TIMEOUT_MS = 8000;          // 8s 无进展则判定不可达
+  static constexpr double PROGRESS_MIN_APPROACH = 0.2;      // 接近阈值：距离需减少至少 0.2m
+  struct BlacklistEntry {
+    double x, y;
+    std::chrono::steady_clock::time_point expire_time;
+  };
+  std::vector<BlacklistEntry> blacklist_;
+  static constexpr double BLACKLIST_RADIUS = 0.4;           // 黑名单点周围 0.4m 内不选
+  static constexpr int BLACKLIST_EXPIRE_MS = 30000;         // 黑名单 30s 后过期
 };
 
 }  // namespace rm_behavior_tree
