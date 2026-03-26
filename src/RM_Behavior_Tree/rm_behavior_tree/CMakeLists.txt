@@ -26,6 +26,7 @@ set(PACKAGE_INCLUDE_DEPENDS
     behaviortree_cpp
     behaviortree_ros2
     nav2_msgs
+    nav_msgs
 )
 
 # 定义宏函数 add_target_dependencies
