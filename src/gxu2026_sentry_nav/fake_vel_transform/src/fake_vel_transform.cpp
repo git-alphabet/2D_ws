@@ -243,12 +243,10 @@ geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
 {
   geometry_msgs::msg::Twist aft_tf_vel;
 
-  const bool effective_spin_enabled =
-    use_manual_spin_override_ ? manual_spin_override_enabled_ : spin_enabled_;
   const bool is_chassis_stationary =
     std::hypot(twist->linear.x, twist->linear.y) < SPIN_LINEAR_STOP_THRESHOLD;
   const float current_spin =
-    (effective_spin_enabled && is_chassis_stationary) ? init_spin_speed_ : 0.0f;
+    is_chassis_stationary ? init_spin_speed_ : 0.0f;
 
   aft_tf_vel.angular.z = twist->angular.z + current_spin;
   aft_tf_vel.linear.x = twist->linear.x * cos(yaw_diff) + twist->linear.y * sin(yaw_diff);
