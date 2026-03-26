@@ -432,12 +432,10 @@ nonlinear_spin_publisher:
     use_sim_time: True
 
     # 总开关：true 才会开始发布 cmd_spin
-    enabled: false
+    enabled: true
 
-    # 触发策略：满足“发布第一条 nav2_goal 再开始转”
-    # 这里不直接监听 action goal（实现复杂且不同客户端可能不同），而是监听 Nav2 的速度输出。
-    # 一旦收到第一条 cmd_vel_nav2_result（通常意味着第一条 goal 已进入控制器并开始出速度），就开始小陀螺，并且之后不会停止。
-    start_on_first_trigger: true
+    # 触发策略：由 BT RobotControl 的 chassis_spin 字段直接控制，不再依赖 trigger
+    start_on_first_trigger: false
     start_trigger_topic: "cmd_vel_nav2_result"
     start_trigger_msg_type: "geometry_msgs/Twist"
     trigger_require_nonzero: false
@@ -470,6 +468,9 @@ nonlinear_spin_publisher:
     # 使得 rviz cancel / 导航完成后底盘和自旋同步停止
     stop_on_idle: false
     idle_timeout_sec: 0.5
+
+    # BT RobotControl chassis_spin 主控开关：订阅 RMUL 消息的 chassis_spin 字段
+    robot_control_topic: "robot_control"
 
 # 重定位：GICP 基于点云的全局重定位/初始化
 small_gicp_relocalization:

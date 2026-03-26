@@ -10,6 +10,7 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "example_interfaces/msg/float32.hpp"
+#include "rm_decision_interfaces/msg/rmul.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace
@@ -52,6 +53,7 @@ public:
     this->declare_parameter<double>("start_delay_sec", 0.5);
     this->declare_parameter<bool>("stop_on_idle", true);
     this->declare_parameter<double>("idle_timeout_sec", 0.5);
+    this->declare_parameter<std::string>("robot_control_topic", "robot_control");
 
     this->get_parameter("enabled", enabled_);
     this->get_parameter("start_on_first_trigger", start_on_first_trigger_);
@@ -70,6 +72,7 @@ public:
     this->get_parameter("start_delay_sec", start_delay_sec_);
     this->get_parameter("stop_on_idle", stop_on_idle_);
     this->get_parameter("idle_timeout_sec", idle_timeout_sec_);
+    this->get_parameter("robot_control_topic", robot_control_topic_);
 
     if (publish_rate_hz_ <= 0.0) {
       publish_rate_hz_ = 50.0;
@@ -124,6 +127,11 @@ public:
       }
     }
 
+    // Subscribe to robot_control (RMUL msg) for chassis_spin master toggle
+    robot_control_sub_ = this->create_subscription<rm_decision_interfaces::msg::RMUL>(
+      robot_control_topic_, rclcpp::QoS(10),
+      std::bind(&NonlinearSpinPublisher::onRobotControl, this, std::placeholders::_1));
+
     // Init state
     w_current_ = clamp(center_speed_, -max_abs_speed_, max_abs_speed_);
     w_target_ = w_current_;
@@ -143,12 +151,13 @@ public:
 
     RCLCPP_INFO(
       this->get_logger(),
-      "NonlinearSpinPublisher: enabled=%s start_on_first_trigger=%s trigger_topic=%s trigger_type=%s cmd_spin_topic=%s center=%.3f range=%.3f max_abs=%.3f update=%.3fs accel=%.3f publish=%.1fHz seed=%ld stop_on_idle=%s idle_timeout=%.2fs",
+      "NonlinearSpinPublisher: enabled=%s start_on_first_trigger=%s trigger_topic=%s trigger_type=%s cmd_spin_topic=%s robot_control_topic=%s center=%.3f range=%.3f max_abs=%.3f update=%.3fs accel=%.3f publish=%.1fHz seed=%ld stop_on_idle=%s idle_timeout=%.2fs",
       enabled_ ? "true" : "false",
       start_on_first_trigger_ ? "true" : "false",
       start_trigger_topic_.c_str(),
       start_trigger_msg_type_.c_str(),
-      cmd_spin_topic_.c_str(), center_speed_, range_speed_, max_abs_speed_, target_update_period_,
+      cmd_spin_topic_.c_str(), robot_control_topic_.c_str(),
+      center_speed_, range_speed_, max_abs_speed_, target_update_period_,
       accel_limit_, publish_rate_hz_, static_cast<long>(seed_),
       stop_on_idle_ ? "true" : "false", idle_timeout_sec_);
   }
@@ -193,11 +202,29 @@ private:
     RCLCPP_INFO(this->get_logger(), "NonlinearSpinPublisher triggered: start spinning now.");
   }
 
+  void onRobotControl(const rm_decision_interfaces::msg::RMUL::ConstSharedPtr msg)
+  {
+    chassis_spin_enabled_ = msg->chassis_spin;
+  }
+
   void onTimer()
   {
     const auto now = this->get_clock()->now();
 
     if (!enabled_) {
+      return;
+    }
+
+    // chassis_spin master toggle from BT RobotControl
+    if (!chassis_spin_enabled_) {
+      if (w_current_ != 0.0) {
+        w_current_ = 0.0;
+        w_target_ = 0.0;
+        example_interfaces::msg::Float32 zero_msg;
+        zero_msg.data = 0.0f;
+        cmd_spin_pub_->publish(zero_msg);
+      }
+      last_time_ = now;
       return;
     }
 
@@ -303,6 +330,7 @@ private:
   rclcpp::Publisher<example_interfaces::msg::Float32>::SharedPtr cmd_spin_pub_;
   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr trigger_path_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr trigger_twist_sub_;
+  rclcpp::Subscription<rm_decision_interfaces::msg::RMUL>::SharedPtr robot_control_sub_;
   rclcpp::TimerBase::SharedPtr timer_;
 
   rclcpp::Time start_time_;
@@ -315,6 +343,9 @@ private:
   bool stop_on_idle_{true};
   double idle_timeout_sec_{0.5};
   rclcpp::Time last_msg_time_;
+
+  std::string robot_control_topic_;
+  bool chassis_spin_enabled_{false};
 
   std::mt19937 rng_;
   std::uniform_real_distribution<double> dist_unit_;

@@ -224,12 +224,12 @@ geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
   geometry_msgs::msg::Twist aft_tf_vel;
 
   float current_spin = 0.0f;
-  if (spin_enabled_) {
-    if (has_received_cmd_spin_) {
-      current_spin = spin_speed_;
-    } else {
-      current_spin = init_spin_speed_;
-    }
+  // Always apply cmd_spin value; spin on/off is controlled by NonlinearSpinPublisher
+  // which publishes 0 when chassis_spin=False via BT RobotControl.
+  if (has_received_cmd_spin_) {
+    current_spin = spin_speed_;
+  } else {
+    current_spin = init_spin_speed_;
   }
 
   aft_tf_vel.angular.z = twist->angular.z + current_spin;
