@@ -389,7 +389,7 @@ fake_vel_transform:
     local_plan_topic: "controller_server/FollowPath/local_plan"
     input_cmd_vel_topic: "cmd_vel_nav2_result"
     output_cmd_vel_topic: "cmd_vel"
-    cmd_spin_topic: "cmd_spin"
+    robot_control_topic: "robot_control"
     init_spin_speed: 0.0
 
 # 非线性小陀螺（实车）：同仿真，发布 cmd_spin（Float32，单位 rad/s）

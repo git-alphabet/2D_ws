@@ -17,7 +17,8 @@ Related issue: [Switch from Twist to TwistStamped for cmd_vel #1594](https://git
 * `input_cmd_vel_topic` (`geometry_msgs/msg/Twist`) - 机器人的速度指令
 * `local_plan_topic` (`nav_msgs/msg/Path`) - 局部路径规划器的路径
 * `odom_topic` (`nav_msgs/msg/Odometry`) - 里程计数据
-* `cmd_spin_topic` (`example_interfaces/msg/Float32`) - 控制底盘固定旋转速度，将会叠加到 `output_cmd_vel_topic` 中
+* `robot_control_topic` (`rm_decision_interfaces/msg/RMUL`) - 小陀螺开关控制（读取 `chassis_spin`，true 时叠加匀速旋转）
+* `manual_spin_override_topic` (`std_msgs/msg/Bool`) - 手动覆盖小陀螺开关（仅在 `use_manual_spin_override=true` 时生效，优先级高于 `robot_control_topic`）
 
 ## Parameters
 
@@ -25,7 +26,9 @@ Related issue: [Switch from Twist to TwistStamped for cmd_vel #1594](https://git
 * `robot_base_frame` (`string`, default: "gimbal_link") - 速度参考坐标系
 * `fake_robot_base_frame` (`string`, default: "gimbal_link_fake") - 伪速度参考坐标系
 * `local_plan_topic` (`string`, default: "local_plan") - 局部路径规划器的路径话题
-* `cmd_spin_topic` (`string`, default: "cmd_spin") - 控制底盘固定旋转速度的话题
+* `robot_control_topic` (`string`, default: "robot_control") - 小陀螺开关控制话题（`rm_decision_interfaces/msg/RMUL`）
+* `use_manual_spin_override` (`bool`, default: false) - 是否启用手动覆盖模式；启用后，忽略 `robot_control_topic` 中的 `chassis_spin`
+* `manual_spin_override_topic` (`string`, default: "manual_chassis_spin") - 手动覆盖话题（`std_msgs/msg/Bool`）
 * `input_cmd_vel_topic` (`string`, default: "") - 输入速度指令的话题
 * `output_cmd_vel_topic` (`string`, default: "") - 输出速度指令的话题。将原本基于 `fake_robot_base_frame` 的速度变换到 `robot_base_frame` 后发布
-* `init_spin_speed` (`double`, default: 0.0) - 若没有接收 `cmd_spin_topic`，则使用该值作为固定旋转速度
+* `init_spin_speed` (`double`, default: 0.0) - 匀速旋转角速度（`chassis_spin=true` 时叠加到 `output_cmd_vel_topic.angular.z`）

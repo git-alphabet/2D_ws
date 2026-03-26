@@ -10,7 +10,7 @@
 #include "behaviortree_cpp/action_node.h"
 #include "behaviortree_ros2/ros_node_params.hpp"
 
-#include "rm_decision_interfaces/msg/rmul.hpp"
+#include "sp_msgs/msg/rmul.hpp"
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
@@ -39,10 +39,10 @@ public:
 
 private:
   void robot_position_callback(
-    const rm_decision_interfaces::msg::RMUL::SharedPtr msg);
+    const sp_msgs::msg::RMUL::SharedPtr msg);
 
   rclcpp::Node::SharedPtr node_;
-  rclcpp::Subscription<rm_decision_interfaces::msg::RMUL>::SharedPtr sub_;
+  rclcpp::Subscription<sp_msgs::msg::RMUL>::SharedPtr sub_;
   
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;

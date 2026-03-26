@@ -20,6 +20,7 @@ ament_auto_find_build_dependencies()
 ###########
 
 set(PACKAGE_INCLUDE_DEPENDS
+    sp_msgs
     rm_decision_interfaces
     rclcpp
     std_msgs

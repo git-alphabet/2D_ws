@@ -4,7 +4,7 @@
 #include <string>
 
 #include "behaviortree_cpp/action_node.h"
-#include "rm_decision_interfaces/msg/rmul.hpp"
+#include "sp_msgs/msg/rmul.hpp"
 
 namespace rm_behavior_tree
 {
@@ -33,7 +33,7 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
-      BT::InputPort<rm_decision_interfaces::msg::RMUL>("rfid_status")
+      BT::InputPort<sp_msgs::msg::RMUL>("rfid_status")
     };
   }
 

@@ -10,7 +10,7 @@ IsDetectEnemyCondition::IsDetectEnemyCondition(const std::string & name, const B
 
 BT::NodeStatus IsDetectEnemyCondition::checkEnemyDetected()
 {
-  auto msg = getInput<std::shared_ptr<rm_decision_interfaces::msg::RMUL>>("message");
+  auto msg = getInput<std::shared_ptr<sp_msgs::msg::RMUL>>("message");
 
   if (!msg) {
     return BT::NodeStatus::FAILURE;

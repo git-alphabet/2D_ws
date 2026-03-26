@@ -17,7 +17,7 @@ BT::NodeStatus IsGameTimeCondition::checkGameStart()
   }
 
   int game_progress, lower_remain_time, higher_remain_time;
-  auto msg = getInput<rm_decision_interfaces::msg::RMUL>("message");
+  auto msg = getInput<sp_msgs::msg::RMUL>("message");
   getInput("game_progress", game_progress);
   getInput("lower_remain_time", lower_remain_time);
   getInput("higher_remain_time", higher_remain_time);

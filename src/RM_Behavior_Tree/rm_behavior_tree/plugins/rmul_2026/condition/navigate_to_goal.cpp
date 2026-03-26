@@ -14,8 +14,8 @@ BT::NodeStatus NavigateToGoal::tick()
   // ------------------------------------------------
   // 1) 从黑板读取 RFID.msg
   // ------------------------------------------------
-  rm_decision_interfaces::msg::RMUL rfid_msg;
-  if (!getInput<rm_decision_interfaces::msg::RMUL>("rfid_status", rfid_msg)) {
+  sp_msgs::msg::RMUL rfid_msg;
+  if (!getInput<sp_msgs::msg::RMUL>("rfid_status", rfid_msg)) {
     // 黑板上没有该 key / 类型不匹配 / 尚未写入消息：保守失败
     return BT::NodeStatus::FAILURE;
   }

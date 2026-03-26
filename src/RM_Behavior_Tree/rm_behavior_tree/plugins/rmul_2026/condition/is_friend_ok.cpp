@@ -13,7 +13,7 @@ BT::NodeStatus IsFriendOKAction::checkFriendStatus()
   // RMUL.msg 不再包含 AllRobotHP 信息，无法对比友旌血量。
   // 降级处理：始终返回 SUCCESS。
   // TODO: 如需恢复队友血量对比，请在 RMUL.msg 中添加相关字段。
-  (void)getInput<rm_decision_interfaces::msg::RMUL>("message");
+  (void)getInput<sp_msgs::msg::RMUL>("message");
   return BT::NodeStatus::SUCCESS;
 }
 

@@ -14,7 +14,7 @@ BT::NodeStatus IsHPBelowCondition::checkHPBelow()
 {
 int hp_threshold = 0;
 
-auto msg = getInput<std::shared_ptr<rm_decision_interfaces::msg::RMUL>>("message");
+auto msg = getInput<std::shared_ptr<sp_msgs::msg::RMUL>>("message");
 if (!getInput("hp_threshold", hp_threshold)) {
 // 没有传阈值就用默认 0
 hp_threshold = 0;
