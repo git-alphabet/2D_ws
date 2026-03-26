@@ -65,9 +65,32 @@
                         chassis_spin="True"/>
           <!-- 允许导航移动 -->
           <NavControlCmd cmd_type="1" emergency_stop="False"/>
+          <!-- 先解析控制区目标：优先手动校准点，无则回退配置点 -->
+          <Fallback name="ResolveControlZoneTarget">
+            <Sequence>
+              <SetGoalFromCenterOffset center_x="{calib.anchor_x}"
+                                       center_y="{calib.anchor_y}"
+                                       center_yaw="{calib.anchor_yaw}"
+                                       offset_x="0.0"
+                                       offset_y="0.0"
+                                       goal_x="{nav.control_goal_x}"
+                                       goal_y="{nav.control_goal_y}"
+                                       goal_pose="{nav.control_goal_pose}"/>
+            </Sequence>
+            <Sequence>
+              <SetGoalFromCenterOffset center_x="{cfg.control_zone_goal_x}"
+                                       center_y="{cfg.control_zone_goal_y}"
+                                       center_yaw="0.0"
+                                       offset_x="0.0"
+                                       offset_y="0.0"
+                                       goal_x="{nav.control_goal_x}"
+                                       goal_y="{nav.control_goal_y}"
+                                       goal_pose="{nav.control_goal_pose}"/>
+            </Sequence>
+          </Fallback>
           <!-- 前往控制区巡逻: 高血量时优先争夺控制区获取战略优势 -->
           <ReactiveFallback name="NavUntilArrived_ControlZone">
-            <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}" goal_x="{cfg.control_zone_goal_x}" goal_y="{cfg.control_zone_goal_y}" arrive_radius="{cfg.arrive_radius}"/>
+            <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}" goal_x="{nav.control_goal_x}" goal_y="{nav.control_goal_y}" arrive_radius="{cfg.arrive_radius}"/>
             <ReactiveSequence>
               <RateController hz="1">
             <Fallback>
@@ -75,16 +98,15 @@
               <Sequence>
                 <Inverter>
                   <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
-                                     goal_x="{cfg.control_zone_goal_x}"
-                                     goal_y="{cfg.control_zone_goal_y}"
+                                     goal_x="{nav.control_goal_x}"
+                                     goal_y="{nav.control_goal_y}"
                                      stuck_check_radius="{cfg.stuck_check_radius}"
                                      stuck_timeout_ms="5000"
                                      movement_threshold="0.15"
                                      reset_distance="0.5"/>
                 </Inverter>
                 <SendGoal name="PatrolControlZone_Normal"
-                          goal_x="{cfg.control_zone_goal_x}"
-                          goal_y="{cfg.control_zone_goal_y}"
+                          goal_pose="{nav.control_goal_pose}"
                           frame_id="map"
                           action_name="navigate_to_pose" min_interval_ms="1000"/>
               </Sequence>
