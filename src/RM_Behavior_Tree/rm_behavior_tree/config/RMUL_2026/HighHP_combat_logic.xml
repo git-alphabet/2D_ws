@@ -125,7 +125,26 @@
                                 frame_id="map"
                                 action_name="navigate_to_pose" min_interval_ms="1000"/>
                     </Sequence>
-                    <!-- 2) 卡住：清除代价地图 + 搜索逃脱点 + 标记待命 -->
+                    <!-- 1.5) 控制区恢复可通行但导航仍锁存卡住 → 清地图直接前往 -->
+                    <Sequence>
+                      <IsGoalAreaClear goal_x="{cfg.control_zone_goal_x}"
+                                       goal_y="{cfg.control_zone_goal_y}"
+                                       check_radius="0.3"
+                                       min_free_neighbors="2"
+                                       free_threshold="200"/>
+                      <ForceSuccess>
+                        <ClearCostmap service_name="local_costmap/clear_entirely" timeout_ms="1000"/>
+                      </ForceSuccess>
+                      <ForceSuccess>
+                        <ClearCostmap service_name="global_costmap/clear_entirely" timeout_ms="1000"/>
+                      </ForceSuccess>
+                      <SendGoal name="PatrolControlZone_Recovery"
+                                goal_x="{cfg.control_zone_goal_x}"
+                                goal_y="{cfg.control_zone_goal_y}"
+                                frame_id="map"
+                                action_name="navigate_to_pose" min_interval_ms="1000"/>
+                    </Sequence>
+                    <!-- 2) 卡住且控制区不可通行：清除代价地图 + 搜索逃脱点 + 标记待命 -->
                     <Sequence>
                       <ForceSuccess>
                         <ClearCostmap service_name="local_costmap/clear_entirely" timeout_ms="1000"/>
