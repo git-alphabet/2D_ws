@@ -432,7 +432,7 @@ nonlinear_spin_publisher:
     use_sim_time: True
 
     # 总开关：true 才会开始发布 cmd_spin
-    enabled: true
+    enabled: false
 
     # 触发策略：由 BT RobotControl 的 chassis_spin 字段直接控制，不再依赖 trigger
     start_on_first_trigger: false
