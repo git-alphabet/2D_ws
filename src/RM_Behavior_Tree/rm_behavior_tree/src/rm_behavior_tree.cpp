@@ -64,9 +64,13 @@ int main(int argc, char ** argv)
     "is_control_zone_detected",
     "is_within_scope",
     "clear_costmap",
-    "is_robot_stuck",
     "is_navigation_stuck",
     "snap_goal_to_free_space",
+    "find_escape_point",
+    "is_goal_area_clear",
+    "is_nav_goal_rejected",
+    "find_approach_point",
+    "apply_calibration_override",
   };
 
   const std::vector<std::string> bt_plugin_libs = {
@@ -74,6 +78,7 @@ int main(int argc, char ** argv)
     "is_game_time",
     "is_hp_above",
     "is_hp_below",
+    "is_hp_increasing",
     "is_dead",
     "is_status_ok",
     "is_friend_ok",

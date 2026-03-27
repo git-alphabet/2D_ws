@@ -14,8 +14,9 @@ find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  # "msg/RMUC.msg"  # 已拆分为 8 个独立消息，不再编译
-  # ── RMUC 拆分后的独立消息 ──
+  # ── RMUL 统一消息（联盟赛） ──
+  "msg/RMUL.msg"
+  # ── RMUC 拆分后的独立消息（全国赛） ──
   "msg/RMUC/RMUCGameStatus.msg"
   "msg/RMUC/RMUCRobotStatus.msg"
   "msg/RMUC/RMUCRFIDStatus.msg"

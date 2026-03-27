@@ -19,6 +19,7 @@
 #include <mutex>
 #include <string>
 
+#include "example_interfaces/msg/float32.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "message_filters/subscriber.h"
 #include "message_filters/sync_policies/approximate_time.h"
@@ -45,6 +46,7 @@ private:
   void localPlanCallback(const nav_msgs::msg::Path::ConstSharedPtr & msg);
   void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg);
   void robotControlCallback(const sp_msgs::msg::RMUL::SharedPtr msg);
+  void cmdSpinCallback(const example_interfaces::msg::Float32::SharedPtr msg);
   void manualSpinOverrideCallback(const std_msgs::msg::Bool::SharedPtr msg);
   void publishTransform();
   void publishHoldCmdVelIfNeeded(const rclcpp::Time & now);
@@ -53,6 +55,7 @@ private:
 
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
   rclcpp::Subscription<sp_msgs::msg::RMUL>::SharedPtr robot_control_sub_;
+  rclcpp::Subscription<example_interfaces::msg::Float32>::SharedPtr cmd_spin_sub_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr manual_spin_override_sub_;
 
   message_filters::Subscriber<nav_msgs::msg::Odometry> odom_sub_filter_;
@@ -72,10 +75,13 @@ private:
   std::string odom_topic_;
   std::string local_plan_topic_;
   std::string robot_control_topic_;
+  std::string cmd_spin_topic_;
   std::string manual_spin_override_topic_;
   std::string input_cmd_vel_topic_;
   std::string output_cmd_vel_topic_;
   float init_spin_speed_;
+  float spin_speed_{0.0f};
+  bool has_received_cmd_spin_{false};
   bool spin_enabled_{false};
   bool last_spin_enabled_logged_{false};
   bool use_manual_spin_override_{false};

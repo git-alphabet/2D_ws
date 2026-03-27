@@ -27,6 +27,7 @@ set(PACKAGE_INCLUDE_DEPENDS
     behaviortree_cpp
     behaviortree_ros2
     nav2_msgs
+    nav_msgs
 )
 
 # 定义宏函数 add_target_dependencies
@@ -87,6 +88,11 @@ ament_auto_add_library(is_hp_below SHARED
     plugins/rmul_2026/condition/is_hp_below.cpp
 )
 add_target_dependencies(is_hp_below)
+
+ament_auto_add_library(is_hp_increasing SHARED
+    plugins/rmul_2026/condition/is_hp_increasing.cpp
+)
+add_target_dependencies(is_hp_increasing)
 
 ament_auto_add_library(is_dead SHARED 
     plugins/rmul_2026/condition/is_dead.cpp
@@ -306,11 +312,6 @@ ament_auto_add_library(is_navigation_stuck SHARED
 )
 add_target_dependencies(is_navigation_stuck)
 
-ament_auto_add_library(is_robot_stuck SHARED 
-    plugins/rmul_2026/condition/is_robot_stuck.cpp
-)
-add_target_dependencies(is_robot_stuck)
-
 # Actions
 ament_auto_add_library(send_goal SHARED 
     plugins/rmul_2026/action/send_goal.cpp
@@ -414,6 +415,31 @@ ament_auto_add_library(snap_goal_to_free_space SHARED
     plugins/rmul_2026/action/snap_goal_to_free_space.cpp
 )
 add_target_dependencies(snap_goal_to_free_space)
+
+ament_auto_add_library(find_escape_point SHARED
+    plugins/rmul_2026/action/find_escape_point.cpp
+)
+add_target_dependencies(find_escape_point)
+
+ament_auto_add_library(is_goal_area_clear SHARED
+    plugins/rmul_2026/condition/is_goal_area_clear.cpp
+)
+add_target_dependencies(is_goal_area_clear)
+
+ament_auto_add_library(is_nav_goal_rejected SHARED
+    plugins/rmul_2026/condition/is_nav_goal_rejected.cpp
+)
+add_target_dependencies(is_nav_goal_rejected)
+
+ament_auto_add_library(find_approach_point SHARED
+    plugins/rmul_2026/action/find_approach_point.cpp
+)
+add_target_dependencies(find_approach_point)
+
+ament_auto_add_library(apply_calibration_override SHARED
+    plugins/rmul_2026/action/apply_calibration_override.cpp
+)
+add_target_dependencies(apply_calibration_override)
 
 ament_auto_add_library(execute_nav2_waypoints SHARED
     plugins/rmul_2026/action/execute_nav2_waypoints.cpp
