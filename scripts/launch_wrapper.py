@@ -26,6 +26,10 @@ def _beijing_timestamp() -> str:
     return datetime.now(BEIJING_TZ).strftime("%Y%m%d_%H%M")
 
 
+def _beijing_log_timestamp() -> str:
+    return datetime.now(BEIJING_TZ).strftime("%Y%m%d_%H%M%S")
+
+
 def _init_dirs(ws_dir: Path) -> None:
     """启动最开始就创建必要的目录."""
     dirs_to_create = [
@@ -556,7 +560,8 @@ def _start_watchdog(cfg: CommonConfig, topics: list[tuple[str, float]], bg: "Bac
     )
     base_env = _build_base_env(cfg)
     log_dir = _runtime_log_dir(cfg)
-    log_file = log_dir / f"{Path(cfg.script_name).stem}_watchdog.log"
+    log_ts = _beijing_log_timestamp()
+    log_file = log_dir / f"{Path(cfg.script_name).stem}_watchdog_{log_ts}.log"
 
     # Python one-liner: 每 10s 用 ros2 topic hz --window 10 轮询一次
     py_script = r"""
@@ -636,7 +641,8 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
     base_env = _build_base_env(cfg)
     log_dir = _runtime_log_dir(cfg)
     slug = _slugify(title)
-    log_file = log_dir / f"{Path(cfg.script_name).stem}_{slug}.log"
+    log_ts = _beijing_log_timestamp()
+    log_file = log_dir / f"{Path(cfg.script_name).stem}_{slug}_{log_ts}.log"
 
     full_cmd = f"cd {shlex.quote(str(cfg.ws_dir))}; {base_env}"
     if extra_env:
@@ -802,8 +808,21 @@ def _bag_record_command(cfg: CommonConfig) -> str:
             file=sys.stderr,
         )
         mode = "full"
+
+    storage = os.environ.get("AUTO_RECORD_BAG_STORAGE", "sqlite3").strip().lower() or "sqlite3"
+    if storage not in {"sqlite3", "mcap"}:
+        print(
+            f"[{cfg.script_name}] Invalid AUTO_RECORD_BAG_STORAGE={storage!r}, fallback to 'sqlite3'",
+            file=sys.stderr,
+        )
+        storage = "sqlite3"
+
     bag_script = cfg.ws_dir / "scripts/record_bag.sh"
-    return f"{shlex.quote(str(bag_script))} --mode {shlex.quote(mode)}"
+    return (
+        f"{shlex.quote(str(bag_script))} "
+        f"--mode {shlex.quote(mode)} "
+        f"--storage {shlex.quote(storage)}"
+    )
 
 
 def main(argv: list[str]) -> int:

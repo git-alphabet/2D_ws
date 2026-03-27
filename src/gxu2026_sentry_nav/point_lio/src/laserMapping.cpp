@@ -8,6 +8,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 
+#include <ctime>
 #include <iomanip>
 #include <sstream>
 
@@ -50,6 +51,18 @@ geometry_msgs::msg::PoseStamped msg_body_pose;
 int sleep_time = 0;
 
 auto LOGGER = rclcpp::get_logger("laserMapping");
+
+std::string build_pcd_save_stamp()
+{
+  std::time_t now = std::time(nullptr) + 8 * 60 * 60;
+  std::tm tm_buf;
+  gmtime_r(&now, &tm_buf);
+  std::ostringstream oss;
+  oss << std::put_time(&tm_buf, "%Y%m%d_%H%M%S");
+  return oss.str();
+}
+
+const std::string pcd_save_stamp = build_pcd_save_stamp();
 
 void SigHandle(int sig)
 {
@@ -204,9 +217,10 @@ void publish_frame_world(
       if (!pcl_wait_save->empty() && pcd_save_interval > 0 && scan_wait_num >= pcd_save_interval) {
         pcd_index++;
         string all_points_dir(
-          string(string(ROOT_DIR) + "PCD/scans_") + to_string(pcd_index) + string(".pcd"));
+          string(string(ROOT_DIR) + "PCD/scans_") + pcd_save_stamp + string("_") +
+          to_string(pcd_index) + string(".pcd"));
         pcl::PCDWriter pcd_writer;
-        std::cout << "current scan saved to /PCD/" << all_points_dir << '\n';
+        std::cout << "current scan saved to " << all_points_dir << '\n';
         pcd_writer.writeBinary(all_points_dir, *pcl_wait_save);
         pcl_wait_save->clear();
         scan_wait_num = 0;
@@ -1079,7 +1093,7 @@ int main(int argc, char ** argv)
   // 1. make sure you have enough memories
   // 2. noted that pcd save will influence the real-time performances
   if (!pcl_wait_save->empty() && pcd_save_en) {
-    string file_name = string("scans.pcd");
+    string file_name = string("scans_") + pcd_save_stamp + string(".pcd");
     string all_points_dir(string(string(ROOT_DIR) + "PCD/") + file_name);
     pcl::PCDWriter pcd_writer;
     pcd_writer.writeBinary(all_points_dir, *pcl_wait_save);

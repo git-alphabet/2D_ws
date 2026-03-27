@@ -11,6 +11,9 @@ import sys
 from pathlib import Path
 
 
+_BEIJING_TZ = _dt.timezone(_dt.timedelta(hours=8), name="Asia/Shanghai")
+
+
 def _ws_root() -> Path:
     # this file: <ws>/src/ros2_bag_tools/scripts/record_bag
     return Path(__file__).resolve().parents[3]
@@ -91,7 +94,7 @@ def main(argv: list[str]) -> int:
         print(f"话题列表为空: {topics_file}", file=sys.stderr)
         return 1
 
-    ts = _dt.datetime.now().strftime("%F_%H-%M-%S")
+    ts = _dt.datetime.now(_BEIJING_TZ).strftime("%F_%H-%M-%S")
     bag_path = out_dir / ts
 
     max_bag_size_bytes = int(args.max_bag_size_mb) * 1024 * 1024
