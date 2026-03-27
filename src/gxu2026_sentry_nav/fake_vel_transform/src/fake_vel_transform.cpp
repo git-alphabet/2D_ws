@@ -255,14 +255,12 @@ geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
 {
   geometry_msgs::msg::Twist aft_tf_vel;
 
-  float current_spin = 0.0f;
-  // Always apply cmd_spin value; spin on/off is controlled by NonlinearSpinPublisher
-  // which publishes 0 when chassis_spin=False via BT RobotControl.
-  if (has_received_cmd_spin_) {
-    current_spin = spin_speed_;
-  } else {
-    current_spin = init_spin_speed_;
-  }
+  const bool effective_spin_enabled =
+    use_manual_spin_override_ ? manual_spin_override_enabled_ : spin_enabled_;
+  const bool is_chassis_stationary =
+    std::hypot(twist->linear.x, twist->linear.y) < SPIN_LINEAR_STOP_THRESHOLD;
+  const float current_spin =
+    (effective_spin_enabled && is_chassis_stationary) ? init_spin_speed_ : 0.0f;
   aft_tf_vel.angular.z = twist->angular.z + current_spin;
   aft_tf_vel.linear.x = twist->linear.x * cos(yaw_diff) + twist->linear.y * sin(yaw_diff);
   aft_tf_vel.linear.y = -twist->linear.x * sin(yaw_diff) + twist->linear.y * cos(yaw_diff);

@@ -423,16 +423,17 @@ fake_vel_transform:
     input_cmd_vel_topic: "cmd_vel_nav2_result"
     output_cmd_vel_topic: "cmd_vel"
     robot_control_topic: "robot_control"
-    init_spin_speed: 0.0
+    init_spin_speed: 3.14
 
 # 非线性小陀螺：发布 cmd_spin（Float32，单位 rad/s），被 fake_vel_transform 叠加到 cmd_vel.angular.z
 # 注意：cmd_spin_topic 不要写成以 / 开头的绝对话题名，这样才会跟随 namespace。
+# 已禁用：改用 fake_vel_transform 的 init_spin_speed（仅停车时叠加）
 nonlinear_spin_publisher:
   ros__parameters:
     use_sim_time: True
 
-    # 总开关：true 才会开始发布 cmd_spin
-    enabled: true
+    # 总开关：false 禁用（改由 fake_vel_transform init_spin_speed 控制）
+    enabled: false
 
     # 触发策略：由 BT RobotControl 的 chassis_spin 字段直接控制，不再依赖 trigger
     start_on_first_trigger: false

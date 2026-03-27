@@ -364,12 +364,13 @@ fake_vel_transform:
     init_spin_speed: 2.0
 
 # 非线性小陀螺（实车）：同仿真，发布 cmd_spin（Float32，单位 rad/s）
+# 已禁用：改用 fake_vel_transform 的 init_spin_speed（仅停车时叠加）
 nonlinear_spin_publisher:
   ros__parameters:
     use_sim_time: False
 
-    # 总开关：true 才会开始发布 cmd_spin
-    enabled: true
+    # 总开关：false 禁用（改由 fake_vel_transform init_spin_speed 控制）
+    enabled: false
 
     # 触发策略：由 BT RobotControl 的 chassis_spin 字段直接控制
     start_on_first_trigger: false

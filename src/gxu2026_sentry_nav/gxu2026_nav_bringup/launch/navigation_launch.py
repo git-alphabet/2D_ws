@@ -768,7 +768,8 @@ def generate_launch_description():
     # Set switches before starting nodes
     ld.add_action(set_switches_cmd)
     # Add the actions to launch all of the navigation nodes
-    ld.add_action(nonlinear_spin_publisher_node)
+    # Disabled: nonlinear_spin_publisher replaced by fake_vel_transform init_spin_speed
+    # ld.add_action(nonlinear_spin_publisher_node)
     ld.add_action(start_auto_aim_yaw_sim_pub_cmd)
     ld.add_action(start_auto_aim_yaw_joint_state_bridge_cmd)
     ld.add_action(start_terrain_analysis_cmd)
