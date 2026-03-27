@@ -8,9 +8,12 @@ Type=simple
 WorkingDirectory=%h/gxu_robotz_26_auto_aim
 ExecStartPre=/bin/sleep 10
 ExecStart=%h/gxu_robotz_26_auto_aim/build/auto_aim_sentry
+ExecStop=/bin/kill -s SIGINT $MAINPID
 Restart=always
 RestartSec=2
 KillMode=process
+KillSignal=SIGINT
+TimeoutStopSec=20
 
 [Install]
 WantedBy=default.target

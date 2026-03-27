@@ -298,7 +298,7 @@ point_lio:
       tf_send_en: False                                 # True: send transform from 'camera_init' to 'aft_mapped'
 
     pcd_save:
-      pcd_save_en: False
+      pcd_save_en: True
       interval: -1                                      # how many LiDAR frames saved in each pcd file;
                                                         # -1 : all frames will be saved in ONE pcd file, may lead to memory crash when having too much frames.
 
@@ -330,7 +330,7 @@ sensor_scan_generation:
 terrain_analysis:
   ros__parameters:
     scanVoxelSize: 0.05                 # 点云体素下采样分辨率（m）；调大更平滑更省算力，调小保留细节但噪声/算力上升。
-    decayTime: 0.5                      # 点云时间衰减阈值（s）；点时间戳超过该值会被丢弃，调大可保留更多历史点，调小更“实时”。
+    decayTime: 0.3                      # 点云时间衰减阈值（s）；点时间戳超过该值会被丢弃，调大可保留更多历史点，调小更“实时”。
     noDecayDis: 0.0                     # 近距离免衰减半径（m）；在该距离内不受 decayTime 约束，>0 可增强近场稳定性。
     clearingDis: 0.0                    # 清理距离（m）；超过该距离的旧点可被清除，0 通常表示不按距离强清。
     useSorting: True                    # 地面估计方式开关；True 用分位数地面（坡面更稳），False 用最低点地面（对凹坑/离群点更敏感）。
@@ -390,7 +390,7 @@ fake_vel_transform:
     input_cmd_vel_topic: "cmd_vel_nav2_result"
     output_cmd_vel_topic: "cmd_vel"
     robot_control_topic: "robot_control"
-    init_spin_speed: 2.0
+    init_spin_speed: 3.0
 
 # 非线性小陀螺（实车）：同仿真，发布 cmd_spin（Float32，单位 rad/s）
 nonlinear_spin_publisher:
