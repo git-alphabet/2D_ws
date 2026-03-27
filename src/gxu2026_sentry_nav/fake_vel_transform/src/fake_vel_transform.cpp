@@ -263,7 +263,15 @@ geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
   } else {
     current_spin = init_spin_speed_;
   }
-  aft_tf_vel.angular.z = twist->angular.z + current_spin;
+
+  const double linear_speed = std::hypot(twist->linear.x, twist->linear.y);
+  // Stop state: rotate at constant speed. Moving state: translation only.
+  if (linear_speed <= SPIN_LINEAR_STOP_THRESHOLD) {
+    aft_tf_vel.angular.z = current_spin;
+  } else {
+    aft_tf_vel.angular.z = 0.0;
+  }
+
   aft_tf_vel.linear.x = twist->linear.x * cos(yaw_diff) + twist->linear.y * sin(yaw_diff);
   aft_tf_vel.linear.y = -twist->linear.x * sin(yaw_diff) + twist->linear.y * cos(yaw_diff);
   return aft_tf_vel;
