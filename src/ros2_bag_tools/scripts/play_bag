@@ -1,4 +1,3 @@
-done
 #!/usr/bin/env python3
 
 from __future__ import annotations
@@ -30,9 +29,32 @@ def main(argv: list[str]) -> int:
         return 1
 
     bag_dir = Path(args.bag_dir).expanduser()
+    if not bag_dir.is_dir() and not bag_dir.is_absolute():
+        # 兼容在工作空间根目录下只传时间戳目录名的用法
+        candidate = Path("bags") / bag_dir
+        if candidate.is_dir():
+            bag_dir = candidate
+
     if not bag_dir.is_dir():
         print(f"bag 目录不存在: {bag_dir}", file=sys.stderr)
+        print("提示：可尝试传入 bags/<bag目录名>，例如 bags/2026-03-27_18-40-09", file=sys.stderr)
         return 1
+
+    metadata_file = bag_dir / "metadata.yaml"
+    if not metadata_file.is_file():
+        print("检测到 metadata.yaml 缺失，尝试自动重建...", file=sys.stderr)
+        empty_segments = [p for p in sorted(bag_dir.glob("*.db3")) if p.stat().st_size == 0]
+        for seg in empty_segments:
+            skipped = seg.with_suffix(seg.suffix + ".skip")
+            seg.rename(skipped)
+            print(f"检测到空分片，已临时跳过: {seg.name} -> {skipped.name}", file=sys.stderr)
+
+        rc = subprocess.run(["ros2", "bag", "reindex", str(bag_dir)], check=False).returncode
+        if rc != 0 or not metadata_file.is_file():
+            print("重建 metadata 失败，请确认该目录是有效的 rosbag2 目录。", file=sys.stderr)
+            if empty_segments:
+                print("提示：目录里存在 0 字节 .db3 分片，可能是录包中断导致。", file=sys.stderr)
+            return 1
 
     print("bag 信息：")
     try:
