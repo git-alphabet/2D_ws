@@ -37,7 +37,7 @@ pb_navigation_switches:
     # 里程计来源开关：影响导航链路最终订阅的 odom 源（需与 launch/桥接节点一致）。
     odometry_source: "point_lio"
     # 行为树策略入口（default / 其他预设），用于切换导航任务编排逻辑。
-    behavior_tree: "none"
+    behavior_tree: "config/RMUL_2026/rmul_2026.xml"
 
 
     enable_gimbal_yaw_bridge: true             #是否启用 gimbal_yaw_bridge 通路。
@@ -703,7 +703,7 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 4.0
-        inflation_radius: 0.8
+        inflation_radius: 0.5
       always_send_full_costmap: False
 
 # The yaml_filename does not need to be specified since it going to be set by defaults in launch.

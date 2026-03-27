@@ -1,5 +1,5 @@
 [Unit]
-Description=GXU2026 Auto Aim Sentry
+Description=GXU2026 Auto Aim Scan Debug MPC
 After=network-online.target
 Wants=network-online.target
 
@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 WorkingDirectory=%h/gxu_robotz_26_auto_aim
 ExecStartPre=/bin/sleep 10
-ExecStart=%h/gxu_robotz_26_auto_aim/build/auto_aim_sentry
+ExecStart=%h/gxu_robotz_26_auto_aim/build/auto_aim_scan_debug_mpc
 ExecStop=/bin/kill -s SIGINT $MAINPID
 Restart=always
 RestartSec=2
