@@ -20,7 +20,9 @@ ament_auto_add_library(pb_back_up_frees_space_behavior SHARED
 
 ament_auto_add_library(layers SHARED
   src/layers/intensity_voxel_layer.cpp
+  src/layers/semantic_zone_layer.cpp
 )
+target_link_libraries(layers yaml-cpp)
 
 if(BUILD_TESTING)
 set(ament_cmake_clang_format_CONFIG_FILE "${CMAKE_SOURCE_DIR}/.clang-format")
