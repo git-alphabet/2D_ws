@@ -21,9 +21,15 @@
 
       <ReactiveFallback>
         <!-- ══════════════════════════════════════════════════════════
-             分支 A: 检测到敌人 → 进入交战状态
+             分支 A: 靠近控制区(路径距离≤3m) + 检测到敌人 → 进入交战状态
+             远离控制区时忽略敌人，优先导航抢点不恋战
+             路径距离由Nav2全局规划路径(plan topic)计算，无规划时回退为欧氏距离
              ══════════════════════════════════════════════════════════ -->
         <ReactiveSequence>
+          <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
+                         goal_x="{cfg.control_zone_goal_x}" goal_y="{cfg.control_zone_goal_y}"
+                         arrive_radius="2.0"
+                         use_path_distance="true"/>
           <IsDetectEnemy message="{robot_status}"/>
 
           <!-- 检测到敌人后立即取消正在执行的Nav2导航目标，否则Nav2会继续驱动机器人移动 -->
