@@ -395,23 +395,23 @@ do_search:
   // 5. 三阶段搜索
   const double step = 0.15;  // 搜索步长
 
-  // 阶段①: cost<50, 0.5~2.0m, 有目标时优先后退方向
-  SearchParams phase1{0.5, 2.0, step, 50, has_goal};
+  // 阶段①: cost<50, 1.0~2.0m, 有目标时优先后退方向
+  SearchParams phase1{1.0, 2.0, step, 50, has_goal};
   double ex = 0.0, ey = 0.0;
   if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase1, ex, ey)) {
     commitAndOutput(ex, ey, has_goal ? "Phase1" : "Phase1(global)", robot_x, robot_y);
     return BT::NodeStatus::SUCCESS;
   }
 
-  // 阶段②: cost<150, 0.5~3.0m, 有目标时优先后退方向
-  SearchParams phase2{0.5, 3.0, step, 150, has_goal};
+  // 阶段②: cost<150, 2.0~3.0m, 有目标时优先后退方向
+  SearchParams phase2{2.0, 3.0, step, 150, has_goal};
   if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase2, ex, ey)) {
     commitAndOutput(ex, ey, has_goal ? "Phase2" : "Phase2(global)", robot_x, robot_y);
     return BT::NodeStatus::SUCCESS;
   }
 
-  // 阶段③: cost<235, 0.5~3.0m, 任意方向
-  SearchParams phase3{0.5, 3.0, step, 235, false};
+  // 阶段③: cost<235, 3.0~4.0m, 任意方向
+  SearchParams phase3{3.0, 4.0, step, 235, false};
   if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase3, ex, ey)) {
     commitAndOutput(ex, ey, has_goal ? "Phase3" : "Phase3(global)", robot_x, robot_y);
     return BT::NodeStatus::SUCCESS;

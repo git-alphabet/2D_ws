@@ -270,9 +270,9 @@ else:
 
 | 阶段 | cost阈值 | 搜索半径 | 有goal排序 | 无goal排序 |
 |------|----------|----------|------------|------------|
-| Phase1 | <50 | 0.5~2.0m | 后退方向优先 | clearance降序 |
-| Phase2 | <150 | 0.5~3.0m | 后退方向优先 | clearance降序 |
-| Phase3 | <235 | 0.5~3.0m | 任意方向 | clearance降序 |
+| Phase1 | <50 | 2.0~2.0m | 后退方向优先 | clearance降序 |
+| Phase2 | <150 | 2.0~3.0m | 后退方向优先 | clearance降序 |
+| Phase3 | <235 | 2.0~3.0m | 任意方向 | clearance降序 |
 
 ### 候选点过滤
 
@@ -303,6 +303,7 @@ else:
 
 | 日期 | 变更内容 |
 |------|----------|
+| 2026-03-27 | FindEscapePoint 三阶段最小搜索半径 0.5m → 0.6m → 1.0m → 2.0m，确保脱困点在机器人 2.0m 以外 |
 | 2026-03-27 | 局部控制区脱困改为三分支：增加 FindApproachPoint 接近点分支（远距被阻时不直接脱困，而是先靠近） |
 | 2026-03-27 | 全局脱困排除半径：直线4.5m → 路径距离3.0m（use_path_distance=true），精确对齐 FindEscapePoint 搜索范围 |
 | 2026-03-27 | near_goal_skip_radius 修正：0.8 → 0.4（控制区）；B-3外层增加 ReactiveFallback NavUntilArrived 包裹 |

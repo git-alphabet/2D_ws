@@ -1,16 +1,17 @@
 ## 完整链路：底盘小陀螺角速度是怎么发出去的
 
-### 总览（5层）
+> **当前方案**：方案1 — 停车时由 `fake_vel_transform` 叠加固定角速度，移动时不叠加（Nav2 控制器全权负责）。
+> `nonlinear_spin_publisher` 节点已**禁用**，不再参与调用链。
+
+### 总览（3层）
 
 ```
 BT XML
   └─ RobotControl 节点
-       └─ /robot_control (sp_msgs/RMUL, chassis_spin=true)
-            ├─ nonlinear_spin_publisher (订阅)
-            │    └─ /cmd_spin (Float32, rad/s) → 100Hz
-            │         └─ fake_vel_transform (订阅)
-            │              └─ /cmd_vel (Twist) → angular.z 加上 spin_speed_
-            └─ fake_vel_transform (订阅, spin_enabled_ 开关)
+       └─ /robot_control (sp_msgs/RMUL, chassis_spin=true/false)
+            └─ fake_vel_transform（订阅，spin_enabled_ 开关）
+                 ├─ 停车时（linear < 0.05 m/s）：angular.z += init_spin_speed
+                 └─ 移动时（linear ≥ 0.05 m/s）：angular.z 不叠加，由 Nav2 控制器决定
 ```
 
 ---
@@ -43,59 +44,35 @@ bool RobotControlAction::setMessage(sp_msgs::msg::RMUL & msg)
 
 ---
 
-### 第三层：nonlinear_spin_publisher 生成角速度
+### 第三层：fake_vel_transform 判断并叠加角速度
 
-订阅 `robot_control`，通过 `onRobotControl` 回调设置内部标志：
+`robotControlCallback` 收到消息后把 `spin_enabled_` 置为对应值。
+
+`transformVelocity()` 每次处理 Nav2 速度指令时执行双重判断：
 
 ```cpp
-void onRobotControl(const sp_msgs::msg::RMUL::ConstSharedPtr msg) {
-    chassis_spin_enabled_ = msg->chassis_spin;
-}
+constexpr double SPIN_LINEAR_STOP_THRESHOLD = 0.05;  // m/s
+
+const bool effective_spin_enabled =
+    use_manual_spin_override_ ? manual_spin_override_enabled_ : spin_enabled_;
+const bool is_chassis_stationary =
+    std::hypot(twist->linear.x, twist->linear.y) < SPIN_LINEAR_STOP_THRESHOLD;
+const float current_spin =
+    (effective_spin_enabled && is_chassis_stationary) ? init_spin_speed_ : 0.0f;
+aft_tf_vel.angular.z = twist->angular.z + current_spin;
 ```
 
-100Hz 定时器 `onTimer()` 运行：
-- `chassis_spin_enabled_ = false` → 发布 `0.0` rad/s，停转
-- `chassis_spin_enabled_ = true` → 执行非线性随机角速度生成，发布到 `/cmd_spin`（`Float32`）
+**两个条件必须同时满足才叠加**：
+| 条件 | 含义 |
+|---|---|
+| `effective_spin_enabled == true` | 行为树开启了小陀螺（`chassis_spin=True`） |
+| `is_chassis_stationary == true` | 底盘线速度 < 0.05 m/s，视为静止 |
 
----
-
-### 第四层：角速度数值是怎么算出来的
-
-非线性目标生成（`retarget()` 函数）：
-
-**公式**：
-$$w_\text{target} = \text{center\_speed} + \text{range\_speed} \times U(-1, 1)$$
-
-**nav2_params.yaml 中的实际参数**：
-| 参数 | 值 | 含义 |
+**`init_spin_speed` 参数值**：
+| 环境 | 值 | 配置文件 |
 |---|---|---|
-| `center_speed` | **3.14 rad/s** | 角速度中心值（≈π rad/s ≈ 0.5圈/s） |
-| `range_speed` | **2.0 rad/s** | 随机扰动范围 |
-| `max_abs_speed` | **6.28 rad/s** | 最高限幅（≈2π rad/s ≈ 1圈/s） |
-| `min_abs_speed` | **2.0 rad/s** | 最低限幅（避免转速接近0） |
-| `target_update_period` | **0.15s** | 每 150ms 重新抽一个目标速度 |
-| `accel_limit` | **15.0 rad/s²** | 加速度限幅，控制变化平滑度 |
-
-所以 `w_target` 范围是 **1.14 ~ 5.14 rad/s**（3.14 ± 2.0）。每个 timer 步长按加速度限幅渐变到目标值：
-
-$$w_\text{current} += \text{clamp}(w_\text{target} - w_\text{current}, -\text{accel\_limit} \times dt, +\text{accel\_limit} \times dt)$$
-
----
-
-### 第五层：fake_vel_transform 叠加到 cmd_vel
-
-`transformVelocity()`:
-
-```cpp
-if (has_received_cmd_spin_) {
-    current_spin = spin_speed_;   // 来自 /cmd_spin 订阅回调
-} else {
-    current_spin = init_spin_speed_;  // 默认 0.0
-}
-aft_tf_vel.angular.z = twist->angular.z + current_spin;  // 叠加到原始 cmd_vel
-```
-
-`spin_enabled_`（来自 `robot_control`）在 `fake_vel_transform` 里**不再作为开关**——开关逻辑交给 `nonlinear_spin_publisher`，它在 `chassis_spin=false` 时主动发布 `0.0`，`fake_vel_transform` 直接把这个 `0.0` 叠加即可。
+| 仿真 | **3.14 rad/s**（≈ π rad/s） | `simulation/nav2_params.yaml` |
+| 实车 | **2.0 rad/s** | `reality/nav2_params.yaml` |
 
 ---
 
@@ -104,12 +81,29 @@ aft_tf_vel.angular.z = twist->angular.z + current_spin;  // 叠加到原始 cmd_
 ```
 BT: chassis_spin=True 写入 XML
   → RobotControl.setMessage() 发出 robot_control{chassis_spin=true}
-  → nonlinear_spin_publisher.onRobotControl(): chassis_spin_enabled_=true
-  → onTimer() 每 10ms: 生成 w_current ∈ [2.0, 6.28] rad/s, 发布 /cmd_spin
-  → fake_vel_transform.cmdSpinCallback(): spin_speed_=w_current
-  → 同时 NavControlCmd cmd_type=3 → Nav2 发出 cmd_vel.linear=0（刹车）
-  → transformVelocity(): angular.z = 0 + spin_speed_ = w_current
-  → /cmd_vel 发布：linear全0 + angular.z ≈ 3.14 rad/s（随机抖动）
+  → fake_vel_transform.robotControlCallback(): spin_enabled_=true
+  → 同时 NavControlCmd cmd_type=3 → Nav2 控制器刹车
+       → cmd_vel_nav2_result.linear.x ≈ 0, linear.y ≈ 0
+  → transformVelocity():
+       effective_spin_enabled=true
+       is_chassis_stationary=true（线速度 < 0.05 m/s）
+       current_spin = init_spin_speed_（仿真3.14 / 实车2.0 rad/s）
+       angular.z = 0 + current_spin
+  → /cmd_vel 发布：linear全0 + angular.z = init_spin_speed → 原地小陀螺
 ```
 
-机器人原地不动（线速度为0）但底盘旋转（角速度 ≈ π~2π rad/s），这就是小陀螺。
+### 移动时不干扰导航的时序
+
+```
+BT: chassis_spin=True（但正在导航移动）
+  → spin_enabled_=true
+  → Nav2 控制器正常输出线速度，linear ≥ 0.05 m/s
+  → transformVelocity():
+       effective_spin_enabled=true
+       is_chassis_stationary=false（线速度 ≥ 0.05 m/s）
+       current_spin = 0.0f
+       angular.z = twist->angular.z + 0（Nav2 控制器全权决定）
+  → /cmd_vel 发布：Nav2 正常导航速度，不叠加自旋
+```
+
+机器人停下时原地旋转（小陀螺防御），移动时角速度由 Nav2 路径跟踪控制器完全接管，两者互不干扰。
