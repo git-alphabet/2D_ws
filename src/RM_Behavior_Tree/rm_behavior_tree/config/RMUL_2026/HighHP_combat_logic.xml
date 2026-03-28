@@ -21,21 +21,17 @@
 
       <ReactiveFallback>
         <!-- ══════════════════════════════════════════════════════════
-             分支 A: 靠近控制区(路径距离≤2m) + 非回家模式 + 检测到敌人 → 进入交战状态
-             远离控制区时忽略敌人，优先导航抢点不恋战
+             分支 A: 检测到控制区RFID + 非回家模式 + 检测到敌人 → 进入交战状态
+             未踩到控制区RFID时忽略敌人，优先导航抢点不恋战
              回家（need_recovery）模式时强制忽略敌人，以补给区为最优先目标
-             路径距离由Nav2全局规划路径(plan topic)计算，无规划时回退为欧氏距离
              ══════════════════════════════════════════════════════════ -->
         <ReactiveSequence>
           <!-- 门控1: 非回家模式（need_recovery=false），残血回家时不允许战斗 -->
           <Inverter>
             <IsRecoveryNeeded need_recovery="{need_recovery}"/>
           </Inverter>
-          <!-- 门控2: 靠近控制区（路径距离≤2m），远途中不恋战 -->
-          <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
-                         goal_x="{cfg.control_zone_goal_x}" goal_y="{cfg.control_zone_goal_y}"
-                         arrive_radius="2.0"
-                         use_path_distance="true"/>
+          <!-- 门控2: 检测到控制区RFID，确认已在控制区范围内才允许战斗 -->
+          <IsControlZoneDetected rfid_status="{rfid.status}"/>
           <IsDetectEnemy message="{robot_status}"/>
 
           <!-- 检测到敌人后立即取消正在执行的Nav2导航目标，否则Nav2会继续驱动机器人移动 -->
