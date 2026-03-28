@@ -18,6 +18,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, EmitEvent, RegisterEventHandler
+from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.events import Shutdown
 from launch.substitutions import LaunchConfiguration
@@ -54,6 +55,12 @@ def generate_launch_description():
         description="Full path to the RViz config file to use",
     )
 
+    declare_shutdown_on_rviz_exit_cmd = DeclareLaunchArgument(
+        "shutdown_on_rviz_exit",
+        default_value="false",
+        description="Shutdown full launch when RViz exits",
+    )
+
     # Launch rviz
     start_rviz_cmd = Node(
         package="rviz2",
@@ -69,6 +76,7 @@ def generate_launch_description():
     )
 
     exit_event_handler = RegisterEventHandler(
+        condition=IfCondition(LaunchConfiguration("shutdown_on_rviz_exit")),
         event_handler=OnProcessExit(
             target_action=start_rviz_cmd,
             on_exit=EmitEvent(event=Shutdown(reason="rviz exited")),
@@ -82,6 +90,7 @@ def generate_launch_description():
     ld.add_action(declare_namespace_cmd)
     ld.add_action(declare_use_sim_time_cmd)
     ld.add_action(declare_rviz_config_file_cmd)
+    ld.add_action(declare_shutdown_on_rviz_exit_cmd)
 
     # Add any conditioned actions
     ld.add_action(start_rviz_cmd)
