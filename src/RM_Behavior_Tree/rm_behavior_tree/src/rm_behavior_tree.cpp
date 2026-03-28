@@ -65,6 +65,7 @@ int main(int argc, char ** argv)
     "is_within_scope",
     "clear_costmap",
     "is_navigation_stuck",
+    "is_in_semantic_zone",
     "snap_goal_to_free_space",
     "find_escape_point",
     "is_goal_area_clear",
