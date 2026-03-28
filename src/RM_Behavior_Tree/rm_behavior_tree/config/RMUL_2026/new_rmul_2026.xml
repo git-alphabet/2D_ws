@@ -253,8 +253,11 @@
                         game_progress="4"
                         lower_remain_time="0"
                         higher_remain_time="300"/>
-                <!-- 比赛开始后等待 10 秒再执行决策 -->
-                <Delay delay_msec="10000">
+                <!-- 比赛开始后：先强制关闭底盘旋转并停车，等待10秒再执行决策 -->
+                <Sequence name="StartupDelay">
+                    <RobotControl stop_gimbal_scan="False" chassis_spin="False"/>
+                    <NavControlCmd cmd_type="3" emergency_stop="False"/>
+                    <Delay delay_msec="10000">
                 <ReactiveSequence>
                     <!-- 无脱困分支，直接进入战术逻辑 -->
 
@@ -300,7 +303,8 @@
                         </ReactiveFallback>
                     </ReactiveFallback>
                 </ReactiveSequence>
-                </Delay>
+                    </Delay>
+                </Sequence>
                 <!-- 非比赛阶段 -->
                 <Sequence>
                     <RobotControl stop_gimbal_scan="True" chassis_spin="False"/>
