@@ -1,3 +1,12 @@
+## ============================
+## 关键链路速览（实车）
+## 1) 里程计链路：point_lio/small_point_lio -> loam_interface(odometry)
+## 2) 导航控制：planner_server -> controller_server -> fake_vel_transform -> cmd_vel
+## 3) 代价地图观测：terrain_analysis(局部) + terrain_analysis_ext(全局)
+## 4) 坐标系约定：map(全局) / odom(局部连续) / gimbal_yaw_fake(Nav2 规划底盘)
+## 调参建议：优先保证 TF/话题一致，再调频率/容差，最后调控制器增益。
+## ============================
+
 mid360_driver:
   ros__parameters:
     # 说明：这里用相对话题名（不带前导 /），以便在设置 namespace 时能自动跟随命名空间。
@@ -15,12 +24,24 @@ mid360_driver:
     # 多雷达时可打开，让话题名后缀带雷达 ip
     is_topic_name_with_lidar_ip: false
 
-# 里程计 控制器 行为树 配置
+
 pb_navigation_switches:
   ros__parameters:
+    # 机器人模型唯一入口：
+    # 这里只改一次，robot_state_publisher 会据此选择 xmacro（<robot_name>.sdf.xmacro）
+    # 例如：simulation_robot / reality_robot（需在 gxu2026_robot_description/resource/xmacro 下存在同名文件）
+    robot_name: "simulation_robot"
+    # 控制器插件名（会决定 FollowPath 实际加载哪个 controller plugin）
+    # 若改为 NeuPAN 等新插件，请同步检查 launch 中合并逻辑及对应参数文件。
     controller_plugin: "pb_omni_pid_pursuit_controller"
+    # 里程计来源开关：影响导航链路最终订阅的 odom 源（需与 launch/桥接节点一致）。
     odometry_source: "point_lio"
-    behavior_tree: "default"
+    # small_gicp 重定位总开关：
+    # - true: 启动 small_gicp_relocalization，提供 map->odom 动态对齐
+    # - false: 不启动重定位，使用静态 map->odom(0,0,0) + 纯里程计导航
+    enable_small_gicp_relocalization: true
+    # 行为树策略入口（default / 其他预设），用于切换导航任务编排逻辑。
+    behavior_tree: "config/RMUL_2026/rmul_2026.xml"
 
 
     enable_gimbal_yaw_bridge: true             #是否启用 gimbal_yaw_bridge 通路。
@@ -55,8 +76,11 @@ auto_aim_yaw_joint_state_bridge:
 controller_server:
   ros__parameters:
     use_sim_time: False
+    # Nav2 控制器读取的里程计话题（相对名，带 namespace 时会自动前缀）。
     odom_topic: odometry
+    # 控制循环频率（Hz）。越高响应越快但更吃 CPU；实车常见 20~30。
     controller_frequency: 20.0
+    # 允许短时控制失败容忍（秒）。环境抖动/临时不可行时不立即判任务失败。
     failure_tolerance: 0.3
     progress_checker_plugins: ["progress_checker"]
     goal_checker_plugins: ["general_goal_checker"]
@@ -68,7 +92,9 @@ controller_server:
     general_goal_checker:
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
+      # 终点位置容差（m）。过小会导致“抖动贴点”；过大会导致停得偏。
       xy_goal_tolerance: 0.25
+      # 终点朝向容差（rad）。6.28≈2π，表示几乎不约束最终朝向。
       yaw_goal_tolerance: 6.28
 
 # 控制器参数集合（传统控制器 profile）：这里的 profile 通常与仿真保持一致，便于复现调参。
@@ -183,6 +209,9 @@ rm_behavior_tree:
     is_blue_team: False
     style: rmuc_01.xml
     use_sim_time: False
+    hp_high_threshold: 120
+    hp_medium_threshold: 120
+    supply_heal_min_hp: 350
     # 红方固化战术点预设 (保底坐标)
     red_control_zone_x: 5.13
     red_control_zone_y: -3.94
@@ -216,6 +245,7 @@ point_lio:
     runtime_pos_log_enable: False                       # Option: True
 
     common:
+      # 点云/IMU 输入话题。建议保持相对名，便于仿真多车 namespace 复用。
       lid_topic: "livox/lidar/pointcloud"
       imu_topic: "livox/imu"
       con_frame: False                                  # True: if you need to combine several LiDAR frames into one
@@ -258,6 +288,7 @@ point_lio:
       ivox_grid_resolution: 0.5
       gravity: [0.0, 0.5305473804473877, -0.8383715748786926]            # point_lio已实现自动重力校准，这里仅作标识
       gravity_init: [0.0, 0.5305473804473877, -0.8383715748786926]
+      # 激光到机体外参。若实测安装位变化，这里与 small_point_lio/loam_interface 要保持一致。
       extrinsic_T: [ -0.011, -0.02329, 0.04412 ]       
       extrinsic_R: [ 1.0, 0.0, 0.0,
                      0.0, 1.0, 0.0,
@@ -270,10 +301,11 @@ point_lio:
       path_en: False                                    # False: close the path output
       scan_publish_en: True                             # False: close all the point cloud output
       scan_bodyframe_pub_en: False                      # True: output the point cloud scans in IMU-body-frame
+      # 关闭后仅发里程计话题不发 TF，需由 loam_interface/其他节点补齐 odom->base TF。
       tf_send_en: False                                 # True: send transform from 'camera_init' to 'aft_mapped'
 
     pcd_save:
-      pcd_save_en: False
+      pcd_save_en: True
       interval: -1                                      # how many LiDAR frames saved in each pcd file;
                                                         # -1 : all frames will be saved in ONE pcd file, may lead to memory crash when having too much frames.
 
@@ -283,7 +315,9 @@ loam_interface:
     use_sim_time: False
     state_estimation_topic: "aft_mapped_to_init"
     registered_scan_topic: "cloud_registered"
+    # 输出给 Nav2 的里程计坐标系。一般要求 odom 连续、短时稳定，不做全局跳变。
     odom_frame: "odom"
+    # 机器人物理底盘基坐标，需与 URDF/TF tree 中主运动底盘 frame 对齐。
     base_frame: "base_footprint"
     lidar_frame: "front_mid360"
 
@@ -299,81 +333,87 @@ sensor_scan_generation:
     debug_tf: false
     debug_tf_throttle_ms: 1000
 
+    # 关键开关：是否冻结 lidar->base 的挂载 TF
+    # - false(默认): 使用 TF 树中的实时挂载关系（云台转动时，能够"去云台旋转"）
+    # - true: 只在启动时缓存一次挂载外参，之后固定不变
+    freeze_lidar_mount_tf: false
+
 # 地形分析：输出 terrain_map（用于代价地图的点云观测源）
 terrain_analysis:
   ros__parameters:
-    scanVoxelSize: 0.05                 # 点云下采样
-    decayTime: 0.5                      # 点云时间差阈值 大于则不会被处理
-    noDecayDis: 0.0                     # 点云距离阈值 小于该阈值不考虑时间差
-    clearingDis: 0.0                    # 该距离外的点会被清除
-    useSorting: True                    # 这个参数开起来就能上坡了；如果 use_sorting,那么就以周围点中的分位点作为地面点，否则以最低点作为地面点；周围其余点相对于地面点的高度作为通过代价，所以对于坡面，有的点的代价是正，有的是负，就相互抵消了；不要与 consider_drop 同时开启，计算上会有冲突
-    quantileZ: 0.2                      # useful if use_sorting is enabled.
-    considerDrop: False                 # 考虑凹下去的地面,开启则将相对于地面点的高度取绝对值
-    limitGroundLift: False
-    maxGroundLift: 0.3
-    clearDyObs: True                    # 清除动态物体的话，有动态物体走过的地方就走不了了
-    minDyObsDis: 0.3                    # 以下参数都是在 clear_dy_obs 的情况下才有用的
-    minDyObsAngle: 0.0
-    minDyObsRelZ: -0.3
-    absDyObsRelZThre: 0.2
-    minDyObsVFOV: -28.0
-    maxDyObsVFOV: 33.0
-    minDyObsPointNum: 1
-    noDataObstacle: False               # treat no data as obstacle
-    noDataBlockSkipNum: 0
-    minBlockPointNum: 10
-    vehicleHeight: 0.5                  # 小于车辆高度的点才会进行处理
-    voxelPointUpdateThre: 100
-    voxelTimeUpdateThre: 1.0
-    minRelZ: -1.5                       # min_rel_z 以及 max_rel_z 限制了有效点云点的Z值范围，用于对天花板和地板进行处理
-    maxRelZ: 0.5
-    disRatioZ: 0.2                      # Z 值的最大最小范围由这两个值决定，但是并不等于这两个值，是有一个比例关系的，距离机器人越远，限定范围就越大，这其中考虑了坡度
+    scanVoxelSize: 0.05                 # 点云体素下采样分辨率（m）；调大更平滑更省算力，调小保留细节但噪声/算力上升。
+    decayTime: 0.3                      # 点云时间衰减阈值（s）；点时间戳超过该值会被丢弃，调大可保留更多历史点，调小更“实时”。
+    noDecayDis: 0.0                     # 近距离免衰减半径（m）；在该距离内不受 decayTime 约束，>0 可增强近场稳定性。
+    clearingDis: 0.0                    # 清理距离（m）；超过该距离的旧点可被清除，0 通常表示不按距离强清。
+    useSorting: True                    # 地面估计方式开关；True 用分位数地面（坡面更稳），False 用最低点地面（对凹坑/离群点更敏感）。
+    quantileZ: 0.2                      # useSorting=True 时地面分位数（0~1）；越小越贴近低点，越大越“保守抬高地面”。
+    considerDrop: False                 # 是否将负高差按绝对值计入代价；True 会把凹陷也当障碍趋势，勿与 useSorting 同时强依赖。
+    limitGroundLift: False              # 是否限制地面抬升幅度；用于抑制局部异常导致地面估计突变。
+    maxGroundLift: 0.3                  # 地面允许最大抬升（m）；limitGroundLift=True 时生效，调小可抑制突跳。
+    clearDyObs: True                    # 动态障碍清理开关；True 可消除动态目标残影，但可能导致其经过区域短时不可通行。
+    minDyObsDis: 0.3                    # 动态障碍最小检测距离（m）；过小易误检近场噪声，过大可能漏检近身目标。
+    minDyObsAngle: 0.0                  # 动态障碍最小方位角阈值（rad）；可用于过滤特定角域外的点。
+    minDyObsRelZ: -0.3                  # 动态障碍相对地面最小高度（m）；低于该值不视作动态障碍候选。
+    absDyObsRelZThre: 0.2               # 动态障碍绝对相对高度阈值（m）；越大越不敏感，越小越容易标记动态物体。
+    minDyObsVFOV: -28.0                 # 动态障碍垂直视场下限（deg）；用于裁剪无效俯仰角点。
+    maxDyObsVFOV: 33.0                  # 动态障碍垂直视场上限（deg）；与下限共同限定有效垂直角范围。
+    minDyObsPointNum: 1                 # 判定动态障碍最少点数；调大可抑制噪声误检，但会增加漏检风险。
+    noDataObstacle: False               # 无数据区域是否视作障碍；True 更保守安全，False 更激进可通行。
+    noDataBlockSkipNum: 0               # 无数据块跳过数；用于稀疏无数据区域的连通处理，增大可减少“碎片阻挡”。
+    minBlockPointNum: 10                # 体素/块最少有效点数；越大越抗噪，越小越敏感。
+    vehicleHeight: 0.5                  # 参与地形判定的最大有效高度（m）；高于车体高度的点通常忽略（如横梁/顶棚）。
+    voxelPointUpdateThre: 100           # 体素点数更新阈值；达到该点数才触发更新，调大更稳但更新慢。
+    voxelTimeUpdateThre: 1.0            # 体素时间更新阈值（s）；超时触发更新，调小响应快但可能更抖。
+    minRelZ: -1.5                       # 相对地面最小高度（m）；低于该值的点被过滤（抑制地面以下异常点）。
+    maxRelZ: 0.5                        # 相对地面最大高度（m）；高于该值的点被过滤（抑制天花板/高空干扰）。
+    disRatioZ: 0.2                      # 随距离放宽 Z 过滤范围的比例；越大远距离允许高度变化越大（坡地通过性更好）。
 
 # 地形分析（扩展版）：输出 terrain_map_ext（全局代价地图常用）
 terrain_analysis_ext:
   ros__parameters:
-    scanVoxelSize: 0.1
-    decayTime: 0.2
-    noDecayDis: 0.0
-    clearingDis: 20.0
-    useSorting: true
-    quantileZ: 0.2
-    vehicleHeight: 1.0
-    voxelPointUpdateThre: 100
-    voxelTimeUpdateThre: 2.0
-    lowerBoundZ: -1.5
-    upperBoundZ: 0.5
-    disRatioZ: 0.2
-    checkTerrainConn: False
-    terrainUnderVehicle: -0.75
-    terrainConnThre: 0.5
-    ceilingFilteringThre: 2.0
-    localTerrainMapRadius: 4.0
+    scanVoxelSize: 0.1                  # 扩展地形图下采样分辨率（m）；一般比 local 略大以控制全局算力。
+    decayTime: 0.2                      # 扩展图点衰减阈值（s）；全局图常设更短以减少历史残留。
+    noDecayDis: 0.0                     # 近距离免衰减半径（m）；>0 可增强车体附近地形连续性。
+    clearingDis: 20.0                   # 距离清理半径（m）；用于限制地图保留范围，避免远处陈旧点长期占用。
+    useSorting: true                    # 地面估计采用分位数策略；对坡地和起伏地形通常更稳。
+    quantileZ: 0.2                      # 地面分位数参数；越小越贴近低点，越大越偏保守。
+    vehicleHeight: 1.0                  # 扩展图可接受高度上限（m）；通常高于 local，提升全局环境覆盖。
+    voxelPointUpdateThre: 100           # 体素点数更新阈值；控制更新稳定性与实时性平衡。
+    voxelTimeUpdateThre: 2.0            # 体素时间更新阈值（s）；扩展图设大一些可降低抖动。
+    lowerBoundZ: -1.5                   # 全局相对高度下界（m）；过滤过低异常点。
+    upperBoundZ: 0.5                    # 全局相对高度上界（m）；过滤过高无关点。
+    disRatioZ: 0.2                      # 距离相关 Z 放宽比例；远处地形允许更大高差。
+    checkTerrainConn: False             # 是否启用地形连通性检查；True 可抑制孤立噪点但会增加计算。
+    terrainUnderVehicle: -0.75          # 车体下方地形参考高度（m）；用于连通判定与地形基准估计。
+    terrainConnThre: 0.5                # 地形连通阈值（m）；越小越严格，越大越容易判为连通。
+    ceilingFilteringThre: 2.0           # 顶部点过滤阈值（m）；用于剔除顶棚/高处反射点干扰。
+    localTerrainMapRadius: 4.0          # 生成局部扩展地形半径（m）；越大覆盖更广但算力与延迟增加。
 
 # 假速度/坐标变换：把 Nav2 内部期望的底盘速度/局部路径做一层适配
 fake_vel_transform:
   ros__parameters:
     use_sim_time: False
     odom_topic: "odometry"
+    # Nav2 内部规划使用 gimbal_yaw，经过该节点转换后对外发布 fake 底盘框架。
     robot_base_frame: "gimbal_yaw"
     fake_robot_base_frame: "gimbal_yaw_fake"
+    # 输入是 controller 结果速度，输出是底盘最终执行速度。
     local_plan_topic: "controller_server/FollowPath/local_plan"
     input_cmd_vel_topic: "cmd_vel_nav2_result"
     output_cmd_vel_topic: "cmd_vel"
     robot_control_topic: "robot_control"
-    init_spin_speed: 2.0
+    init_spin_speed: 3.0
 
 # 非线性小陀螺（实车）：同仿真，发布 cmd_spin（Float32，单位 rad/s）
-# 已禁用：改用 fake_vel_transform 的 init_spin_speed（仅停车时叠加）
 nonlinear_spin_publisher:
   ros__parameters:
     use_sim_time: False
 
-    # 总开关：false 禁用（改由 fake_vel_transform init_spin_speed 控制）
+    # 总开关：true 才会开始发布 cmd_spin
     enabled: false
 
-    # 触发策略：由 BT RobotControl 的 chassis_spin 字段直接控制
-    start_on_first_trigger: false
+    # 触发策略：收到第一条 Nav2 local_plan 后开始小陀螺，之后不停止
+    start_on_first_trigger: true
     start_trigger_topic: "cmd_vel_nav2_result"
     start_trigger_msg_type: "geometry_msgs/Twist"
     trigger_require_nonzero: false
@@ -395,12 +435,13 @@ nonlinear_spin_publisher:
     stop_on_idle: false
     idle_timeout_sec: 0.5
 
-    # BT RobotControl chassis_spin 主控开关
+    # BT RobotControl chassis_spin 主控开关：订阅 RMUL 消息的 chassis_spin 字段
     robot_control_topic: "robot_control"
 
 # 重定位：GICP 基于点云的全局重定位/初始化
 small_gicp_relocalization:
   ros__parameters:
+    enable: True
     use_sim_time: False
     num_threads: 4
     num_neighbors: 20
@@ -513,11 +554,16 @@ slam_toolbox:
 bt_navigator:
   ros__parameters:
     use_sim_time: False
+    # 全局规划坐标系（地图系），通常由 map_server/slam_toolbox 提供。
     global_frame: map
+    # BT 中用于导航决策的机器人基坐标，应与 costmap/behavior_server 一致。
     robot_base_frame: gimbal_yaw_fake
     odom_topic: odometry
+    # BT tick 周期（ms）。越小行为树响应越快，CPU 开销越大。
     bt_loop_duration: 10
+    # 行为树节点默认 action/service 超时（ms）。
     default_server_timeout: 100
+    # 启动阶段等待服务可用超时（ms），设备慢启动时可适度增大。
     wait_for_service_timeout: 1000
     default_nav_to_pose_bt_xml: $(find-pkg-share gxu2026_nav_bringup)/behavior_trees/navigate_to_pose_w_replanning_and_recovery.xml
     default_nav_through_poses_bt_xml: $(find-pkg-share gxu2026_nav_bringup)/behavior_trees/navigate_through_poses_w_replanning_and_recovery.xml
@@ -575,16 +621,23 @@ local_costmap:
   local_costmap:
     ros__parameters:
       use_sim_time: False
+      # 局部代价地图更新频率（Hz），影响避障实时性。
       update_frequency: 10.0
+      # 局部代价地图发布频率（Hz），影响可视化与下游消费刷新率。
       publish_frequency: 5.0
       global_frame: odom
       robot_base_frame: gimbal_yaw_fake
+      # rolling_window=true 表示以机器人为中心滚动窗口，适合局部避障。
       rolling_window: true
       width: 5
       height: 5
       resolution: 0.05
       robot_radius: 0.2
-      plugins: ["static_layer", "intensity_voxel_layer", "inflation_layer"]
+      plugins: ["static_layer", "semantic_zone_layer", "intensity_voxel_layer", "inflation_layer"]
+      semantic_zone_layer:
+        plugin: "pb_nav2_costmap_2d::SemanticZoneLayer"
+        enabled: true
+        zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
       intensity_voxel_layer:
         plugin: pb_nav2_costmap_2d::IntensityVoxelLayer
         enabled: true
@@ -606,6 +659,7 @@ local_costmap:
           data_type: PointCloud2
           # '<robot_namespace>' keyword shall be replaced with 'namespace' where user defined.
           # It doesn't need to start with '/'
+          # 这里必须与 terrain_analysis 输出话题一致；多机器人仿真必须带各自 namespace。
           topic: <robot_namespace>/terrain_map
           sensor_frame: front_mid360
           min_obstacle_height: 0.0
@@ -618,7 +672,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 4.0
-        inflation_radius: 0.8
+        inflation_radius: 0.4
       always_send_full_costmap: False
 
 # 代价地图（global）：通常使用 map 坐标系，观测源常来自 terrain_map_ext
@@ -626,6 +680,7 @@ global_costmap:
   global_costmap:
     ros__parameters:
       use_sim_time: False
+      # 全局代价地图更新/发布频率通常低于局部图，减少系统负载。
       update_frequency: 5.0
       publish_frequency: 2.0
       global_frame: map
@@ -633,7 +688,11 @@ global_costmap:
       robot_radius: 0.2
       resolution: 0.05
       track_unknown_space: true
-      plugins: ["static_layer", "intensity_voxel_layer", "inflation_layer"]
+      plugins: ["static_layer", "semantic_zone_layer", "intensity_voxel_layer", "inflation_layer"]
+      semantic_zone_layer:
+        plugin: "pb_nav2_costmap_2d::SemanticZoneLayer"
+        enabled: true
+        zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
       intensity_voxel_layer:
         plugin: pb_nav2_costmap_2d::IntensityVoxelLayer
         enabled: true
@@ -655,6 +714,7 @@ global_costmap:
           data_type: PointCloud2
           # '<robot_namespace>' keyword shall be replaced with 'namespace' where user defined.
           # It doesn't need to start with '/'
+          # 这里必须与 terrain_analysis_ext 输出话题一致；若订阅不到会导致全局图“无障碍”。
           topic: <robot_namespace>/terrain_map_ext
           sensor_frame: front_mid360
           min_obstacle_height: 0.0
@@ -667,7 +727,7 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 4.0
-        inflation_radius: 0.8
+        inflation_radius: 0.4
       always_send_full_costmap: False
 
 # The yaml_filename does not need to be specified since it going to be set by defaults in launch.
@@ -691,13 +751,17 @@ map_saver:
 planner_server:
   ros__parameters:
     use_sim_time: False
+    # 全局规划期望频率（Hz）。过高会增加算力占用，过低会降低重规划及时性。
     expected_planner_frequency: 10.0
     planner_plugins: ["GridBased"]
     GridBased:
       plugin: "nav2_theta_star_planner/ThetaStarPlanner" # In Iron and older versions, "/" was used instead of "::"
       how_many_corners: 8
+      # 欧氏距离代价权重：越大越偏向“走短路”。
       w_euc_cost: 1.0
+      # 地形/栅格穿越代价权重：越大越倾向避开高代价区域。
       w_traversal_cost: 10.0
+      # 启发式权重：影响搜索速度与最优性平衡。
       w_heuristic_cost: 1.0
 
 # 路径平滑
@@ -719,6 +783,7 @@ behavior_server:
     global_costmap_topic: global_costmap/costmap_raw
     local_footprint_topic: local_costmap/published_footprint
     global_footprint_topic: global_costmap/published_footprint
+    # 恢复行为执行频率（Hz），影响 spin/backup 等行为响应速度。
     cycle_frequency: 10.0
     behavior_plugins: ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
     spin:
@@ -733,7 +798,9 @@ behavior_server:
       plugin: "nav2_behaviors/AssistedTeleop"
     local_frame: odom
     global_frame: map
+    # 必须与 bt_navigator/local_costmap 的 robot_base_frame 保持一致。
     robot_base_frame: gimbal_yaw_fake
+    # TF 查询容忍（秒）。传感器/计算链路抖动大时可略增。
     transform_tolerance: 0.1
     simulate_ahead_time: 2.0
     max_rotational_vel: 1.0
@@ -760,11 +827,14 @@ waypoint_follower:
 velocity_smoother:
   ros__parameters:
     use_sim_time: False
+    # 速度平滑器运行频率（Hz）。通常 >= 控制器频率，避免离散跳变。
     smoothing_frequency: 20.0
     scale_velocities: False
     feedback: "OPEN_LOOP"
+    # [vx, vy, wz] 速度上下限（m/s, m/s, rad/s），需匹配底盘能力与安全策略。
     max_velocity: [2.5, 2.5, 3.0]
     min_velocity: [-2.5, -2.5, -3.0]
+    # [vx, vy, wz] 加减速度限幅，防止电机指令突变。
     max_accel: [4.5, 4.5, 5.0]
     max_decel: [-4.5, -4.5, -5.0]
     odom_topic: "odometry"
