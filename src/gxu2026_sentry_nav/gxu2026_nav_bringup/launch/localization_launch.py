@@ -285,22 +285,35 @@ def generate_launch_description():
                     if isinstance(legacy_enable_small, bool) and legacy_enable_small:
                         odometry_selection = "small_point_lio"
 
-                reloc_params = (
-                    (raw_data.get("small_gicp_relocalization", {}) or {}).get(
-                        "ros__parameters", {}
-                    )
-                    or {}
-                )
-                reloc_enable_raw = reloc_params.get("enable", True)
-                if isinstance(reloc_enable_raw, bool):
-                    enable_reloc_flag = reloc_enable_raw
-                elif isinstance(reloc_enable_raw, str):
-                    enable_reloc_flag = reloc_enable_raw.strip().lower() in (
+                reloc_switch_raw = switches.get("enable_small_gicp_relocalization")
+                if isinstance(reloc_switch_raw, bool):
+                    enable_reloc_flag = reloc_switch_raw
+                elif isinstance(reloc_switch_raw, str):
+                    enable_reloc_flag = reloc_switch_raw.strip().lower() in (
                         "1",
                         "true",
                         "yes",
                         "on",
                     )
+                else:
+                    # Backward compatibility: keep supporting legacy key
+                    # small_gicp_relocalization.ros__parameters.enable.
+                    reloc_params = (
+                        (raw_data.get("small_gicp_relocalization", {}) or {}).get(
+                            "ros__parameters", {}
+                        )
+                        or {}
+                    )
+                    reloc_enable_raw = reloc_params.get("enable", True)
+                    if isinstance(reloc_enable_raw, bool):
+                        enable_reloc_flag = reloc_enable_raw
+                    elif isinstance(reloc_enable_raw, str):
+                        enable_reloc_flag = reloc_enable_raw.strip().lower() in (
+                            "1",
+                            "true",
+                            "yes",
+                            "on",
+                        )
             except Exception:
                 odometry_selection = "point_lio"
                 enable_reloc_flag = True
