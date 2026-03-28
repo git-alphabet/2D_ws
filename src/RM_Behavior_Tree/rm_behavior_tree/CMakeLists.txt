@@ -426,6 +426,7 @@ ament_auto_add_library(find_escape_point SHARED
     plugins/rmul_2026/action/find_escape_point.cpp
 )
 add_target_dependencies(find_escape_point)
+target_link_libraries(find_escape_point yaml-cpp)
 
 ament_auto_add_library(is_goal_area_clear SHARED
     plugins/rmul_2026/condition/is_goal_area_clear.cpp

@@ -115,7 +115,8 @@
                                                                  escape_timeout_ms="3000"
                                                                  escape_x="{nav.goal_x}"
                                                                  escape_y="{nav.goal_y}"
-                                                                 escape_pose="{nav.goal_pose}"/>
+                                                                 escape_pose="{nav.goal_pose}"
+                                                                 zones_file="{cfg.semantic_zones_file}"/>
                                                 <SendGoal name="GoSupplyToHeal_Escape"
                                                           goal_pose="{nav.goal_pose}"
                                                           frame_id="map"

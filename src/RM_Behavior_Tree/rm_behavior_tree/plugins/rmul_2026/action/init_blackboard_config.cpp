@@ -29,6 +29,8 @@ BT::NodeStatus InitBlackboardConfigAction::tick()
   double        arrive_radius       = ARRIVE_RADIUS_DEFAULT;
   double        stuck_check_radius  = STUCK_CHECK_RADIUS_DEFAULT;
 
+  std::string semantic_zones_file;
+
   double supply_goal_x = RED_SUPPLY_GOAL_X_DEFAULT;
   double supply_goal_y = RED_SUPPLY_GOAL_Y_DEFAULT;
   double control_zone_goal_x = RED_CONTROL_ZONE_X_DEFAULT;
@@ -96,6 +98,9 @@ BT::NodeStatus InitBlackboardConfigAction::tick()
 
     if (!node_->has_parameter("stuck_check_radius")) node_->declare_parameter("stuck_check_radius", STUCK_CHECK_RADIUS_DEFAULT);
     node_->get_parameter("stuck_check_radius", stuck_check_radius);
+
+    if (!node_->has_parameter("semantic_zones_file")) node_->declare_parameter("semantic_zones_file", std::string(""));
+    node_->get_parameter("semantic_zones_file", semantic_zones_file);
   }
 
   // 安全夹紧
@@ -121,6 +126,7 @@ BT::NodeStatus InitBlackboardConfigAction::tick()
   setOutput("control_zone_offset_y", control_zone_offset_y);
   setOutput("arrive_radius", arrive_radius);
   setOutput("stuck_check_radius", stuck_check_radius);
+  setOutput("semantic_zones_file", semantic_zones_file);
 
   initialized_ = true;
   return BT::NodeStatus::SUCCESS;

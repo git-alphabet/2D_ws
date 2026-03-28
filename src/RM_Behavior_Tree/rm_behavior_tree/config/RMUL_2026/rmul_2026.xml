@@ -104,7 +104,8 @@
                             <FindEscapePoint robot_x="{pose.x}" robot_y="{pose.y}"
                                              escape_x="{nav.goal_x}"
                                              escape_y="{nav.goal_y}"
-                                             escape_pose="{nav.goal_pose}"/>
+                                             escape_pose="{nav.goal_pose}"
+                                             zones_file="{cfg.semantic_zones_file}"/>
                             <SendGoal name="GlobalEscape"
                                       goal_pose="{nav.goal_pose}"
                                       frame_id="map"
@@ -236,7 +237,8 @@
                                                                  goal_y="{cfg.control_zone_goal_y}"
                                                                  escape_x="{escape.goal_x}"
                                                                  escape_y="{escape.goal_y}"
-                                                                 escape_pose="{escape.goal_pose}"/>
+                                                                 escape_pose="{escape.goal_pose}"
+                                                                 zones_file="{cfg.semantic_zones_file}"/>
                                                 <SendGoal name="GoControlZone_Escape"
                                                           goal_pose="{escape.goal_pose}"
                                                           frame_id="map"
@@ -342,6 +344,7 @@
             <input_port name="robot_y"/>
             <input_port name="goal_x"/>
             <input_port name="goal_y"/>
+            <input_port name="zones_file"/>
             <output_port name="escape_x"/>
             <output_port name="escape_y"/>
             <output_port name="escape_pose"/>

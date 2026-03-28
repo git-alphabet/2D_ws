@@ -26,7 +26,8 @@
                         control_zone_goal_y="{cfg.control_zone_goal_y}"
                         control_zone_offset_x="{cfg.control_zone_offset_x}"
                         control_zone_offset_y="{cfg.control_zone_offset_y}"
-                        arrive_radius="{cfg.arrive_radius}"/>
+                        arrive_radius="{cfg.arrive_radius}"
+                        semantic_zones_file="{cfg.semantic_zones_file}"/>
             <SubRobotPosition topic_name="robot_position"
                               pose_x="{pose.x}"
                               pose_y="{pose.y}"/>

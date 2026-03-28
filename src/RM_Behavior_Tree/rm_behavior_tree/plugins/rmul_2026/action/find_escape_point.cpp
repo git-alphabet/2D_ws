@@ -2,10 +2,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <fstream>
 #include <limits>
+#include <utility>
 #include <vector>
 
 #include "behaviortree_ros2/plugins.hpp"
+#include "yaml-cpp/yaml.h"
 
 namespace rm_behavior_tree
 {
@@ -89,6 +92,78 @@ bool FindEscapePointAction::isBlacklisted(double x, double y) const
   return false;
 }
 
+void FindEscapePointAction::loadKeepoutZones(const std::string & yaml_path)
+{
+  if (yaml_path == loaded_zones_file_) {
+    return;  // already loaded
+  }
+
+  keepout_polygons_.clear();
+  keepout_loaded_ = false;
+
+  YAML::Node config;
+  try {
+    config = YAML::LoadFile(yaml_path);
+  } catch (const YAML::Exception & e) {
+    if (node_) {
+      RCLCPP_WARN(node_->get_logger(),
+        "[FindEscapePoint] Failed to load zones file %s: %s", yaml_path.c_str(), e.what());
+    }
+    return;
+  }
+
+  if (!config["zones"]) {
+    return;
+  }
+
+  for (const auto & z : config["zones"]) {
+    if (z["type"].as<std::string>("") != "keepout") {
+      continue;
+    }
+    Polygon poly;
+    for (const auto & v : z["vertices"]) {
+      poly.emplace_back(v[0].as<double>(), v[1].as<double>());
+    }
+    if (poly.size() >= 3) {
+      keepout_polygons_.push_back(std::move(poly));
+    }
+  }
+
+  keepout_loaded_ = !keepout_polygons_.empty();
+  loaded_zones_file_ = yaml_path;
+
+  if (node_) {
+    RCLCPP_INFO(node_->get_logger(),
+      "[FindEscapePoint] Loaded %zu keepout polygons from %s",
+      keepout_polygons_.size(), yaml_path.c_str());
+  }
+}
+
+bool FindEscapePointAction::isInKeepoutZone(double x, double y) const
+{
+  if (!keepout_loaded_) {
+    return false;
+  }
+  for (const auto & poly : keepout_polygons_) {
+    // Ray-casting point-in-polygon
+    bool inside = false;
+    size_t n = poly.size();
+    for (size_t i = 0, j = n - 1; i < n; j = i++) {
+      double xi = poly[i].first, yi = poly[i].second;
+      double xj = poly[j].first, yj = poly[j].second;
+      if (((yi > y) != (yj > y)) &&
+        (x < (xj - xi) * (y - yi) / (yj - yi) + xi))
+      {
+        inside = !inside;
+      }
+    }
+    if (inside) {
+      return true;
+    }
+  }
+  return false;
+}
+
 double FindEscapePointAction::getNeighborClearance(
   double wx, double wy, double step) const
 {
@@ -147,6 +222,11 @@ bool FindEscapePointAction::searchPhase(
 
       // 方案2：黑名单过滤 — 跳过之前被判定不可达的区域
       if (isBlacklisted(px, py)) {
+        continue;
+      }
+
+      // 禁行区过滤 — 跳过落入 keepout 多边形内的候选点
+      if (isInKeepoutZone(px, py)) {
         continue;
       }
 
@@ -261,6 +341,15 @@ BT::NodeStatus FindEscapePointAction::tick()
 
   if (node_) {
     rclcpp::spin_some(node_);
+  }
+
+  // 1b. 加载禁行区多边形（仅首次或路径变更时加载）
+  {
+    std::string zones_file;
+    getInput("zones_file", zones_file);
+    if (!zones_file.empty()) {
+      loadKeepoutZones(zones_file);
+    }
   }
 
   // 2. 读取输入

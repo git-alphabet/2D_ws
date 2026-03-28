@@ -181,7 +181,8 @@
                                        goal_y="{cfg.control_zone_goal_y}"
                                        escape_x="{escape.goal_x}"
                                        escape_y="{escape.goal_y}"
-                                       escape_pose="{escape.goal_pose}"/>
+                                       escape_pose="{escape.goal_pose}"
+                                       zones_file="{cfg.semantic_zones_file}"/>
                       <SendGoal name="PatrolControlZone_Escape"
                                 goal_pose="{escape.goal_pose}"
                                 frame_id="map"

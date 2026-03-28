@@ -221,6 +221,8 @@ rm_behavior_tree:
     arrive_radius: 0.6
     # 卡住检测判定半径：仅在距目标点此范围内才启动卡住计时（IsNavigationStuck）
     stuck_check_radius: 1.6
+    # 语义禁行区文件（FindEscapePoint 用于过滤脱困点）
+    semantic_zones_file: /ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml
 
 # Point-LIO：里程计/定位源之一（注意其 tf_send_en = False 时不会发布 TF）
 point_lio:
