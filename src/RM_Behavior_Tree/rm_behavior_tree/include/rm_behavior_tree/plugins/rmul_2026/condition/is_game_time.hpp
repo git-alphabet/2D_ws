@@ -13,7 +13,8 @@ namespace rm_behavior_tree
  * 满足以下任一条件即返回 SUCCESS（且一旦触发，永久锁存）:
  *   1. game_progress == 期望阶段 且 剩余时间在区间内（正常路径）
  *   2. 检测到 HP 下降（电控丢包导致 game_progress 未更新的容错）
- *   3. 缺少 game_status 时，允许仅基于 robot_status 的 HP 下降判定（可配置）
+ *   3. 首次拿到 HP 时若已低于初始满血（默认 400），也判定比赛已开始
+ *   4. 缺少 game_status 时，允许仅基于 robot_status 的 HP 判定（可配置）
  *
  * 比赛阶段:
  *   {0, "未开始比赛"}, {1, "准备阶段"}, {2, "十五秒裁判系统自检阶段"},
@@ -32,6 +33,8 @@ public:
       BT::InputPort<sp_msgs::msg::RMUL>("message"),
       BT::InputPort<std::shared_ptr<sp_msgs::msg::RMUL>>("robot_msg"),
       BT::InputPort<bool>("allow_no_game_status_hp_fallback"),
+        BT::InputPort<int>("initial_full_hp"),
+        BT::InputPort<int>("hp_drop_delta"),
       BT::InputPort<int>("game_progress"), BT::InputPort<int>("lower_remain_time"),
       BT::InputPort<int>("higher_remain_time")};
   }

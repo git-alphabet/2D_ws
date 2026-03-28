@@ -14,10 +14,11 @@ BT::NodeStatus SubGameStatusAction::onTick(
 {
   if (last_msg)  // empty if no new message received, since the last tick
   {
-    RCLCPP_DEBUG(
-      logger(), "[%s] new message, game_progress: %s, remain: %s", name().c_str(),
-      std::to_string(last_msg->game_progress).c_str(),
-      std::to_string(last_msg->stage_remain_time).c_str());
+    RCLCPP_INFO_THROTTLE(
+      logger(), *node_->get_clock(), 2000,
+      "[%s] game_progress=%d stage_remain_time=%d current_hp=%d is_attacked=%d", name().c_str(),
+      static_cast<int>(last_msg->game_progress), static_cast<int>(last_msg->stage_remain_time),
+      static_cast<int>(last_msg->current_hp), static_cast<int>(last_msg->is_attacked));
     setOutput("game_status", *last_msg);
   }
   return BT::NodeStatus::SUCCESS;

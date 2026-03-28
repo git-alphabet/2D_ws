@@ -652,7 +652,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 4.0
-        inflation_radius: 0.5
+        inflation_radius: 0.4
       always_send_full_costmap: False
 
 # 代价地图（global）：通常使用 map 坐标系，观测源常来自 terrain_map_ext
@@ -703,7 +703,7 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 4.0
-        inflation_radius: 0.5
+        inflation_radius: 0.4
       always_send_full_costmap: False
 
 # The yaml_filename does not need to be specified since it going to be set by defaults in launch.

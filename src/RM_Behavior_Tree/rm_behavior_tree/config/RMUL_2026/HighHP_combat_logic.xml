@@ -77,6 +77,13 @@
                escape.goal_x/y未设置时: IsWithinScope用默认值(0,0)→FAILURE → B-3直接运行
           -->
           <ReactiveSequence>
+            <!-- 防误触: escape.goal_x/y 未初始化时常为(0,0)。
+                 若机器人恰好在原点附近，会被误判为“已到达脱困点”从而原地不走。 -->
+            <Inverter>
+              <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
+                             goal_x="0.0" goal_y="0.0"
+                             arrive_radius="0.35"/>
+            </Inverter>
             <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
                            goal_x="{escape.goal_x}" goal_y="{escape.goal_y}"
                            arrive_radius="0.5"/>

@@ -64,6 +64,8 @@
                         message="{game_status}"
                         robot_msg="{robot_status}"
                     allow_no_game_status_hp_fallback="true"
+                        initial_full_hp="400"
+                        hp_drop_delta="1"
                         game_progress="4"
                         lower_remain_time="0"
                         higher_remain_time="300"/>
@@ -147,6 +149,13 @@
                                 <!-- B-2: 到达脱困点且控制区仍被阻 → 原地小陀螺待命
                                      退出条件: 控制区恢复通行(Inverter返回FAILURE) → B-3接管 -->
                                 <ReactiveSequence>
+                                    <!-- 防误触: escape.goal_x/y 未初始化时常为(0,0)。
+                                         若机器人在原点附近，会误进B-2导致不走。 -->
+                                    <Inverter>
+                                        <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
+                                                       goal_x="0.0" goal_y="0.0"
+                                                       arrive_radius="0.35"/>
+                                    </Inverter>
                                     <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
                                                    goal_x="{escape.goal_x}" goal_y="{escape.goal_y}"
                                                    arrive_radius="0.5"/>
@@ -402,6 +411,8 @@
             <input_port name="message" default="{game_status}"/>
             <input_port name="robot_msg" default="{robot_status}"/>
             <input_port name="allow_no_game_status_hp_fallback" default="false"/>
+            <input_port name="initial_full_hp" default="400"/>
+            <input_port name="hp_drop_delta" default="1"/>
             <input_port name="game_progress" default="4"/>
             <input_port name="lower_remain_time" default="0"/>
             <input_port name="higher_remain_time" default="300"/>
