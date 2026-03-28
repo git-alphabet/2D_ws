@@ -63,6 +63,7 @@
                 <IsGameTime name="IsGameStart"
                         message="{game_status}"
                         robot_msg="{robot_status}"
+                    allow_no_game_status_hp_fallback="true"
                         game_progress="4"
                         lower_remain_time="0"
                         higher_remain_time="300"/>
@@ -400,6 +401,7 @@
         <Condition ID="IsGameTime" editable="true">
             <input_port name="message" default="{game_status}"/>
             <input_port name="robot_msg" default="{robot_status}"/>
+            <input_port name="allow_no_game_status_hp_fallback" default="false"/>
             <input_port name="game_progress" default="4"/>
             <input_port name="lower_remain_time" default="0"/>
             <input_port name="higher_remain_time" default="300"/>
