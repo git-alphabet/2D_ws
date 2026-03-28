@@ -69,6 +69,30 @@
                         higher_remain_time="300"/>
                 <ReactiveSequence>
                     <!--
+                        紧急逃离：机器人在禁行区内 → 立即逃离（无需等待5秒卡住判定）
+                        场景：被撞入keepout区域（高地等），每tick持续ClearCostmap给控制器通行窗口
+                        一旦机器人离开禁行区，IsInSemanticZone返回FAILURE → 分支中止 → 恢复正常行为
+                    -->
+                    <ForceSuccess>
+                        <ReactiveSequence>
+                            <IsInSemanticZone pose_x="{pose.x}" pose_y="{pose.y}"
+                                             zone_type="keepout"
+                                             zones_file="{cfg.semantic_zones_file}"/>
+                            <ClearCostmap service_name="local_costmap/clear_entirely" timeout_ms="1000"/>
+                            <ClearCostmap service_name="global_costmap/clear_entirely" timeout_ms="1000"/>
+                            <FindEscapePoint robot_x="{pose.x}" robot_y="{pose.y}"
+                                             escape_x="{nav.goal_x}"
+                                             escape_y="{nav.goal_y}"
+                                             escape_pose="{nav.goal_pose}"
+                                             zones_file="{cfg.semantic_zones_file}"/>
+                            <SendGoal name="KeepoutEmergencyEscape"
+                                      goal_pose="{nav.goal_pose}"
+                                      frame_id="map"
+                                      action_name="navigate_to_pose" min_interval_ms="1000"/>
+                        </ReactiveSequence>
+                    </ForceSuccess>
+
+                    <!--
                         全局脱困：不依赖距离目标点远近，使用 IsNavigationStuck + FindEscapePoint
                         场景：非增益点附近卡住（开场拥挤、过道堵塞、雷达遮挡等）
                         策略：5秒未移动 → 清代价地图 → FindEscapePoint(全局开阔区模式) → SendGoal
@@ -467,6 +491,12 @@
             <input_port name="movement_threshold" default="0.15"/>
             <input_port name="reset_distance" default="0.5"/>
             <input_port name="near_goal_skip_radius" default="0.4"/>
+        </Condition>
+        <Condition ID="IsInSemanticZone" editable="true">
+            <input_port name="pose_x"/>
+            <input_port name="pose_y"/>
+            <input_port name="zone_type" default="keepout"/>
+            <input_port name="zones_file"/>
         </Condition>
         <Action ID="FindApproachPoint" editable="true">
             <input_port name="costmap_topic" default="global_costmap/costmap_raw"/>
