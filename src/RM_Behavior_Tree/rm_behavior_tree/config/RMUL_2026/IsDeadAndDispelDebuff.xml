@@ -134,9 +134,9 @@
                                 </ReactiveSequence>
                             </ReactiveFallback>
 
-                            <!-- 3. 到达后刹车+开小陀螺防护 -->
+                            <!-- 3. 到达后刹车 -->
                             <RobotControl stop_gimbal_scan="True" 
-                                          chassis_spin="True"/>
+                                          chassis_spin="False"/>
                             <NavControlCmd cmd_type="3" 
                                            emergency_stop="False"/>
 

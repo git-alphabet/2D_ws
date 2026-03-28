@@ -102,13 +102,15 @@ private:
 
   /// 在给定参数下搜索候选点，返回最佳逃脱点
   /// has_goal=false 时进入全局开阔区搜索模式（纯 clearance 排序）
+  /// robot_in_keepout=true 时跳过路径可达性检查（允许穿越禁行区边界逃离）
   bool searchPhase(
     double robot_x, double robot_y,
     double goal_x, double goal_y,
     double retreat_dx, double retreat_dy,
     bool has_goal,
     const SearchParams & params,
-    double & out_x, double & out_y) const;
+    double & out_x, double & out_y,
+    bool robot_in_keepout = false) const;
 
   /// 射线检查：沿 (ax,ay)->(bx,by) 采样，若路径上有 cost>=lethal 的像素则返回 false
   bool isPathClear(double ax, double ay, double bx, double by,

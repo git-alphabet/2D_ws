@@ -195,7 +195,8 @@ bool FindEscapePointAction::searchPhase(
   double retreat_dx, double retreat_dy,
   bool has_goal,
   const SearchParams & params,
-  double & out_x, double & out_y) const
+  double & out_x, double & out_y,
+  bool robot_in_keepout) const
 {
   // 8方向搜索
   static const double dirs[][2] = {
@@ -216,7 +217,8 @@ bool FindEscapePointAction::searchPhase(
       }
 
       // 方案1：路径可达性验证 — 跳过路径上有致命障碍的候选点
-      if (!isPathClear(robot_x, robot_y, px, py)) {
+      // 当机器人在禁行区内时跳过此检查（必须穿越 LETHAL 边界才能逃离）
+      if (!robot_in_keepout && !isPathClear(robot_x, robot_y, px, py)) {
         continue;
       }
 
@@ -484,24 +486,32 @@ do_search:
   // 5. 三阶段搜索
   const double step = 0.15;  // 搜索步长
 
+  // 检测机器人是否在禁行区内 — 若是，放宽路径检查以允许逃离
+  const bool robot_in_keepout = isInKeepoutZone(robot_x, robot_y);
+  if (robot_in_keepout && node_) {
+    RCLCPP_WARN_THROTTLE(node_->get_logger(), *node_->get_clock(), 5000,
+      "[FindEscapePoint] Robot (%.2f,%.2f) is INSIDE keepout zone, "
+      "relaxing path check to allow escape", robot_x, robot_y);
+  }
+
   // 阶段①: cost<50, 1.0~2.0m, 有目标时优先后退方向
   SearchParams phase1{1.0, 2.0, step, 50, has_goal};
   double ex = 0.0, ey = 0.0;
-  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase1, ex, ey)) {
+  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase1, ex, ey, robot_in_keepout)) {
     commitAndOutput(ex, ey, has_goal ? "Phase1" : "Phase1(global)", robot_x, robot_y);
     return BT::NodeStatus::SUCCESS;
   }
 
   // 阶段②: cost<150, 2.0~3.0m, 有目标时优先后退方向
   SearchParams phase2{2.0, 3.0, step, 150, has_goal};
-  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase2, ex, ey)) {
+  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase2, ex, ey, robot_in_keepout)) {
     commitAndOutput(ex, ey, has_goal ? "Phase2" : "Phase2(global)", robot_x, robot_y);
     return BT::NodeStatus::SUCCESS;
   }
 
   // 阶段③: cost<235, 3.0~4.0m, 任意方向
   SearchParams phase3{3.0, 4.0, step, 235, false};
-  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase3, ex, ey)) {
+  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase3, ex, ey, robot_in_keepout)) {
     commitAndOutput(ex, ey, has_goal ? "Phase3" : "Phase3(global)", robot_x, robot_y);
     return BT::NodeStatus::SUCCESS;
   }
