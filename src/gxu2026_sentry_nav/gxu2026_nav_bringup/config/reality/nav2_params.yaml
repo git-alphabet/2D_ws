@@ -39,7 +39,7 @@ pb_navigation_switches:
     # small_gicp 重定位总开关：
     # - true: 启动 small_gicp_relocalization，提供 map->odom 动态对齐
     # - false: 不启动重定位，使用静态 map->odom(0,0,0) + 纯里程计导航
-    enable_small_gicp_relocalization: false
+    enable_small_gicp_relocalization: true
     # 行为树策略入口（default / 其他预设），用于切换导航任务编排逻辑。
     behavior_tree: "config/RMUL_2026/rmul_2026.xml"
 
