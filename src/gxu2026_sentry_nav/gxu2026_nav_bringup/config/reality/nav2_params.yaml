@@ -334,7 +334,7 @@ sensor_scan_generation:
 terrain_analysis:
   ros__parameters:
     scanVoxelSize: 0.05                 # 点云体素下采样分辨率（m）；调大更平滑更省算力，调小保留细节但噪声/算力上升。
-    decayTime: 0.3                      # 点云时间衰减阈值（s）；点时间戳超过该值会被丢弃，调大可保留更多历史点，调小更“实时”。
+    decayTime: 0.2                      # 点云时间衰减阈值（s）；点时间戳超过该值会被丢弃，调大可保留更多历史点，调小更“实时”。
     noDecayDis: 0.0                     # 近距离免衰减半径（m）；在该距离内不受 decayTime 约束，>0 可增强近场稳定性。
     clearingDis: 0.0                    # 清理距离（m）；超过该距离的旧点可被清除，0 通常表示不按距离强清。
     useSorting: True                    # 地面估计方式开关；True 用分位数地面（坡面更稳），False 用最低点地面（对凹坑/离群点更敏感）。
@@ -349,7 +349,7 @@ terrain_analysis:
     absDyObsRelZThre: 0.2               # 动态障碍绝对相对高度阈值（m）；越大越不敏感，越小越容易标记动态物体。
     minDyObsVFOV: -28.0                 # 动态障碍垂直视场下限（deg）；用于裁剪无效俯仰角点。
     maxDyObsVFOV: 33.0                  # 动态障碍垂直视场上限（deg）；与下限共同限定有效垂直角范围。
-    minDyObsPointNum: 1                 # 判定动态障碍最少点数；调大可抑制噪声误检，但会增加漏检风险。
+    minDyObsPointNum: 10                 # 判定动态障碍最少点数；调大可抑制噪声误检，但会增加漏检风险。
     noDataObstacle: False               # 无数据区域是否视作障碍；True 更保守安全，False 更激进可通行。
     noDataBlockSkipNum: 0               # 无数据块跳过数；用于稀疏无数据区域的连通处理，增大可减少“碎片阻挡”。
     minBlockPointNum: 10                # 体素/块最少有效点数；越大越抗噪，越小越敏感。
