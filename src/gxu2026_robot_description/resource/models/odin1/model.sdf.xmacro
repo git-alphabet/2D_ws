@@ -5,9 +5,9 @@
     <joint name="${prefix}odin1_joint" type="fixed">
       <pose relative_to="${parent}">${pose}</pose>
       <parent>${parent}</parent>
-      <child>${prefix}odin1_base_link</child>
+      <child>${prefix}odin1</child>
     </joint>
-    <link name="${prefix}odin1_base_link">
+    <link name="${prefix}odin1">
       <pose relative_to="${prefix}odin1_joint">0.0 0.0 0.0 0 0 0</pose>
       <inertial>
         <pose>0 0 0.02 0 0 0</pose>
@@ -16,27 +16,31 @@
       <visual name="visual">
         <pose>0.0 0.0 0.0 0 0 0</pose>
         <geometry>
-          <!-- odin1.stp 是 STEP 格式，rviz2 不支持，改用简单圆柱代替显示 -->
-          <cylinder>
-            <radius>0.04</radius>
-            <length>0.06</length>
-          </cylinder>
+          <mesh>
+            <uri>model://odin1/meshes/odin1.dae</uri>
+            <scale>0.001 0.001 0.001</scale>
+          </mesh>
         </geometry>
-        <material>
-          <ambient>0.2 0.2 0.8 1</ambient>
-          <diffuse>0.2 0.2 0.8 1</diffuse>
-        </material>
       </visual>
+      <collision name="collision">
+        <pose>0.0 0.0 0.0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <uri>model://odin1/meshes/odin1.dae</uri>
+            <scale>0.001 0.001 0.001</scale>
+          </mesh>
+        </geometry>
+      </collision>
 
       <sensor name="${prefix}odin1_imu" type="imu">
-        <ignition_frame_id>${prefix}odin1_base_link</ignition_frame_id>
+        <ignition_frame_id>${prefix}odin1</ignition_frame_id>
         <always_on>1</always_on>
         <update_rate>200</update_rate>
         <visualize>true</visualize>
       </sensor>
 
       <sensor name="${prefix}odin1_lidar" type="gpu_lidar">
-        <ignition_frame_id>${prefix}odin1_base_link</ignition_frame_id>
+        <ignition_frame_id>${prefix}odin1</ignition_frame_id>
         <pose>0 0 0.03 0 0 0</pose>
         <always_on>true</always_on>
         <visualize>true</visualize>

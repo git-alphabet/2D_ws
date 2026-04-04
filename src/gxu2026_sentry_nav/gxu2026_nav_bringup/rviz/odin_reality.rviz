@@ -608,7 +608,7 @@ Visualization Manager:
           Value: true
         gimbal_yaw:
           Value: true
-        odin1_base_link:
+        odin1:
           Value: true
         odom:
           Value: true
@@ -621,7 +621,7 @@ Visualization Manager:
         odom:
           base_footprint:
             chassis:
-              odin1_base_link:
+              odin1:
                 {}
               gimbal_yaw:
                 {}

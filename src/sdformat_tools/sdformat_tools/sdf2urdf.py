@@ -34,6 +34,11 @@ def convert_geometry(in_node, out_doc, out_parent_node):
                 uri = 'file://'+parse_model_uri(uri_node.firstChild.data)
                 new_mesh_node = create_child_node(out_doc, new_node, 'mesh')
                 new_mesh_node.setAttribute('filename', uri)
+                scale_node = get_child_node_by_tag(child, 'scale')
+                if scale_node is not None and scale_node.firstChild is not None:
+                    scale_value = ' '.join(scale_node.firstChild.data.split())
+                    if len(scale_value.split(' ')) == 3:
+                        new_mesh_node.setAttribute('scale', scale_value)
                 return True
             elif child.tagName == 'box':
                 size_node = get_child_node_by_tag(child, 'size')

@@ -106,18 +106,18 @@ loam_interface:
     registered_scan_topic: "odin1/cloud_raw"
     odom_frame: "odom"
     base_frame: "base_footprint"
-    # cloud_raw frame_id 仍为 odin1_base_link（驱动写死）
+    # cloud_raw frame_id 统一为 odin1
     # odometry child_frame_id 已通过 robot_base_frame_id 改为 base_footprint
-    # loam_interface 用 lidar_frame 做 URDF TF 查询（base_footprint→odin1_base_link），
+    # loam_interface 用 lidar_frame 做 URDF TF 查询（base_footprint→odin1），
     # 从而将点云/里程计从传感器坐标系转换到 odom 坐标系
-    lidar_frame: "odin1_base_link"
+    lidar_frame: "odin1"
 
 # 从点云生成 scan（给 slam_toolbox / obstacle_scan 等使用）
 sensor_scan_generation:
   ros__parameters:
     use_sim_time: False
     # 与 loam_interface.lidar_frame 保持一致
-    lidar_frame: "odin1_base_link"
+    lidar_frame: "odin1"
     base_frame: "base_footprint"
     robot_base_frame: "gimbal_yaw"
 
@@ -408,7 +408,7 @@ local_costmap:
         terrain_map:
           data_type: PointCloud2
           topic: terrain_map
-          sensor_frame: odin1_base_link
+          sensor_frame: odin1
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 5.0
@@ -458,7 +458,7 @@ global_costmap:
         terrain_map_ext:
           data_type: PointCloud2
           topic: terrain_map_ext
-          sensor_frame: odin1_base_link
+          sensor_frame: odin1
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 10.0

@@ -131,7 +131,7 @@ bool g_relocalization_success_msg_printed = false;
 std::string g_relocalization_map_abs_path = "";
 std::string g_mapping_result_dest_dir = "";
 std::string g_mapping_result_file_name = "";
-std::string g_robot_base_frame_id = "odin1_base_link";  // configurable via robot_base_frame_id in yaml
+std::string g_robot_base_frame_id = "odin1";  // configurable via robot_base_frame_id in yaml
 
 const char* DEV_STATUS_CSV_FILE = "dev_status.csv";
 FILE* dev_status_csv_file = nullptr;
@@ -1680,7 +1680,7 @@ int main(int argc, char *argv[])
         g_relocalization_map_abs_path = get_key_str_value("relocalization_map_abs_path", "");
         g_mapping_result_dest_dir = get_key_str_value("mapping_result_dest_dir", "");
         g_mapping_result_file_name = get_key_str_value("mapping_result_file_name", "");
-        g_robot_base_frame_id = get_key_str_value("robot_base_frame_id", "odin1_base_link");
+        g_robot_base_frame_id = get_key_str_value("robot_base_frame_id", "odin1");
 
         g_custom_map_mode = g_parser->getCustomMapMode(2);
 

@@ -71,7 +71,7 @@ enum class OdometryType {
 extern int g_log_level;
 extern int g_sendcloudrender;
 extern int g_use_host_ros_time;
-extern std::string g_robot_base_frame_id;  // child_frame_id for odom/TF (default: odin1_base_link)
+extern std::string g_robot_base_frame_id;  // child_frame_id for odom/TF (default: odin1)
 double get_ptp_smoothed_delay();
 double get_ptp_smoothed_offset();
 #ifdef ROS2
@@ -530,7 +530,7 @@ void process_pair(const ImageConstPtr &rgb_msg, const PointCloud2ConstPtr &pcd_m
          
         // Create and publish RGB point cloud
         PointCloud2Msg output_msg;
-        output_msg.header.frame_id = "odin1_base_link";
+        output_msg.header.frame_id = "odin1";
         output_msg.header.stamp = rgb_msg->header.stamp; // Use original image timestamp
         output_msg.height = 1;
         output_msg.width = valid_point_num;
@@ -599,7 +599,7 @@ void publishIntensityCloud(capture_Image_List_t* stream, int idx)
     #endif
 
     // Set message header
-    msg->header.frame_id = "odin1_base_link";
+    msg->header.frame_id = "odin1";
     #ifdef ROS2
         msg->header.stamp = make_aligned_stamp(cloud.timestamp, node_);
     #else
