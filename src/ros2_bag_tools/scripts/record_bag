@@ -1,4 +1,3 @@
-done
 #!/usr/bin/env python3
 
 from __future__ import annotations
@@ -10,6 +9,9 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+
+_BEIJING_TZ = _dt.timezone(_dt.timedelta(hours=8), name="Asia/Shanghai")
 
 
 def _ws_root() -> Path:
@@ -69,7 +71,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--out-dir", default="", help="输出根目录（默认工作区 src/ros2_bag_tools/bags）")
     parser.add_argument("--max-bag-size-mb", type=int, default=2048)
     parser.add_argument("--compress", choices=["", "zstd"], default="")
-    parser.add_argument("--storage", choices=["sqlite3", "mcap"], default="sqlite3")
+    parser.add_argument("--storage", choices=["sqlite3", "mcap"], default="mcap")
     args = parser.parse_args(argv)
 
     if not _ros2_in_path():
@@ -92,7 +94,7 @@ def main(argv: list[str]) -> int:
         print(f"话题列表为空: {topics_file}", file=sys.stderr)
         return 1
 
-    ts = _dt.datetime.now().strftime("%F_%H-%M-%S")
+    ts = _dt.datetime.now(_BEIJING_TZ).strftime("%F_%H-%M-%S")
     bag_path = out_dir / ts
 
     max_bag_size_bytes = int(args.max_bag_size_mb) * 1024 * 1024
