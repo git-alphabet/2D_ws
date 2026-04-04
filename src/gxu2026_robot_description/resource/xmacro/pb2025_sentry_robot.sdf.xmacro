@@ -4,6 +4,7 @@
     <!--include defination-->
     <xmacro_include uri="model://rplidar_a2/model.sdf.xmacro" />
     <xmacro_include uri="model://odin1/model.sdf.xmacro" />
+    <xmacro_include uri="model://mid360/model.sdf.xmacro" />
     <xmacro_include uri="model://industrial_camera/model.sdf.xmacro" />
     <xmacro_include uri="model://rm25_example_robot/rm25_example_robot.def.xmacro" />
     <!--property defination-->
@@ -28,6 +29,8 @@
              注意：loam_interface 的 base_frame 需改为 base_footprint，lidar_frame 改为 odin1_base_link，TF2 会自动算路径。
              调整安装位置只需改此处 pose。正放（暂定），后续实测后修改。-->
         <xmacro_block name="odin1" prefix="" parent="chassis" pose="0.0496 0.0936 0.435 0 0 0" update_rate="20" samples="1875"/>
+        <!--mid360（占位位姿：先与 simulation_robot 的 front_mid360 对齐，后续按实测外参覆盖）-->
+        <xmacro_block name="livox" prefix="front_" parent="chassis" pose="0.16 0.0 0.18 ${pi/6} 0.0 ${pi/2}" update_rate="20" samples="1875"/>
         <!--industrial camera-->
         <xmacro_block name="industrial_camera" prefix="front_" parent="gimbal_pitch" pose="0.1 0 0.045 0 0 0" update_rate="30" horizontal_fov="1" width="1920" height="1080"/>
 

@@ -3,6 +3,7 @@
 
     <!--include defination-->
     <xmacro_include uri="model://rplidar_a2/model.sdf.xmacro" />
+    <xmacro_include uri="model://odin1/model.sdf.xmacro" />
     <xmacro_include uri="model://mid360/model.sdf.xmacro" />
     <xmacro_include uri="model://industrial_camera/model.sdf.xmacro" />
     <xmacro_include uri="model://rm25_example_robot/rm25_example_robot.def.xmacro" />
@@ -23,9 +24,9 @@
         <xmacro_block name="rm25_example_robot" sticker_type="${global_armor_sticker_type}" chassis_height="${chassis_height}" gimbal_yaw_height="${gimbal_yaw_height}" gimbal_pitch_height="${gimbal_pitch_height}"/>
         <!--rplidar a2-->
         <xmacro_block name="rplidar_a2" prefix="front_" parent="chassis" pose="0.155 0 0.1 0 0 0" update_rate="10" samples="400" visualize="true"/>
-        <!--前后对称双 mid360，保留 front_mid360 作为现有导航链路输入-->
+        <!--odin1 + front_mid360：更贴近实车配置，保留 front_mid360 作为现有导航链路输入-->
+        <xmacro_block name="odin1" prefix="" parent="chassis" pose="0.0496 0.0936 0.435 0 0 0" update_rate="20" samples="1875"/>
         <xmacro_block name="livox" prefix="front_" parent="chassis" pose="0.16 0.0 0.18 ${pi/6} 0.0 ${pi/2}" update_rate="20" samples="1875"/>
-        <xmacro_block name="livox" prefix="rear_" parent="chassis" pose="-0.16 0.0 0.18 ${-pi/6} 0.0 ${-pi/2}" update_rate="20" samples="1875"/>
 
         <!--industrial camera-->
         <xmacro_block name="industrial_camera" prefix="front_" parent="gimbal_pitch" pose="0.1 0 0.045 0 0 0" update_rate="30" horizontal_fov="1" width="1920" height="1080"/>
