@@ -18,16 +18,7 @@
                            buff_defense_pct="{buff.defense_pct}"
                            buff_vulnerability_pct="{buff.vulnerability_pct}"
                            ammo_allow="{ammo.allow}"
-                           posture_out="{cmd.posture}"
-                           score_attack="{posture.score.attack}"
-                           score_defense="{posture.score.defense}"
-                           score_move="{posture.score.move}"/>
-
-            <!-- [Groot2 展示] 根据三个评分选出最佳姿态并上报 -->
-            <!-- <PosturePublishing score_attack="{posture.score.attack}"
-                               score_defense="{posture.score.defense}"
-                               score_move="{posture.score.move}"
-                               best_posture="{cmd.posture}"/> -->
+                           posture_out="{cmd.posture}"/>
 
             <!-- Decide remote exchange & allow-ammo target (monotonic target is maintained inside node) -->
             <DecideEconomyCmd hp_cur="{hp.cur}"
@@ -101,17 +92,6 @@
             <input_port name="buff_vulnerability_pct" default="{buff.vulnerability_pct}"/>
             <input_port name="ammo_allow" default="{ammo.allow}"/>
             <output_port name="posture_out" default="{cmd.posture}"/>
-            <!-- Groot2 可视化: 各姿态实时评分 -->
-            <output_port name="score_attack"  default="{posture.score.attack}"/>
-            <output_port name="score_defense" default="{posture.score.defense}"/>
-            <output_port name="score_move"    default="{posture.score.move}"/>
-        </Action>
-        <!-- [Groot2 展示] 虚拟节点：根据三个姿态评分选出最高分并输出最佳姿态 -->
-        <Action ID="PosturePublishing" editable="true">
-            <input_port  name="score_attack"  default="{posture.score.attack}"  description="进攻姿态评分"/>
-            <input_port  name="score_defense" default="{posture.score.defense}" description="防御姿态评分"/>
-            <input_port  name="score_move"    default="{posture.score.move}"    description="移动姿态评分"/>
-            <output_port name="best_posture"  default="{cmd.posture}"           description="最高分姿态 1=进攻 2=防御 3=移动"/>
         </Action>
         <Action ID="DecideEconomyCmd" editable="true">
             <input_port name="hp_cur" default="{hp.cur}"/>

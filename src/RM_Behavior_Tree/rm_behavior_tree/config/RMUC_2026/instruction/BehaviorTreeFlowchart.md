@@ -423,9 +423,9 @@ DecidePosture  DecideEconomyCmd  DecideRespawnCmd  SentryCmdMux
   (姿态决策)     (经济决策)        (复活决策)        (5Hz发送)
      │              │                │               │
      ├→ posture     ├→ allow_ammo    ├→ confirm_     └→ 复用所有输出
-     ├→ score_atk   ├→ trigger_ammo     respawn          发送 0x0120
-     ├→ score_def   ├→ trigger_hp    ├→ confirm_
-     └→ score_mov   ├→ enable_energy    instant
+     │              ├→ trigger_ammo     respawn          发送 0x0120
+     │              ├→ trigger_hp    ├→ confirm_
+     │              ├→ enable_energy    instant
                     └→ 考虑:         └→ 考虑:
                        ·复活费用        ·免费复活可用?
                        ·累计次数        ·付费复活可用?

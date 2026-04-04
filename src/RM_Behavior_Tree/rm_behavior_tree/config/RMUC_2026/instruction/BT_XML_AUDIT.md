@@ -173,7 +173,7 @@ Sequence
 Sequence
 ├── DecidePosture      → SUCCESS (SyncAction)
 │   inputs: current_posture, buff_cool_value, buff_defense_pct, buff_vulnerability_pct, ammo_allow, ...
-│   outputs: posture_out, score_attack, score_defense, score_move
+│   outputs: posture_out
 ├── DecideEconomyCmd   → SUCCESS (SyncAction)
 │   inputs: instant_respawn_cost, cumulative_instant_count, base_hp_cur/max, fortress_ammo, remote_heal/ammo_count, ...
 ├── DecideRespawnCmd   → SUCCESS (SyncAction)
@@ -185,7 +185,7 @@ Sequence
 - ✅ 全是 `SyncActionNode`，tick 立即返回 `SUCCESS`
 - ✅ `Sequence` 顺序执行，末尾无 `KeepRunning`（已在早期修复中移除）
 - ✅ `RateController` 限制 SentryCmdMux 发送频率为 5Hz
-- ℹ️ PosturePublishing 节点已注释，用于 Groot2 可视化调试
+- ✅ PosturePublishing 节点已移除
 - ℹ️ 文件包含本地 TreeNodesModel（供 Groot2 独立加载）
 
 #### RespawnRecovery.xml — 完全重写
@@ -763,7 +763,7 @@ Sequence (幂等)
 
 | XML 使用的节点 | TreeNodesModel 定义 | 关键变更 |
 |---|---|---|
-| `DecidePosture` | ✅ | 新增 current_posture, buff_cool_value, buff_defense_pct, buff_vulnerability_pct, ammo_allow 输入; 新增 score_attack/score_defense/score_move 输出 |
+| `DecidePosture` | ✅ | 新增 current_posture, buff_cool_value, buff_defense_pct, buff_vulnerability_pct, ammo_allow 输入 |
 | `DecideEconomyCmd` | ✅ | 新增 instant_respawn_cost, cumulative_instant_count, base_hp_cur/max, fortress_ammo, remote_heal/ammo_count 输入 |
 | `DecideRespawnCmd` | ✅ | 新增 can_free_respawn, can_instant_respawn, instant_respawn_cost, cumulative_instant_count(inout) 输入 |
 | `SentryCmdMux` | ✅ | |
