@@ -791,7 +791,7 @@ velocity_smoother:
     velocity_timeout: 1.0
 
 # 手柄遥控：auto/manual 控制模式切换
-pb_teleop_twist_joy_node:
+teleop_twist_joy_node:
   ros__parameters:
     use_sim_time: True
     robot_base_frame: gimbal_yaw

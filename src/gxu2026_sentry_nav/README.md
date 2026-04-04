@@ -48,7 +48,6 @@ https://github.com/user-attachments/assets/ae4c19a0-4c73-46a0-95bd-909734da2a42
     ├── ign_sim_pointcloud_tool             # 仿真器点云处理工具
     ├── livox_ros_driver2                   # Livox 驱动
     ├── loam_interface                      # point_lio 等里程计算法接口
-    ├── pb_teleop_twist_joy                 # 手柄控制
     ├── pb2025_nav_bringup                  # 启动文件
     ├── pb2025_sentry_nav                   # 本仓库功能包描述文件
     ├── pb_omni_pid_pursuit_controller      # 路径跟踪控制器
