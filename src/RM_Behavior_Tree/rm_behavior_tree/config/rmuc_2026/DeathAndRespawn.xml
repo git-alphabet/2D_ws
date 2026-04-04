@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="DeathAndRespawn">
+        <Sequence>
+            <RmucIsDead message="{robot_status}"/>
+            <CancelNavGoal action_name="navigate_to_pose"/>
+            <RmucRobotControl stop_gimbal_scan="True"
+                              chassis_spin="False"
+                              fire_enable="False"/>
+            <KeepRunning/>
+        </Sequence>
+    </BehaviorTree>
+
+</root>

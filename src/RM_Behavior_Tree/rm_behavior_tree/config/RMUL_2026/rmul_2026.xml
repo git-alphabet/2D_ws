@@ -1,0 +1,503 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4"
+      main_tree_to_execute="MainBehaviorTree">
+    
+    <include path="HighHP_combat_logic.xml"/>
+    <include path="perception_and_blackboard.xml"/>
+    <include path="IsDeadAndDispelDebuff.xml"/>
+
+    <BehaviorTree ID="MainBehaviorTree">
+        <ReactiveSequence>
+            <!-- 用Sequence包裹所有节点，确保BehaviorTree只有1个子节点 -->
+            <!-- 订阅数据并写入黑板 -->
+            <SubTree ID="PerceptionAndBlackboard" _autoremap="true"/>
+            
+            <ForceSuccess>
+                <CalibrateCenterAnchor map_frame="map"
+                                       base_frame="base_footprint"
+                                       manual_only="true"
+                                       point_topic="/calib/spawn_point"
+                                       force_recalibrate="false"
+                                       marker_topic="/calibrated_points"
+                                       marker_namespace="spawn_point"
+                                       marker_color="black"
+                                       marker_id="2001"
+                                       center_x="{calib.spawn_x}"
+                                       center_y="{calib.spawn_y}"
+                                       center_yaw="{calib.spawn_yaw}"
+                                       center_valid="{calib.spawn_valid}"
+                                       center_pose="{calib.spawn_pose}"/>
+            </ForceSuccess>
+            
+            <ForceSuccess>
+                <CalibrateCenterAnchor map_frame="map"
+                                       base_frame="base_footprint"
+                                       manual_only="true"
+                                       point_topic="/calib/control_point"
+                                       force_recalibrate="false"
+                                       marker_topic="/calibrated_points"
+                                       marker_namespace="control_zone_point"
+                                       marker_color="red"
+                                       marker_id="2002"
+                                       center_x="{calib.anchor_x}"
+                                       center_y="{calib.anchor_y}"
+                                       center_yaw="{calib.anchor_yaw}"
+                                       center_valid="{calib.anchor_valid}"
+                                       center_pose="{calib.anchor_pose}"/>
+            </ForceSuccess>
+
+            <!-- 标定覆盖：有标定点时用标定坐标替代硬编码，无标定时保持原值 -->
+            <ApplyCalibrationOverride
+                control_valid="{calib.anchor_valid}"
+                control_x="{calib.anchor_x}"
+                control_y="{calib.anchor_y}"
+                supply_valid="{calib.spawn_valid}"
+                supply_x="{calib.spawn_x}"
+                supply_y="{calib.spawn_y}"
+                control_zone_goal_x="{cfg.control_zone_goal_x}"
+                control_zone_goal_y="{cfg.control_zone_goal_y}"
+                supply_goal_x="{cfg.supply_goal_x}"
+                supply_goal_y="{cfg.supply_goal_y}"/>
+            
+            <WhileDoElse>
+                <IsGameTime name="IsGameStart"
+                        message="{game_status}"
+                        robot_msg="{robot_status}"
+                    allow_no_game_status_hp_fallback="true"
+                        game_progress="4"
+                        lower_remain_time="0"
+                        higher_remain_time="300"/>
+                <ReactiveSequence>
+                    <!--
+                        全局脱困：不依赖距离目标点远近，使用 IsNavigationStuck + FindEscapePoint
+                        场景：非增益点附近卡住（开场拥挤、过道堵塞、雷达遮挡等）
+                        策略：5秒未移动 → 清代价地图 → FindEscapePoint(全局开阔区模式) → SendGoal
+                        排除1：检测到敌人时不判定卡住（战斗中原地停车是正常行为）
+                        排除2：距控制区 < 4.5m 时不触发（由局部控制区脱困处理，避免目标竞争）
+                        排除3：距补给区 < 4.5m 时不触发（由局部补给区脱困处理，避免目标竞争）
+                    -->
+                    <ForceSuccess>
+                        <ReactiveSequence>
+                            <Inverter>
+                                <IsDetectEnemy message="{robot_status}"/>
+                            </Inverter>
+                            <Inverter>
+                                <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
+                                               goal_x="{cfg.control_zone_goal_x}"
+                                               goal_y="{cfg.control_zone_goal_y}"
+                                               arrive_radius="3.0"
+                                               use_path_distance="true"/>
+                            </Inverter>
+                            <Inverter>
+                                <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
+                                               goal_x="{cfg.supply_goal_x}"
+                                               goal_y="{cfg.supply_goal_y}"
+                                               arrive_radius="3.0"
+                                               use_path_distance="true"/>
+                            </Inverter>
+                            <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
+                                               stuck_timeout_ms="5000"
+                                               movement_threshold="0.15"
+                                               reset_distance="0.5"/>
+                            <ClearCostmap service_name="local_costmap/clear_entirely" timeout_ms="1000"/>
+                            <ClearCostmap service_name="global_costmap/clear_entirely" timeout_ms="1000"/>
+                            <FindEscapePoint robot_x="{pose.x}" robot_y="{pose.y}"
+                                             escape_x="{nav.goal_x}"
+                                             escape_y="{nav.goal_y}"
+                                             escape_pose="{nav.goal_pose}"/>
+                            <SendGoal name="GlobalEscape"
+                                      goal_pose="{nav.goal_pose}"
+                                      frame_id="map"
+                                      action_name="navigate_to_pose" min_interval_ms="1000"/>
+                        </ReactiveSequence>
+                    </ForceSuccess>
+
+                <ReactiveFallback>
+                    <!--判断战亡/低血量，若战亡或需要恢复，执行恢复操作 -->
+                    <SubTree ID="IsDeadAndDispelDebuff" _autoremap="true"/>
+                    <ExecuteNav2Waypoints action_name="navigate_through_poses"/>
+                    <!-- 处于存活状态则进入战斗/占点逻辑 -->
+                    <ReactiveFallback>
+                                                <!--
+                                                    二段制决策：
+                                                        1. 高血量(HP >= 阈值): 进入高血战斗逻辑
+                                                        2. 低血量(HP < 阈值): 由恢复子树接管，回补给区回血
+                                                -->
+
+                                                <!-- 高血量战斗逻辑 (HP >= cfg.hp_high_threshold) -->
+                        <SubTree ID="HighHPCombatLogic" _autoremap="true"/>
+
+                        <!-- 非战斗时刻占点逻辑 -->
+                        <ReactiveFallback>
+
+                            <!-- 3) 抢控制区：对方每秒-1胜利点；离开后延迟2s失效
+                                 三状态切换: B-1 到达控制区 / B-2 脱困点待命 / B-3 导航移动 -->
+                            <ReactiveFallback>
+                                <!-- B-1: 已到达控制区 → 站定搜敌 + 小陀螺防护 -->
+                                <ReactiveSequence>
+                                    <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
+                                                   goal_x="{cfg.control_zone_goal_x}"
+                                                   goal_y="{cfg.control_zone_goal_y}"
+                                                   arrive_radius="{cfg.arrive_radius}"/>
+                                    <RobotControl stop_gimbal_scan="False" chassis_spin="True"/>
+                                    <NavControlCmd cmd_type="3" emergency_stop="False"/>
+                                    <KeepRunning/>
+                                </ReactiveSequence>
+
+                                <!-- B-2: 到达脱困点且控制区仍被阻 → 原地小陀螺待命
+                                     退出条件: 控制区恢复通行(Inverter返回FAILURE) → B-3接管 -->
+                                <ReactiveSequence>
+                                    <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
+                                                   goal_x="{escape.goal_x}" goal_y="{escape.goal_y}"
+                                                   arrive_radius="0.5"/>
+                                    <Inverter>
+                                        <IsGoalAreaClear goal_x="{cfg.control_zone_goal_x}"
+                                                         goal_y="{cfg.control_zone_goal_y}"
+                                                         check_radius="1.0"
+                                                         min_free_neighbors="2"
+                                                         free_threshold="200"/>
+                                    </Inverter>
+                                    <RobotControl stop_gimbal_scan="False" chassis_spin="True"/>
+                                    <NavControlCmd cmd_type="3" emergency_stop="False"/>
+                                    <KeepRunning/>
+                                </ReactiveSequence>
+
+                                <!-- B-3: 未到达 → 导航前往控制区 -->
+                                <ReactiveSequence>
+                                    <RobotControl stop_gimbal_scan="False" chassis_spin="False"/>
+                                    <NavControlCmd cmd_type="1" emergency_stop="False"/>
+                                    <RateController hz="1">
+                                        <Fallback>
+                                            <!-- 1) 未卡住+目标可通行+Nav2未拒绝 → 正常前往控制区 -->
+                                            <Sequence>
+                                                <Inverter>
+                                                    <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
+                                                                       goal_x="{cfg.control_zone_goal_x}"
+                                                                       goal_y="{cfg.control_zone_goal_y}"
+                                                                       stuck_check_radius="{cfg.stuck_check_radius}"
+                                                                       stuck_timeout_ms="5000"
+                                                                       far_stuck_timeout_ms="10000"
+                                                                       movement_threshold="0.15"
+                                                                       reset_distance="0.5"
+                                                                       near_goal_skip_radius="0.4"/>
+                                                </Inverter>
+                                                <IsGoalAreaClear goal_x="{cfg.control_zone_goal_x}"
+                                                                 goal_y="{cfg.control_zone_goal_y}"
+                                                                 check_radius="1.0"
+                                                                 min_free_neighbors="2"
+                                                                 free_threshold="200"/>
+                                                <Inverter>
+                                                    <IsNavGoalRejected action_name="navigate_to_pose"
+                                                                       latch_timeout_ms="10000"/>
+                                                </Inverter>
+                                                <SendGoal name="GoControlZone_Normal"
+                                                          goal_x="{cfg.control_zone_goal_x}"
+                                                          goal_y="{cfg.control_zone_goal_y}"
+                                                          frame_id="map"
+                                                          action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                            </Sequence>
+                                            <!-- 2) 未卡住+远距(>4.5m路径)+目标被阻 → 接近点 -->
+                                            <Sequence>
+                                                <Inverter>
+                                                    <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
+                                                                       goal_x="{cfg.control_zone_goal_x}"
+                                                                       goal_y="{cfg.control_zone_goal_y}"
+                                                                       stuck_check_radius="{cfg.stuck_check_radius}"
+                                                                       stuck_timeout_ms="5000"
+                                                                       far_stuck_timeout_ms="10000"
+                                                                       movement_threshold="0.15"
+                                                                       reset_distance="0.5"
+                                                                       near_goal_skip_radius="0.4"/>
+                                                </Inverter>
+                                                <Inverter>
+                                                    <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
+                                                                   goal_x="{cfg.control_zone_goal_x}"
+                                                                   goal_y="{cfg.control_zone_goal_y}"
+                                                                   arrive_radius="3.0"
+                                                                   use_path_distance="true"/>
+                                                </Inverter>
+                                                <FindApproachPoint robot_x="{pose.x}" robot_y="{pose.y}"
+                                                                   goal_x="{cfg.control_zone_goal_x}"
+                                                                   goal_y="{cfg.control_zone_goal_y}"
+                                                                   search_radius="3.0"
+                                                                   cost_threshold="150"
+                                                                   approach_x="{nav.goal_x}"
+                                                                   approach_y="{nav.goal_y}"
+                                                                   approach_pose="{nav.goal_pose}"/>
+                                                <SendGoal name="GoControlZone_Approach"
+                                                          goal_pose="{nav.goal_pose}"
+                                                          frame_id="map"
+                                                          action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                            </Sequence>
+                                            <!-- 3) 兜底：卡住/近距被阻/Nav2拒绝 → 脱困点(单实例) -->
+                                            <Sequence>
+                                                <FindEscapePoint robot_x="{pose.x}" robot_y="{pose.y}"
+                                                                 goal_x="{cfg.control_zone_goal_x}"
+                                                                 goal_y="{cfg.control_zone_goal_y}"
+                                                                 escape_x="{escape.goal_x}"
+                                                                 escape_y="{escape.goal_y}"
+                                                                 escape_pose="{escape.goal_pose}"/>
+                                                <SendGoal name="GoControlZone_Escape"
+                                                          goal_pose="{escape.goal_pose}"
+                                                          frame_id="map"
+                                                          action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                            </Sequence>
+                                        </Fallback>
+                                    </RateController>
+                                    <KeepRunning/>
+                                </ReactiveSequence>
+                            </ReactiveFallback>
+
+                        </ReactiveFallback>
+
+                    </ReactiveFallback>
+                </ReactiveFallback>
+                </ReactiveSequence>
+                <!-- 非比赛阶段停止云台和旋转，原地待命 -->
+                <Sequence>
+                    <RobotControl stop_gimbal_scan="True" chassis_spin="False"/>
+                    <!-- 发送一个停止领航的空命令或者直接不发目标，就干等着 -->
+                    <KeepRunning/>
+                </Sequence>
+            </WhileDoElse>
+        </ReactiveSequence>
+    </BehaviorTree>
+    
+    <!-- Description of Node Models (used by Groot) -->
+    <TreeNodesModel>
+        <Action ID="ClearCostmap" editable="true">
+            <input_port name="service_name" default="local_costmap/clear_entirely"/>
+            <input_port name="timeout_ms" default="1000"/>
+        </Action>
+        <Action ID="ExecuteNav2Waypoints" editable="true">
+            <input_port name="action_name" default="follow_waypoints"/>
+        </Action>
+        <Action ID="GetCurrentLocation" editable="true">
+            <output_port name="current_location" default="{current_location}"/>
+        </Action>
+        <Action ID="IsDetectEnemy" editable="true">
+            <input_port name="message" default="{armors}"/>
+        </Action>
+        <Action ID="MoveAround" editable="true">
+            <input_port name="expected_nearby_goal_count" default="5"/>
+            <input_port name="expected_dis" default="0.3"/>
+            <input_port name="message" default="{current_location}"/>
+        </Action>
+        <Action ID="SendGoal" editable="true">
+            <input_port name="goal_pose" default="{goal_pose}"/>
+            <input_port name="goal_x" default="0.0"/>
+            <input_port name="goal_y" default="0.0"/>
+            <input_port name="frame_id" default="map"/>
+            <!-- 补充action_name输入端口（解决GoSupplyToHeal端口不匹配报错） -->
+            <input_port name="action_name" default="navigate_to_pose"/>
+        </Action>
+        <Action ID="IsControlZoneDetected" editable="true">
+            <input_port name="rfid_status" default="{rfid.status}"/>
+        </Action>
+        <Action ID="SubArmors" editable="true">
+            <input_port name="topic_name" default="detector/armors"/>
+            <output_port name="armors" default="{armors}"/>
+        </Action>
+        <Action ID="SubGameStatus" editable="true">
+            <input_port name="topic_name" default="game_status"/>
+            <output_port name="game_status" default="{game_status}"/>
+            <output_port name="now_ms" default="{time.now_ms}"/>
+        </Action>
+        <Action ID="SubRobotStatus" editable="true">
+            <input_port name="topic_name" default="robot_status"/>
+            <output_port name="robot_status" default="{robot_status}"/>
+        </Action>
+        <Action ID="SubRFIDStatus" editable="true">
+            <input_port  name="topic_name" default="rfid_status"/>
+            <output_port name="rfid_status" default="{rfid.status}"/>
+        </Action>
+        <Action ID="InitBlackboardConfig" editable="true">
+            <output_port name="heal_wait_ms" default="{cfg.heal_wait_ms}"/>
+            <output_port name="heal_min_hp" default="{cfg.heal_min_hp}"/>
+            <output_port name="hp_high_threshold" default="{cfg.hp_high_threshold}"/>
+            <output_port name="hp_medium_threshold" default="{cfg.hp_medium_threshold}"/>
+            <output_port name="search_timeout_ms" default="{cfg.search_timeout_ms}"/>
+            <output_port name="recovery_timeout_ms" default="{cfg.recovery_timeout_ms}"/>
+            <output_port name="supply_goal_x" default="{cfg.supply_goal_x}"/>
+            <output_port name="supply_goal_y" default="{cfg.supply_goal_y}"/>
+            <output_port name="control_zone_goal_x" default="{cfg.control_zone_goal_x}"/>
+            <output_port name="control_zone_goal_y" default="{cfg.control_zone_goal_y}"/>
+            <output_port name="control_zone_offset_x" default="{cfg.control_zone_offset_x}"/>
+            <output_port name="control_zone_offset_y" default="{cfg.control_zone_offset_y}"/>
+            <output_port name="arrive_radius" default="{cfg.arrive_radius}"/>
+            <output_port name="stuck_check_radius" default="{cfg.stuck_check_radius}"/>
+        </Action>
+        <Action ID="SubRobotPosition" editable="true">
+            <input_port name="topic_name" default="robot_position"/>
+            <output_port name="pose_x" default="{pose_x}"/>
+            <output_port name="pose_y" default="{pose_y}"/>
+        </Action>
+        <Action ID="KeepRunning" editable="true"/>
+        <Action ID="CancelNavGoal" editable="true">
+            <input_port name="action_name" default="navigate_to_pose"/>
+        </Action>
+        <Action ID="FindEscapePoint" editable="true">
+            <input_port name="costmap_topic" default="global_costmap/costmap_raw"/>
+            <input_port name="robot_x"/>
+            <input_port name="robot_y"/>
+            <input_port name="goal_x"/>
+            <input_port name="goal_y"/>
+            <output_port name="escape_x"/>
+            <output_port name="escape_y"/>
+            <output_port name="escape_pose"/>
+        </Action>
+        <Action ID="DetectRespawnAndSetRecovery" editable="true">
+            <inout_port name="was_dead" default="{state.was_dead}"/>
+            <input_port name="hp_cur" default="{hp.cur}"/>
+            <input_port name="now_ms" default="{time.now_ms}"/>
+            <inout_port name="need_recovery" default="{state.need_recovery}"/>
+            <inout_port name="recovery_start_ms" default="{state.recovery_start_ms}"/>
+            <inout_port name="search_start_ms" default="{state.search_start_ms}"/>
+            <inout_port name="heal_start_ms" default="{state.heal_start_ms}"/>
+        </Action>
+        <Action ID="ClearRecoveryFlag" editable="true">
+            <inout_port name="need_recovery" default="{state.need_recovery}"/>
+            <inout_port name="heal_start_ms" default="{state.heal_start_ms}"/>
+            <inout_port name="search_start_ms" default="{state.search_start_ms}"/>
+            <inout_port name="recovery_start_ms" default="{state.recovery_start_ms}"/>
+        </Action>
+        <Action ID="SetNavGoalFromConfig" editable="true">
+            <input_port  name="cfg_x" default="{cfg.supply_goal_x}"/>
+            <input_port  name="cfg_y" default="{cfg.supply_goal_y}"/>
+            <output_port name="goal_x" default="{nav.goal_x}"/>
+            <output_port name="goal_y" default="{nav.goal_y}"/>
+        </Action>
+        <Action ID="InitSearchTimerIfNeeded" editable="true">
+            <inout_port name="search_start_ms" default="{state.search_start_ms}"/>
+        </Action>
+        <Action ID="MicroSearchSupplyCard" editable="true">
+            <inout_port name="search_start_ms" default="{state.search_start_ms}"/>
+            <input_port name="timeout_ms" default="{cfg.search_timeout_ms}"/>
+            <input_port name="rfid_status" default="{rfid.status}"/>
+            <input_port name="rfid_supply_arrived" default="{rfid.supply_arrived}"/>
+        </Action>
+        <Action ID="WaitAndHeal" editable="true">
+            <input_port name="now_ms" default="{time.now_ms}"/>
+            <inout_port name="heal_start_ms" default="{state.heal_start_ms}"/>
+            <input_port name="heal_wait_ms" default="{cfg.heal_wait_ms}"/>
+            <input_port name="hp_cur" default="{hp.cur}"/>
+            <input_port name="hp_max" default="{hp.max}"/>
+            <input_port name="heal_min_hp" default="{cfg.heal_min_hp}"/>
+        </Action>
+        <Action ID="RobotControl" editable="true">
+            <input_port name="stop_gimbal_scan" default="False"/>
+            <input_port name="chassis_spin" default="False"/>
+        </Action>
+        <Action ID="NavControlCmd" editable="true">
+            <input_port name="cmd_type" default="0"/>
+            <input_port name="emergency_stop" default="False"/>
+        </Action>
+        <Condition ID="IsDetectEnemy" editable="true">
+            <input_port name="message" default="{robot_status}"/>
+        </Condition>
+        <Condition ID="IsFriendOK" editable="true">
+            <input_port name="message" default="{robot_status}"/>
+        </Condition>
+        <Condition ID="IsGameTime" editable="true">
+            <input_port name="message" default="{game_status}"/>
+            <input_port name="robot_msg" default="{robot_status}"/>
+            <input_port name="allow_no_game_status_hp_fallback" default="false"/>
+            <input_port name="game_progress" default="4"/>
+            <input_port name="lower_remain_time" default="0"/>
+            <input_port name="higher_remain_time" default="300"/>
+        </Condition>
+        <Condition ID="IsStatusOK" editable="true">
+            <input_port name="message" default="{robot_status}"/>
+            <input_port name="hp_threshold" default="0"/>
+            <input_port name="heat_threshold" default="9999"/>
+        </Condition>
+        <Condition ID="IsHPAbove" editable="true">
+            <input_port name="message" default="{robot_status}"/>
+            <input_port name="hp_threshold" default="200"/>
+        </Condition>
+        <Condition ID="IsHPBelow" editable="true">
+            <input_port name="message" default="{robot_status}"/>
+            <input_port name="hp_threshold" default="100"/>
+        </Condition>
+        <Condition ID="IsHPIncreasing" editable="true">
+            <input_port name="message" default="{robot_status}"/>
+        </Condition>
+        <Condition ID="IsDead" editable="true">
+            <input_port name="message" default="{robot_status}"/>
+        </Condition>
+        <Condition ID="IsRecoveryNeeded" editable="true">
+            <input_port name="need_recovery" default="{state.need_recovery}"/>
+        </Condition>
+        <Condition ID="IsSupplyCardDetected" editable="true">
+            <input_port name="rfid_status" default="{rfid.status}"/>
+        </Condition>
+        <Condition ID="IsWithinScope" editable="true">
+            <input_port name="pose_x" default="{pose.x}"/>
+            <input_port name="pose_y" default="{pose.y}"/>
+            <input_port name="goal_x" default="{cfg.supply_goal_x}"/>
+            <input_port name="goal_y" default="{cfg.supply_goal_y}"/>
+            <input_port name="arrive_radius" default="{cfg.arrive_radius}"/>
+            <input_port name="use_path_distance" default="false"/>
+            <input_port name="plan_topic" default="plan"/>
+            <input_port name="goal_match_tolerance" default="1.0"/>
+        </Condition>
+        <Condition ID="IsGoalAreaClear" editable="true">
+            <input_port name="costmap_topic" default="global_costmap/costmap_raw"/>
+            <input_port name="goal_x"/>
+            <input_port name="goal_y"/>
+            <input_port name="check_radius" default="0.3"/>
+            <input_port name="min_free_neighbors" default="2"/>
+            <input_port name="free_threshold" default="200"/>
+        </Condition>
+        <Condition ID="IsNavGoalRejected" editable="true">
+            <input_port name="action_name" default="navigate_to_pose"/>
+            <input_port name="latch_timeout_ms" default="10000"/>
+        </Condition>
+        <Condition ID="IsNavigationStuck" editable="true">
+            <input_port name="pose_x"/>
+            <input_port name="pose_y"/>
+            <input_port name="goal_x"/>
+            <input_port name="goal_y"/>
+            <input_port name="stuck_check_radius" default="1.6"/>
+            <input_port name="stuck_timeout_ms" default="5000"/>
+            <input_port name="far_stuck_timeout_ms" default="10000"/>
+            <input_port name="movement_threshold" default="0.15"/>
+            <input_port name="reset_distance" default="0.5"/>
+            <input_port name="near_goal_skip_radius" default="0.4"/>
+        </Condition>
+        <Action ID="FindApproachPoint" editable="true">
+            <input_port name="costmap_topic" default="global_costmap/costmap_raw"/>
+            <input_port name="robot_x"/>
+            <input_port name="robot_y"/>
+            <input_port name="goal_x"/>
+            <input_port name="goal_y"/>
+            <input_port name="search_radius" default="4.5"/>
+            <input_port name="min_radius" default="0.3"/>
+            <input_port name="cost_threshold" default="150"/>
+            <output_port name="approach_x"/>
+            <output_port name="approach_y"/>
+            <output_port name="approach_pose"/>
+        </Action>
+        <Action ID="ApplyCalibrationOverride" editable="true">
+            <input_port name="control_valid" default="false"/>
+            <input_port name="control_x" default="0.0"/>
+            <input_port name="control_y" default="0.0"/>
+            <input_port name="supply_valid" default="false"/>
+            <input_port name="supply_x" default="0.0"/>
+            <input_port name="supply_y" default="0.0"/>
+            <output_port name="control_zone_goal_x"/>
+            <output_port name="control_zone_goal_y"/>
+            <output_port name="supply_goal_x"/>
+            <output_port name="supply_goal_y"/>
+        </Action>
+        <Condition ID="NotArrived" editable="true">
+            <input_port name="rfid_status" default="{rfid.status}"/>
+        </Condition>
+        <Condition ID="IsAtNavGoal" editable="true">
+            <input_port name="rfid_status" default="{rfid.status}"/>
+        </Condition>
+        <Decorator ID="RateController" editable="true">
+            <input_port name="hz" default="1.0"/>
+        </Decorator>
+    </TreeNodesModel>
+</root>

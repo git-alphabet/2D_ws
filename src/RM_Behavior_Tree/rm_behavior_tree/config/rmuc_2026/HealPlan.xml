@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="HealPlan">
+        <ReactiveSequence>
+            <RmucIsHPBelow message="{robot_status}" hp_threshold="{cfg.hp_low}"/>
+
+            <ReactiveFallback>
+                <!-- If already at supply: hold until safe HP -->
+                <ReactiveSequence>
+                    <IsZoneCardDetected zone="SUPPLY" rfid_status="{rfid.status}" robot_status="{robot_status}"/>
+                    <HoldAndHeal hp_cur="{hp.cur}" hp_max="{hp.max}" hp_safe="{cfg.hp_safe}"
+                                 stage_elapsed_time="{game.elapsed_s}"
+                                 is_disengaged="{state.disengaged}"/>
+                </ReactiveSequence>
+
+                <!-- Else: navigate to supply -->
+                <ReactiveSequence>
+                    <RateController hz="1">
+                        <SendGoal name="GoSupply"
+                                  goal_x="{cfg.supply_x}" goal_y="{cfg.supply_y}"
+                                  frame_id="map" action_name="navigate_to_pose"/>
+                    </RateController>
+                    <RmucRobotControl stop_gimbal_scan="False"
+                                      chassis_spin="False"
+                                      fire_enable="False"/>
+                    <KeepRunning/>
+                </ReactiveSequence>
+            </ReactiveFallback>
+        </ReactiveSequence>
+    </BehaviorTree>
+
+</root>

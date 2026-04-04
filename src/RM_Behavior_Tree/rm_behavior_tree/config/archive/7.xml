@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4"
+      main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="GetStatusThenPrioritize">
+      <SubRobotStatus topic_name="robot_status"
+                      robot_status="{robot_status}"/>
+      <Fallback name="PrioritizeAttackOrNormalLogic">
+        <Sequence name="ExecuteAttackLogic">
+          <IsAttacked message="{robot_status}"/>
+          <Fallback name="AttackedHPBasedAction">
+            <Sequence name="AttackedGoHomeLowHP">
+              <Inverter>
+                <IsStatusOK message="{robot_status}"
+                            hp_threshold="101"
+                            blue_outpost_hp_threshold="0"
+                            red_outpost_hp_threshold="0"
+                            heat_threshold="9999"/>
+              </Inverter>
+              <!-- Converted from goal_pose to goal_x/goal_y -->
+              <SendGoal goal_x="-0.35" goal_y="-7.77" frame_id="map"/>
+            </Sequence>
+            <SendGoal name="AttackedGoToAggressivePos"
+                      goal_x="-2.94" goal_y="3.43" frame_id="map"/>
+          </Fallback>
+        </Sequence>
+        <Sequence name="OriginalComplexLogic">
+          <SubGameStatus topic_name="game_status"
+                         game_status="{game_status}"/>
+          <Fallback>
+            <Sequence name="HandleGameNotStarted">
+              <Inverter>
+                <IsGameTime message="{game_status}"
+                            game_progress="4"
+                            lower_remain_time="0"
+                            higher_remain_time="420"/>
+              </Inverter>
+              <RobotControl stop_gimbal_scan="true"
+                            chassis_spin="False"/>
+            </Sequence>
+            <Sequence name="HandleGameInProgress">
+              <IsGameTime message="{game_status}"
+                          game_progress="4"
+                          lower_remain_time="0"
+                          higher_remain_time="420"/>
+              <RateController hz="10">
+                <Fallback name="StatusBasedMovement">
+                  <Sequence name="LowHPGoSafePoint">
+                    <Inverter>
+                      <IsStatusOK message="{robot_status}"
+                                  hp_threshold="161"
+                                  blue_outpost_hp_threshold="0"
+                                  red_outpost_hp_threshold="0"
+                                  heat_threshold="9999"/>
+                    </Inverter>
+                        <SendGoal goal_x="3.64" goal_y="1.36" frame_id="map"/>
+                  </Sequence>
+                  <Sequence name="HighHPGoAggressivePoint">
+                    <IsStatusOK message="{robot_status}"
+                                hp_threshold="301"
+                                blue_outpost_hp_threshold="0"
+                                red_outpost_hp_threshold="0"
+                                heat_threshold="9999"/>
+                    <SendGoal goal_x="-7.63" goal_y="5.60" frame_id="map"/>
+                  </Sequence>
+                  <SendGoal name="DefaultOrMediumHPGoInitialPoint"
+                            goal_x="-7.63" goal_y="5.60" frame_id="map"/>
+                </Fallback>
+              </RateController>
+            </Sequence>
+          </Fallback>
+        </Sequence>
+      </Fallback>
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- Description of Node Models (used by Groot) -->
+  <TreeNodesModel>
+    <Action ID="IsAttacked"
+            editable="true">
+      <input_port name="message"
+                  default="{robot_status}"/>
+    </Action>
+    <Action ID="IsGameTime"
+            editable="true">
+      <input_port name="message"
+                  default="{game_status}"/>
+      <input_port name="game_progress"
+                  default="4"/>
+      <input_port name="lower_remain_time"
+                  default="0"/>
+      <input_port name="higher_remain_time"
+                  default="420"/>
+    </Action>
+    <Action ID="IsStatusOK"
+            editable="true">
+      <input_port name="message"
+                  default="{robot_status}"/>
+      <input_port name="hp_threshold"
+                  default="0"/>
+      <input_port name="blue_outpost_hp_threshold"
+                  default="0"/>
+      <input_port name="red_outpost_hp_threshold"
+                  default="0"/>
+      <input_port name="heat_threshold"
+                  default="9999"/>
+    </Action>
+    <Decorator ID="RateController">
+      <input_port name="hz">Rate</input_port>
+    </Decorator>
+    <Action ID="RobotControl"
+            editable="true">
+      <input_port name="stop_gimbal_scan"
+                  default="True"/>
+      <input_port name="chassis_spin"
+          default="False"/>
+    </Action>
+        <Action ID="SendGoal"
+        editable="true">
+      <input_port name="goal_pose"
+          default="{goal_pose}"/>
+      <input_port name="goal_x" default="0.0"/>
+      <input_port name="goal_y" default="0.0"/>
+      <input_port name="frame_id" default="map"/>
+        </Action>
+    <Action ID="SubGameStatus"
+            editable="true">
+      <input_port name="topic_name"
+          default="game_status"/>
+      <output_port name="game_status"
+                   default="{game_status}"/>
+    </Action>
+    <Action ID="SubRobotStatus"
+            editable="true">
+      <input_port name="topic_name"
+          default="robot_status"/>
+      <output_port name="robot_status"
+                   default="{robot_status}"/>
+    </Action>
+  </TreeNodesModel>
+
+</root>

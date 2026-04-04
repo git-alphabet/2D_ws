@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="CombatLoop">
+        <ReactiveSequence>
+            <!--
+                从雷达数据中精选最优目标，写入 combat.best_target：
+                优先选距己方基地（base_buff）<5m 的威胁目标，否则退回选距自身最近的敌人
+                结果格式为 "id:x:y"
+            -->
+            <SelectBestTarget radar_tracks="{radar.tracks}"
+                              pose_x="{pose.x}" pose_y="{pose.y}"
+                              base_x="{cfg.base_buff_x}" base_y="{cfg.base_buff_y}"
+                              out_target="{combat.best_target}"/>
+            <!--
+                解析 best_target 的 "id:x:y"，发布 PointStamped 到 /aim_target 话题，
+                通知云台控制器追踪该目标；实际瞄准由底层自瞄模块执行 
+                TODO: 追踪功能待完善
+            -->
+            <AimAtTarget target="{combat.best_target}"/>
+
+            <!--
+                射击窗口检查（ReactiveFallback）：
+                - IsFireWindowOk 返回 SUCCESS（未虚弱、有弹药、热量未超限）→ 允许开火
+                - IsFireWindowOk 返回 FAILURE → 执行 RmucRobotControl 强制关闭开火
+            -->
+            <ReactiveFallback>
+                <IsFireWindowOk heat_cur="{heat.cur}" heat_high="{cfg.heat_high}"
+                                ammo_allow="{ammo.allow}" is_weak="{state.is_weak}"/>
+                <RmucRobotControl fire_enable="False"/>
+            </ReactiveFallback>
+
+            <!--
+                连发射击：开火持续 burst_ms 毫秒，暂停 pause_ms 毫秒后本节点返回 SUCCESS
+                一轮完成后由 ReactiveSequence 从头重新触发，形成持续射击循环
+            -->
+            <FireBurst burst_ms="{cfg.combat_fire_burst_ms}"
+                       pause_ms="{cfg.combat_fire_pause_ms}"/>
+
+            <!-- 保持整棵树持续运行，直到上层条件打断 -->
+            <KeepRunning/>
+        </ReactiveSequence>
+    </BehaviorTree>
+
+</root>
