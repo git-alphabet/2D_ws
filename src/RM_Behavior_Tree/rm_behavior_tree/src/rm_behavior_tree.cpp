@@ -127,6 +127,73 @@ int main(int argc, char ** argv)
     return 1;
   }
 
+  // ─── RMUC 2026 参数注入 ───
+  // 从 ROS 参数 (rmuc_sentry_config.*) 读取，注入到树的根黑板
+  // InitSentryConfig 的 getInput 会优先读取黑板中已有的值
+  {
+    auto bb = tree.rootBlackboard();
+    // 坐标参数
+    const std::vector<std::string> coord_keys = {
+      "home_x","home_y","supply_zone_x","supply_zone_y",
+      "base_buff_x","base_buff_y","outpost_buff_x","outpost_buff_y",
+      "fortress_ally_x","fortress_ally_y","fortress_enemy_x","fortress_enemy_y",
+      "central_highland_x","central_highland_y",
+      "ladder_highland_x","ladder_highland_y",
+      "defend_anchor_x","defend_anchor_y",
+      "patrol_wpt_0_x","patrol_wpt_0_y",
+      "patrol_wpt_1_x","patrol_wpt_1_y",
+      "patrol_wpt_2_x","patrol_wpt_2_y"
+    };
+    // double 阈值参数
+    const std::vector<std::pair<std::string, double>> double_keys = {
+      {"arrive_radius", 0.35}, {"enemy_near_base_radius", 2.0}, {"heal_min_ratio", 0.6}
+    };
+    // int 阈值参数
+    const std::vector<std::pair<std::string, int>> int_keys = {
+      {"hp_critical", 80}, {"hp_low", 180}, {"hp_safe", 280},
+      {"heat_high", 210}, {"heat_critical", 245},
+      {"ammo_low", 80}, {"ammo_target", 300},
+      {"base_deficit_for_fortress", 500},
+      {"objective_hold_ms", 12000},
+      {"combat_fire_burst_ms", 180}, {"combat_fire_pause_ms", 120},
+      {"heal_wait_ms", 3000}, {"search_timeout_ms", 5000}
+    };
+
+    const std::string prefix = "rmuc_sentry_config.";
+    int injected = 0;
+
+    for (const auto & k : coord_keys) {
+      auto param_name = prefix + k;
+      if (!node->has_parameter(param_name)) {
+        node->declare_parameter<double>(param_name, 0.0);
+      }
+      double v = node->get_parameter(param_name).as_double();
+      if (v != 0.0) {
+        bb->set("cfg." + k, v);
+        injected++;
+      }
+    }
+    for (const auto & [k, def] : double_keys) {
+      auto param_name = prefix + k;
+      if (!node->has_parameter(param_name)) {
+        node->declare_parameter<double>(param_name, def);
+      }
+      double v = node->get_parameter(param_name).as_double();
+      bb->set("cfg." + k, v);
+      injected++;
+    }
+    for (const auto & [k, def] : int_keys) {
+      auto param_name = prefix + k;
+      if (!node->has_parameter(param_name)) {
+        node->declare_parameter<int>(param_name, def);
+      }
+      int v = static_cast<int>(node->get_parameter(param_name).as_int());
+      bb->set("cfg." + k, v);
+      injected++;
+    }
+    RCLCPP_INFO(node->get_logger(), "Injected %d RMUC config params into blackboard", injected);
+  }
+
   // Connect the Groot2Publisher. This will allow Groot2 to get the tree and poll status updates.
   std::unique_ptr<BT::Groot2Publisher> publisher;
   try {

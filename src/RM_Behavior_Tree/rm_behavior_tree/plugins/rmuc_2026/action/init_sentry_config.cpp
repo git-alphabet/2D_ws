@@ -9,20 +9,20 @@ InitSentryConfigAction::InitSentryConfigAction(
 
 BT::NodeStatus InitSentryConfigAction::tick()
 {
-  // 所有端口均带有 XML 默认值，tick 时将默认值写入黑板
-  // BT.CPP 会自动将 OutputPort 的 default 值写入对应黑板键
-  // 此处显式 setOutput 以确保黑板已初始化（覆盖 XML 默认值即可）
-  auto set = [this](const char * key, auto val) {
-    setOutput(key, val);
+  // 话题名称 (字符串默认值)
+  auto setStr = [this](const char * key, const std::string & fallback) {
+    std::string v = fallback;
+    getInput(key, v);
+    setOutput(key, v);
   };
-  set("topic_game_status", std::string("game_status"));
-  set("topic_robot_status", std::string("robot_status"));
-  set("topic_rfid_status", std::string("rfid_status"));
-  set("topic_robot_pose", std::string("robot_position"));
-  set("topic_radar_tracks", std::string("radar/enemy_tracks"));
+  setStr("topic_game_status", "game_status");
+  setStr("topic_robot_status", "robot_status");
+  setStr("topic_rfid_status", "rfid_status");
+  setStr("topic_robot_pose", "robot_position");
+  setStr("topic_radar_tracks", "radar/enemy_tracks");
 
-  // 坐标默认为 0，由 XML 参数或上层设置覆盖
-  for (auto * k : {"home_x","home_y","supply_x","supply_y",
+  // 坐标参数 (double, 默认 0.0)
+  for (auto * k : {"home_x","home_y","supply_zone_x","supply_zone_y",
                     "base_buff_x","base_buff_y","outpost_buff_x","outpost_buff_y",
                     "fortress_ally_x","fortress_ally_y","fortress_enemy_x","fortress_enemy_y",
                     "central_highland_x","central_highland_y",
@@ -36,19 +36,36 @@ BT::NodeStatus InitSentryConfigAction::tick()
     getInput(k, v);
     setOutput(k, v);
   }
-  set("arrive_radius", 0.35);
-  set("hp_critical", 80);
-  set("hp_low", 180);
-  set("hp_safe", 280);
-  set("heat_high", 210);
-  set("heat_critical", 245);
-  set("ammo_low", 80);
-  set("ammo_target", 300);
-  set("base_deficit_for_fortress", 500);
-  set("enemy_near_base_radius", 2.0);
-  set("objective_hold_ms", 12000);
-  set("combat_fire_burst_ms", 180);
-  set("combat_fire_pause_ms", 120);
+
+  // 阈值参数 (通过 getInput 读取，支持 YAML 覆盖)
+  auto setDouble = [this](const char * key, double fallback) {
+    double v = fallback;
+    getInput(key, v);
+    setOutput(key, v);
+  };
+  auto setInt = [this](const char * key, int fallback) {
+    int v = fallback;
+    getInput(key, v);
+    setOutput(key, v);
+  };
+
+  setDouble("arrive_radius", 0.35);
+  setDouble("enemy_near_base_radius", 2.0);
+  setDouble("heal_min_ratio", 0.6);
+
+  setInt("hp_critical", 80);
+  setInt("hp_low", 180);
+  setInt("hp_safe", 280);
+  setInt("heat_high", 210);
+  setInt("heat_critical", 245);
+  setInt("ammo_low", 80);
+  setInt("ammo_target", 300);
+  setInt("base_deficit_for_fortress", 500);
+  setInt("objective_hold_ms", 12000);
+  setInt("combat_fire_burst_ms", 180);
+  setInt("combat_fire_pause_ms", 120);
+  setInt("heal_wait_ms", 3000);
+  setInt("search_timeout_ms", 5000);
 
   return BT::NodeStatus::SUCCESS;
 }

@@ -7,6 +7,7 @@
 namespace rm_behavior_tree
 {
 /// 将所有静态配置参数输出到黑板，仅执行一次
+/// 优先读取 XML 端口值（可由外部注入黑板覆盖），否则使用内置默认值
 class InitSentryConfigAction : public BT::SyncActionNode
 {
 public:
@@ -20,7 +21,7 @@ public:
       BT::OutputPort<std::string>("topic_robot_pose", "robot pose topic"),
       BT::OutputPort<std::string>("topic_radar_tracks", "radar tracks topic"),
       BT::OutputPort<double>("home_x"), BT::OutputPort<double>("home_y"),
-      BT::OutputPort<double>("supply_x"), BT::OutputPort<double>("supply_y"),
+      BT::OutputPort<double>("supply_zone_x"), BT::OutputPort<double>("supply_zone_y"),
       BT::OutputPort<double>("base_buff_x"), BT::OutputPort<double>("base_buff_y"),
       BT::OutputPort<double>("outpost_buff_x"), BT::OutputPort<double>("outpost_buff_y"),
       BT::OutputPort<double>("fortress_ally_x"), BT::OutputPort<double>("fortress_ally_y"),
@@ -43,7 +44,10 @@ public:
       BT::OutputPort<double>("enemy_near_base_radius"),
       BT::OutputPort<int>("objective_hold_ms"),
       BT::OutputPort<int>("combat_fire_burst_ms"),
-      BT::OutputPort<int>("combat_fire_pause_ms")};
+      BT::OutputPort<int>("combat_fire_pause_ms"),
+      BT::OutputPort<int>("heal_wait_ms"),
+      BT::OutputPort<double>("heal_min_ratio"),
+      BT::OutputPort<int>("search_timeout_ms")};
   }
   BT::NodeStatus tick() override;
 };
