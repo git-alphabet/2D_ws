@@ -50,7 +50,7 @@ rmuc_2026 (主树) — 外层 ReactiveSequence
 ├── SubTree: PerceptionAndBlackboard      [每帧 tick]
 │   └── 12 个订阅节点 + ParseSentryBlackboard (~70+ 输出)
 ├── SubTree: InitOnce                     [幂等]
-│   └── InitSentryConfig(buff_zone_x/y + 新 recovery 参数) + InitCmdState
+│   └── InitSentryConfig(supply_zone_x/y + 新 recovery 参数) + InitCmdState
 └── WhileDoElse (RmucIsGameTime)
     ├── [比赛阶段] ReactiveSequence
     │   ├── SubTree: CommandHub            [每帧 tick]
@@ -237,7 +237,7 @@ Fallback (注意：不是 Sequence)
 ReactiveSequence
 ├── IsWeakness       → SUCCESS/FAILURE (门控)
 ├── SelectNearestDispelCard → SUCCESS (写 nav.goal_x/y)
-│   inputs: buff_zone_x/y, base_buff, outpost_buff
+│   inputs: supply_zone_x/y, base_buff, outpost_buff
 ├── RateController(1Hz) → SendGoal
 ├── RmucRobotControl (fire off)
 └── ReactiveFallback
@@ -246,7 +246,7 @@ ReactiveSequence
 ```
 
 - ✅ `IsWeakness` FAILURE → 整棵树立即退出
-- ✅ 使用 `buff_zone_x/y`（非旧版 `supply_x/y`）
+- ✅ 使用 `supply_zone_x/y`（非旧版 `supply_x/y`）
 - ✅ 到达后 `MoveAround` 微动搜索，直到检测到解除卡
 - ✅ 关闭射击（fire off），避免虚弱期浪费弹药
 
@@ -256,7 +256,7 @@ ReactiveSequence
 ReactiveSequence
 ├── IsCriticalState    → SUCCESS/FAILURE (门控)
 ├── RmucRobotControl   → SUCCESS
-├── SelectSafeRetreatGoal → SUCCESS (使用 buff_zone_x/y)
+├── SelectSafeRetreatGoal → SUCCESS (使用 supply_zone_x/y)
 ├── RateController(1Hz) → SendGoal(Retreat)
 └── KeepRunning        → RUNNING (保持)
 ```
@@ -264,7 +264,7 @@ ReactiveSequence
 - ✅ `IsCriticalState` FAILURE → 退出，让出给 BaseDefense
 - ✅ `KeepRunning` 保持 RUNNING → ReactiveSequence 每帧重新检查门控
 - ✅ **无 CancelNavGoal**（已移除 — 在 ReactiveSequence 中会导致每帧取消导航）
-- ✅ `SelectSafeRetreatGoal` 使用 `buff_zone_x/y`（非旧版 `supply_x/y`）
+- ✅ `SelectSafeRetreatGoal` 使用 `supply_zone_x/y`（非旧版 `supply_x/y`）
 
 #### BaseDefense.xml
 
@@ -334,7 +334,7 @@ ReactiveFallback
 
 - ✅ 血量充足 → HealPlan FAILURE → 尝试 AmmoPlan
 - ✅ 弹量充足 → AmmoPlan FAILURE → 整个 SustainAndEconomy FAILURE → 让出
-- ⚠️ **注意**: HealPlan 和 AmmoPlan 都可能导航到补给区，但目标可能不同（buff_zone vs nearest_station）
+- ⚠️ **注意**: HealPlan 和 AmmoPlan 都可能导航到补给区，但目标可能不同（supply_zone vs nearest_station）
 
 #### HealPlan.xml
 
@@ -346,7 +346,7 @@ ReactiveSequence
     │   ├── IsZoneCardDetected(SUPPLY)
     │   └── HoldAndHeal
     └── ReactiveSequence (未在补给区: 导航)
-        ├── RateController(1Hz) → SendGoal (buff_zone)
+        ├── RateController(1Hz) → SendGoal (supply_zone)
         ├── RmucRobotControl
         └── KeepRunning
 ```
@@ -380,7 +380,7 @@ ReactiveSequence
 │     field_central_highland, field_ladder_highland, field_fortress,
 │     field_outpost_buff, field_base_buff,
 │     fortress_ammo,
-│     8 个候选点坐标 (buff_zone_x/y, central_highland_x/y, ...)
+│     8 个候选点坐标 (supply_zone_x/y, central_highland_x/y, ...)
 ├── RateController(1Hz) → SendGoal
 ├── RmucRobotControl
 ├── ReactiveFallback
@@ -413,12 +413,12 @@ ReactiveSequence (原为 Sequence，已改为 ReactiveSequence)
 ```
 Sequence (幂等)
 ├── InitSentryConfig → SUCCESS
-│   使用 buff_zone_x/y（非旧版 supply_x/y）
-│   新增配置参数: supply_goal_x/y, heal_wait_ms, heal_min_ratio, search_timeout_ms
+│   使用 supply_zone_x/y（非旧版 supply_x/y）
+│   新增配置参数: supply_zone_x/y, heal_wait_ms, heal_min_ratio, search_timeout_ms
 └── InitCmdState     → SUCCESS
 ```
 
-- ✅ 全部配置参数使用 `buff_zone_x/y` 命名
+- ✅ 全部配置参数使用 `supply_zone_x/y` 命名
 - ✅ 新增 RespawnRecovery 相关配置参数
 
 ---
@@ -561,7 +561,7 @@ Sequence (幂等)
 | Blackboard Key 前缀 | 示例 | 读取方 | 状态 |
 |---|---|---|---|
 | `{cfg.home_x/y}` | 非比赛阶段 SendGoal | ✅ |
-| `{cfg.buff_zone_x/y}` | HealPlan, SelectNearestDispelCard, CriticalSurvival 等 | ✅ |
+| `{cfg.supply_zone_x/y}` | HealPlan, SelectNearestDispelCard, CriticalSurvival 等 | ✅ |
 | `{cfg.base_buff_x/y}` | SelectNearestDispelCard 等 | ✅ |
 | `{cfg.outpost_buff_x/y}` | SelectNearestDispelCard 等 | ✅ |
 | `{cfg.fortress_ally_x/y}` | SelectObjective | ✅ |
@@ -578,7 +578,7 @@ Sequence (幂等)
 | `{cfg.heat_critical}` | IsCriticalState | ✅ |
 | `{cfg.ammo_low}` | DecideEconomyCmd, IsAmmoBelow | ✅ |
 | `{cfg.ammo_target}` | DecideEconomyCmd, HoldForSupplyAmmoTick, SelectObjective | ✅ |
-| `{cfg.supply_goal_x/y}` | RespawnRecovery SendGoal | ✅ (NEW) |
+| `{cfg.supply_zone_x/y}` | RespawnRecovery SendGoal | ✅ (NEW) |
 | `{cfg.heal_wait_ms}` | RmucWaitAndHeal | ✅ (NEW) |
 | `{cfg.heal_min_ratio}` | RmucWaitAndHeal | ✅ (NEW) |
 | `{cfg.search_timeout_ms}` | RmucMicroSearchSupplyCard | ✅ (NEW) |
@@ -634,7 +634,7 @@ Sequence (幂等)
 
 | 旧名称 | 新名称 | 影响范围 |
 |--------|--------|---------|
-| `supply_x` / `supply_y` | `buff_zone_x` / `buff_zone_y` | 全部 Select* 节点 + InitSentryConfig |
+| `supply_x` / `supply_y` | `supply_zone_x` / `supply_zone_y` | 全部 Select* 节点 + InitSentryConfig |
 | `is_weak` (黑板 key) | 移除，改用 `IsWeakness` 条件节点 | IsCombatAllowed, IsFireWindowOk, RespawnRecovery |
 
 ---
@@ -755,7 +755,7 @@ Sequence (幂等)
 
 | XML 使用的节点 | TreeNodesModel 定义 | 关键变更 |
 |---|---|---|
-| `InitSentryConfig` | ✅ | buff_zone_x/y + supply_goal_x/y + heal_wait_ms + heal_min_ratio + search_timeout_ms |
+| `InitSentryConfig` | ✅ | supply_zone_x/y + supply_zone_x/y + heal_wait_ms + heal_min_ratio + search_timeout_ms |
 | `InitCmdState` | ✅ | |
 | `ParseSentryBlackboard` | ✅ | 7 个新 input (P0 消息) + ~40 个新 output |
 
@@ -794,12 +794,12 @@ Sequence (幂等)
 
 | XML 使用的节点 | TreeNodesModel 定义 | 关键变更 |
 |---|---|---|
-| `SelectObjective` | ✅ | ~30+ 输入, 新增 ammo_allow, ammo_target, field_*, fortress_ammo, 8 个坐标 (均使用 buff_zone_x/y) |
+| `SelectObjective` | ✅ | ~30+ 输入, 新增 ammo_allow, ammo_target, field_*, fortress_ammo, 8 个坐标 (均使用 supply_zone_x/y) |
 | `HoldObjective` | ✅ | |
 | `WaypointPatrol` | ✅ | |
-| `SelectNearestDispelCard` | ✅ | 使用 buff_zone_x/y (非 supply_x/y) |
-| `SelectNearestResupplyStation` | ✅ | 使用 buff_zone_x/y |
-| `SelectSafeRetreatGoal` | ✅ | 使用 buff_zone_x/y |
+| `SelectNearestDispelCard` | ✅ | 使用 supply_zone_x/y (非 supply_x/y) |
+| `SelectNearestResupplyStation` | ✅ | 使用 supply_zone_x/y |
+| `SelectSafeRetreatGoal` | ✅ | 使用 supply_zone_x/y |
 
 ### 6.8 后勤节点
 
@@ -906,7 +906,7 @@ Sequence (幂等)
 - [ ] `SetBlackboard` 的 `output_key` 和 `value` 是否拼写正确
 - [ ] 跨子树共享的 blackboard key 是否通过 `_autoremap="true"` 传递
 - [ ] 配置类 key（cfg.*）是否在 `InitSentryConfig` 中定义
-- [ ] 所有命名是否已迁移到新标准（buff_zone_x/y 而非 supply_x/y）
+- [ ] 所有命名是否已迁移到新标准（supply_zone_x/y 而非 supply_x/y）
 - [ ] `is_weak` 黑板 key 是否已完全移除，改用 IsWeakness 条件节点
 
 #### C. 时序 (Timing)

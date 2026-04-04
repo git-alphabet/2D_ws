@@ -18,7 +18,7 @@
                 <ReactiveSequence>
                     <RateController hz="1">
                         <SendGoal name="GoSupply"
-                                  goal_x="{cfg.buff_zone_x}" goal_y="{cfg.buff_zone_y}"
+                                  goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
                                   frame_id="map" action_name="navigate_to_pose"/>
                     </RateController>
                     <RmucRobotControl stop_gimbal_scan="False"

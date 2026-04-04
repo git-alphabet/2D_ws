@@ -11,7 +11,7 @@
                 topic_radar_tracks="{cfg.topic_radar_tracks}"
 
                 home_x="{cfg.home_x}" home_y="{cfg.home_y}"
-                buff_zone_x="{cfg.buff_zone_x}" buff_zone_y="{cfg.buff_zone_y}"
+                supply_zone_x="{cfg.supply_zone_x}" supply_zone_y="{cfg.supply_zone_y}"
                 base_buff_x="{cfg.base_buff_x}" base_buff_y="{cfg.base_buff_y}"
                 outpost_buff_x="{cfg.outpost_buff_x}" outpost_buff_y="{cfg.outpost_buff_y}"
                 fortress_ally_x="{cfg.fortress_ally_x}" fortress_ally_y="{cfg.fortress_ally_y}"
@@ -36,8 +36,6 @@
                 objective_hold_ms="{cfg.objective_hold_ms}"
                 combat_fire_burst_ms="{cfg.combat_fire_burst_ms}"
                 combat_fire_pause_ms="{cfg.combat_fire_pause_ms}"
-                supply_goal_x="{cfg.supply_goal_x}"
-                supply_goal_y="{cfg.supply_goal_y}"
                 heal_wait_ms="{cfg.heal_wait_ms}"
                 heal_min_ratio="{cfg.heal_min_ratio}"
                 search_timeout_ms="{cfg.search_timeout_ms}"

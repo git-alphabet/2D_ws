@@ -201,8 +201,8 @@
             <!-- TODO: 以下所有坐标需根据实际地图填写（单位：米，map 坐标系） -->
             <output_port name="home_x" default="0.0"/>          <!-- TODO: 己方出生点/复活点 x -->
             <output_port name="home_y" default="0.0"/>          <!-- TODO: 己方出生点/复活点 y -->
-            <output_port name="buff_zone_x" default="0.0"/>     <!-- TODO: 补给区增益点 x (RFID刷卡感应区中心) -->
-            <output_port name="buff_zone_y" default="0.0"/>     <!-- TODO: 补给区增益点 y (RFID刷卡感应区中心) -->
+            <output_port name="supply_zone_x" default="0.0"/>     <!-- TODO: 补给区坐标 x (RFID刷卡 + 导航 + 选点 统一使用) -->
+            <output_port name="supply_zone_y" default="0.0"/>     <!-- TODO: 补给区坐标 y (RFID刷卡 + 导航 + 选点 统一使用) -->
             <output_port name="base_buff_x" default="0.0"/>     <!-- TODO: 己方基地增益区中心 x -->
             <output_port name="base_buff_y" default="0.0"/>     <!-- TODO: 己方基地增益区中心 y -->
             <output_port name="outpost_buff_x" default="0.0"/>  <!-- TODO: 己方前哨站增益区中心 x -->
@@ -239,8 +239,6 @@
             <output_port name="combat_fire_burst_ms" default="180"/>
             <output_port name="combat_fire_pause_ms" default="120"/>
             <!-- RespawnRecovery 恢复流程配置 -->
-            <output_port name="supply_goal_x" default="0.0"/>   <!-- TODO: 补给区刷卡精确停靠点 x -->
-            <output_port name="supply_goal_y" default="0.0"/>   <!-- TODO: 补给区刷卡精确停靠点 y -->
             <output_port name="heal_wait_ms" default="3000"/>   <!-- 刷卡后等待回血的最长时间(ms) -->
             <output_port name="heal_min_ratio" default="0.6"/>  <!-- 最低回血比例才退出 -->
             <output_port name="search_timeout_ms" default="5000"/> <!-- 微搜卡超时(ms) -->
@@ -490,8 +488,8 @@
             <input_port name="fortress_ally_y" default="{cfg.fortress_ally_y}"/>
             <input_port name="fortress_enemy_x" default="{cfg.fortress_enemy_x}"/>
             <input_port name="fortress_enemy_y" default="{cfg.fortress_enemy_y}"/>
-            <input_port name="buff_zone_x" default="{cfg.buff_zone_x}"/>
-            <input_port name="buff_zone_y" default="{cfg.buff_zone_y}"/>
+            <input_port name="supply_zone_x" default="{cfg.supply_zone_x}"/>
+            <input_port name="supply_zone_y" default="{cfg.supply_zone_y}"/>
             <input_port name="defend_anchor_x" default="{cfg.defend_anchor_x}"/>
             <input_port name="defend_anchor_y" default="{cfg.defend_anchor_y}"/>
             <output_port name="goal_x" default="{nav.goal_x}"/>
@@ -521,8 +519,8 @@
         <Action ID="SelectNearestDispelCard" editable="true">
             <input_port name="pose_x" default="{pose.x}"/>
             <input_port name="pose_y" default="{pose.y}"/>
-            <input_port name="buff_zone_x" default="{cfg.buff_zone_x}"/>
-            <input_port name="buff_zone_y" default="{cfg.buff_zone_y}"/>
+            <input_port name="supply_zone_x" default="{cfg.supply_zone_x}"/>
+            <input_port name="supply_zone_y" default="{cfg.supply_zone_y}"/>
             <input_port name="base_buff_x" default="{cfg.base_buff_x}"/>
             <input_port name="base_buff_y" default="{cfg.base_buff_y}"/>
             <input_port name="outpost_buff_x" default="{cfg.outpost_buff_x}"/>
@@ -534,8 +532,8 @@
         <Action ID="SelectNearestResupplyStation" editable="true">
             <input_port name="pose_x" default="{pose.x}"/>
             <input_port name="pose_y" default="{pose.y}"/>
-            <input_port name="buff_zone_x" default="{cfg.buff_zone_x}"/>
-            <input_port name="buff_zone_y" default="{cfg.buff_zone_y}"/>
+            <input_port name="supply_zone_x" default="{cfg.supply_zone_x}"/>
+            <input_port name="supply_zone_y" default="{cfg.supply_zone_y}"/>
             <input_port name="base_buff_x" default="{cfg.base_buff_x}"/>
             <input_port name="base_buff_y" default="{cfg.base_buff_y}"/>
             <input_port name="outpost_buff_x" default="{cfg.outpost_buff_x}"/>
@@ -547,8 +545,8 @@
         <Action ID="SelectSafeRetreatGoal" editable="true">
             <input_port name="pose_x" default="{pose.x}"/>
             <input_port name="pose_y" default="{pose.y}"/>
-            <input_port name="buff_zone_x" default="{cfg.buff_zone_x}"/>
-            <input_port name="buff_zone_y" default="{cfg.buff_zone_y}"/>
+            <input_port name="supply_zone_x" default="{cfg.supply_zone_x}"/>
+            <input_port name="supply_zone_y" default="{cfg.supply_zone_y}"/>
             <input_port name="defend_anchor_x" default="{cfg.defend_anchor_x}"/>
             <input_port name="defend_anchor_y" default="{cfg.defend_anchor_y}"/>
             <output_port name="goal_x" default="{nav.goal_x}"/>

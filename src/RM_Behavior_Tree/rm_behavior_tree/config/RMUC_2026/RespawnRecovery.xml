@@ -62,8 +62,8 @@
                             <ReactiveSequence>
                                 <RateController hz="5">
                                     <SendGoal name="GoSupplyToHeal"
-                                        goal_x="{cfg.supply_goal_x}"
-                                        goal_y="{cfg.supply_goal_y}"
+                                        goal_x="{cfg.supply_zone_x}"
+                                        goal_y="{cfg.supply_zone_y}"
                                         frame_id="map"
                                         action_name="navigate_to_pose"/>
                                 </RateController>

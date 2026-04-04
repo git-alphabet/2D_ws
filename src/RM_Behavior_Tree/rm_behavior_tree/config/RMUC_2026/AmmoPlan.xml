@@ -17,7 +17,7 @@
                 <!-- Else: go to nearest station (supply/base/outpost) -->
                 <ReactiveSequence>
                     <SelectNearestResupplyStation pose_x="{pose.x}" pose_y="{pose.y}"
-                                                  buff_zone_x="{cfg.buff_zone_x}" buff_zone_y="{cfg.buff_zone_y}"
+                                                  supply_zone_x="{cfg.supply_zone_x}" supply_zone_y="{cfg.supply_zone_y}"
                                                   base_buff_x="{cfg.base_buff_x}" base_buff_y="{cfg.base_buff_y}"
                                                   outpost_buff_x="{cfg.outpost_buff_x}" outpost_buff_y="{cfg.outpost_buff_y}"
                                                   goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"/>
