@@ -26,16 +26,21 @@
 
 x-base: &base
   image: ${DOCKERHUB_NS:-alphabet2006}/${IMAGE_REPO:-gxu2026-nav-env}:${IMAGE_TAG:-latest}
-  user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
   network_mode: host
   privileged: true
+  init: true
   stdin_open: true
   tty: true
   environment:
+    HOME: /tmp/home
     DISPLAY: ${DISPLAY:-:0}
     XAUTHORITY: /tmp/.docker.xauth
     TERM: xterm-256color
     QT_X11_NO_MITSHM: "1"
+    ROS_HOME: /tmp/.ros
+    ROS_LOG_DIR: /tmp/ros_log
+    RCL_LOGGING_DISABLE_FILE_OUTPUT: "1"
+  command: bash
   volumes:
     - ./ros_entrypoint.sh:/ros_entrypoint.sh:ro
     - ../.git:/ws/.git:ro
@@ -47,8 +52,8 @@ x-base: &base
     - ../build:/ws/build                    # bind mount：宿主机可直接 rm -rf 清除
     - ../install:/ws/install
     - ../log:/ws/log
-    - /etc/passwd:/etc/passwd:ro
-    - /etc/group:/etc/group:ro
+    - ../maps:/ws/maps                      # 自动保存的地图（容器生成→宿主机可见）
+    - ../launch_logs:/ws/launch_logs        # 启动日志（容器生成→宿主机可见）
   working_dir: /ws
 
 services:
@@ -56,12 +61,18 @@ services:
   # ---------- 笔记本（有 NVIDIA GPU）----------
   dev-laptop:
     <<: *base
+    profiles: ["laptop"]
     container_name: gxu2026-nav-laptop
+    shm_size: "1gb"
     environment:
+      HOME: /tmp/home
       DISPLAY: ${DISPLAY:-:0}
       XAUTHORITY: /tmp/.docker.xauth
       TERM: xterm-256color
       QT_X11_NO_MITSHM: "1"
+      ROS_HOME: /tmp/.ros
+      ROS_LOG_DIR: /tmp/ros_log
+      RCL_LOGGING_DISABLE_FILE_OUTPUT: "1"
       NVIDIA_VISIBLE_DEVICES: all
       NVIDIA_DRIVER_CAPABILITIES: graphics,compute,display,utility
       __NV_PRIME_RENDER_OFFLOAD: "1"
@@ -77,20 +88,31 @@ services:
   # ---------- 小电脑实车（无 GPU）----------
   dev-robot:
     <<: *base
+    profiles: ["robot"]
     container_name: gxu2026-nav-robot
-    # 实车不需要 X11 / GPU，覆盖掉 base 里的 X11 挂载
+    # 实车不需要 GPU，但在你目前的配置下由于需要跑 Rviz，保留了 X11 挂载
     volumes:
+      - ./ros_entrypoint.sh:/ros_entrypoint.sh:ro
       - ../.git:/ws/.git:ro
       - ../.buildcache:/ws/.buildcache
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
       - ../src:/ws/src
       - ../scripts:/ws/scripts
       - ../build:/ws/build
       - ../install:/ws/install
       - ../log:/ws/log
-      - /etc/passwd:/etc/passwd:ro
-      - /etc/group:/etc/group:ro
+      - ../maps:/ws/maps                      # 自动保存的地图（容器生成→宿主机可见）
+      - ../launch_logs:/ws/launch_logs        # 启动日志（容器生成→宿主机可见）
       - /dev/bus/usb:/dev/bus/usb   # 挂载 USB 总线，支持 odin 热插拔
     devices:
       - /dev/bus/usb:/dev/bus/usb   # odin1 USB 设备直通
     environment:
+      HOME: /tmp/home
+      DISPLAY: ${DISPLAY:-:0}
+      XAUTHORITY: /tmp/.docker.xauth
+      QT_X11_NO_MITSHM: "1"
       TERM: xterm-256color
+      ROS_HOME: /tmp/.ros
+      ROS_LOG_DIR: /tmp/ros_log
+      RCL_LOGGING_DISABLE_FILE_OUTPUT: "1"
