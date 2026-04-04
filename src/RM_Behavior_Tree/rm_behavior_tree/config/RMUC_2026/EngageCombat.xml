@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="EngageCombat">
+        <ReactiveSequence>
+            <!--
+                检查雷达是否有有效目标（has_target 为 true 且 best_target 非空），否则整棵树不执行
+            -->
+            <HasValidTarget has_target="{combat.has_target}"
+                            best_target="{combat.best_target}"/>
+            <!-- 战斗许可检查：处于虚弱状态、弹药为零、热量过高或血量过低时禁止战斗 -->
+            <IsCombatAllowed robot_status="{robot_status}"
+                             ammo_allow="{ammo.allow}"
+                             heat_cur="{heat.cur}"
+                             heat_high="{cfg.heat_high}"
+                             hp_cur="{hp.cur}"
+                             hp_low="{cfg.hp_low}"/>
+
+            <!--
+                进入交战: 把导航目标锁定为当前位置
+                原因: 从巡逻/目标控制被打断进入战斗时, 机器人已停在途中,
+                      此时 nav.goal 仍指向旧目标, dist 很大.
+                      覆写后 dist≈0, ShouldChassisSpin 距离检查通过, 允许旋转.
+                      退出 EngageCombat 后, 下帧 SelectObjective/WaypointPatrol
+                      会重新写入正确目标, 无副作用.
+            -->
+            <SetBlackboard output_key="nav.goal_x" value="{pose.x}"/>
+            <SetBlackboard output_key="nav.goal_y" value="{pose.y}"/>
+
+            <!--
+                底盘旋转策略:
+                已通过上方 SetBlackboard 确保 dist≈0 (站定状态),
+                后续由姿态/功率窗口决定是否旋转
+            -->
+            <ReactiveFallback>
+                <Sequence>
+                    <ShouldChassisSpin pose_x="{pose.x}" pose_y="{pose.y}"
+                                       goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                                       arrive_radius="{cfg.arrive_radius}"
+                                       current_posture="{sentry.current_posture}"
+                                       is_power_boosted="{state.power_boosted}"/>
+                    <RmucRobotControl stop_gimbal_scan="True"
+                                      chassis_spin="True"
+                                      fire_enable="True"/>
+                </Sequence>
+                <RmucRobotControl stop_gimbal_scan="True"
+                                  chassis_spin="False"
+                                  fire_enable="True"/>
+            </ReactiveFallback>
+
+            <!-- 进入战斗循环 -->
+            <SubTree ID="CombatLoop" _autoremap="true"/>
+        </ReactiveSequence>
+    </BehaviorTree>
+
+    <!-- ===== 临时 TreeNodesModel：仅用于 Groot2 独立加载，不影响运行时 ===== -->
+    <TreeNodesModel>
+        <Condition ID="HasValidTarget" editable="true">
+            <input_port name="has_target" default="{combat.has_target}"/>
+            <input_port name="best_target" default="{combat.best_target}"/>
+        </Condition>
+        <Condition ID="IsCombatAllowed" editable="true">
+            <input_port name="robot_status" default="{robot_status}"/>
+            <input_port name="ammo_allow" default="{ammo.allow}"/>
+            <input_port name="heat_cur" default="{heat.cur}"/>
+            <input_port name="heat_high" default="{cfg.heat_high}"/>
+            <input_port name="hp_cur" default="{hp.cur}"/>
+            <input_port name="hp_low" default="{cfg.hp_low}"/>
+        </Condition>
+        <Condition ID="ShouldChassisSpin" editable="true">
+            <input_port name="pose_x" default="{pose.x}"/>
+            <input_port name="pose_y" default="{pose.y}"/>
+            <input_port name="goal_x" default="{nav.goal_x}"/>
+            <input_port name="goal_y" default="{nav.goal_y}"/>
+            <input_port name="arrive_radius" default="{cfg.arrive_radius}"/>
+            <input_port name="current_posture" default="{sentry.current_posture}"/>
+            <input_port name="is_power_boosted" default="{state.power_boosted}"/>
+            <input_port name="force_spin" default="false"/>
+        </Condition>
+        <Action ID="RmucRobotControl" editable="true">
+            <input_port name="stop_gimbal_scan" default="False"/>
+            <input_port name="chassis_spin" default="False"/>
+            <input_port name="fire_enable" default="False"/>
+        </Action>
+        <Decorator ID="RateController" editable="true">
+            <input_port name="hz" default="1.0"/>
+        </Decorator>
+    </TreeNodesModel>
+</root>
