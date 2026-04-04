@@ -1,13 +1,15 @@
 build/
 install/
 log/
-.build_branches/
+.buildcache/
 .vscode/
 .github/
 neupan_env/
 /tips.txt
 /env.txt
 src/ros2_bag_tools/bags/
+launch_logs/
+maps/
 
 # Python 编译缓存
 __pycache__/
