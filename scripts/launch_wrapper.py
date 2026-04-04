@@ -10,6 +10,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
+from datetime import datetime, timezone, timedelta
 
 
 def _is_truthy(value: str | None) -> bool:
@@ -149,6 +150,7 @@ class CommonConfig:
     terminal_cmd: str
     kill_existing: bool
     rcutils_logging_severity: Optional[str] = None
+    log_type: str = "nav"
 
 
 class BackgroundGroup:
@@ -356,9 +358,13 @@ def _start_watchdog(cfg: CommonConfig, topics: list[tuple[str, float]], bg: "Bac
         f"{shlex.quote(t)}:{hz}" for t, hz in topics
     )
     base_env = _build_base_env(cfg)
-    log_dir = cfg.ws_dir / "log"
+    branch = _current_branch(cfg.ws_dir)
+    branch_safe = re.sub(r"[^A-Za-z0-9._-]", "_", branch)
+    log_dir = cfg.ws_dir / "launch_logs" / branch_safe / cfg.log_type
     log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / f"{Path(cfg.script_name).stem}_watchdog.log"
+    bj_tz = timezone(timedelta(hours=8))
+    ts = datetime.now(bj_tz).strftime("%Y%m%d_%H%M%S")
+    log_file = log_dir / f"{Path(cfg.script_name).stem}_watchdog_{ts}.log"
 
     # Python one-liner: 每 10s 用 ros2 topic hz --window 10 轮询一次
     py_script = r"""
@@ -430,11 +436,17 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
     full_cmd += f"; {command}"
 
     # Background processes: always run detached (log to file), regardless of terminal mode.
+    branch = _current_branch(cfg.ws_dir)
+    branch_safe = re.sub(r"[^A-Za-z0-9._-]", "_", branch)
+    log_dir = cfg.ws_dir / "launch_logs" / branch_safe / cfg.log_type
+    bj_tz = timezone(timedelta(hours=8))
+    ts = datetime.now(bj_tz).strftime("%Y%m%d_%H%M%S")
+    slug = _slugify(title)
+    log_file_name = f"{Path(cfg.script_name).stem}_{slug}_{ts}.log"
+
     if background:
-        log_dir = cfg.ws_dir / "log"
         log_dir.mkdir(parents=True, exist_ok=True)
-        slug = _slugify(title)
-        log_file = log_dir / f"{Path(cfg.script_name).stem}_{slug}.log"
+        log_file = log_dir / log_file_name
 
         print(f"[{cfg.script_name}] (background) {title} -> {log_file}", file=sys.stderr)
         # Start in its own session so we can kill the whole group (when tracked).
@@ -449,10 +461,8 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
         return
 
     if cfg.no_new_terminal or not cfg.terminal_cmd:
-        log_dir = cfg.ws_dir / "log"
         log_dir.mkdir(parents=True, exist_ok=True)
-        slug = _slugify(title)
-        log_file = log_dir / f"{Path(cfg.script_name).stem}_{slug}.log"
+        log_file = log_dir / log_file_name
 
         print(f"[{cfg.script_name}] (single-terminal) {title} (foreground)", file=sys.stderr)
         print(f"[{cfg.script_name}] Log: {log_file}", file=sys.stderr)
@@ -600,6 +610,7 @@ def main(argv: list[str]) -> int:
     no_new_terminal   = _is_truthy(no_new_terminal_e) or (_in_docker() and not no_new_terminal_e)
 
     is_sim = mode.startswith("sim_")
+    log_type = "slam" if "mapping" in mode else "nav"
     params_env_key  = "SIM_PARAMS_FILE" if is_sim else "REALITY_PARAMS_FILE"
     params_default  = (ws_dir / "src/gxu2026_sentry_nav/gxu2026_nav_bringup/config"
                        / ("simulation" if is_sim else "reality") / "nav2_params.yaml")
@@ -615,6 +626,7 @@ def main(argv: list[str]) -> int:
         terminal_cmd="",
         kill_existing=kill_existing,
         rcutils_logging_severity=os.environ.get("RCUTILS_LOGGING_SEVERITY"),
+        log_type=log_type,
     )
     cfg.terminal_cmd = _pick_terminal_cmd(cfg)
     if not cfg.terminal_cmd:

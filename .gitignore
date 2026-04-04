@@ -3,6 +3,7 @@ install/
 log/
 .build_branches/
 .vscode/
+.github/
 neupan_env/
 /tips.txt
 /env.txt
