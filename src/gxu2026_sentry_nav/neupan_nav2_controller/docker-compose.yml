@@ -12,7 +12,7 @@ services:
       - QT_X11_NO_MITSHM=1
     volumes:
       # 挂载项目源代码（用于开发调试）
-      - .:/ros2_ws/src/neupan_nav2_controller
+      - .:/ros2_ws/src/gxu2026_sentry_nav/neupan_nav2_controller
       # 挂载X11套接字（用于GUI应用）
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       # 挂载测试结果目录
@@ -40,7 +40,7 @@ services:
       - DISPLAY=${DISPLAY}
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - .:/ros2_ws/src/neupan_nav2_controller
+      - .:/ros2_ws/src/gxu2026_sentry_nav/neupan_nav2_controller
     networks:
       - ros_network
     depends_on:
@@ -63,10 +63,10 @@ services:
     environment:
       - ROS_DOMAIN_ID=42
       - DISPLAY=${DISPLAY}
-      - GAZEBO_MODEL_PATH=/ros2_ws/src/neupan_nav2_controller/models
+      - GAZEBO_MODEL_PATH=/ros2_ws/src/gxu2026_sentry_nav/neupan_nav2_controller/models
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - .:/ros2_ws/src/neupan_nav2_controller
+      - .:/ros2_ws/src/gxu2026_sentry_nav/neupan_nav2_controller
     networks:
       - ros_network
     depends_on:

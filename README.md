@@ -67,7 +67,7 @@ PYTHON_BIN=python3 ./scripts/setup_neupan_env.sh
 
 该脚本会：
 - 创建/更新 `./neupan_env`
-- 安装 `src/neupan_nav2_controller/requirements.txt` 中的依赖（包含 CPU 版 PyTorch 索引）
+- 安装 `src/gxu2026_sentry_nav/neupan_nav2_controller/requirements.txt` 中的依赖（包含 CPU 版 PyTorch 索引）
 - 处理 ECOS 的兼容性补丁（脚本内置 best-effort patch）
 
 ### 3.3 构建（每次代码更新后）
@@ -237,7 +237,7 @@ NEUPAN_MODEL_SETUP=/path/to/local_setup.bash ./scripts/nav_sim.sh
 
 3) **运行时 Python 依赖/ABI 报错**
 
-- NeuPAN 依赖在 `src/neupan_nav2_controller/requirements.txt` 中对 `numpy<2`、`scipy<1.15` 有约束。
+- NeuPAN 依赖在 `src/gxu2026_sentry_nav/neupan_nav2_controller/requirements.txt` 中对 `numpy<2`、`scipy<1.15` 有约束。
 - 优先使用 `./scripts/setup_neupan_env.sh` 统一安装，不建议混用系统 pip。
 
 ---

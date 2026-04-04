@@ -130,10 +130,10 @@ fi
 
 # 6. 模型文件验证
 log_info "🧠 步骤6: 验证模型文件"
-MODEL_COUNT=$(find /ros2_ws/src/neupan_nav2_controller/model -name "*.pth" | wc -l)
+MODEL_COUNT=$(find /ros2_ws/src/gxu2026_sentry_nav/neupan_nav2_controller/model -name "*.pth" | wc -l)
 if [ $MODEL_COUNT -gt 0 ]; then
     log_success "找到 $MODEL_COUNT 个模型文件"
-    find /ros2_ws/src/neupan_nav2_controller/model -name "*.pth" > /test_results/model_files.txt
+    find /ros2_ws/src/gxu2026_sentry_nav/neupan_nav2_controller/model -name "*.pth" > /test_results/model_files.txt
     cat /test_results/model_files.txt
 else
     log_error "未找到模型文件"
@@ -141,18 +141,18 @@ fi
 
 # 7. 配置文件验证
 log_info "📋 步骤7: 验证配置文件"
-if [ -f "/ros2_ws/src/neupan_nav2_controller/neupan_controller_plugin.xml" ]; then
+if [ -f "/ros2_ws/src/gxu2026_sentry_nav/neupan_nav2_controller/neupan_controller_plugin.xml" ]; then
     log_success "插件配置文件存在"
-    cat /ros2_ws/src/neupan_nav2_controller/neupan_controller_plugin.xml > /test_results/plugin_config.txt
+    cat /ros2_ws/src/gxu2026_sentry_nav/neupan_nav2_controller/neupan_controller_plugin.xml > /test_results/plugin_config.txt
 else
     log_error "插件配置文件缺失"
 fi
 
 # 8. 执行项目自带的测试脚本
 log_info "🧪 步骤8: 执行项目自带测试"
-if [ -f "/ros2_ws/src/neupan_nav2_controller/scripts/test_plugin_registration.py" ]; then
+if [ -f "/ros2_ws/src/gxu2026_sentry_nav/neupan_nav2_controller/scripts/test_plugin_registration.py" ]; then
     log_info "运行插件注册测试..."
-    cd /ros2_ws/src/neupan_nav2_controller
+    cd /ros2_ws/src/gxu2026_sentry_nav/neupan_nav2_controller
     timeout 30s python3 scripts/test_plugin_registration.py > /test_results/plugin_registration_test.txt 2>&1
     if [ $? -eq 0 ]; then
         log_success "插件注册测试通过"

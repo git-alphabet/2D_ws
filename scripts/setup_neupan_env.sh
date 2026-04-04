@@ -3,7 +3,7 @@ set -euo pipefail
 
 # One-time environment bootstrap for NeuPAN python deps.
 # - Creates/updates ./neupan_env
-# - Installs python deps from src/neupan_nav2_controller/requirements.txt
+# - Installs python deps from src/gxu2026_sentry_nav/neupan_nav2_controller/requirements.txt
 #
 # Usage:
 #   ./scripts/setup_neupan_env.sh
@@ -13,7 +13,7 @@ set -euo pipefail
 WS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 VENV_DIR="${VENV_DIR:-$WS_DIR/neupan_env}"
-REQ_FILE="${REQ_FILE:-$WS_DIR/src/neupan_nav2_controller/requirements.txt}"
+REQ_FILE="${REQ_FILE:-$WS_DIR/src/gxu2026_sentry_nav/neupan_nav2_controller/requirements.txt}"
 EXTRA_PKGS="${EXTRA_PKGS:-}"
 
 # Defaults tuned for ROS2 workflows:

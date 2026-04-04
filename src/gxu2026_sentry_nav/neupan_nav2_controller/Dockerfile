@@ -42,7 +42,7 @@ RUN pip3 install --no-cache-dir \
 RUN mkdir -p /ros2_ws/src
 
 # 复制项目文件
-COPY . /ros2_ws/src/neupan_nav2_controller/
+COPY . /ros2_ws/src/gxu2026_sentry_nav/neupan_nav2_controller/
 
 # 更新rosdep数据库
 RUN rosdep update
