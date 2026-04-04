@@ -13,6 +13,7 @@ pb_navigation_switches:
     controller_plugin: "neupan_nav2_controller"   # 控制器插件选择：neupan_nav2_controller / pb_omni_pid_pursuit_controller
     odometry_source: "point_lio"                   #point_lio / small_point_lio / loam_interface
     behavior_tree: "default"                       # .xml or default,none
+    robot_description_file: "simulation_robot"     # 机器人描述文件基名：对应 gxu2026_robot_description/resource/xmacro/<name>.sdf.xmacro
 
 
     enable_gimbal_yaw_bridge: false               # 仿真中 TF 由 Gazebo bringup 的 robot_state_publisher 直接提供，无需此通路。

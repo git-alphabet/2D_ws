@@ -14,10 +14,18 @@
 
 
 import os
+from pathlib import Path
+
+import yaml  # type: ignore
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    OpaqueFunction,
+    SetLaunchConfiguration,
+)
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, TextSubstitution
@@ -47,6 +55,7 @@ def generate_launch_description():
     use_robot_state_pub = LaunchConfiguration("use_robot_state_pub")
     use_rviz = LaunchConfiguration("use_rviz")
     odin_config_file = LaunchConfiguration("odin_config_file")
+    robot_name = LaunchConfiguration("robot_name")
 
     # Declare the launch arguments
     declare_namespace_cmd = DeclareLaunchArgument(
@@ -125,6 +134,15 @@ def generate_launch_description():
         description="Whether to start the robot state publisher",
     )
 
+    declare_robot_name_cmd = DeclareLaunchArgument(
+        "robot_name",
+        default_value="",
+        description=(
+            "Robot xmacro basename override. Empty means reading "
+            "pb_navigation_switches.robot_description_file from params_file."
+        ),
+    )
+
     declare_rviz_config_file_cmd = DeclareLaunchArgument(
         "rviz_config_file",
         default_value=os.path.join(bringup_dir, "rviz", "nav2_default_view.rviz"),
@@ -172,6 +190,58 @@ def generate_launch_description():
         allow_substs=True,
     )
 
+    def _set_robot_name_from_params(context, *, params_file, namespace, robot_name):
+        default_robot_name = "pb2025_sentry_robot"
+        selected_robot_name = (robot_name.perform(context) or "").strip()
+
+        if not selected_robot_name:
+            params_path = Path(params_file.perform(context)).expanduser()
+            namespace_value = (namespace.perform(context) or "").strip().lstrip("/")
+
+            if params_path.is_file():
+                try:
+                    raw_yaml = yaml.safe_load(params_path.read_text()) or {}
+                except Exception:
+                    raw_yaml = {}
+
+                target_data = raw_yaml
+                if namespace_value:
+                    namespaced_data = raw_yaml.get(namespace_value)
+                    if isinstance(namespaced_data, dict):
+                        target_data = namespaced_data
+
+                def _get_ros_params(container, key):
+                    entry = container.get(key) if isinstance(container, dict) else None
+                    if isinstance(entry, dict):
+                        params = entry.get("ros__parameters")
+                        if isinstance(params, dict):
+                            return params
+                    return {}
+
+                switches = _get_ros_params(target_data, "pb_navigation_switches")
+                if not switches and target_data is not raw_yaml:
+                    switches = _get_ros_params(raw_yaml, "pb_navigation_switches")
+
+                candidate_robot_name = switches.get("robot_description_file")
+                if isinstance(candidate_robot_name, str):
+                    candidate_robot_name = candidate_robot_name.strip()
+                    if candidate_robot_name:
+                        selected_robot_name = candidate_robot_name
+
+        if not selected_robot_name:
+            selected_robot_name = default_robot_name
+
+        return [SetLaunchConfiguration("resolved_robot_name", selected_robot_name)]
+
+    set_robot_name_cmd = OpaqueFunction(
+        function=_set_robot_name_from_params,
+        kwargs={
+            "params_file": params_file,
+            "namespace": namespace,
+            "robot_name": robot_name,
+        },
+    )
+
     start_robot_state_publisher_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(launch_dir, "robot_state_publisher_launch.py")
@@ -181,7 +251,7 @@ def generate_launch_description():
         launch_arguments={
             "namespace": namespace,
             "use_sim_time": use_sim_time,
-            "robot_name": "pb2025_sentry_robot",
+            "robot_name": LaunchConfiguration("resolved_robot_name"),
         }.items(),
     )
 
@@ -234,10 +304,13 @@ def generate_launch_description():
     ld.add_action(declare_use_composition_cmd)
     ld.add_action(declare_rviz_config_file_cmd)
     ld.add_action(declare_use_robot_state_pub_cmd)
+    ld.add_action(declare_robot_name_cmd)
     ld.add_action(declare_use_rviz_cmd)
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_odin_config_file_cmd)
     ld.add_action(declare_odin_map_mode_cmd)
+    ld.add_action(SetLaunchConfiguration("resolved_robot_name", "pb2025_sentry_robot"))
+    ld.add_action(set_robot_name_cmd)
 
     # Add the actions to launch all of the navigation nodes
     ld.add_action(start_robot_state_publisher_cmd)

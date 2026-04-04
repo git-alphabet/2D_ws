@@ -4,9 +4,10 @@ pb_navigation_switches:
     controller_plugin: "pb_omni_pid_pursuit_controller"
     odometry_source: "odin1"
     behavior_tree: "default"
+    robot_description_file: "simulation_robot"  # 机器人描述文件基名：对应 gxu2026_robot_description/resource/xmacro/<name>.sdf.xmacro
 
 
-    enable_gimbal_yaw_bridge: true             #是否启用 gimbal_yaw_bridge 通路。
+    enable_gimbal_yaw_bridge: true             #是否启用 gimbal_yaw_bridge 通路,传感器放小yaw要开启
 
 
 # /auto_aim_yaw -> serial/gimbal_joint_state
