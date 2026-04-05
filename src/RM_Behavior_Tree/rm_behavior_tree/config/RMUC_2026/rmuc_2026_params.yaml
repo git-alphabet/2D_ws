@@ -48,8 +48,8 @@ rmuc_sentry_config:
   hp_low: 180                    # 低血量阈值 (触发 LowHPRetreat 撤退回补给区)
   hp_safe: 280                   # 安全血量阈值 (HoldAndHeal 回血目标)
   heat_high: 210                 # 高热量阈值 (限制开火)
-  ammo_low: 80                   # 低弹药阈值 (触发 AmmoPlan)
-  ammo_target: 300               # 目标弹药量 (AmmoPlan 补给目标)
+  ammo_low: 80                   # 低弹药阈值 (触发 AmmoPlan) 即低于多少弹药量的时候需要去补给
+  ammo_target: 300               # 目标弹药量 (AmmoPlan 补给目标) 即在增益点补充到多少才停
 
   # ─────────── 导航参数 ───────────
   arrive_radius: 0.35            # 到达判定半径 (米)

@@ -5,7 +5,7 @@
         <ReactiveSequence>
             <!-- 门控：视觉检测到敌人才执行 -->
             <RmucIsDetectEnemy message="{robot_status}"/>
-
+ 
             <!-- 检测到敌人 → 终止导航，原地站定 -->
             <RmucNavControlCmd cmd_type="3" emergency_stop="False"/>
 
