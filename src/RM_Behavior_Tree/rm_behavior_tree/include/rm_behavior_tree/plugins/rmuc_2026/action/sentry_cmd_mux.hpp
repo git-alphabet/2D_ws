@@ -25,7 +25,6 @@ public:
       BT::InputPort<int>("allow_ammo_target", "0", "allow_ammo_target"),
       BT::InputPort<int>("trigger_remote_ammo", "0", "trigger_remote_ammo"),
       BT::InputPort<int>("trigger_remote_hp", "0", "trigger_remote_hp"),
-      BT::InputPort<int>("enable_big_energy", "0", "enable_big_energy"),
       BT::BidirectionalPort<std::string>("cmd_state", "", "内部状态跟踪")};
   }
 };

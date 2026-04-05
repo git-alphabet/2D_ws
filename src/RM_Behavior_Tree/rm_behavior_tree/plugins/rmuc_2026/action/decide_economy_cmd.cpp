@@ -10,7 +10,7 @@ DecideEconomyCmdAction::DecideEconomyCmdAction(
 BT::NodeStatus DecideEconomyCmdAction::tick()
 {
   int hp = 400, hp_max = 400, ammo = 300, ammo_target = 300, ammo_low = 80;
-  bool can_heal = false, can_ammo = false, base_threat = false;
+  bool can_heal = false, can_ammo = false;
   int coins = 0, remain_s = 420;
 
   getInput("hp_cur", hp);
@@ -22,9 +22,8 @@ BT::NodeStatus DecideEconomyCmdAction::tick()
   getInput("can_remote_ammo", can_ammo);
   getInput("team_coins", coins);
   getInput("stage_remain_time", remain_s);
-  getInput("base_threat", base_threat);
 
-  int trig_ammo = 0, trig_hp = 0, big_energy = 0;
+  int trig_ammo = 0, trig_hp = 0;
   int allow_ammo = 0;
   getInput("allow_ammo_target_in", allow_ammo);
 
@@ -43,14 +42,8 @@ BT::NodeStatus DecideEconomyCmdAction::tick()
     allow_ammo += 50;  // 每次请求 50 发
   }
 
-  // 大能量机关：比赛中期 (120-300s elapsed → remain 120-300) 且基地受威胁
-  if (base_threat && remain_s < 300 && remain_s > 120) {
-    big_energy = 1;
-  }
-
   setOutput("trigger_remote_ammo", trig_ammo);
   setOutput("trigger_remote_hp", trig_hp);
-  setOutput("enable_big_energy", big_energy);
   setOutput("allow_ammo_target_out", allow_ammo);
 
   return BT::NodeStatus::SUCCESS;
