@@ -37,9 +37,12 @@ BT::NodeStatus DecideEconomyCmdAction::tick()
     trig_ammo = 1;
   }
 
-  // 允许弹丸配额 (非负整数，累加)
-  if (ammo < ammo_target && coins >= 100) {
-    allow_ammo += 50;  // 每次请求 50 发
+  // 允许弹丸配额 (非负整数，累加，有上限)
+  int allow_ammo_max = 400;
+  getInput("allow_ammo_max", allow_ammo_max);
+  if (ammo < ammo_target && coins >= 100 && allow_ammo < allow_ammo_max) {
+    allow_ammo += 50;
+    if (allow_ammo > allow_ammo_max) allow_ammo = allow_ammo_max;
   }
 
   setOutput("trigger_remote_ammo", trig_ammo);

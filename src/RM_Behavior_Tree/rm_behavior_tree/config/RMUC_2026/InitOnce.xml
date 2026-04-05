@@ -25,6 +25,7 @@
                 heat_high="{cfg.heat_high}"
                 ammo_low="{cfg.ammo_low}"
                 ammo_target="{cfg.ammo_target}"
+                allow_ammo_max="{cfg.allow_ammo_max}"
                 enemy_near_base_radius="{cfg.enemy_near_base_radius}"
                 objective_hold_ms="{cfg.objective_hold_ms}"
                 patrol_hold_ms="{cfg.patrol_hold_ms}"

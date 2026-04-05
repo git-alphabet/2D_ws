@@ -149,7 +149,7 @@ int main(int argc, char ** argv)
     const std::vector<std::pair<std::string, int>> int_keys = {
       {"hp_low", 180}, {"hp_safe", 280},
       {"heat_high", 210},
-      {"ammo_low", 80}, {"ammo_target", 300},
+      {"ammo_low", 80}, {"ammo_target", 300}, {"allow_ammo_max", 400},
       {"objective_hold_ms", 12000},
       {"patrol_hold_ms", 5000}
     };

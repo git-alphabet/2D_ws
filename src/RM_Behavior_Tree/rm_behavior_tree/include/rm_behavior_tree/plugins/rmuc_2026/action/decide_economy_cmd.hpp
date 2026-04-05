@@ -23,6 +23,7 @@ public:
       BT::InputPort<bool>("can_remote_ammo"),
       BT::InputPort<int>("team_coins"),
       BT::InputPort<int>("stage_remain_time"),
+      BT::InputPort<int>("allow_ammo_max", 400, "允许发弹量上限"),
       BT::InputPort<int>("allow_ammo_target_in"),
       BT::OutputPort<int>("allow_ammo_target_out"),
       BT::OutputPort<int>("trigger_remote_ammo"),
