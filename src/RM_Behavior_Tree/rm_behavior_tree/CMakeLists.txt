@@ -99,34 +99,14 @@ ament_auto_add_library(is_dead SHARED
 )
 add_target_dependencies(is_dead)
 
-# ── RMUC 2026 RespawnRecovery 子树插件 ──────────────────────────────────────
+# ── RMUC 2026 LowHPRetreat 子树插件 ──────────────────────────────────────
 # Conditions
 ament_auto_add_library(rmuc_is_dead SHARED
     plugins/rmuc_2026/condition/is_dead.cpp
 )
 add_target_dependencies(rmuc_is_dead)
 
-ament_auto_add_library(rmuc_is_supply_card_detected SHARED
-    plugins/rmuc_2026/condition/is_supply_card_detected.cpp
-)
-add_target_dependencies(rmuc_is_supply_card_detected)
-
-ament_auto_add_library(rmuc_is_at_nav_goal SHARED
-    plugins/rmuc_2026/condition/is_at_nav_goal.cpp
-)
-add_target_dependencies(rmuc_is_at_nav_goal)
-
 # Actions
-ament_auto_add_library(rmuc_detect_respawn_and_set_recovery SHARED
-    plugins/rmuc_2026/action/detect_respawn_and_set_recovery.cpp
-)
-add_target_dependencies(rmuc_detect_respawn_and_set_recovery)
-
-ament_auto_add_library(rmuc_wait_and_heal SHARED
-    plugins/rmuc_2026/action/wait_and_heal.cpp
-)
-add_target_dependencies(rmuc_wait_and_heal)
-
 ament_auto_add_library(rmuc_robot_control SHARED
     plugins/rmuc_2026/action/robot_control.cpp
 )
@@ -136,11 +116,6 @@ ament_auto_add_library(rmuc_nav_control_cmd SHARED
     plugins/rmuc_2026/action/nav_control_cmd.cpp
 )
 add_target_dependencies(rmuc_nav_control_cmd)
-
-ament_auto_add_library(rmuc_micro_search_supply_card SHARED
-    plugins/rmuc_2026/action/micro_search_supply_card.cpp
-)
-add_target_dependencies(rmuc_micro_search_supply_card)
 
 # ── RMUC 2026 镜像插件 (6个：Sub[Game/Robot/RFID/Position] + IsGameTime + IsHPBelow) ──
 ament_auto_add_library(rmuc_sub_game_status SHARED
@@ -231,10 +206,6 @@ ament_auto_add_library(rmuc_select_nearest_resupply_station SHARED
     plugins/rmuc_2026/action/select_nearest_resupply_station.cpp)
 add_target_dependencies(rmuc_select_nearest_resupply_station)
 
-ament_auto_add_library(rmuc_select_nearest_dispel_card SHARED
-    plugins/rmuc_2026/action/select_nearest_dispel_card.cpp)
-add_target_dependencies(rmuc_select_nearest_dispel_card)
-
 # ── RMUC 2026 目标/巡逻 ──
 ament_auto_add_library(rmuc_select_objective SHARED
     plugins/rmuc_2026/action/select_objective.cpp)
@@ -272,10 +243,6 @@ add_target_dependencies(rmuc_is_fire_window_ok)
 ament_auto_add_library(rmuc_is_at_goal SHARED
     plugins/rmuc_2026/condition/is_at_goal.cpp)
 add_target_dependencies(rmuc_is_at_goal)
-
-ament_auto_add_library(rmuc_is_any_dispel_card_detected SHARED
-    plugins/rmuc_2026/condition/is_any_dispel_card_detected.cpp)
-add_target_dependencies(rmuc_is_any_dispel_card_detected)
 
 # ── 结束 RMUC 2026 全部插件 ────────────────────────────────────────────────
 

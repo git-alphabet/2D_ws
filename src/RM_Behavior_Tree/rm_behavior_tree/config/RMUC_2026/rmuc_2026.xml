@@ -34,49 +34,37 @@
                     <!-- 基于优先级的战术 -->
                     <ReactiveFallback>
 
-                        <!-- 0) 死亡 + 复活恢复（RMUC 版：死亡停车 / 复活后自主导航补给区刷卡回血） -->
-                        <Sequence>
-                            <SetBlackboard output_key="active_subtree" value="RespawnRecovery"/>
-                            <SubTree ID="RespawnRecovery" _autoremap="true"/>
-                        </Sequence>
-
-                        <!-- 0.5) 虚弱恢复安全网：独立路径，IsWeakness 门控 → 导航最近增益点解除虚弱 -->
-                        <Sequence>
-                            <SetBlackboard output_key="active_subtree" value="WeaknessRecovery"/>
-                            <SubTree ID="WeaknessRecovery" _autoremap="true"/>
-                        </Sequence>
-
-                        <!-- 1) 低血量撤退回补给区回血 -->
+                        <!-- 0) 死亡停车 / 低血量撤退回补给区回血 -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="LowHPRetreat"/>
                             <SubTree ID="LowHPRetreat" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 2) 基地/堡垒防御（受威胁时） -->
+                        <!-- 1) 基地/堡垒防御（受威胁时） -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="BaseDefense"/>
                             <SubTree ID="BaseDefense" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 3) 交战（有有效目标且安全时） -->
+                        <!-- 2) 交战（有有效目标且安全时） -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="EngageCombat"/>
                             <SubTree ID="EngageCombat" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 4) 后勤：补弹（经济感知） -->
+                        <!-- 3) 后勤：补弹（经济感知） -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="SustainAndEconomy"/>
                             <SubTree ID="SustainAndEconomy" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 5) 目标控制：中央高地/梯形高地/堡垒/隧道等 -->
+                        <!-- 4) 目标控制：中央高地/梯形高地/堡垒/隧道等 -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="ObjectivePlanner"/>
                             <SubTree ID="ObjectivePlanner" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 6) 默认：巡逻扫描 -->
+                        <!-- 5) 默认：巡逻扫描 -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="PatrolAndScan"/>
                             <SubTree ID="PatrolAndScan" _autoremap="true"/>
@@ -118,8 +106,6 @@
     <include path="PerceptionAndBlackboard.xml"/>
     <include path="InitOnce.xml"/>
     <include path="CommandHub.xml"/>
-    <include path="RespawnRecovery.xml"/>
-    <include path="WeaknessRecovery.xml"/>
     <include path="LowHPRetreat.xml"/>
     <include path="BaseDefense.xml"/>
     <include path="EngageCombat.xml"/>
@@ -235,10 +221,6 @@
             <output_port name="objective_hold_ms" default="12000"/>
             <output_port name="combat_fire_burst_ms" default="180"/>
             <output_port name="combat_fire_pause_ms" default="120"/>
-            <!-- RespawnRecovery 恢复流程配置 -->
-            <output_port name="heal_wait_ms" default="3000"/>   <!-- 刷卡后等待回血的最长时间(ms) -->
-            <output_port name="heal_min_ratio" default="0.6"/>  <!-- 最低回血比例才退出 -->
-            <output_port name="search_timeout_ms" default="5000"/> <!-- 微搜卡超时(ms) -->
         </Action>
 
         <Action ID="InitCmdState" editable="true">
@@ -513,19 +495,6 @@
             <output_port name="goal_y" default="{nav.goal_y}"/>
         </Action>
 
-        <Action ID="SelectNearestDispelCard" editable="true">
-            <input_port name="pose_x" default="{pose.x}"/>
-            <input_port name="pose_y" default="{pose.y}"/>
-            <input_port name="supply_zone_x" default="{cfg.supply_zone_x}"/>
-            <input_port name="supply_zone_y" default="{cfg.supply_zone_y}"/>
-            <input_port name="base_buff_x" default="{cfg.base_buff_x}"/>
-            <input_port name="base_buff_y" default="{cfg.base_buff_y}"/>
-            <input_port name="outpost_buff_x" default="{cfg.outpost_buff_x}"/>
-            <input_port name="outpost_buff_y" default="{cfg.outpost_buff_y}"/>
-            <output_port name="goal_x" default="{nav.goal_x}"/>
-            <output_port name="goal_y" default="{nav.goal_y}"/>
-        </Action>
-
         <Action ID="SelectNearestResupplyStation" editable="true">
             <input_port name="pose_x" default="{pose.x}"/>
             <input_port name="pose_y" default="{pose.y}"/>
@@ -562,9 +531,6 @@
         </Condition>
         <Condition ID="RmucIsDead" editable="true">
             <input_port name="message" default="{robot_status}"/>
-        </Condition>
-        <Condition ID="IsWeakness" editable="true">
-            <input_port name="robot_status" default="{robot_status}"/>
         </Condition>
         <Condition ID="RmucIsHPBelow" editable="true">
             <input_port name="message" default="{robot_status}"/>
@@ -629,11 +595,6 @@
             <input_port name="force_spin" default="false"/>
         </Condition>
 
-        <Condition ID="IsAnyDispelCardDetected" editable="true">
-            <input_port name="rfid_status" default="{rfid.status}"/>
-            <input_port name="robot_status" default="{robot_status}"/>
-        </Condition>
-
         <Condition ID="IsAtGoal" editable="true">
             <input_port name="pose_x" default="{pose.x}"/>
             <input_port name="pose_y" default="{pose.y}"/>
@@ -647,34 +608,11 @@
             <input_port name="hz" default="1.0"/>
         </Decorator>
 
-        <!-- RespawnRecovery 相关节点 -->
+        <!-- LowHPRetreat 相关节点 -->
         <Action ID="RmucNavControlCmd" editable="true">
             <input_port name="cmd_type" default="1"/>
             <input_port name="emergency_stop" default="False"/>
         </Action>
-        <Action ID="RmucWaitAndHeal" editable="true">
-            <input_port name="topic_name" default="/robot_status"/>
-            <input_port name="now_ms" default="{time.now_ms}"/>
-            <input_port name="hp_cur" default="{hp.cur}"/>
-            <input_port name="hp_max" default="{hp.max}"/>
-            <inout_port name="heal_start_ms" default="{heal_start_ms}"/>
-            <input_port name="heal_wait_ms" default="{cfg.heal_wait_ms}"/>
-            <input_port name="heal_min_ratio" default="{cfg.heal_min_ratio}"/>
-        </Action>
-        <Action ID="InitSearchTimerIfNeeded" editable="true">
-            <inout_port name="search_start_ms" default="{search_start_ms}"/>
-        </Action>
-        <Action ID="RmucMicroSearchSupplyCard" editable="true">
-            <inout_port name="search_start_ms" default="{search_start_ms}"/>
-            <input_port name="timeout_ms" default="{cfg.search_timeout_ms}"/>
-            <input_port name="rfid_status" default="{rfid.status}"/>
-        </Action>
-        <Condition ID="RmucIsAtNavGoal" editable="true">
-            <input_port name="is_at_nav_goal" default="{is_at_nav_goal}"/>
-        </Condition>
-        <Condition ID="RmucIsSupplyCardDetected" editable="true">
-            <input_port name="rfid_status" default="{rfid.status}"/>
-        </Condition>
 
     </TreeNodesModel>
 

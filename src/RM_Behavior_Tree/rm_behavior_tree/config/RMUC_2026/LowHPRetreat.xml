@@ -2,35 +2,50 @@
 <root BTCPP_format="4">
 
     <BehaviorTree ID="LowHPRetreat">
-        <ReactiveSequence>
-            <!-- 门控：血量低于 hp_low 时才执行，否则整棵树不执行 -->
-            <RmucIsHPBelow message="{robot_status}" hp_threshold="{cfg.hp_low}"/>
+        <ReactiveFallback>
 
-            <!-- 停止开火，保持扫描 -->
-            <RmucRobotControl stop_gimbal_scan="False"
-                              chassis_spin="False"
-                              fire_enable="False"/>
+            <!-- A. 死亡：停车等待复活读条结束 -->
+            <Sequence name="IfDead_StopAndWait">
+                <RmucIsDead message="{robot_status}"/>
+                <RmucRobotControl stop_gimbal_scan="True"
+                                  chassis_spin="False"
+                                  fire_enable="False"/>
+                <RmucNavControlCmd cmd_type="3"
+                                   emergency_stop="False"/>
+            </Sequence>
 
-            <ReactiveFallback>
-                <!-- 分支A：已在补给区 → 原地等待回血到安全线 -->
-                <ReactiveSequence>
-                    <IsZoneCardDetected zone="SUPPLY" rfid_status="{rfid.status}" robot_status="{robot_status}"/>
-                    <HoldAndHeal hp_cur="{hp.cur}" hp_max="{hp.max}" hp_safe="{cfg.hp_safe}"
-                                 stage_elapsed_time="{game.elapsed_s}"
-                                 is_disengaged="{state.disengaged}"/>
-                </ReactiveSequence>
+            <!-- B. 低血量：导航到补给区回血 -->
+            <ReactiveSequence>
+                <!-- 门控：血量低于 hp_low 时才执行 -->
+                <RmucIsHPBelow message="{robot_status}" hp_threshold="{cfg.hp_low}"/>
 
-                <!-- 分支B：不在补给区 → 导航到补给区 -->
-                <ReactiveSequence>
-                    <RateController hz="1">
-                        <SendGoal name="GoSupplyToHeal"
-                                  goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
-                                  frame_id="map" action_name="navigate_to_pose"/>
-                    </RateController>
-                    <KeepRunning/>
-                </ReactiveSequence>
-            </ReactiveFallback>
-        </ReactiveSequence>
+                <!-- 停止开火，保持扫描 -->
+                <RmucRobotControl stop_gimbal_scan="False"
+                                  chassis_spin="False"
+                                  fire_enable="False"/>
+
+                <ReactiveFallback>
+                    <!-- 分支B1：已在补给区 → 原地等待回血到安全线 -->
+                    <ReactiveSequence>
+                        <IsZoneCardDetected zone="SUPPLY" rfid_status="{rfid.status}" robot_status="{robot_status}"/>
+                        <HoldAndHeal hp_cur="{hp.cur}" hp_max="{hp.max}" hp_safe="{cfg.hp_safe}"
+                                     stage_elapsed_time="{game.elapsed_s}"
+                                     is_disengaged="{state.disengaged}"/>
+                    </ReactiveSequence>
+
+                    <!-- 分支B2：不在补给区 → 导航到补给区 -->
+                    <ReactiveSequence>
+                        <RateController hz="1">
+                            <SendGoal name="GoSupplyToHeal"
+                                      goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
+                                      frame_id="map" action_name="navigate_to_pose"/>
+                        </RateController>
+                        <KeepRunning/>
+                    </ReactiveSequence>
+                </ReactiveFallback>
+            </ReactiveSequence>
+
+        </ReactiveFallback>
     </BehaviorTree>
 
 </root>

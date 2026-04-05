@@ -64,8 +64,3 @@ rmuc_sentry_config:
   # ─────────── 战斗参数 ───────────
   combat_fire_burst_ms: 180      # 连发开火持续时间 (毫秒)
   combat_fire_pause_ms: 120      # 开火间隔暂停时间 (毫秒)
-
-  # ─────────── 恢复流程参数 (RespawnRecovery) ───────────
-  heal_wait_ms: 3000             # 刷卡后等待回血的最长时间 (毫秒)
-  heal_min_ratio: 0.6            # 最低回血比例 (达到此比例才退出恢复)
-  search_timeout_ms: 5000        # 到达补给区后搜索RFID卡的超时时间 (毫秒)

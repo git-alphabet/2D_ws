@@ -51,7 +51,6 @@ BT::NodeStatus InitSentryConfigAction::tick()
 
   setDouble("arrive_radius", 0.35);
   setDouble("enemy_near_base_radius", 2.0);
-  setDouble("heal_min_ratio", 0.6);
 
   setInt("hp_low", 180);
   setInt("hp_safe", 280);
@@ -62,8 +61,6 @@ BT::NodeStatus InitSentryConfigAction::tick()
   setInt("objective_hold_ms", 12000);
   setInt("combat_fire_burst_ms", 180);
   setInt("combat_fire_pause_ms", 120);
-  setInt("heal_wait_ms", 3000);
-  setInt("search_timeout_ms", 5000);
 
   return BT::NodeStatus::SUCCESS;
 }

@@ -146,7 +146,7 @@ int main(int argc, char ** argv)
     };
     // double 阈值参数
     const std::vector<std::pair<std::string, double>> double_keys = {
-      {"arrive_radius", 0.35}, {"enemy_near_base_radius", 2.0}, {"heal_min_ratio", 0.6}
+      {"arrive_radius", 0.35}, {"enemy_near_base_radius", 2.0}
     };
     // int 阈值参数
     const std::vector<std::pair<std::string, int>> int_keys = {
@@ -155,8 +155,7 @@ int main(int argc, char ** argv)
       {"ammo_low", 80}, {"ammo_target", 300},
       {"base_deficit_for_fortress", 500},
       {"objective_hold_ms", 12000},
-      {"combat_fire_burst_ms", 180}, {"combat_fire_pause_ms", 120},
-      {"heal_wait_ms", 3000}, {"search_timeout_ms", 5000}
+      {"combat_fire_burst_ms", 180}, {"combat_fire_pause_ms", 120}
     };
 
     const std::string prefix = "rmuc_sentry_config.";

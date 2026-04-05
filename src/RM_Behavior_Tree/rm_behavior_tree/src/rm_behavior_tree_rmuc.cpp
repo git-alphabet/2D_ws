@@ -124,8 +124,6 @@ int main(int argc, char ** argv)
 
   // ── B. 订阅者：robot_status (/robot_status → RMUCRobotStatus) ──
   regRos("rmuc_sub_robot_status",               params_robot_status);
-  regRos("rmuc_detect_respawn_and_set_recovery", params_robot_status);
-  regRos("rmuc_wait_and_heal",                  params_robot_status);
 
   // ── C. 订阅者：rfid_status (/rfid_status → RMUCRFIDStatus) ──
   regRos("rmuc_sub_rfid_status",                params_rfid_status);
@@ -145,14 +143,9 @@ int main(int argc, char ** argv)
   // ── H. 发布者：nav_control_cmd (/nav_control_cmd → RMUCNavControlCmd) ──
   regRos("rmuc_nav_control_cmd",                params_nav_cmd);
 
-  // ── I. 工具类 ROS 插件（不绑定特定话题，仅需 ROS node handle） ──
-  regRos("rmuc_micro_search_supply_card",       params_utility);
-  regRos("rmuc_is_supply_card_detected",        params_utility);
-
   // ── J. 共享 RMUL ROS 插件 ──
   regRos("cancel_nav_goal",                     params_utility);
   regRos("clear_recovery_flag",                 params_utility);
-  regRos("init_search_timer_if_needed",         params_utility);
   regRos("is_recovery_needed",                  params_utility);
 
   // ── K. SendGoal (PoseStamped，非 RMUC 消息) ──
@@ -172,7 +165,6 @@ int main(int argc, char ** argv)
   regBT("rmuc_hold_and_heal");
   regBT("rmuc_hold_for_supply_ammo_tick");
   regBT("rmuc_select_nearest_resupply_station");
-  regBT("rmuc_select_nearest_dispel_card");
   regBT("rmuc_select_objective");
   regBT("rmuc_hold_objective");
   regBT("rmuc_waypoint_patrol");
@@ -180,10 +172,8 @@ int main(int argc, char ** argv)
   regBT("rmuc_is_dead");
   regBT("rmuc_is_game_time");
   regBT("rmuc_is_hp_below");
-  regBT("rmuc_is_at_nav_goal");
   regBT("rmuc_is_at_goal");
   regBT("rmuc_is_zone_card_detected");
-  regBT("rmuc_is_any_dispel_card_detected");
   regBT("rmuc_is_base_threatened");
   regBT("rmuc_has_valid_target");
   regBT("rmuc_is_combat_allowed");
