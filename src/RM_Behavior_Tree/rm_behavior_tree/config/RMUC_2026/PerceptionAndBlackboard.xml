@@ -44,7 +44,6 @@
                                    projectile_allowance="{projectile_allowance}"
                                    field_status="{field_status}"
                                    enemy_mark="{enemy_mark}"
-                                   team_positions="{team_positions}"
                                    team_hp="{team_hp}"
                                    stage_remain_time="{game.remain_s}"
                                    stage_elapsed_time="{game.elapsed_s}"
@@ -91,11 +90,7 @@
                                    enemy_sentry_vuln="{enemy.sentry_vuln}"
                                    team_outpost_hp="{team.outpost_hp}"
                                    team_base_hp="{team.base_hp}"
-                                   is_respawn_invincible="{state.respawn_invincible}"
-                                   respawn_invincible_remain_s="{state.respawn_invincible_remain_s}"
-                                   is_power_boosted="{state.power_boosted}"
-                                   power_boost_remain_s="{state.power_boost_remain_s}"
-                                   cumulative_instant_count="{respawn.cum_instant_count}"/>
+                                   />
         </Sequence>
     </BehaviorTree>
 
