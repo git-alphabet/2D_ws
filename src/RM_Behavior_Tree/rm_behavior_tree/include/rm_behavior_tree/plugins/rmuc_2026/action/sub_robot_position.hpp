@@ -7,7 +7,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "behaviortree_cpp/action_node.h"
 #include "behaviortree_ros2/ros_node_params.hpp"
-#include "rm_decision_interfaces/msg/rmuc_robot_position.hpp"
+#include "sp_msgs/msg/rmuc_robot_position.hpp"
 
 namespace rm_behavior_tree
 {
@@ -30,9 +30,9 @@ public:
   BT::NodeStatus tick() override;
 
 private:
-  void callback(const rm_decision_interfaces::msg::RMUCRobotPosition::SharedPtr msg);
+  void callback(const sp_msgs::msg::RMUCRobotPosition::SharedPtr msg);
   rclcpp::Node::SharedPtr node_;
-  rclcpp::Subscription<rm_decision_interfaces::msg::RMUCRobotPosition>::SharedPtr sub_;
+  rclcpp::Subscription<sp_msgs::msg::RMUCRobotPosition>::SharedPtr sub_;
   mutable std::mutex mutex_;
   double pose_x_{0.0}, pose_y_{0.0}, pose_yaw_{0.0};
   bool is_at_nav_goal_{false};

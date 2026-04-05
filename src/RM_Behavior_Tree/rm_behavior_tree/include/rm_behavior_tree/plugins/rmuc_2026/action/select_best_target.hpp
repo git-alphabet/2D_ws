@@ -4,7 +4,7 @@
 #include <string>
 #include <cmath>
 #include "behaviortree_cpp/action_node.h"
-#include "rm_decision_interfaces/msg/rmuc_enemy_tracks.hpp"
+#include "sp_msgs/msg/rmuc_enemy_tracks.hpp"
 
 namespace rm_behavior_tree
 {
@@ -16,7 +16,7 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
-      BT::InputPort<rm_decision_interfaces::msg::RMUCEnemyTracks>("radar_tracks"),
+      BT::InputPort<sp_msgs::msg::RMUCEnemyTracks>("radar_tracks"),
       BT::InputPort<double>("pose_x"),
       BT::InputPort<double>("pose_y"),
       BT::InputPort<double>("base_x"),

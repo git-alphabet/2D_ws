@@ -9,7 +9,7 @@ RmucDetectRespawnAndSetRecoveryAction::RmucDetectRespawnAndSetRecoveryAction(
   const std::string & name,
   const BT::NodeConfig & conf,
   const BT::RosNodeParams & params)
-: BT::RosTopicSubNode<rm_decision_interfaces::msg::RMUCRobotStatus>(name, conf, params),
+: BT::RosTopicSubNode<sp_msgs::msg::RMUCRobotStatus>(name, conf, params),
   alive_stable_frames_(0),
   respawn_locked_(false),
   last_respawn_ms_(0),
@@ -27,16 +27,16 @@ RmucDetectRespawnAndSetRecoveryAction::RmucDetectRespawnAndSetRecoveryAction(
 
     if (sub_instance_) {
       fallback_signal_conn_ = sub_instance_->broadcaster.connect(
-        [this](const std::shared_ptr<rm_decision_interfaces::msg::RMUCRobotStatus> msg) {
+        [this](const std::shared_ptr<sp_msgs::msg::RMUCRobotStatus> msg) {
           this->fallback_last_msg_ = msg;
         });
       RCLCPP_DEBUG(node_->get_logger(),
         "Attached fallback to shared broadcaster for topic %s", topic.c_str());
     } else {
       rclcpp::SubscriptionOptions opts;
-      fallback_sub_ = node_->create_subscription<rm_decision_interfaces::msg::RMUCRobotStatus>(
+      fallback_sub_ = node_->create_subscription<sp_msgs::msg::RMUCRobotStatus>(
         topic, 10,
-        [this](const std::shared_ptr<rm_decision_interfaces::msg::RMUCRobotStatus> msg) {
+        [this](const std::shared_ptr<sp_msgs::msg::RMUCRobotStatus> msg) {
           this->fallback_last_msg_ = msg;
         }, opts);
       RCLCPP_DEBUG(node_->get_logger(),
@@ -63,12 +63,12 @@ RmucDetectRespawnAndSetRecoveryAction::~RmucDetectRespawnAndSetRecoveryAction()
 }
 
 BT::NodeStatus RmucDetectRespawnAndSetRecoveryAction::onTick(
-  const std::shared_ptr<rm_decision_interfaces::msg::RMUCRobotStatus> & last_msg)
+  const std::shared_ptr<sp_msgs::msg::RMUCRobotStatus> & last_msg)
 {
   try {
     if (!fallback_signal_conn_.connected() && sub_instance_ && node_) {
       fallback_signal_conn_ = sub_instance_->broadcaster.connect(
-        [this](const std::shared_ptr<rm_decision_interfaces::msg::RMUCRobotStatus> msg) {
+        [this](const std::shared_ptr<sp_msgs::msg::RMUCRobotStatus> msg) {
           this->fallback_last_msg_ = msg;
         });
       RCLCPP_DEBUG(node_->get_logger(),

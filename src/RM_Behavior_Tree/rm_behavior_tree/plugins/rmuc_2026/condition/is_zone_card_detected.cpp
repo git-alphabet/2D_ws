@@ -14,7 +14,7 @@ BT::NodeStatus RmucIsZoneCardDetectedCondition::tick()
   std::string zone = "SUPPLY";
   getInput("zone", zone);
 
-  auto rfid = getInput<rm_decision_interfaces::msg::RMUCRFIDStatus>("rfid_status");
+  auto rfid = getInput<sp_msgs::msg::RMUCRFIDStatus>("rfid_status");
   if (!rfid) {
     return BT::NodeStatus::FAILURE;
   }

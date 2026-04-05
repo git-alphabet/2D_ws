@@ -16,7 +16,7 @@
 
 #include "behaviortree_cpp/action_node.h"
 #include "behaviortree_ros2/ros_node_params.hpp"
-#include "rm_decision_interfaces/msg/rmucrfid_status.hpp"
+#include "sp_msgs/msg/rmucrfid_status.hpp"
 
 namespace rm_behavior_tree
 {
@@ -34,7 +34,7 @@ public:
     return {
       BT::BidirectionalPort<std::uint64_t>("search_start_ms"),
       BT::InputPort<std::uint64_t>("timeout_ms"),
-      BT::InputPort<rm_decision_interfaces::msg::RMUCRFIDStatus>("rfid_status"),
+      BT::InputPort<sp_msgs::msg::RMUCRFIDStatus>("rfid_status"),
       BT::InputPort<bool>("rfid_supply_arrived")
     };
   }

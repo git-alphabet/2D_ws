@@ -5,12 +5,12 @@ namespace rm_behavior_tree
 
 RmucSubRadarTracksAction::RmucSubRadarTracksAction(
   const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
-: BT::RosTopicSubNode<rm_decision_interfaces::msg::RMUCEnemyTracks>(name, conf, params)
+: BT::RosTopicSubNode<sp_msgs::msg::RMUCEnemyTracks>(name, conf, params)
 {
 }
 
 BT::NodeStatus RmucSubRadarTracksAction::onTick(
-  const std::shared_ptr<rm_decision_interfaces::msg::RMUCEnemyTracks> & last_msg)
+  const std::shared_ptr<sp_msgs::msg::RMUCEnemyTracks> & last_msg)
 {
   if (last_msg) {
     RCLCPP_DEBUG(logger(), "[%s] enemy_count=%d", name().c_str(), last_msg->enemy_count);

@@ -9,7 +9,7 @@ SelectBestTargetAction::SelectBestTargetAction(
 
 BT::NodeStatus SelectBestTargetAction::tick()
 {
-  auto radar = getInput<rm_decision_interfaces::msg::RMUCEnemyTracks>("radar_tracks");
+  auto radar = getInput<sp_msgs::msg::RMUCEnemyTracks>("radar_tracks");
   if (!radar || radar->enemy_count == 0) {
     setOutput("out_target", std::string(""));
     return BT::NodeStatus::FAILURE;

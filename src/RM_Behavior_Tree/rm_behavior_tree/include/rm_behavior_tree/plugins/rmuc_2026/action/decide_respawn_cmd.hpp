@@ -4,7 +4,7 @@
 #include <string>
 #include <memory>
 #include "behaviortree_cpp/action_node.h"
-#include "rm_decision_interfaces/msg/rmuc_robot_status.hpp"
+#include "sp_msgs/msg/rmuc_robot_status.hpp"
 
 namespace rm_behavior_tree
 {
@@ -18,7 +18,7 @@ public:
   {
     return {
       BT::InputPort<bool>("is_dead"),
-      BT::InputPort<std::shared_ptr<rm_decision_interfaces::msg::RMUCRobotStatus>>("robot_status"),
+      BT::InputPort<std::shared_ptr<sp_msgs::msg::RMUCRobotStatus>>("robot_status"),
       BT::InputPort<int>("team_coins"),
       BT::InputPort<int>("stage_remain_time"),
       BT::InputPort<int>("base_hp_cur"),

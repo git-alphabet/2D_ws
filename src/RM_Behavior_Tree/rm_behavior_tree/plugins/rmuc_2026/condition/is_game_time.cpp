@@ -12,7 +12,7 @@ RmucIsGameTimeCondition::RmucIsGameTimeCondition(
 BT::NodeStatus RmucIsGameTimeCondition::checkGameTime()
 {
   int game_progress = 0, lower_remain_time = 0, higher_remain_time = 0;
-  auto msg = getInput<rm_decision_interfaces::msg::RMUCGameStatus>("message");
+  auto msg = getInput<sp_msgs::msg::RMUCGameStatus>("message");
   getInput("game_progress", game_progress);
   getInput("lower_remain_time", lower_remain_time);
   getInput("higher_remain_time", higher_remain_time);

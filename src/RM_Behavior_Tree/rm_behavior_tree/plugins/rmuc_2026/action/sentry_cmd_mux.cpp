@@ -5,11 +5,11 @@ namespace rm_behavior_tree
 
 RmucSentryCmdMuxAction::RmucSentryCmdMuxAction(
   const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
-: BT::RosTopicPubNode<rm_decision_interfaces::msg::RMUCSentryCmd>(name, conf, params)
+: BT::RosTopicPubNode<sp_msgs::msg::RMUCSentryCmd>(name, conf, params)
 {
 }
 
-bool RmucSentryCmdMuxAction::setMessage(rm_decision_interfaces::msg::RMUCSentryCmd & msg)
+bool RmucSentryCmdMuxAction::setMessage(sp_msgs::msg::RMUCSentryCmd & msg)
 {
   int posture = 3;
   int confirm_respawn = 0, confirm_instant = 0;

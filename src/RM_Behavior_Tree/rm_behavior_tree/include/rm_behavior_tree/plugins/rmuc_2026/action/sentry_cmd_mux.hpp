@@ -3,18 +3,18 @@
 
 #include <string>
 #include "behaviortree_ros2/bt_topic_pub_node.hpp"
-#include "rm_decision_interfaces/msg/rmuc_sentry_cmd.hpp"
+#include "sp_msgs/msg/rmuc_sentry_cmd.hpp"
 
 namespace rm_behavior_tree
 {
 /// 将各决策节点输出的指令字段复用为 RMUC 消息发布到 /sentry_cmd
-class RmucSentryCmdMuxAction : public BT::RosTopicPubNode<rm_decision_interfaces::msg::RMUCSentryCmd>
+class RmucSentryCmdMuxAction : public BT::RosTopicPubNode<sp_msgs::msg::RMUCSentryCmd>
 {
 public:
   RmucSentryCmdMuxAction(
     const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params);
 
-  bool setMessage(rm_decision_interfaces::msg::RMUCSentryCmd & msg) override;
+  bool setMessage(sp_msgs::msg::RMUCSentryCmd & msg) override;
 
   static BT::PortsList providedPorts()
   {

@@ -14,7 +14,7 @@ RmucIsDetectEnemyCondition::RmucIsDetectEnemyCondition(
 
 BT::NodeStatus RmucIsDetectEnemyCondition::checkDetectEnemy()
 {
-  auto msg = getInput<std::shared_ptr<rm_decision_interfaces::msg::RMUCRobotStatus>>("message");
+  auto msg = getInput<std::shared_ptr<sp_msgs::msg::RMUCRobotStatus>>("message");
 
   if (!msg) {
     return BT::NodeStatus::FAILURE;

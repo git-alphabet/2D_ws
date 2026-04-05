@@ -4,8 +4,8 @@
 #include <string>
 #include <memory>
 #include "behaviortree_cpp/condition_node.h"
-#include "rm_decision_interfaces/msg/rmucrfid_status.hpp"
-#include "rm_decision_interfaces/msg/rmuc_robot_status.hpp"
+#include "sp_msgs/msg/rmucrfid_status.hpp"
+#include "sp_msgs/msg/rmuc_robot_status.hpp"
 
 namespace rm_behavior_tree
 {
@@ -17,8 +17,8 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
-      BT::InputPort<rm_decision_interfaces::msg::RMUCRFIDStatus>("rfid_status"),
-      BT::InputPort<std::shared_ptr<rm_decision_interfaces::msg::RMUCRobotStatus>>("robot_status")};
+      BT::InputPort<sp_msgs::msg::RMUCRFIDStatus>("rfid_status"),
+      BT::InputPort<std::shared_ptr<sp_msgs::msg::RMUCRobotStatus>>("robot_status")};
   }
   BT::NodeStatus tick() override;
 };

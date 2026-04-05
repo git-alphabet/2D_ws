@@ -9,7 +9,7 @@ IsAnyDispelCardDetectedCondition::IsAnyDispelCardDetectedCondition(
 
 BT::NodeStatus IsAnyDispelCardDetectedCondition::tick()
 {
-  auto rfid = getInput<rm_decision_interfaces::msg::RMUCRFIDStatus>("rfid_status");
+  auto rfid = getInput<sp_msgs::msg::RMUCRFIDStatus>("rfid_status");
   if (!rfid) return BT::NodeStatus::FAILURE;
 
   // 任意可祛弱的区域 RFID 为 true → SUCCESS

@@ -12,7 +12,7 @@ ParseSentryBlackboardAction::ParseSentryBlackboardAction(
 BT::NodeStatus ParseSentryBlackboardAction::tick()
 {
   // ── 比赛阶段 ──
-  auto game_msg = getInput<rm_decision_interfaces::msg::RMUCGameStatus>("game_status");
+  auto game_msg = getInput<sp_msgs::msg::RMUCGameStatus>("game_status");
   if (game_msg) {
     setOutput("stage_remain_time", static_cast<int>(game_msg->stage_remain_time));
     // 7 分钟赛制: elapsed = 420 - remain
@@ -20,7 +20,7 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
   }
 
   // ── 机器人状态 ──
-  auto robot_ptr = getInput<std::shared_ptr<rm_decision_interfaces::msg::RMUCRobotStatus>>("robot_status");
+  auto robot_ptr = getInput<std::shared_ptr<sp_msgs::msg::RMUCRobotStatus>>("robot_status");
   if (robot_ptr) {
     const auto & r = **robot_ptr;
     setOutput("hp_cur", static_cast<int>(r.current_hp));
@@ -45,7 +45,7 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
   }
 
   // ── 雷达目标 ──
-  auto radar_msg = getInput<rm_decision_interfaces::msg::RMUCEnemyTracks>("radar_tracks");
+  auto radar_msg = getInput<sp_msgs::msg::RMUCEnemyTracks>("radar_tracks");
   if (radar_msg && radar_msg->enemy_count > 0) {
     setOutput("has_target", true);
     // 选最近敌方作为 best_target 字符串描述 "id:x:y"

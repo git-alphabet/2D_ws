@@ -10,12 +10,12 @@ RmucWaitAndHealAction::RmucWaitAndHealAction(
   const std::string & name,
   const BT::NodeConfig & conf,
   const BT::RosNodeParams & params)
-: BT::RosTopicSubNode<rm_decision_interfaces::msg::RMUCRobotStatus>(name, conf, params)
+: BT::RosTopicSubNode<sp_msgs::msg::RMUCRobotStatus>(name, conf, params)
 {
 }
 
 BT::NodeStatus RmucWaitAndHealAction::onTick(
-  const std::shared_ptr<rm_decision_interfaces::msg::RMUCRobotStatus> & last_msg)
+  const std::shared_ptr<sp_msgs::msg::RMUCRobotStatus> & last_msg)
 {
   // 1) 更新血量缓存
   if (last_msg) {

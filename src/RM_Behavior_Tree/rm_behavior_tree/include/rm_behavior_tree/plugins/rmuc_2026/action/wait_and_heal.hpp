@@ -5,12 +5,12 @@
 #include <string>
 
 #include "behaviortree_ros2/bt_topic_sub_node.hpp"
-#include "rm_decision_interfaces/msg/rmuc_robot_status.hpp"
+#include "sp_msgs/msg/rmuc_robot_status.hpp"
 
 namespace rm_behavior_tree
 {
 
-class RmucWaitAndHealAction : public BT::RosTopicSubNode<rm_decision_interfaces::msg::RMUCRobotStatus>
+class RmucWaitAndHealAction : public BT::RosTopicSubNode<sp_msgs::msg::RMUCRobotStatus>
 {
 public:
   RmucWaitAndHealAction(
@@ -32,7 +32,7 @@ public:
   }
 
   BT::NodeStatus onTick(
-    const std::shared_ptr<rm_decision_interfaces::msg::RMUCRobotStatus> & last_msg) override;
+    const std::shared_ptr<sp_msgs::msg::RMUCRobotStatus> & last_msg) override;
 
 private:
   static constexpr int MAX_HP_FIXED = 400;

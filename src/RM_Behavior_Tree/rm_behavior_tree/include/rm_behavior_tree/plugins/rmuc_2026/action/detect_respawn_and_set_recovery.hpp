@@ -8,14 +8,14 @@
 
 #include <boost/signals2/connection.hpp>
 #include "behaviortree_ros2/bt_topic_sub_node.hpp"
-#include "rm_decision_interfaces/msg/rmuc_robot_status.hpp"
+#include "sp_msgs/msg/rmuc_robot_status.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace rm_behavior_tree
 {
 
 class RmucDetectRespawnAndSetRecoveryAction
-: public BT::RosTopicSubNode<rm_decision_interfaces::msg::RMUCRobotStatus>
+: public BT::RosTopicSubNode<sp_msgs::msg::RMUCRobotStatus>
 {
 public:
   RmucDetectRespawnAndSetRecoveryAction(
@@ -38,7 +38,7 @@ public:
   }
 
   BT::NodeStatus onTick(
-    const std::shared_ptr<rm_decision_interfaces::msg::RMUCRobotStatus> & last_msg) override;
+    const std::shared_ptr<sp_msgs::msg::RMUCRobotStatus> & last_msg) override;
 
 private:
   static constexpr int RESPAWN_STABLE_FRAMES = 2;
@@ -47,8 +47,8 @@ private:
   static constexpr std::uint64_t RESPAWN_LOCK_TIMEOUT = 5000;
   std::uint64_t last_respawn_ms_ = 0;
   int current_hp_ = 0;
-  rclcpp::Subscription<rm_decision_interfaces::msg::RMUCRobotStatus>::SharedPtr fallback_sub_;
-  std::shared_ptr<rm_decision_interfaces::msg::RMUCRobotStatus> fallback_last_msg_ = nullptr;
+  rclcpp::Subscription<sp_msgs::msg::RMUCRobotStatus>::SharedPtr fallback_sub_;
+  std::shared_ptr<sp_msgs::msg::RMUCRobotStatus> fallback_last_msg_ = nullptr;
   boost::signals2::connection fallback_signal_conn_;
   static constexpr int MAX_HP = 400;
 };

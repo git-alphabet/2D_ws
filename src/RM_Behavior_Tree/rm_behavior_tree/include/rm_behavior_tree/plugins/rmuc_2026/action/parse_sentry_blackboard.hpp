@@ -5,9 +5,9 @@
 #include <memory>
 #include <cmath>
 #include "behaviortree_cpp/action_node.h"
-#include "rm_decision_interfaces/msg/rmuc_game_status.hpp"
-#include "rm_decision_interfaces/msg/rmuc_robot_status.hpp"
-#include "rm_decision_interfaces/msg/rmuc_enemy_tracks.hpp"
+#include "sp_msgs/msg/rmuc_game_status.hpp"
+#include "sp_msgs/msg/rmuc_robot_status.hpp"
+#include "sp_msgs/msg/rmuc_enemy_tracks.hpp"
 
 namespace rm_behavior_tree
 {
@@ -21,9 +21,9 @@ public:
   {
     return {
       // inputs (原始消息 — 拆分后各自独立类型)
-      BT::InputPort<rm_decision_interfaces::msg::RMUCGameStatus>("game_status"),
-      BT::InputPort<std::shared_ptr<rm_decision_interfaces::msg::RMUCRobotStatus>>("robot_status"),
-      BT::InputPort<rm_decision_interfaces::msg::RMUCEnemyTracks>("radar_tracks"),
+      BT::InputPort<sp_msgs::msg::RMUCGameStatus>("game_status"),
+      BT::InputPort<std::shared_ptr<sp_msgs::msg::RMUCRobotStatus>>("robot_status"),
+      BT::InputPort<sp_msgs::msg::RMUCEnemyTracks>("radar_tracks"),
       BT::InputPort<double>("pose_x"),
       BT::InputPort<double>("pose_y"),
       BT::InputPort<std::uint64_t>("now_ms"),

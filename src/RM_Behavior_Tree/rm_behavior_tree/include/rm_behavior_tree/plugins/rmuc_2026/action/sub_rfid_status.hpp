@@ -3,11 +3,11 @@
 
 #include <string>
 #include "behaviortree_ros2/bt_topic_sub_node.hpp"
-#include "rm_decision_interfaces/msg/rmucrfid_status.hpp"
+#include "sp_msgs/msg/rmucrfid_status.hpp"
 
 namespace rm_behavior_tree
 {
-class RmucSubRFIDStatusAction : public BT::RosTopicSubNode<rm_decision_interfaces::msg::RMUCRFIDStatus>
+class RmucSubRFIDStatusAction : public BT::RosTopicSubNode<sp_msgs::msg::RMUCRFIDStatus>
 {
 public:
   RmucSubRFIDStatusAction(
@@ -17,11 +17,11 @@ public:
   {
     return {
       BT::InputPort<std::string>("topic_name"),
-      BT::OutputPort<rm_decision_interfaces::msg::RMUCRFIDStatus>("rfid_status")};
+      BT::OutputPort<sp_msgs::msg::RMUCRFIDStatus>("rfid_status")};
   }
 
   BT::NodeStatus onTick(
-    const std::shared_ptr<rm_decision_interfaces::msg::RMUCRFIDStatus> & last_msg) override;
+    const std::shared_ptr<sp_msgs::msg::RMUCRFIDStatus> & last_msg) override;
 };
 }  // namespace rm_behavior_tree
 
