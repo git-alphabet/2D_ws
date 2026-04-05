@@ -47,6 +47,16 @@ if [[ $stale_link_count -gt 0 ]]; then
   echo "[prune] Removed $stale_link_count stale install symlink(s) from old cache root."
 fi
 
+# Handle renamed pb_nav2_plugins library target:
+# old builds may leave liblayers.so under this package, which can shadow
+# system nav2 liblayers.so and cause plugin load failures at runtime.
+if [[ -e "$INSTALL_BASE/pb_nav2_plugins/lib/liblayers.so" ]]; then
+  echo "[prune] Detected stale pb_nav2_plugins/lib/liblayers.so, cleaning pb_nav2_plugins artifacts..."
+  rm -rf "$BUILD_BASE/pb_nav2_plugins"
+  rm -rf "$INSTALL_BASE/pb_nav2_plugins"
+  rm -rf "$LOG_BASE/latest_build/pb_nav2_plugins" 2>/dev/null || true
+fi
+
 # --- Prune stale build artifacts ---
 # Handle: deleted packages, directory renames, branch cache path migration.
 if [[ -d "$BUILD_BASE" ]]; then
@@ -83,6 +93,8 @@ fi
 # Source ROS environment（在容器内直接执行脚本时需要）
 # 临时关闭 -u，避免 ROS setup.bash 内部使用未定义变量时报错
 ROS_DISTRO="${ROS_DISTRO:-humble}"
+# 清理可能继承自旧分支终端环境的 overlay 路径，避免写入错误 underlay 链
+unset AMENT_PREFIX_PATH COLCON_PREFIX_PATH CMAKE_PREFIX_PATH
 set +u
 # shellcheck disable=SC1090
 source "/opt/ros/${ROS_DISTRO}/setup.bash"

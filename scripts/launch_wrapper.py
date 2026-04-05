@@ -122,33 +122,65 @@ def _controller_plugin(params_file: Path) -> str:
 
 def _current_branch(ws_dir: Path) -> str:
     override = os.environ.get("BUILD_PROFILE", "").strip()
-    if override:
-        return override
-
     head_file = ws_dir / ".git/HEAD"
+    git_branch = ""
     if head_file.exists():
         try:
             head = head_file.read_text().strip()
             if head.startswith("ref: refs/heads/"):
-                return head[len("ref: refs/heads/"):]
+                git_branch = head[len("ref: refs/heads/"):]
         except Exception:
             pass
+
+    if override:
+        # 默认跟随当前 git 分支，避免旧终端残留 BUILD_PROFILE 污染运行链路。
+        # 如需强制使用 BUILD_PROFILE，请显式设置 ALLOW_BUILD_PROFILE_OVERRIDE=1。
+        if _is_truthy(os.environ.get("ALLOW_BUILD_PROFILE_OVERRIDE")):
+            return override
+        if git_branch and override != git_branch:
+            print(
+                f"[launch_wrapper.py] Ignore stale BUILD_PROFILE='{override}', use git branch '{git_branch}'.",
+                file=sys.stderr,
+            )
+        if git_branch:
+            return git_branch
+        return override
+
+    if git_branch:
+        return git_branch
     return "default"
 
 
 def _resolve_overlay_setup(ws_dir: Path) -> Path:
+    branch = _current_branch(ws_dir)
+    branch_safe = re.sub(r"[^A-Za-z0-9._-]", "_", branch)
+
+    def _matches_branch_profile(path: Path) -> bool:
+        normalized = str(path)
+        token = f"/{branch_safe}/install/"
+        return token in normalized or normalized.endswith(f"/{branch_safe}/install/setup.bash")
+
+    allow_overlay_override = _is_truthy(os.environ.get("ALLOW_OVERLAY_SETUP_OVERRIDE"))
+
     env_overlay = os.environ.get("OVERLAY_SETUP", "").strip()
     if env_overlay:
-        return Path(env_overlay)
+        candidate = Path(env_overlay)
+        if candidate.exists() and (allow_overlay_override or _matches_branch_profile(candidate)):
+            return candidate
+        print(
+            f"[launch_wrapper.py] Ignore OVERLAY_SETUP='{env_overlay}' (branch={branch_safe}).",
+            file=sys.stderr,
+        )
 
     colcon_install_base = os.environ.get("COLCON_INSTALL_BASE", "").strip()
     if colcon_install_base:
         candidate = Path(colcon_install_base) / "setup.bash"
-        if candidate.exists():
+        if candidate.exists() and (allow_overlay_override or _matches_branch_profile(candidate)):
             return candidate
-
-    branch = _current_branch(ws_dir)
-    branch_safe = re.sub(r"[^A-Za-z0-9._-]", "_", branch)
+        print(
+            f"[launch_wrapper.py] Ignore COLCON_INSTALL_BASE='{colcon_install_base}' (branch={branch_safe}).",
+            file=sys.stderr,
+        )
 
     cache_root_env = os.environ.get("COLCON_CACHE_ROOT", "").strip()
     cache_roots = []
@@ -234,10 +266,53 @@ class BackgroundGroup:
 
 
 def _build_base_env(cfg: CommonConfig) -> str:
-    parts = [
-        f"source {shlex.quote(str(cfg.ros_setup))}",
-        f"source {shlex.quote(str(cfg.overlay_setup))}",
+    parts = []
+
+    overlay_prefix = cfg.overlay_setup.parent
+    profile_root = overlay_prefix.parent if overlay_prefix.name == "install" else overlay_prefix
+    branch_cache_roots = [
+        str(cfg.ws_dir / ".buildcache"),
+        str(cfg.ws_dir / "build/.buildcache"),
     ]
+
+    def _filter_branch_cache_entries(value: str) -> str:
+        kept: list[str] = []
+        for entry in value.split(":"):
+            item = entry.strip()
+            if not item:
+                continue
+            if any(item.startswith(root) for root in branch_cache_roots):
+                if item.startswith(str(profile_root)):
+                    kept.append(item)
+                continue
+            kept.append(item)
+        return ":".join(kept)
+
+    for var_name in (
+        "LD_LIBRARY_PATH",
+        "AMENT_PREFIX_PATH",
+        "COLCON_PREFIX_PATH",
+        "CMAKE_PREFIX_PATH",
+    ):
+        raw = os.environ.get(var_name, "")
+        if not raw:
+            continue
+        filtered = _filter_branch_cache_entries(raw)
+        if filtered:
+            parts.append(f"export {var_name}={shlex.quote(filtered)}")
+        else:
+            parts.append(f"unset {var_name}")
+
+    overlay_source = cfg.overlay_setup
+    if cfg.overlay_setup.name == "setup.bash":
+        local_setup = cfg.overlay_setup.with_name("local_setup.bash")
+        if local_setup.exists():
+            overlay_source = local_setup
+
+    parts.extend([
+        f"source {shlex.quote(str(cfg.ros_setup))}",
+        f"source {shlex.quote(str(overlay_source))}",
+    ])
 
     home_dir = os.environ.get("HOME", "")
     home_path = Path(home_dir) if home_dir else None
