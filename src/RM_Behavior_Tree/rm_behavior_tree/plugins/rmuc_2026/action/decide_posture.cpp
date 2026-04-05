@@ -27,50 +27,45 @@ BT::NodeStatus DecidePostureAction::tick()
   getInput("buff_vulnerability_pct", buff_vuln);
   getInput("ammo_allow", ammo);
 
-  int posture = 3;  // 默认移动
   const double hp_ratio = (hp_max > 0) ? static_cast<double>(hp) / hp_max : 1.0;
 
-  // ── 强制防御条件 ──
-  // 被易伤标记（vulnerability > 0）：受到的伤害被放大，必须防御
-  if (buff_vuln > 0) {
+  // ═══════ 综合评分系统 ═══════
+  // 三姿态各自累加评分，最高分胜出
+
+  // ── 攻击评分 (posture=1) ──
+  int score_attack = 5;                                 // 基础分
+  if (has_target)          score_attack += 35;           // 有目标
+  if (hp_ratio > 0.5)      score_attack += 20;           // 血量健康
+  else if (hp_ratio > 0.3) score_attack += 8;            // 血量尚可
+  if (buff_defense > 0)    score_attack += 15;           // 防御增益护体
+  if (buff_cool > 0)       score_attack += 12;           // 冷却增益增加DPS
+  if (elapsed > 180)       score_attack += 18;           // 后半场争取发弹配额
+  if (ammo <= 0)           score_attack = 0;             // 无弹药强制归零
+
+  // ── 防御评分 (posture=2) ──
+  int score_defense = 8;                                 // 基础分
+  if (buff_vuln > 0)       score_defense += 50;          // 易伤标记
+  if (base_threat)         score_defense += 30;          // 基地受威胁
+  if (hp_ratio < 0.3)      score_defense += 35;          // 血量危急
+  else if (hp_ratio < 0.5) score_defense += 15;          // 血量偏低
+  if (heat > heat_high)    score_defense += 25;          // 热量超限
+  if (!has_target)         score_defense += 8;           // 无目标倾向防御
+
+  // ── 移动评分 (posture=3) ──
+  int score_move = 10;                                   // 基础分(默认倾向)
+  if (ammo <= 0)           score_move += 50;             // 无弹药必须机动
+  if (disengaged)          score_move += 20;             // 脱战状态
+  if (!has_target)         score_move += 10;             // 无目标巡逻
+  if (hp_ratio >= 0.3 && hp_ratio < 0.5) score_move += 5; // 中低血量灵活走位
+
+  // ── 选择最高分姿态（平局优先防御 > 移动 > 攻击）──
+  int posture = 3;
+  int max_score = score_move;
+  if (score_defense >= max_score) {
     posture = 2;
+    max_score = score_defense;
   }
-  // 弹药为零：无法输出，切移动保命
-  else if (ammo <= 0) {
-    posture = 3;
-  }
-  // 基地受威胁 → 防御
-  else if (base_threat) {
-    posture = 2;
-  }
-  // 血量低于 30% → 防御
-  else if (hp_ratio < 0.3) {
-    posture = 2;
-  }
-  // 热量超限 → 防御（减少输出避免超限惩罚）
-  else if (heat > heat_high) {
-    posture = 2;
-  }
-  // ── 进攻条件 ──
-  // 有防御增益（defense > 0）且有目标 → 可以更激进进攻
-  else if (has_target && buff_defense > 0) {
-    posture = 1;
-  }
-  // 有冷却增益（cool > 0）且有目标 → 输出能力增强，进攻
-  else if (has_target && buff_cool > 0 && hp_ratio > 0.4) {
-    posture = 1;
-  }
-  // 有目标且血量 > 50% → 进攻
-  else if (has_target && hp_ratio > 0.5) {
-    posture = 1;
-  }
-  // ── 移动/默认 ──
-  // 脱战状态 → 移动
-  else if (disengaged) {
-    posture = 3;
-  }
-  // 比赛后半段 (>180s) 无目标 → 进攻（增加裁判系统的允许发弹量获取）
-  else if (elapsed > 180) {
+  if (score_attack > max_score) {
     posture = 1;
   }
 
