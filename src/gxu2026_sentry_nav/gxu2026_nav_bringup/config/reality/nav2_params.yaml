@@ -101,14 +101,17 @@ rm_behavior_tree:
 loam_interface:
   ros__parameters:
     use_sim_time: False
-    # Odin1 接入：直接吃 odin_ros_driver 输出（保持后级接口不变）
-    state_estimation_topic: "odin1/odometry"
+    # Odin1 接入（原链路）：
+    # - 里程计使用高频话题 odometry_highfreq
+    # - 点云使用 cloud_raw（frame=odin1，字段含 intensity/confidence/offset_time）
+    state_estimation_topic: "odin1/odometry_highfreq"
     registered_scan_topic: "odin1/cloud_raw"
     odom_frame: "odom"
-    base_frame: "base_footprint"
-    # cloud_raw frame_id 统一为 odin1
-    # odometry child_frame_id 已通过 robot_base_frame_id 改为 base_footprint
-    # loam_interface 用 lidar_frame 做 URDF TF 查询（base_footprint→odin1），
+    # odin1 固连在 gimbal_yaw，loam_interface 使用稳定的 base->lidar 外参
+    base_frame: "gimbal_yaw"
+    # cloud_raw frame_id 为 odin1
+    # odometry child_frame_id 已通过 robot_base_frame_id 改为 gimbal_yaw
+    # loam_interface 用 lidar_frame 做 URDF TF 查询（gimbal_yaw→odin1），
     # 从而将点云/里程计从传感器坐标系转换到 odom 坐标系
     lidar_frame: "odin1"
 
@@ -418,7 +421,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 4.0
-        inflation_radius: 0.8
+        inflation_radius: 0.6
       always_send_full_costmap: False
 
 # 代价地图（global）：通常使用 map 坐标系，观测源常来自 terrain_map_ext
@@ -469,7 +472,7 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 4.0
-        inflation_radius: 0.8
+        inflation_radius: 0.6
       always_send_full_costmap: False
 
 # The yaml_filename does not need to be specified since it going to be set by defaults in launch.

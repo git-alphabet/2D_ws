@@ -30,10 +30,9 @@ register_keys:
   # 注意：关闭后 RViz 将无法显示 cloud_raw。
   send_odom_baselink_tf: 1 # 0: 关闭; 1: 开启
   # 里程计和 TF 的 child_frame_id。
-  # 设为 base_footprint：驱动直接发布 odom→base_footprint TF，odin1 仅作
-  # 静态传感器 frame（由 URDF xmacro 管理安装位置），无 dual-parent 冲突。
-  # 调整传感器安装位置只需改 pb2025_sentry_robot.sdf.xmacro 里的 odin1 pose。
-  robot_base_frame_id: base_footprint
+  # odin1 固连在 gimbal_yaw：驱动直接发布 odom→gimbal_yaw TF。
+  # odin1 作为传感器 frame，安装位姿由 URDF xmacro 管理。
+  robot_base_frame_id: gimbal_yaw
 
   # 原始 dToF 点云（/odin1/cloud_raw，含 x/y/z/intensity/confidence/offset_time 字段）
   senddtof: 1             # 0: 关闭; 1: 开启
