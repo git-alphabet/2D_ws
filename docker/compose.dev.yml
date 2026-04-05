@@ -54,6 +54,9 @@ x-base: &base
     - ../log:/ws/log
     - ../maps:/ws/maps                      # 自动保存的地图（容器生成→宿主机可见）
     - ../launch_logs:/ws/launch_logs        # 启动日志（容器生成→宿主机可见）
+    - /dev/bus/usb:/dev/bus/usb             # USB 总线直通，支持 odin 热插拔
+  devices:
+    - /dev/bus/usb:/dev/bus/usb             # odin1 USB 设备直通
   working_dir: /ws
 
 services:
@@ -104,9 +107,7 @@ services:
       - ../log:/ws/log
       - ../maps:/ws/maps                      # 自动保存的地图（容器生成→宿主机可见）
       - ../launch_logs:/ws/launch_logs        # 启动日志（容器生成→宿主机可见）
-      - /dev/bus/usb:/dev/bus/usb   # 挂载 USB 总线，支持 odin 热插拔
-    devices:
-      - /dev/bus/usb:/dev/bus/usb   # odin1 USB 设备直通
+      - /dev/bus/usb:/dev/bus/usb             # USB 总线直通，支持 odin 热插拔
     environment:
       HOME: /tmp/home
       DISPLAY: ${DISPLAY:-:0}
