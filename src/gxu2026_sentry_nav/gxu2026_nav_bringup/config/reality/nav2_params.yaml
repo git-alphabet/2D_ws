@@ -12,6 +12,11 @@ pb_navigation_switches:
     terrain_registered_scan_topic: "odin1/cloud_slam"
     terrain_lidar_odometry_topic: "odin1/odometry_highfreq"
 
+    # sensor_scan_generation 输入源（可选参数）：
+    # odin1 主链不经过 loam，直接用 odin1 输出
+    sensor_scan_registered_scan_topic: "odin1/cloud_slam"
+    sensor_scan_lidar_odometry_topic: "odin1/odometry_highfreq"
+
 
     enable_gimbal_yaw_bridge: true             #是否启用 gimbal_yaw_bridge 通路,传感器放小yaw要开启
 
@@ -118,8 +123,8 @@ loam_interface:
 sensor_scan_generation:
   ros__parameters:
     use_sim_time: False
-    # 与 loam_interface.lidar_frame 保持一致
-    lidar_frame: "front_mid360"
+    # odin1 主链直连，不经过 loam
+    lidar_frame: "odin1"
     base_frame: "base_footprint"
     robot_base_frame: "gimbal_yaw"
 

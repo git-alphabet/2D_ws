@@ -57,6 +57,8 @@ def generate_launch_description():
     log_level = LaunchConfiguration("log_level")
     terrain_registered_scan_topic = LaunchConfiguration("terrain_registered_scan_topic")
     terrain_lidar_odometry_topic = LaunchConfiguration("terrain_lidar_odometry_topic")
+    sensor_scan_registered_scan_topic = LaunchConfiguration("sensor_scan_registered_scan_topic")
+    sensor_scan_lidar_odometry_topic = LaunchConfiguration("sensor_scan_lidar_odometry_topic")
 
 
     enable_gimbal_yaw_bridge = LaunchConfiguration("enable_gimbal_yaw_bridge")
@@ -172,6 +174,22 @@ def generate_launch_description():
         ),
     )
 
+    declare_sensor_scan_registered_scan_topic_cmd = DeclareLaunchArgument(
+        "sensor_scan_registered_scan_topic",
+        default_value="",
+        description=(
+            "Override sensor_scan_generation point cloud input topic. Empty means auto from params/switches"
+        ),
+    )
+
+    declare_sensor_scan_lidar_odometry_topic_cmd = DeclareLaunchArgument(
+        "sensor_scan_lidar_odometry_topic",
+        default_value="",
+        description=(
+            "Override sensor_scan_generation odometry input topic. Empty means auto from params/switches"
+        ),
+    )
+
     enable_obstacle_scan = LaunchConfiguration("enable_obstacle_scan")
 
     start_pointcloud_to_laserscan_cmd = Node(
@@ -281,6 +299,10 @@ def generate_launch_description():
                 respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=["--ros-args", "--log-level", log_level],
+                remappings=[
+                    ("registered_scan", sensor_scan_registered_scan_topic),
+                    ("lidar_odometry", sensor_scan_lidar_odometry_topic),
+                ],
             ),
             start_pointcloud_to_laserscan_cmd,
             Node(
@@ -401,6 +423,10 @@ def generate_launch_description():
                 plugin="sensor_scan_generation::SensorScanGenerationNode",
                 name="sensor_scan_generation",
                 parameters=[configured_params],
+                remappings=[
+                    ("registered_scan", sensor_scan_registered_scan_topic),
+                    ("lidar_odometry", sensor_scan_lidar_odometry_topic),
+                ],
             ),
             ComposableNode(
                 package="fake_vel_transform",
@@ -482,6 +508,8 @@ def generate_launch_description():
         use_sim_time,
         terrain_registered_scan_topic,
         terrain_lidar_odometry_topic,
+        sensor_scan_registered_scan_topic,
+        sensor_scan_lidar_odometry_topic,
     ):
         params_path = Path(params_file.perform(context)).expanduser()
         ns_value = namespace.perform(context)
@@ -495,6 +523,8 @@ def generate_launch_description():
         enable_gimbal_yaw_bridge_value = False
         terrain_registered_scan_topic_value = "registered_scan"
         terrain_lidar_odometry_topic_value = "lidar_odometry"
+        sensor_scan_registered_scan_topic_value = "registered_scan"
+        sensor_scan_lidar_odometry_topic_value = "lidar_odometry"
 
         slam_raw = slam.perform(context)
         slam_enabled = str(slam_raw).strip().lower() in {"true", "1", "yes", "on"}
@@ -505,6 +535,12 @@ def generate_launch_description():
         ).strip()
         terrain_lidar_odometry_topic_override = (
             terrain_lidar_odometry_topic.perform(context) or ""
+        ).strip()
+        sensor_scan_registered_scan_topic_override = (
+            sensor_scan_registered_scan_topic.perform(context) or ""
+        ).strip()
+        sensor_scan_lidar_odometry_topic_override = (
+            sensor_scan_lidar_odometry_topic.perform(context) or ""
         ).strip()
 
         def _resolve_bt_style_path(style_value):
@@ -644,6 +680,26 @@ def generate_launch_description():
             else:
                 switches_terrain_lidar_odometry_topic = ""
 
+            switches_sensor_scan_registered_scan_topic = switches.get(
+                "sensor_scan_registered_scan_topic"
+            )
+            if isinstance(switches_sensor_scan_registered_scan_topic, str):
+                switches_sensor_scan_registered_scan_topic = (
+                    switches_sensor_scan_registered_scan_topic.strip()
+                )
+            else:
+                switches_sensor_scan_registered_scan_topic = ""
+
+            switches_sensor_scan_lidar_odometry_topic = switches.get(
+                "sensor_scan_lidar_odometry_topic"
+            )
+            if isinstance(switches_sensor_scan_lidar_odometry_topic, str):
+                switches_sensor_scan_lidar_odometry_topic = (
+                    switches_sensor_scan_lidar_odometry_topic.strip()
+                )
+            else:
+                switches_sensor_scan_lidar_odometry_topic = ""
+
             odometry_source = switches.get("odometry_source")
             if isinstance(odometry_source, str):
                 odometry_source = odometry_source.strip().lower()
@@ -659,6 +715,20 @@ def generate_launch_description():
                 terrain_lidar_odometry_topic_value = switches_terrain_lidar_odometry_topic
             elif odometry_source == "odin1" and not sim_enabled:
                 terrain_lidar_odometry_topic_value = "odin1/odometry_highfreq"
+
+            if switches_sensor_scan_registered_scan_topic:
+                sensor_scan_registered_scan_topic_value = (
+                    switches_sensor_scan_registered_scan_topic
+                )
+            elif odometry_source == "odin1" and not sim_enabled:
+                sensor_scan_registered_scan_topic_value = "odin1/cloud_slam"
+
+            if switches_sensor_scan_lidar_odometry_topic:
+                sensor_scan_lidar_odometry_topic_value = (
+                    switches_sensor_scan_lidar_odometry_topic
+                )
+            elif odometry_source == "odin1" and not sim_enabled:
+                sensor_scan_lidar_odometry_topic_value = "odin1/odometry_highfreq"
 
             # 收敛接口：只暴露一个开关 enable_gimbal_yaw_bridge。
             # 兼容旧配置：enable_auto_aim_yaw_bridge / enable_auto_aim_yaw_sim_pub。
@@ -816,6 +886,16 @@ def generate_launch_description():
         if terrain_lidar_odometry_topic_override:
             terrain_lidar_odometry_topic_value = terrain_lidar_odometry_topic_override
 
+        if sensor_scan_registered_scan_topic_override:
+            sensor_scan_registered_scan_topic_value = (
+                sensor_scan_registered_scan_topic_override
+            )
+
+        if sensor_scan_lidar_odometry_topic_override:
+            sensor_scan_lidar_odometry_topic_value = (
+                sensor_scan_lidar_odometry_topic_override
+            )
+
         style_path = _resolve_bt_style_path(style_file) if enable_rm_bt else style_file
         return [
             SetLaunchConfiguration(
@@ -833,6 +913,14 @@ def generate_launch_description():
             ),
             SetLaunchConfiguration(
                 "terrain_lidar_odometry_topic", terrain_lidar_odometry_topic_value
+            ),
+            SetLaunchConfiguration(
+                "sensor_scan_registered_scan_topic",
+                sensor_scan_registered_scan_topic_value,
+            ),
+            SetLaunchConfiguration(
+                "sensor_scan_lidar_odometry_topic",
+                sensor_scan_lidar_odometry_topic_value,
             ),
             # Backward-compatible launch configurations (not used in this file anymore).
             SetLaunchConfiguration(
@@ -854,6 +942,8 @@ def generate_launch_description():
             "use_sim_time": use_sim_time,
             "terrain_registered_scan_topic": terrain_registered_scan_topic,
             "terrain_lidar_odometry_topic": terrain_lidar_odometry_topic,
+            "sensor_scan_registered_scan_topic": sensor_scan_registered_scan_topic,
+            "sensor_scan_lidar_odometry_topic": sensor_scan_lidar_odometry_topic,
         },
     )
 
@@ -904,11 +994,15 @@ def generate_launch_description():
     ld.add_action(declare_log_level_cmd)
     ld.add_action(declare_terrain_registered_scan_topic_cmd)
     ld.add_action(declare_terrain_lidar_odometry_topic_cmd)
+    ld.add_action(declare_sensor_scan_registered_scan_topic_cmd)
+    ld.add_action(declare_sensor_scan_lidar_odometry_topic_cmd)
     # processed params defaults to original params file
     ld.add_action(SetLaunchConfiguration("processed_params_file", params_file))
     ld.add_action(SetLaunchConfiguration("enable_obstacle_scan", "false"))
     ld.add_action(SetLaunchConfiguration("terrain_registered_scan_topic", "registered_scan"))
     ld.add_action(SetLaunchConfiguration("terrain_lidar_odometry_topic", "lidar_odometry"))
+    ld.add_action(SetLaunchConfiguration("sensor_scan_registered_scan_topic", "registered_scan"))
+    ld.add_action(SetLaunchConfiguration("sensor_scan_lidar_odometry_topic", "lidar_odometry"))
     # Set switches before starting nodes
     ld.add_action(set_switches_cmd)
     # Add the actions to launch all of the navigation nodes

@@ -60,6 +60,8 @@ def generate_launch_description():
     use_mid360_driver = LaunchConfiguration("use_mid360_driver")
     terrain_registered_scan_topic = LaunchConfiguration("terrain_registered_scan_topic")
     terrain_lidar_odometry_topic = LaunchConfiguration("terrain_lidar_odometry_topic")
+    sensor_scan_registered_scan_topic = LaunchConfiguration("sensor_scan_registered_scan_topic")
+    sensor_scan_lidar_odometry_topic = LaunchConfiguration("sensor_scan_lidar_odometry_topic")
     robot_name = LaunchConfiguration("robot_name")
 
     # Declare the launch arguments
@@ -186,6 +188,18 @@ def generate_launch_description():
         "terrain_lidar_odometry_topic",
         default_value="",
         description="Optional override for terrain odometry input topic",
+    )
+
+    declare_sensor_scan_registered_scan_topic_cmd = DeclareLaunchArgument(
+        "sensor_scan_registered_scan_topic",
+        default_value="",
+        description="Optional override for sensor_scan_generation point cloud input topic",
+    )
+
+    declare_sensor_scan_lidar_odometry_topic_cmd = DeclareLaunchArgument(
+        "sensor_scan_lidar_odometry_topic",
+        default_value="",
+        description="Optional override for sensor_scan_generation odometry input topic",
     )
 
     declare_odin_map_mode_cmd = DeclareLaunchArgument(
@@ -328,6 +342,8 @@ def generate_launch_description():
             "publish_static_map_tf": publish_static_map_tf,
             "terrain_registered_scan_topic": terrain_registered_scan_topic,
             "terrain_lidar_odometry_topic": terrain_lidar_odometry_topic,
+            "sensor_scan_registered_scan_topic": sensor_scan_registered_scan_topic,
+            "sensor_scan_lidar_odometry_topic": sensor_scan_lidar_odometry_topic,
         }.items(),
     )
 
@@ -353,6 +369,8 @@ def generate_launch_description():
     ld.add_action(declare_use_mid360_driver_cmd)
     ld.add_action(declare_terrain_registered_scan_topic_cmd)
     ld.add_action(declare_terrain_lidar_odometry_topic_cmd)
+    ld.add_action(declare_sensor_scan_registered_scan_topic_cmd)
+    ld.add_action(declare_sensor_scan_lidar_odometry_topic_cmd)
     ld.add_action(declare_odin_map_mode_cmd)
     ld.add_action(SetLaunchConfiguration("resolved_robot_name", "pb2025_sentry_robot"))
     ld.add_action(set_robot_name_cmd)
