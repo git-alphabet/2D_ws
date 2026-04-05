@@ -532,6 +532,48 @@ def generate_launch_description():
                 if isinstance(current, dict):
                     current[key_path[-1]] = value
 
+            def _normalize_costmap_size_types(container):
+                """兼容配置文件里 width/height 写成 20 或 20.0 的情况。"""
+                changed = False
+                param_paths = [
+                    ["local_costmap", "local_costmap", "ros__parameters"],
+                    ["global_costmap", "global_costmap", "ros__parameters"],
+                ]
+
+                for path in param_paths:
+                    current = container
+                    for key in path:
+                        if not isinstance(current, dict):
+                            current = None
+                            break
+                        current = current.get(key)
+                    if not isinstance(current, dict):
+                        continue
+
+                    for field in ("width", "height"):
+                        raw_value = current.get(field)
+                        if isinstance(raw_value, float):
+                            if math.isfinite(raw_value) and raw_value.is_integer():
+                                current[field] = int(raw_value)
+                                changed = True
+                            continue
+
+                        if isinstance(raw_value, str):
+                            stripped = raw_value.strip()
+                            if not stripped:
+                                continue
+                            try:
+                                parsed = float(stripped)
+                            except ValueError:
+                                continue
+                            if math.isfinite(parsed) and parsed.is_integer():
+                                current[field] = int(parsed)
+                                changed = True
+
+                return changed
+
+            params_normalized = _normalize_costmap_size_types(target_data)
+
             switches = _get_ros_params(target_data, "pb_navigation_switches")
             if not switches and target_data is not raw_yaml:
                 switches = _get_ros_params(raw_yaml, "pb_navigation_switches")
@@ -657,7 +699,7 @@ def generate_launch_description():
                 ["behavior_server", "ros__parameters", "robot_base_frame"],
             ]
 
-            override_required = False
+            override_required = params_normalized
             if selected_plugin_key and selected_plugin_key in available_profiles:
                 target_profile = available_profiles[selected_plugin_key]
                 plugin_field = (
