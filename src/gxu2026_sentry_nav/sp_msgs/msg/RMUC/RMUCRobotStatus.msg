@@ -29,7 +29,6 @@ bool    shooter_power_output # 0x0201 bit2: shooter 口 24V 输出 (1=有输出,
 
 # ── 机器人状态标志 ──
 bool    is_dead              # 是否战亡
-bool    is_detect_enemy      # 是否检测到敌人
 # 注意: 脱战状态(is_disengaged)不是裁判系统协议字段，
 # 由 ParseSentryBlackboard 根据 shooter_heat 和 current_hp 变化自行计算。
 # 规则: 存活状态下连续 6 秒未发射弹丸且未被扣血 = 脱战。
@@ -47,3 +46,6 @@ uint8  respawn_countdown_s   # 复活读条倒计时 (秒)
 uint16 base_hp_cur           # 己方基地当前血量
 uint16 base_hp_max           # 己方基地血量上限
 bool   outpost_alive         # 己方前哨站是否存活
+
+# ── 视觉检测 ──
+bool    is_detect_enemy      # 是否检测到敌人
