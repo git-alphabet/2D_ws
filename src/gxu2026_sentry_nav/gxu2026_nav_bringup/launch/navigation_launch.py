@@ -59,6 +59,7 @@ def generate_launch_description():
     terrain_lidar_odometry_topic = LaunchConfiguration("terrain_lidar_odometry_topic")
     sensor_scan_registered_scan_topic = LaunchConfiguration("sensor_scan_registered_scan_topic")
     sensor_scan_lidar_odometry_topic = LaunchConfiguration("sensor_scan_lidar_odometry_topic")
+    point_lio_config_file = LaunchConfiguration("point_lio_config_file")
 
 
     enable_gimbal_yaw_bridge = LaunchConfiguration("enable_gimbal_yaw_bridge")
@@ -190,7 +191,17 @@ def generate_launch_description():
         ),
     )
 
+    declare_point_lio_config_file_cmd = DeclareLaunchArgument(
+        "point_lio_config_file",
+        default_value=os.path.join(
+            get_package_share_directory("point_lio"), "config", "mid360.yaml"
+        ),
+        description="Full path to point_lio config file for mid360 obstacle supplement chain",
+    )
+
     enable_obstacle_scan = LaunchConfiguration("enable_obstacle_scan")
+    enable_scan_additive = LaunchConfiguration("enable_scan_additive")
+    obstacle_scan_output_topic = LaunchConfiguration("obstacle_scan_output_topic")
 
     start_pointcloud_to_laserscan_cmd = Node(
         package="pointcloud_to_laserscan",
@@ -203,7 +214,7 @@ def generate_launch_description():
         arguments=["--ros-args", "--log-level", log_level],
         remappings=[
             ("cloud_in", "terrain_map_ext"),
-            ("scan", "obstacle_scan"),
+            ("scan", obstacle_scan_output_topic),
         ],
         condition=IfCondition(enable_obstacle_scan),
     )
@@ -229,10 +240,81 @@ def generate_launch_description():
                 parameters=[configured_params],
                 remappings=[
                     ("cloud_in", "terrain_map_ext"),
-                    ("scan", "obstacle_scan"),
+                    ("scan", obstacle_scan_output_topic),
                 ],
             )
         ],
+    )
+
+    start_point_lio_cmd = Node(
+        package="point_lio",
+        executable="pointlio_mapping",
+        name="point_lio_mid360",
+        output="screen",
+        respawn=use_respawn,
+        respawn_delay=2.0,
+        parameters=[point_lio_config_file],
+        arguments=["--ros-args", "--log-level", log_level],
+        remappings=[
+            ("/tf", "tf"),
+            ("/tf_static", "tf_static"),
+            ("livox/lidar", "/livox/lidar"),
+            ("livox/imu", "/livox/imu"),
+        ],
+        condition=IfCondition(enable_scan_additive),
+    )
+
+    start_terrain_analysis_ext_mid360_cmd = Node(
+        package="terrain_analysis_ext",
+        executable="terrainAnalysisExt",
+        name="terrain_analysis_ext_mid360",
+        output="screen",
+        respawn=use_respawn,
+        respawn_delay=2.0,
+        arguments=["--ros-args", "--log-level", log_level],
+        parameters=[configured_params],
+        remappings=[
+            ("registered_scan", "registered_scan"),
+            ("lidar_odometry", "lidar_odometry"),
+            ("terrain_map_ext", "terrain_map_ext_mid360"),
+        ],
+        condition=IfCondition(enable_scan_additive),
+    )
+
+    start_pointcloud_to_laserscan_mid360_cmd = Node(
+        package="pointcloud_to_laserscan",
+        executable="pointcloud_to_laserscan_node",
+        name="pointcloud_to_laserscan_mid360",
+        output="screen",
+        respawn=use_respawn,
+        respawn_delay=2.0,
+        parameters=[configured_params],
+        arguments=["--ros-args", "--log-level", log_level],
+        remappings=[
+            ("cloud_in", "terrain_map_ext_mid360"),
+            ("scan", "scan_mid360"),
+        ],
+        condition=IfCondition(enable_scan_additive),
+    )
+
+    start_scan_additive_adapter_cmd = Node(
+        package="scan_additive_adapter",
+        executable="scan_additive_adapter_node",
+        name="scan_additive_adapter",
+        output="screen",
+        respawn=use_respawn,
+        respawn_delay=2.0,
+        parameters=[
+            {
+                "primary_scan_topic": "scan_odin1",
+                "secondary_scan_topic": "scan_mid360",
+                "output_scan_topic": "obstacle_scan",
+                "secondary_timeout_sec": 0.3,
+                "publish_secondary_when_primary_missing": True,
+            }
+        ],
+        arguments=["--ros-args", "--log-level", log_level],
+        condition=IfCondition(enable_scan_additive),
     )
 
     start_terrain_analysis_cmd = Node(
@@ -520,6 +602,8 @@ def generate_launch_description():
         controller_plugin_name = None
         neupan_frame_name = None
         enable_obstacle_scan_value = "false"
+        enable_scan_additive_value = "false"
+        obstacle_scan_output_topic_value = "obstacle_scan"
         enable_gimbal_yaw_bridge_value = False
         terrain_registered_scan_topic_value = "registered_scan"
         terrain_lidar_odometry_topic_value = "lidar_odometry"
@@ -872,6 +956,8 @@ def generate_launch_description():
 
                 if neupan_plugin_selected and not slam_enabled:
                     enable_obstacle_scan_value = "true"
+                    enable_scan_additive_value = "true"
+                    obstacle_scan_output_topic_value = "scan_odin1"
 
             if override_required:
                 with tempfile.NamedTemporaryFile(
@@ -904,6 +990,10 @@ def generate_launch_description():
             SetLaunchConfiguration("rm_behavior_tree_style_path", style_path),
             SetLaunchConfiguration("processed_params_file", processed_file),
             SetLaunchConfiguration("enable_obstacle_scan", enable_obstacle_scan_value),
+            SetLaunchConfiguration("enable_scan_additive", enable_scan_additive_value),
+            SetLaunchConfiguration(
+                "obstacle_scan_output_topic", obstacle_scan_output_topic_value
+            ),
             SetLaunchConfiguration(
                 "enable_gimbal_yaw_bridge",
                 "true" if enable_gimbal_yaw_bridge_value else "false",
@@ -996,9 +1086,12 @@ def generate_launch_description():
     ld.add_action(declare_terrain_lidar_odometry_topic_cmd)
     ld.add_action(declare_sensor_scan_registered_scan_topic_cmd)
     ld.add_action(declare_sensor_scan_lidar_odometry_topic_cmd)
+    ld.add_action(declare_point_lio_config_file_cmd)
     # processed params defaults to original params file
     ld.add_action(SetLaunchConfiguration("processed_params_file", params_file))
     ld.add_action(SetLaunchConfiguration("enable_obstacle_scan", "false"))
+    ld.add_action(SetLaunchConfiguration("enable_scan_additive", "false"))
+    ld.add_action(SetLaunchConfiguration("obstacle_scan_output_topic", "obstacle_scan"))
     ld.add_action(SetLaunchConfiguration("terrain_registered_scan_topic", "registered_scan"))
     ld.add_action(SetLaunchConfiguration("terrain_lidar_odometry_topic", "lidar_odometry"))
     ld.add_action(SetLaunchConfiguration("sensor_scan_registered_scan_topic", "registered_scan"))
@@ -1011,6 +1104,10 @@ def generate_launch_description():
     ld.add_action(start_auto_aim_yaw_joint_state_bridge_cmd)
     ld.add_action(start_terrain_analysis_cmd)
     ld.add_action(start_terrain_analysis_ext_cmd)
+    ld.add_action(start_point_lio_cmd)
+    ld.add_action(start_terrain_analysis_ext_mid360_cmd)
+    ld.add_action(start_pointcloud_to_laserscan_mid360_cmd)
+    ld.add_action(start_scan_additive_adapter_cmd)
     ld.add_action(start_rm_behavior_tree_cmd)
     ld.add_action(load_nodes)
     ld.add_action(load_composable_nodes)
