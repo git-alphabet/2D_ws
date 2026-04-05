@@ -209,7 +209,6 @@
             <output_port name="heat_high" default="210"/>
             <output_port name="ammo_low" default="80"/>
             <output_port name="ammo_target" default="300"/>
-            <output_port name="base_deficit_for_fortress" default="500"/>
             <output_port name="enemy_near_base_radius" default="2.0"/>
             <output_port name="objective_hold_ms" default="12000"/>
         </Action>
@@ -399,38 +398,8 @@
             <input_port name="stage_remain_time" default="{game.remain_s}"/>
             <input_port name="hp_cur" default="{hp.cur}"/>
             <input_port name="hp_max" default="{hp.max}"/>
-            <input_port name="ammo_allow" default="{ammo.allow}"/>
-            <input_port name="ammo_target" default="{cfg.ammo_target}"/>
-            <input_port name="base_hp_cur" default="{base.hp.cur}"/>
-            <input_port name="base_hp_max" default="{base.hp.max}"/>
-            <input_port name="base_deficit_for_fortress" default="{cfg.base_deficit_for_fortress}"/>
             <input_port name="outpost_alive" default="{outpost.alive}"/>
             <input_port name="base_threat" default="{threat.base}"/>
-            <!-- P3 新增: 占领状态 (0x0101) -->
-            <input_port name="field_central_highland" default="{field.central_highland}"/>
-            <input_port name="field_ladder_highland" default="{field.ladder_highland}"/>
-            <input_port name="field_fortress" default="{field.fortress}"/>
-            <input_port name="field_outpost_buff" default="{field.outpost_buff}"/>
-            <input_port name="field_base_buff" default="{field.base_buff}"/>
-            <!-- P3 新增: 堡垒弹量 -->
-            <input_port name="fortress_ammo" default="{economy.fortress_ammo}"/>
-            <!-- 各候选点坐标 -->
-            <input_port name="central_highland_x" default="{cfg.central_highland_x}"/>
-            <input_port name="central_highland_y" default="{cfg.central_highland_y}"/>
-            <input_port name="ladder_highland_x" default="{cfg.ladder_highland_x}"/>
-            <input_port name="ladder_highland_y" default="{cfg.ladder_highland_y}"/>
-            <input_port name="base_buff_x" default="{cfg.base_buff_x}"/>
-            <input_port name="base_buff_y" default="{cfg.base_buff_y}"/>
-            <input_port name="outpost_buff_x" default="{cfg.outpost_buff_x}"/>
-            <input_port name="outpost_buff_y" default="{cfg.outpost_buff_y}"/>
-            <input_port name="fortress_ally_x" default="{cfg.fortress_ally_x}"/>
-            <input_port name="fortress_ally_y" default="{cfg.fortress_ally_y}"/>
-            <input_port name="fortress_enemy_x" default="{cfg.fortress_enemy_x}"/>
-            <input_port name="fortress_enemy_y" default="{cfg.fortress_enemy_y}"/>
-            <input_port name="supply_zone_x" default="{cfg.supply_zone_x}"/>
-            <input_port name="supply_zone_y" default="{cfg.supply_zone_y}"/>
-            <input_port name="defend_anchor_x" default="{cfg.defend_anchor_x}"/>
-            <input_port name="defend_anchor_y" default="{cfg.defend_anchor_y}"/>
             <output_port name="goal_x" default="{nav.goal_x}"/>
             <output_port name="goal_y" default="{nav.goal_y}"/>
             <output_port name="objective_name" default="{nav.objective}"/>

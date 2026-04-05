@@ -28,7 +28,6 @@
                 heat_high="{cfg.heat_high}"
                 ammo_low="{cfg.ammo_low}"
                 ammo_target="{cfg.ammo_target}"
-                base_deficit_for_fortress="{cfg.base_deficit_for_fortress}"
                 enemy_near_base_radius="{cfg.enemy_near_base_radius}"
                 objective_hold_ms="{cfg.objective_hold_ms}"
                 objective_hold_ms="{cfg.objective_hold_ms}"
