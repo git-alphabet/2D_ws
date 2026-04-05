@@ -9,35 +9,22 @@ SelectObjectiveAction::SelectObjectiveAction(
 
 BT::NodeStatus SelectObjectiveAction::tick()
 {
-  int elapsed = 0, remain = 420;
-  int hp = 400, hp_max = 400;
-  bool outpost_alive = true, base_threat = false;
-
-  getInput("stage_elapsed_time", elapsed);
-  getInput("stage_remain_time", remain);
-  getInput("hp_cur", hp);
-  getInput("hp_max", hp_max);
+  bool outpost_alive = true;
   getInput("outpost_alive", outpost_alive);
-  getInput("base_threat", base_threat);
 
-  // 策略优先级：
-  // 1. 基地受威胁 → 回防
-  // 2. 前哨站存活 → 中心高地
-  // 3. 默认 → 梯形高地
-
-  std::string objective = "CENTRAL_HIGHLAND";
+  std::string objective;
   double gx = 0, gy = 0;
 
-  if (base_threat) {
-    objective = "DEFEND";
-  } else if (outpost_alive) {
+  if (outpost_alive) {
     objective = "CENTRAL_HIGHLAND";
+    getInput("central_highland_x", gx);
+    getInput("central_highland_y", gy);
   } else {
     objective = "TRAPEZOIDAL_HIGHLAND";
+    getInput("ladder_highland_x", gx);
+    getInput("ladder_highland_y", gy);
   }
 
-  // TODO: 根据 objective 从黑板配置键 (cfg.xxx_x/y) 获取坐标
-  // 目前设置为 0,0；实际由上游子树读取 objective_name 后查表
   setOutput("goal_x", gx);
   setOutput("goal_y", gy);
   setOutput("objective_name", objective);

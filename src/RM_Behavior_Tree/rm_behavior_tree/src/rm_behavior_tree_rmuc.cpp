@@ -151,7 +151,7 @@ int main(int argc, char ** argv)
   regBT("rmuc_select_nearest_resupply_station");
   regBT("rmuc_select_objective");
   regBT("rmuc_hold_objective");
-  regBT("rmuc_waypoint_patrol");
+  regBT("rmuc_objective_patrol");
   // 条件
   regBT("rmuc_is_dead");
   regBT("rmuc_is_game_time");

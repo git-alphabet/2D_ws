@@ -26,10 +26,7 @@ BT::NodeStatus InitSentryConfigAction::tick()
                     "fortress_ally_x","fortress_ally_y","fortress_enemy_x","fortress_enemy_y",
                     "central_highland_x","central_highland_y",
                     "ladder_highland_x","ladder_highland_y",
-                    "defend_anchor_x","defend_anchor_y",
-                    "patrol_wpt_0_x","patrol_wpt_0_y",
-                    "patrol_wpt_1_x","patrol_wpt_1_y",
-                    "patrol_wpt_2_x","patrol_wpt_2_y"})
+                    "defend_anchor_x","defend_anchor_y"})
   {
     double v = 0.0;
     getInput(k, v);
@@ -57,6 +54,16 @@ BT::NodeStatus InitSentryConfigAction::tick()
   setInt("ammo_low", 80);
   setInt("ammo_target", 300);
   setInt("objective_hold_ms", 12000);
+  setInt("patrol_hold_ms", 5000);
+
+  // 巡逻参数 (从黑板直接读取，由 rm_behavior_tree.cpp 注入)
+  bool patrol_enable = false;
+  getInput("patrol_enable", patrol_enable);
+  setOutput("patrol_enable", patrol_enable);
+
+  std::string patrol_waypoints;
+  getInput("patrol_waypoints", patrol_waypoints);
+  setOutput("patrol_waypoints", patrol_waypoints);
 
   return BT::NodeStatus::SUCCESS;
 }

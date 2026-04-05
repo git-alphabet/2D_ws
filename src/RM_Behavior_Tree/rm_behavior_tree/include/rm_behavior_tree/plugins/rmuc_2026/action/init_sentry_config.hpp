@@ -28,9 +28,6 @@ public:
       BT::OutputPort<double>("central_highland_x"), BT::OutputPort<double>("central_highland_y"),
       BT::OutputPort<double>("ladder_highland_x"), BT::OutputPort<double>("ladder_highland_y"),
       BT::OutputPort<double>("defend_anchor_x"), BT::OutputPort<double>("defend_anchor_y"),
-      BT::OutputPort<double>("patrol_wpt_0_x"), BT::OutputPort<double>("patrol_wpt_0_y"),
-      BT::OutputPort<double>("patrol_wpt_1_x"), BT::OutputPort<double>("patrol_wpt_1_y"),
-      BT::OutputPort<double>("patrol_wpt_2_x"), BT::OutputPort<double>("patrol_wpt_2_y"),
       BT::OutputPort<double>("arrive_radius"),
       BT::OutputPort<int>("hp_low"),
       BT::OutputPort<int>("hp_safe"),
@@ -39,7 +36,9 @@ public:
       BT::OutputPort<int>("ammo_target"),
       BT::OutputPort<double>("enemy_near_base_radius"),
       BT::OutputPort<int>("objective_hold_ms"),
-      BT::OutputPort<int>("objective_hold_ms")};
+      BT::OutputPort<int>("patrol_hold_ms"),
+      BT::OutputPort<bool>("patrol_enable"),
+      BT::OutputPort<std::string>("patrol_waypoints")};
   }
   BT::NodeStatus tick() override;
 };

@@ -18,9 +18,6 @@
                 central_highland_x="{cfg.central_highland_x}" central_highland_y="{cfg.central_highland_y}"
                 ladder_highland_x="{cfg.ladder_highland_x}" ladder_highland_y="{cfg.ladder_highland_y}"
                 defend_anchor_x="{cfg.defend_anchor_x}" defend_anchor_y="{cfg.defend_anchor_y}"
-                patrol_wpt_0_x="{cfg.patrol.0.x}" patrol_wpt_0_y="{cfg.patrol.0.y}"
-                patrol_wpt_1_x="{cfg.patrol.1.x}" patrol_wpt_1_y="{cfg.patrol.1.y}"
-                patrol_wpt_2_x="{cfg.patrol.2.x}" patrol_wpt_2_y="{cfg.patrol.2.y}"
 
                 arrive_radius="{cfg.arrive_radius}"
                 hp_low="{cfg.hp_low}"
@@ -30,7 +27,9 @@
                 ammo_target="{cfg.ammo_target}"
                 enemy_near_base_radius="{cfg.enemy_near_base_radius}"
                 objective_hold_ms="{cfg.objective_hold_ms}"
-                objective_hold_ms="{cfg.objective_hold_ms}"
+                patrol_hold_ms="{cfg.patrol_hold_ms}"
+                patrol_enable="{cfg.patrol_enable}"
+                patrol_waypoints="{cfg.patrol_waypoints}"
                 />
             <InitCmdState cmd_state="{cmd.state}"
                           allow_ammo_target="{cmd.allow_ammo_target}"/>

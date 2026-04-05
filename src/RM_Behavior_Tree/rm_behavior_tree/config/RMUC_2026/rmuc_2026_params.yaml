@@ -33,16 +33,14 @@ rmuc_sentry_config:
   ladder_highland_x: 0.0         # 梯形高地中心 x
   ladder_highland_y: 0.0         # 梯形高地中心 y
 
-  defend_anchor_x: 0.0           # 防御锚点 (基地前守卫位置) x
+  defend_anchor_x: 0.0           # 防御锚点 (基地前守卫位置) x 直接写基地位置即可
   defend_anchor_y: 0.0           # 防御锚点 y
 
   # ─────────── 巡逻航点 (3个点组成巡逻三角形) ───────────
-  patrol_wpt_0_x: 0.0
-  patrol_wpt_0_y: 0.0
-  patrol_wpt_1_x: 0.0
-  patrol_wpt_1_y: 0.0
-  patrol_wpt_2_x: 0.0
-  patrol_wpt_2_y: 0.0
+  # ── 巡逻配置 ──
+  patrol_enable: false              # 是否启用巡逻 (仅前哨站被毁时生效)
+  patrol_waypoints: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # 巡逻点数组 [x1,y1,x2,y2,...] 填几组就巡几个点
+  patrol_hold_ms: 5000              # 巡逻到达每个点后停留时间 (毫秒)
 
   # ─────────── 战斗/生存阈值 ───────────
   hp_low: 180                    # 低血量阈值 (触发 LowHPRetreat 撤退回补给区)

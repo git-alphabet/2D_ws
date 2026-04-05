@@ -203,9 +203,9 @@ ament_auto_add_library(rmuc_hold_objective SHARED
     plugins/rmuc_2026/action/hold_objective.cpp)
 add_target_dependencies(rmuc_hold_objective)
 
-ament_auto_add_library(rmuc_waypoint_patrol SHARED
-    plugins/rmuc_2026/action/waypoint_patrol.cpp)
-add_target_dependencies(rmuc_waypoint_patrol)
+ament_auto_add_library(rmuc_objective_patrol SHARED
+    plugins/rmuc_2026/action/objective_patrol.cpp)
+add_target_dependencies(rmuc_objective_patrol)
 
 # ── RMUC 2026 条件插件 ──
 ament_auto_add_library(rmuc_is_ammo_below SHARED

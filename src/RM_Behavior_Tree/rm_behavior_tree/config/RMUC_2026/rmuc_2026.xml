@@ -64,11 +64,6 @@
                             <SubTree ID="ObjectivePlanner" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 5) 默认：巡逻扫描 -->
-                        <Sequence>
-                            <SetBlackboard output_key="active_subtree" value="PatrolAndScan"/>
-                            <SubTree ID="PatrolAndScan" _autoremap="true"/>
-                        </Sequence>
 
                     </ReactiveFallback>
 
@@ -111,7 +106,7 @@
     <include path="SustainAndEconomy.xml"/>
     <include path="AmmoPlan.xml"/>
     <include path="ObjectivePlanner.xml"/>
-    <include path="PatrolAndScan.xml"/>
+
 
     <!-- ===================== 节点模型（供 Groot 使用） ===================== -->
     <TreeNodesModel>
@@ -196,13 +191,6 @@
             <output_port name="defend_anchor_x" default="0.0"/> <!-- TODO: 防御锚点（基地前守卫位置） x -->
             <output_port name="defend_anchor_y" default="0.0"/> <!-- TODO: 防御锚点（基地前守卫位置） y -->
 
-            <output_port name="patrol_wpt_0_x" default="0.0"/>  <!-- TODO: 巡逻路点 0 x -->
-            <output_port name="patrol_wpt_0_y" default="0.0"/>  <!-- TODO: 巡逻路点 0 y -->
-            <output_port name="patrol_wpt_1_x" default="0.0"/>  <!-- TODO: 巡逻路点 1 x -->
-            <output_port name="patrol_wpt_1_y" default="0.0"/>  <!-- TODO: 巡逻路点 1 y -->
-            <output_port name="patrol_wpt_2_x" default="0.0"/>  <!-- TODO: 巡逻路点 2 x -->
-            <output_port name="patrol_wpt_2_y" default="0.0"/>
-
             <output_port name="arrive_radius" default="0.35"/>
             <output_port name="hp_low" default="180"/>
             <output_port name="hp_safe" default="280"/>
@@ -211,6 +199,9 @@
             <output_port name="ammo_target" default="300"/>
             <output_port name="enemy_near_base_radius" default="2.0"/>
             <output_port name="objective_hold_ms" default="12000"/>
+            <output_port name="patrol_hold_ms" default="5000"/>
+            <output_port name="patrol_enable" default="false"/>
+            <output_port name="patrol_waypoints" default=""/>
         </Action>
 
         <Action ID="InitCmdState" editable="true">
@@ -399,27 +390,25 @@
             <input_port name="hp_cur" default="{hp.cur}"/>
             <input_port name="hp_max" default="{hp.max}"/>
             <input_port name="outpost_alive" default="{outpost.alive}"/>
-            <input_port name="base_threat" default="{threat.base}"/>
-            <output_port name="goal_x" default="{nav.goal_x}"/>
-            <output_port name="goal_y" default="{nav.goal_y}"/>
+            <input_port name="central_highland_x" default="{cfg.central_highland_x}"/>
+            <input_port name="central_highland_y" default="{cfg.central_highland_y}"/>
+            <input_port name="ladder_highland_x" default="{cfg.ladder_highland_x}"/>
+            <input_port name="ladder_highland_y" default="{cfg.ladder_highland_y}"/>
+            <output_port name="goal_x" default="{nav.objective_x}"/>
+            <output_port name="goal_y" default="{nav.objective_y}"/>
             <output_port name="objective_name" default="{nav.objective}"/>
         </Action>
 
-        <Action ID="HoldObjective" editable="true">
-            <input_port name="hold_ms" default="{cfg.objective_hold_ms}"/>
-            <input_port name="base_threat" default="{threat.base}"/>
-            <input_port name="has_target" default="{combat.has_target}"/>
-        </Action>
-
-        <Action ID="WaypointPatrol" editable="true">
+        <Action ID="ObjectivePatrol" editable="true">
             <input_port name="pose_x" default="{pose.x}"/>
             <input_port name="pose_y" default="{pose.y}"/>
-            <input_port name="wpt0_x" default="{cfg.patrol.0.x}"/>
-            <input_port name="wpt0_y" default="{cfg.patrol.0.y}"/>
-            <input_port name="wpt1_x" default="{cfg.patrol.1.x}"/>
-            <input_port name="wpt1_y" default="{cfg.patrol.1.y}"/>
-            <input_port name="wpt2_x" default="{cfg.patrol.2.x}"/>
-            <input_port name="wpt2_y" default="{cfg.patrol.2.y}"/>
+            <input_port name="objective_x" default="{nav.objective_x}"/>
+            <input_port name="objective_y" default="{nav.objective_y}"/>
+            <input_port name="objective_name" default="{nav.objective}"/>
+            <input_port name="patrol_enable" default="{cfg.patrol_enable}"/>
+            <input_port name="patrol_waypoints" default="{cfg.patrol_waypoints}"/>
+            <input_port name="patrol_hold_ms" default="{cfg.patrol_hold_ms}"/>
+            <input_port name="arrive_radius" default="{cfg.arrive_radius}"/>
             <output_port name="goal_x" default="{nav.goal_x}"/>
             <output_port name="goal_y" default="{nav.goal_y}"/>
         </Action>

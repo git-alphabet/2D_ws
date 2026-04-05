@@ -139,10 +139,7 @@ int main(int argc, char ** argv)
       "fortress_ally_x","fortress_ally_y","fortress_enemy_x","fortress_enemy_y",
       "central_highland_x","central_highland_y",
       "ladder_highland_x","ladder_highland_y",
-      "defend_anchor_x","defend_anchor_y",
-      "patrol_wpt_0_x","patrol_wpt_0_y",
-      "patrol_wpt_1_x","patrol_wpt_1_y",
-      "patrol_wpt_2_x","patrol_wpt_2_y"
+      "defend_anchor_x","defend_anchor_y"
     };
     // double 阈值参数
     const std::vector<std::pair<std::string, double>> double_keys = {
@@ -153,7 +150,8 @@ int main(int argc, char ** argv)
       {"hp_low", 180}, {"hp_safe", 280},
       {"heat_high", 210},
       {"ammo_low", 80}, {"ammo_target", 300},
-      {"objective_hold_ms", 12000}
+      {"objective_hold_ms", 12000},
+      {"patrol_hold_ms", 5000}
     };
 
     const std::string prefix = "rmuc_sentry_config.";
@@ -189,6 +187,31 @@ int main(int argc, char ** argv)
       injected++;
     }
     RCLCPP_INFO(node->get_logger(), "Injected %d RMUC config params into blackboard", injected);
+
+    // patrol_enable (bool)
+    {
+      auto pn = prefix + "patrol_enable";
+      if (!node->has_parameter(pn)) node->declare_parameter<bool>(pn, false);
+      bool v = node->get_parameter(pn).as_bool();
+      bb->set("cfg.patrol_enable", v);
+      injected++;
+    }
+    // patrol_waypoints (vector<double> → string "x1,y1;x2,y2;...")
+    {
+      auto pn = prefix + "patrol_waypoints";
+      if (!node->has_parameter(pn))
+        node->declare_parameter<std::vector<double>>(pn, std::vector<double>{});
+      auto vec = node->get_parameter(pn).as_double_array();
+      std::string wpts_str;
+      for (size_t i = 0; i + 1 < vec.size(); i += 2) {
+        if (!wpts_str.empty()) wpts_str += ";";
+        wpts_str += std::to_string(vec[i]) + "," + std::to_string(vec[i + 1]);
+      }
+      bb->set("cfg.patrol_waypoints", wpts_str);
+      if (!wpts_str.empty()) injected++;
+      RCLCPP_INFO(node->get_logger(), "Patrol waypoints (%zu points): %s",
+                  vec.size() / 2, wpts_str.c_str());
+    }
   }
 
   // Connect the Groot2Publisher. This will allow Groot2 to get the tree and poll status updates.
