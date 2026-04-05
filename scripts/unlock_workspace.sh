@@ -37,9 +37,33 @@ echo "========================================="
 mkdir -p "$WS_DIR/maps/$BRANCH_SAFE/sim" "$WS_DIR/maps/$BRANCH_SAFE/reality"
 mkdir -p "$WS_DIR/launch_logs/$BRANCH_SAFE/nav" "$WS_DIR/launch_logs/$BRANCH_SAFE/slam"
 
+# Safety check 2: Only touch entries owned by root in workspace.
+# Use non-dereference mode for symlinks to avoid broken-link chown failures.
+if [ "$(id -u)" -eq 0 ]; then
+    RUN_AS_ROOT=""
+elif command -v sudo >/dev/null 2>&1; then
+    RUN_AS_ROOT="sudo"
+else
+    RUN_AS_ROOT=""
+fi
 
-# Safety check 2: Find all files/directories owned by root within the restricted workspace directory and unlock them
-# This handles build/ install/ log/ maps/ and root-owned __pycache__ etc.
-sudo find "${WS_DIR}" -user root -exec chown "$USER:$USER" {} +
+if [ -n "$RUN_AS_ROOT" ] && ! $RUN_AS_ROOT -n true >/dev/null 2>&1; then
+    echo "[WARN] sudo requires password or is unavailable in non-interactive mode."
+    echo "[WARN] Skip chown. If needed, run manually with privileges:" 
+    echo "       sudo find ${WS_DIR} -xdev -uid 0 ! -xtype l -exec chown ${USER}:${USER} {} +"
+    echo "       sudo find ${WS_DIR} -xdev -uid 0 -xtype l -exec chown -h ${USER}:${USER} {} +"
+    echo "[SUCCESS] Unlock complete (directory layout prepared; ownership unchanged)."
+    exit 0
+fi
+
+CHOWN_PREFIX=()
+if [ -n "$RUN_AS_ROOT" ]; then
+    CHOWN_PREFIX=("$RUN_AS_ROOT")
+fi
+
+# Regular files/dirs
+"${CHOWN_PREFIX[@]}" find "${WS_DIR}" -xdev -uid 0 ! -xtype l -exec chown "$USER:$USER" {} +
+# Symlinks (no-dereference)
+"${CHOWN_PREFIX[@]}" find "${WS_DIR}" -xdev -uid 0 -xtype l -exec chown -h "$USER:$USER" {} +
 
 echo "[SUCCESS] Unlock complete. All files in the workspace have been returned to you!"

@@ -270,9 +270,15 @@ def _build_base_env(cfg: CommonConfig) -> str:
 
     overlay_prefix = cfg.overlay_setup.parent
     profile_root = overlay_prefix.parent if overlay_prefix.name == "install" else overlay_prefix
+    selected_install_prefix = str(overlay_prefix)
+    branch_name = _current_branch(cfg.ws_dir)
     branch_cache_roots = [
         str(cfg.ws_dir / ".buildcache"),
         str(cfg.ws_dir / "build/.buildcache"),
+    ]
+    workspace_install_roots = [
+        str(cfg.ws_dir / "install"),
+        str(cfg.ws_dir / "build/install"),
     ]
 
     def _filter_branch_cache_entries(value: str) -> str:
@@ -281,6 +287,13 @@ def _build_base_env(cfg: CommonConfig) -> str:
             item = entry.strip()
             if not item:
                 continue
+
+            # 过滤工作区内非当前 overlay 的 install 路径，避免旧终端残留污染。
+            if any(item.startswith(root) for root in workspace_install_roots):
+                if item.startswith(selected_install_prefix):
+                    kept.append(item)
+                continue
+
             if any(item.startswith(root) for root in branch_cache_roots):
                 if item.startswith(str(profile_root)):
                     kept.append(item)
@@ -293,6 +306,7 @@ def _build_base_env(cfg: CommonConfig) -> str:
         "AMENT_PREFIX_PATH",
         "COLCON_PREFIX_PATH",
         "CMAKE_PREFIX_PATH",
+        "PYTHONPATH",
     ):
         raw = os.environ.get(var_name, "")
         if not raw:
@@ -313,6 +327,10 @@ def _build_base_env(cfg: CommonConfig) -> str:
         f"source {shlex.quote(str(cfg.ros_setup))}",
         f"source {shlex.quote(str(overlay_source))}",
     ])
+
+    # 避免父终端遗留的 profile/overlay 配置再次污染子进程。
+    parts.append("unset OVERLAY_SETUP COLCON_INSTALL_BASE COLCON_BUILD_BASE COLCON_LOG_BASE")
+    parts.append(f"export BUILD_PROFILE={shlex.quote(branch_name)}")
 
     home_dir = os.environ.get("HOME", "")
     home_path = Path(home_dir) if home_dir else None

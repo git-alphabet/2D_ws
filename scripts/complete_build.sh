@@ -110,6 +110,10 @@ colcon --log-base "$LOG_BASE" build \
   --cmake-args -DCMAKE_BUILD_TYPE=Release
 
 # Activate NeuPAN virtual environment and set PYTHONPATH
+if [[ ! -f "neupan_env/bin/activate" ]]; then
+  echo "[ERROR] missing neupan_env/bin/activate. Please run scripts/setup_neupan_env.sh first." >&2
+  exit 1
+fi
 source neupan_env/bin/activate
 python3 -m pip install -q "numpy<2" || true
 NEUPAN_SITE_PACKAGES="neupan_env/lib/python3.10/site-packages"
@@ -132,5 +136,10 @@ deactivate 2>/dev/null || true
 
 # Clean PYTHONPATH
 if [[ -n "${PYTHONPATH:-}" ]]; then
-  PYTHONPATH="$(echo "$PYTHONPATH" | tr ':' '\n' | grep -v "neupan_env" | tr '\n' ':')"
+  cleaned_pythonpath="$(echo "$PYTHONPATH" | tr ':' '\n' | grep -v "neupan_env" | sed '/^$/d' | paste -sd ':' -)"
+  if [[ -n "$cleaned_pythonpath" ]]; then
+    export PYTHONPATH="$cleaned_pythonpath"
+  else
+    unset PYTHONPATH
+  fi
 fi
