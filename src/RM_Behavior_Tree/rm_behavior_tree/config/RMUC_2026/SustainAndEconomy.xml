@@ -2,12 +2,8 @@
 <root BTCPP_format="4">
 
     <BehaviorTree ID="SustainAndEconomy">
-        <ReactiveFallback>
-            <!-- Heal when low (prefer supply; allow remote only when disengaged & safe) -->
-            <SubTree ID="HealPlan" _autoremap="true"/>
-            <!-- Ammo management (prefer supply free ticks & station purchase; remote only when disengaged) -->
-            <SubTree ID="AmmoPlan" _autoremap="true"/>
-        </ReactiveFallback>
+        <!-- Ammo management (prefer supply free ticks & station purchase; remote only when disengaged) -->
+        <SubTree ID="AmmoPlan" _autoremap="true"/>
     </BehaviorTree>
 
 </root>

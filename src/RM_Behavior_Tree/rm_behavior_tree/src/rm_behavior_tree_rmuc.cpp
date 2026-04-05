@@ -166,7 +166,6 @@ int main(int argc, char ** argv)
   regBT("rmuc_decide_economy_cmd");
   regBT("rmuc_decide_respawn_cmd");
   regBT("rmuc_parse_sentry_blackboard");
-  regBT("rmuc_select_safe_retreat_goal");
   regBT("rmuc_select_best_target");
   regRos("rmuc_aim_at_target",                  params_aim_target);
   regBT("rmuc_fire_burst");
@@ -185,7 +184,6 @@ int main(int argc, char ** argv)
   regBT("rmuc_is_at_goal");
   regBT("rmuc_is_zone_card_detected");
   regBT("rmuc_is_any_dispel_card_detected");
-  regBT("rmuc_is_critical_state");
   regBT("rmuc_is_base_threatened");
   regBT("rmuc_has_valid_target");
   regBT("rmuc_is_combat_allowed");

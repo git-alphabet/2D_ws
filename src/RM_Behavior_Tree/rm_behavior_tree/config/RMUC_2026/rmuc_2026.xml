@@ -46,10 +46,10 @@
                             <SubTree ID="WeaknessRecovery" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 1) 危急生存（血量/热量/电量） -->
+                        <!-- 1) 低血量撤退回补给区回血 -->
                         <Sequence>
-                            <SetBlackboard output_key="active_subtree" value="CriticalSurvival"/>
-                            <SubTree ID="CriticalSurvival" _autoremap="true"/>
+                            <SetBlackboard output_key="active_subtree" value="LowHPRetreat"/>
+                            <SubTree ID="LowHPRetreat" _autoremap="true"/>
                         </Sequence>
 
                         <!-- 2) 基地/堡垒防御（受威胁时） -->
@@ -64,7 +64,7 @@
                             <SubTree ID="EngageCombat" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 4) 后勤：回血/补弹（经济感知） -->
+                        <!-- 4) 后勤：补弹（经济感知） -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="SustainAndEconomy"/>
                             <SubTree ID="SustainAndEconomy" _autoremap="true"/>
@@ -120,12 +120,11 @@
     <include path="CommandHub.xml"/>
     <include path="RespawnRecovery.xml"/>
     <include path="WeaknessRecovery.xml"/>
-    <include path="CriticalSurvival.xml"/>
+    <include path="LowHPRetreat.xml"/>
     <include path="BaseDefense.xml"/>
     <include path="EngageCombat.xml"/>
     <include path="CombatLoop.xml"/>
     <include path="SustainAndEconomy.xml"/>
-    <include path="HealPlan.xml"/>
     <include path="AmmoPlan.xml"/>
     <include path="ObjectivePlanner.xml"/>
     <include path="PatrolAndScan.xml"/>
@@ -226,11 +225,9 @@
             <output_port name="patrol_wpt_2_y" default="0.0"/>
 
             <output_port name="arrive_radius" default="0.35"/>
-            <output_port name="hp_critical" default="80"/>
             <output_port name="hp_low" default="180"/>
             <output_port name="hp_safe" default="280"/>
             <output_port name="heat_high" default="210"/>
-            <output_port name="heat_critical" default="245"/>
             <output_port name="ammo_low" default="80"/>
             <output_port name="ammo_target" default="300"/>
             <output_port name="base_deficit_for_fortress" default="500"/>
@@ -542,17 +539,6 @@
             <output_port name="goal_y" default="{nav.goal_y}"/>
         </Action>
 
-        <Action ID="SelectSafeRetreatGoal" editable="true">
-            <input_port name="pose_x" default="{pose.x}"/>
-            <input_port name="pose_y" default="{pose.y}"/>
-            <input_port name="supply_zone_x" default="{cfg.supply_zone_x}"/>
-            <input_port name="supply_zone_y" default="{cfg.supply_zone_y}"/>
-            <input_port name="defend_anchor_x" default="{cfg.defend_anchor_x}"/>
-            <input_port name="defend_anchor_y" default="{cfg.defend_anchor_y}"/>
-            <output_port name="goal_x" default="{nav.goal_x}"/>
-            <output_port name="goal_y" default="{nav.goal_y}"/>
-        </Action>
-
         <Action ID="HoldAndHeal" editable="true">
             <input_port name="hp_cur" default="{hp.cur}"/>
             <input_port name="hp_max" default="{hp.max}"/>
@@ -588,13 +574,6 @@
         <Condition ID="IsAmmoBelow" editable="true">
             <input_port name="ammo_allow" default="{ammo.allow}"/>
             <input_port name="ammo_low" default="{cfg.ammo_low}"/>
-        </Condition>
-
-        <Condition ID="IsCriticalState" editable="true">
-            <input_port name="hp_cur" default="{hp.cur}"/>
-            <input_port name="hp_critical" default="{cfg.hp_critical}"/>
-            <input_port name="heat_cur" default="{heat.cur}"/>
-            <input_port name="heat_critical" default="{cfg.heat_critical}"/>
         </Condition>
 
         <Condition ID="IsBaseThreatened" editable="true">

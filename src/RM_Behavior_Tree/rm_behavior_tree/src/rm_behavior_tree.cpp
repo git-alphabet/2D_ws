@@ -150,8 +150,8 @@ int main(int argc, char ** argv)
     };
     // int 阈值参数
     const std::vector<std::pair<std::string, int>> int_keys = {
-      {"hp_critical", 80}, {"hp_low", 180}, {"hp_safe", 280},
-      {"heat_high", 210}, {"heat_critical", 245},
+      {"hp_low", 180}, {"hp_safe", 280},
+      {"heat_high", 210},
       {"ammo_low", 80}, {"ammo_target", 300},
       {"base_deficit_for_fortress", 500},
       {"objective_hold_ms", 12000},

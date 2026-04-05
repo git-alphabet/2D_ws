@@ -53,11 +53,9 @@ BT::NodeStatus InitSentryConfigAction::tick()
   setDouble("enemy_near_base_radius", 2.0);
   setDouble("heal_min_ratio", 0.6);
 
-  setInt("hp_critical", 80);
   setInt("hp_low", 180);
   setInt("hp_safe", 280);
   setInt("heat_high", 210);
-  setInt("heat_critical", 245);
   setInt("ammo_low", 80);
   setInt("ammo_target", 300);
   setInt("base_deficit_for_fortress", 500);

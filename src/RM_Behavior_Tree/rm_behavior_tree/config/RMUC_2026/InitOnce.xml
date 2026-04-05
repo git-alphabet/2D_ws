@@ -24,11 +24,9 @@
                 patrol_wpt_2_x="{cfg.patrol.2.x}" patrol_wpt_2_y="{cfg.patrol.2.y}"
 
                 arrive_radius="{cfg.arrive_radius}"
-                hp_critical="{cfg.hp_critical}"
                 hp_low="{cfg.hp_low}"
                 hp_safe="{cfg.hp_safe}"
                 heat_high="{cfg.heat_high}"
-                heat_critical="{cfg.heat_critical}"
                 ammo_low="{cfg.ammo_low}"
                 ammo_target="{cfg.ammo_target}"
                 base_deficit_for_fortress="{cfg.base_deficit_for_fortress}"

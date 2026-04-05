@@ -45,11 +45,9 @@ rmuc_sentry_config:
   patrol_wpt_2_y: 0.0
 
   # ─────────── 战斗/生存阈值 ───────────
-  hp_critical: 80                # 危急血量阈值 (触发 CriticalSurvival)
-  hp_low: 180                    # 低血量阈值 (触发 HealPlan)
+  hp_low: 180                    # 低血量阈值 (触发 LowHPRetreat 撤退回补给区)
   hp_safe: 280                   # 安全血量阈值 (HoldAndHeal 回血目标)
   heat_high: 210                 # 高热量阈值 (限制开火)
-  heat_critical: 245             # 危急热量阈值 (触发 CriticalSurvival)
   ammo_low: 80                   # 低弹药阈值 (触发 AmmoPlan)
   ammo_target: 300               # 目标弹药量 (AmmoPlan 补给目标)
 

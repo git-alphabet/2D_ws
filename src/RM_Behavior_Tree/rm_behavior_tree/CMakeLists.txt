@@ -205,10 +205,6 @@ ament_auto_add_library(rmuc_decide_economy_cmd SHARED
     plugins/rmuc_2026/action/decide_economy_cmd.cpp)
 add_target_dependencies(rmuc_decide_economy_cmd)
 
-ament_auto_add_library(rmuc_select_safe_retreat_goal SHARED
-    plugins/rmuc_2026/action/select_safe_retreat_goal.cpp)
-add_target_dependencies(rmuc_select_safe_retreat_goal)
-
 # ── RMUC 2026 战斗/瞄准 ──
 ament_auto_add_library(rmuc_select_best_target SHARED
     plugins/rmuc_2026/action/select_best_target.cpp)
@@ -256,10 +252,6 @@ add_target_dependencies(rmuc_waypoint_patrol)
 ament_auto_add_library(rmuc_is_ammo_below SHARED
     plugins/rmuc_2026/condition/is_ammo_below.cpp)
 add_target_dependencies(rmuc_is_ammo_below)
-
-ament_auto_add_library(rmuc_is_critical_state SHARED
-    plugins/rmuc_2026/condition/is_critical_state.cpp)
-add_target_dependencies(rmuc_is_critical_state)
 
 ament_auto_add_library(rmuc_is_base_threatened SHARED
     plugins/rmuc_2026/condition/is_base_threatened.cpp)
