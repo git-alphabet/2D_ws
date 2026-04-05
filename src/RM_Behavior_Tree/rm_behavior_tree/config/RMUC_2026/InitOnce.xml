@@ -32,8 +32,7 @@
                 base_deficit_for_fortress="{cfg.base_deficit_for_fortress}"
                 enemy_near_base_radius="{cfg.enemy_near_base_radius}"
                 objective_hold_ms="{cfg.objective_hold_ms}"
-                combat_fire_burst_ms="{cfg.combat_fire_burst_ms}"
-                combat_fire_pause_ms="{cfg.combat_fire_pause_ms}"
+                objective_hold_ms="{cfg.objective_hold_ms}"
                 />
             <InitCmdState cmd_state="{cmd.state}"
                           allow_ammo_target="{cmd.allow_ammo_target}"/>

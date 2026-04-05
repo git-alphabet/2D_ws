@@ -19,31 +19,9 @@
                               out_target="{combat.best_target}"/>
             <!--
                 解析 best_target 的 "id:x:y"，发布 PointStamped 到 /aim_target 话题，
-                通知云台控制器追踪该目标；实际瞄准由底层自瞄模块执行 
-                TODO: 追踪功能待完善
+                通知云台控制器追踪该目标；实际瞄准由底层自瞄模块执行
             -->
             <AimAtTarget target="{combat.best_target}"/>
-
-            <!--
-                射击窗口检查（ReactiveFallback）：
-                - IsFireWindowOk 返回 SUCCESS（未虚弱、有弹药、热量未超限）→ 允许开火
-                - IsFireWindowOk 返回 FAILURE → 执行 RmucRobotControl 强制关闭开火
-            -->
-            <ReactiveFallback>
-                <IsFireWindowOk heat_cur="{heat.cur}" heat_high="{cfg.heat_high}"
-                                ammo_allow="{ammo.allow}" robot_status="{robot_status}"
-                                current_posture="{sentry.current_posture}"
-                                buff_cool_value="{buff.cool_value}"
-                                buff_vulnerability_pct="{buff.vulnerability_pct}"/>
-                <RmucRobotControl fire_enable="False"/>
-            </ReactiveFallback>
-
-            <!--
-                连发射击：开火持续 burst_ms 毫秒，暂停 pause_ms 毫秒后本节点返回 SUCCESS
-                一轮完成后由 ReactiveSequence 从头重新触发，形成持续射击循环
-            -->
-            <FireBurst burst_ms="{cfg.combat_fire_burst_ms}"
-                       pause_ms="{cfg.combat_fire_pause_ms}"/>
 
             <!-- 保持整棵树持续运行，直到上层条件打断 -->
             <KeepRunning/>

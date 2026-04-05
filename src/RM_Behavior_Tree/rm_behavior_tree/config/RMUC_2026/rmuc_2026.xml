@@ -84,8 +84,7 @@
                                   action_name="navigate_to_pose"/>
                     </RateController>
                     <RmucRobotControl stop_gimbal_scan="True"
-                                      chassis_spin="False"
-                                      fire_enable="False"/>
+                                      chassis_spin="False"/>
                     <RateController hz="2">
                         <SentryCmdMux posture="3"
                                       confirm_respawn="0"
@@ -219,8 +218,6 @@
             <output_port name="base_deficit_for_fortress" default="500"/>
             <output_port name="enemy_near_base_radius" default="2.0"/>
             <output_port name="objective_hold_ms" default="12000"/>
-            <output_port name="combat_fire_burst_ms" default="180"/>
-            <output_port name="combat_fire_pause_ms" default="120"/>
         </Action>
 
         <Action ID="InitCmdState" editable="true">
@@ -420,15 +417,10 @@
         <Action ID="AimAtTarget" editable="true">
             <input_port name="target" default="{combat.best_target}"/>
         </Action>
-        <Action ID="FireBurst" editable="true">
-            <input_port name="burst_ms" default="{cfg.combat_fire_burst_ms}"/>
-            <input_port name="pause_ms" default="{cfg.combat_fire_pause_ms}"/>
-        </Action>
 
         <Action ID="RmucRobotControl" editable="true">
             <input_port name="stop_gimbal_scan" default="False"/>
             <input_port name="chassis_spin" default="False"/>
-            <input_port name="fire_enable" default="False"/>
         </Action>
 
         <!-- 动作：目标/工具节点 -->
@@ -565,34 +557,14 @@
             <input_port name="hp_low" default="{cfg.hp_low}"/>
         </Condition>
 
-        <Condition ID="IsFireWindowOk" editable="true">
-            <input_port name="heat_cur" default="{heat.cur}"/>
-            <input_port name="heat_high" default="{cfg.heat_high}"/>
-            <input_port name="ammo_allow" default="{ammo.allow}"/>
-            <input_port name="robot_status" default="{robot_status}"/>
-            <!-- P4 新增 -->
-            <input_port name="current_posture" default="{sentry.current_posture}"/>
-            <input_port name="buff_cool_value" default="{buff.cool_value}"/>
-            <input_port name="buff_vulnerability_pct" default="{buff.vulnerability_pct}"/>
-            <input_port name="ammo_conserve" default="30"/>
+        <Condition ID="RmucIsDetectEnemy" editable="true">
+            <input_port name="message" default="{robot_status}"/>
         </Condition>
 
         <Condition ID="IsZoneCardDetected" editable="true">
             <input_port name="zone" default="SUPPLY"/>
             <input_port name="rfid_status" default="{rfid.status}"/>
             <input_port name="robot_status" default="{robot_status}"/>
-        </Condition>
-
-        <!-- P4: 底盘旋转策略 (导航中禁止旋转, 到达目标站定攻击时按姿态决定) -->
-        <Condition ID="ShouldChassisSpin" editable="true">
-            <input_port name="pose_x" default="{pose.x}"/>
-            <input_port name="pose_y" default="{pose.y}"/>
-            <input_port name="goal_x" default="{nav.goal_x}"/>
-            <input_port name="goal_y" default="{nav.goal_y}"/>
-            <input_port name="arrive_radius" default="{cfg.arrive_radius}"/>
-            <input_port name="current_posture" default="{sentry.current_posture}"/>
-            <input_port name="is_power_boosted" default="{state.power_boosted}"/>
-            <input_port name="force_spin" default="false"/>
         </Condition>
 
         <Condition ID="IsAtGoal" editable="true">

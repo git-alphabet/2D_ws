@@ -27,8 +27,7 @@
                                   frame_id="map" action_name="navigate_to_pose"/>
                     </RateController>
                     <RmucRobotControl stop_gimbal_scan="False"
-                                      chassis_spin="False"
-                                      fire_enable="False"/>
+                                      chassis_spin="False"/>
                     <KeepRunning/>
                 </ReactiveSequence>
             </ReactiveFallback>

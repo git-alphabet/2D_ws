@@ -59,8 +59,6 @@ BT::NodeStatus InitSentryConfigAction::tick()
   setInt("ammo_target", 300);
   setInt("base_deficit_for_fortress", 500);
   setInt("objective_hold_ms", 12000);
-  setInt("combat_fire_burst_ms", 180);
-  setInt("combat_fire_pause_ms", 120);
 
   return BT::NodeStatus::SUCCESS;
 }

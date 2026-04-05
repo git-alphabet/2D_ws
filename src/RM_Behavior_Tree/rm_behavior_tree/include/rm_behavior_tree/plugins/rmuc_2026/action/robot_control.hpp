@@ -17,8 +17,7 @@ public:
 
   static BT::PortsList providedPorts()
   {
-    return {BT::InputPort<bool>("stop_gimbal_scan"), BT::InputPort<bool>("chassis_spin"),
-            BT::InputPort<bool>("fire_enable")};
+    return {BT::InputPort<bool>("stop_gimbal_scan"), BT::InputPort<bool>("chassis_spin")};
   }
 };
 

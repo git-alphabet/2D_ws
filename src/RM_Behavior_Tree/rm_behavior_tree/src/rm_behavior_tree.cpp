@@ -154,8 +154,7 @@ int main(int argc, char ** argv)
       {"heat_high", 210},
       {"ammo_low", 80}, {"ammo_target", 300},
       {"base_deficit_for_fortress", 500},
-      {"objective_hold_ms", 12000},
-      {"combat_fire_burst_ms", 180}, {"combat_fire_pause_ms", 120}
+      {"objective_hold_ms", 12000}
     };
 
     const std::string prefix = "rmuc_sentry_config.";

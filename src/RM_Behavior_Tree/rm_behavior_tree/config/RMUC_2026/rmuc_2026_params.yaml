@@ -60,7 +60,3 @@ rmuc_sentry_config:
 
   # ─────────── 目标控制参数 ───────────
   objective_hold_ms: 12000       # 目标点占据等待时间 (毫秒)
-
-  # ─────────── 战斗参数 ───────────
-  combat_fire_burst_ms: 180      # 连发开火持续时间 (毫秒)
-  combat_fire_pause_ms: 120      # 开火间隔暂停时间 (毫秒)

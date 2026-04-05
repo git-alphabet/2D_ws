@@ -4,8 +4,7 @@
     <BehaviorTree ID="PatrolAndScan">
         <ReactiveSequence>
             <RmucRobotControl stop_gimbal_scan="False"
-                              chassis_spin="False"
-                              fire_enable="False"/>
+                              chassis_spin="False"/>
             <WaypointPatrol pose_x="{pose.x}" pose_y="{pose.y}"
                             wpt0_x="{cfg.patrol.0.x}" wpt0_y="{cfg.patrol.0.y}"
                             wpt1_x="{cfg.patrol.1.x}" wpt1_y="{cfg.patrol.1.y}"

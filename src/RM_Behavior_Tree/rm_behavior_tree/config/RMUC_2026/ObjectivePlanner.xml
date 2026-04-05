@@ -44,8 +44,7 @@
             </RateController>
 
             <RmucRobotControl stop_gimbal_scan="False"
-                              chassis_spin="False"
-                              fire_enable="False"/>
+                              chassis_spin="False"/>
 
             <!-- Arrive + ensure card detection (2s invalidation delay exists; node tolerates latency) -->
             <ReactiveFallback>

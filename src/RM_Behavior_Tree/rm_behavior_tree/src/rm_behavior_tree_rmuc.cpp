@@ -161,7 +161,6 @@ int main(int argc, char ** argv)
   regBT("rmuc_parse_sentry_blackboard");
   regBT("rmuc_select_best_target");
   regRos("rmuc_aim_at_target",                  params_aim_target);
-  regBT("rmuc_fire_burst");
   regBT("rmuc_hold_and_heal");
   regBT("rmuc_hold_for_supply_ammo_tick");
   regBT("rmuc_select_nearest_resupply_station");
@@ -177,7 +176,7 @@ int main(int argc, char ** argv)
   regBT("rmuc_is_base_threatened");
   regBT("rmuc_has_valid_target");
   regBT("rmuc_is_combat_allowed");
-  regBT("rmuc_is_fire_window_ok");
+  regBT("rmuc_is_detect_enemy");
   regBT("rmuc_is_ammo_below");
 
   // ── M. 共享 RMUL BT 插件 ──

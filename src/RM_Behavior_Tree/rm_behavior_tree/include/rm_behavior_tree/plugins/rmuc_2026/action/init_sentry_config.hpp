@@ -41,8 +41,7 @@ public:
       BT::OutputPort<int>("base_deficit_for_fortress"),
       BT::OutputPort<double>("enemy_near_base_radius"),
       BT::OutputPort<int>("objective_hold_ms"),
-      BT::OutputPort<int>("combat_fire_burst_ms"),
-      BT::OutputPort<int>("combat_fire_pause_ms")};
+      BT::OutputPort<int>("objective_hold_ms")};
   }
   BT::NodeStatus tick() override;
 };

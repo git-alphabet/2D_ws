@@ -106,6 +106,11 @@ ament_auto_add_library(rmuc_is_dead SHARED
 )
 add_target_dependencies(rmuc_is_dead)
 
+ament_auto_add_library(rmuc_is_detect_enemy SHARED
+    plugins/rmuc_2026/condition/is_detect_enemy.cpp
+)
+add_target_dependencies(rmuc_is_detect_enemy)
+
 # Actions
 ament_auto_add_library(rmuc_robot_control SHARED
     plugins/rmuc_2026/action/robot_control.cpp
@@ -189,10 +194,6 @@ ament_auto_add_library(rmuc_aim_at_target SHARED
     plugins/rmuc_2026/action/aim_at_target.cpp)
 add_target_dependencies(rmuc_aim_at_target)
 
-ament_auto_add_library(rmuc_fire_burst SHARED
-    plugins/rmuc_2026/action/fire_burst.cpp)
-add_target_dependencies(rmuc_fire_burst)
-
 # ── RMUC 2026 后勤/补给 ──
 ament_auto_add_library(rmuc_hold_and_heal SHARED
     plugins/rmuc_2026/action/hold_and_heal.cpp)
@@ -235,10 +236,6 @@ add_target_dependencies(rmuc_has_valid_target)
 ament_auto_add_library(rmuc_is_combat_allowed SHARED
     plugins/rmuc_2026/condition/is_combat_allowed.cpp)
 add_target_dependencies(rmuc_is_combat_allowed)
-
-ament_auto_add_library(rmuc_is_fire_window_ok SHARED
-    plugins/rmuc_2026/condition/is_fire_window_ok.cpp)
-add_target_dependencies(rmuc_is_fire_window_ok)
 
 ament_auto_add_library(rmuc_is_at_goal SHARED
     plugins/rmuc_2026/condition/is_at_goal.cpp)

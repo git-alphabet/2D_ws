@@ -3,87 +3,33 @@
 
     <BehaviorTree ID="EngageCombat">
         <ReactiveSequence>
-            <!--
-                检查雷达是否有有效目标（has_target 为 true 且 best_target 非空），否则整棵树不执行
-            -->
-            <HasValidTarget has_target="{combat.has_target}"
-                            best_target="{combat.best_target}"/>
-            <!-- 战斗许可检查：处于虚弱状态、弹药为零、热量过高或血量过低时禁止战斗 -->
-            <IsCombatAllowed robot_status="{robot_status}"
-                             ammo_allow="{ammo.allow}"
-                             heat_cur="{heat.cur}"
-                             heat_high="{cfg.heat_high}"
-                             hp_cur="{hp.cur}"
-                             hp_low="{cfg.hp_low}"/>
+            <!-- 门控：视觉检测到敌人才执行 -->
+            <RmucIsDetectEnemy message="{robot_status}"/>
 
-            <!--
-                进入交战: 把导航目标锁定为当前位置
-                原因: 从巡逻/目标控制被打断进入战斗时, 机器人已停在途中,
-                      此时 nav.goal 仍指向旧目标, dist 很大.
-                      覆写后 dist≈0, ShouldChassisSpin 距离检查通过, 允许旋转.
-                      退出 EngageCombat 后, 下帧 SelectObjective/WaypointPatrol
-                      会重新写入正确目标, 无副作用.
-            -->
-            <SetBlackboard output_key="nav.goal_x" value="{pose.x}"/>
-            <SetBlackboard output_key="nav.goal_y" value="{pose.y}"/>
+            <!-- 检测到敌人 → 终止导航，原地站定 -->
+            <RmucNavControlCmd cmd_type="3" emergency_stop="False"/>
 
-            <!--
-                底盘旋转策略:
-                已通过上方 SetBlackboard 确保 dist≈0 (站定状态),
-                后续由姿态/功率窗口决定是否旋转
-            -->
-            <ReactiveFallback>
-                <Sequence>
-                    <ShouldChassisSpin pose_x="{pose.x}" pose_y="{pose.y}"
-                                       goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
-                                       arrive_radius="{cfg.arrive_radius}"
-                                       current_posture="{sentry.current_posture}"
-                                       is_power_boosted="{state.power_boosted}"/>
-                    <RmucRobotControl stop_gimbal_scan="True"
-                                      chassis_spin="True"
-                                      fire_enable="True"/>
-                </Sequence>
-                <RmucRobotControl stop_gimbal_scan="True"
-                                  chassis_spin="False"
-                                  fire_enable="True"/>
-            </ReactiveFallback>
+            <!-- 开启底盘旋转，保持云台扫描 -->
+            <RmucRobotControl stop_gimbal_scan="False"
+                              chassis_spin="True"/>
 
-            <!-- 进入战斗循环 -->
+            <!-- 选择最优目标并发布给自瞄模块 -->
             <SubTree ID="CombatLoop" _autoremap="true"/>
         </ReactiveSequence>
     </BehaviorTree>
 
     <!-- ===== 临时 TreeNodesModel：仅用于 Groot2 独立加载，不影响运行时 ===== -->
     <TreeNodesModel>
-        <Condition ID="HasValidTarget" editable="true">
-            <input_port name="has_target" default="{combat.has_target}"/>
-            <input_port name="best_target" default="{combat.best_target}"/>
-        </Condition>
-        <Condition ID="IsCombatAllowed" editable="true">
-            <input_port name="robot_status" default="{robot_status}"/>
-            <input_port name="ammo_allow" default="{ammo.allow}"/>
-            <input_port name="heat_cur" default="{heat.cur}"/>
-            <input_port name="heat_high" default="{cfg.heat_high}"/>
-            <input_port name="hp_cur" default="{hp.cur}"/>
-            <input_port name="hp_low" default="{cfg.hp_low}"/>
-        </Condition>
-        <Condition ID="ShouldChassisSpin" editable="true">
-            <input_port name="pose_x" default="{pose.x}"/>
-            <input_port name="pose_y" default="{pose.y}"/>
-            <input_port name="goal_x" default="{nav.goal_x}"/>
-            <input_port name="goal_y" default="{nav.goal_y}"/>
-            <input_port name="arrive_radius" default="{cfg.arrive_radius}"/>
-            <input_port name="current_posture" default="{sentry.current_posture}"/>
-            <input_port name="is_power_boosted" default="{state.power_boosted}"/>
-            <input_port name="force_spin" default="false"/>
+        <Condition ID="RmucIsDetectEnemy" editable="true">
+            <input_port name="message" default="{robot_status}"/>
         </Condition>
         <Action ID="RmucRobotControl" editable="true">
             <input_port name="stop_gimbal_scan" default="False"/>
             <input_port name="chassis_spin" default="False"/>
-            <input_port name="fire_enable" default="False"/>
         </Action>
-        <Decorator ID="RateController" editable="true">
-            <input_port name="hz" default="1.0"/>
-        </Decorator>
+        <Action ID="RmucNavControlCmd" editable="true">
+            <input_port name="cmd_type" default="1"/>
+            <input_port name="emergency_stop" default="False"/>
+        </Action>
     </TreeNodesModel>
 </root>

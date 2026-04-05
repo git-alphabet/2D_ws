@@ -23,6 +23,7 @@ uint16 ammo_left             # 物理剩余弹丸数
 
 # ── 机器人状态标志 ──
 bool    is_dead              # 是否战亡
+bool    is_detect_enemy     # 是否检测到敌人
 bool    is_weak              # 是否虚弱 (复活后发射锁定)
 bool    is_disengaged        # 是否脱战
 float32 disengage_cd_s       # 脱战倒计时 (秒)
