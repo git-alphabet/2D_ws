@@ -10,7 +10,6 @@
                            heat_high="{cfg.heat_high}"
                            has_target="{combat.has_target}"
                            base_threat="{threat.base}"
-                           is_disengaged="{state.disengaged}"
                            stage_elapsed_time="{game.elapsed_s}"
                            now_ms="{time.now_ms}"
                            current_posture="{sentry.current_posture}"
@@ -26,7 +25,6 @@
                               ammo_allow="{ammo.allow}"
                               ammo_target="{cfg.ammo_target}"
                               ammo_low="{cfg.ammo_low}"
-                              is_disengaged="{state.disengaged}"
                               can_remote_heal="{economy.can_remote_heal}"
                               can_remote_ammo="{economy.can_remote_ammo}"
                               team_coins="{economy.coins}"
@@ -82,7 +80,6 @@
             <input_port name="heat_high" default="{cfg.heat_high}"/>
             <input_port name="has_target" default="{combat.has_target}"/>
             <input_port name="base_threat" default="{threat.base}"/>
-            <input_port name="is_disengaged" default="{state.disengaged}"/>
             <input_port name="stage_elapsed_time" default="{game.elapsed_s}"/>
             <input_port name="now_ms" default="{time.now_ms}"/>
             <input_port name="active_subtree" default=""/>
@@ -99,7 +96,6 @@
             <input_port name="ammo_allow" default="{ammo.allow}"/>
             <input_port name="ammo_target" default="{cfg.ammo_target}"/>
             <input_port name="ammo_low" default="{cfg.ammo_low}"/>
-            <input_port name="is_disengaged" default="{state.disengaged}"/>
             <input_port name="can_remote_heal" default="{economy.can_remote_heal}"/>
             <input_port name="can_remote_ammo" default="{economy.can_remote_ammo}"/>
             <input_port name="team_coins" default="{economy.coins}"/>

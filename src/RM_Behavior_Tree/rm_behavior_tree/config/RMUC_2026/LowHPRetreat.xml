@@ -27,8 +27,7 @@
                     <ReactiveSequence>
                         <IsZoneCardDetected zone="SUPPLY" rfid_status="{rfid.status}" robot_status="{robot_status}"/>
                         <HoldAndHeal hp_cur="{hp.cur}" hp_max="{hp.max}" hp_safe="{cfg.hp_safe}"
-                                     stage_elapsed_time="{game.elapsed_s}"
-                                     is_disengaged="{state.disengaged}"/>
+                                     stage_elapsed_time="{game.elapsed_s}"/>
                     </ReactiveSequence>
 
                     <!-- 分支B2：不在补给区 → 导航到补给区 -->

@@ -13,23 +13,8 @@
             <RmucRobotControl stop_gimbal_scan="False"
                               chassis_spin="True"/>
 
-            <!-- 选择最优目标并发布给自瞄模块 -->
-            <SubTree ID="CombatLoop" _autoremap="true"/>
+            <!-- 保持运行，直到上层条件打断 -->
+            <KeepRunning/>
         </ReactiveSequence>
     </BehaviorTree>
-
-    <!-- ===== 临时 TreeNodesModel：仅用于 Groot2 独立加载，不影响运行时 ===== -->
-    <TreeNodesModel>
-        <Condition ID="RmucIsDetectEnemy" editable="true">
-            <input_port name="message" default="{robot_status}"/>
-        </Condition>
-        <Action ID="RmucRobotControl" editable="true">
-            <input_port name="stop_gimbal_scan" default="False"/>
-            <input_port name="chassis_spin" default="False"/>
-        </Action>
-        <Action ID="RmucNavControlCmd" editable="true">
-            <input_port name="cmd_type" default="1"/>
-            <input_port name="emergency_stop" default="False"/>
-        </Action>
-    </TreeNodesModel>
 </root>

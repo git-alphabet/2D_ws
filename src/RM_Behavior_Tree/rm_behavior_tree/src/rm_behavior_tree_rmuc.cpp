@@ -11,7 +11,6 @@
  *   /robot_status      — RMUCRobotStatus     (10 Hz)
  *   /rfid_status       — RMUCRFIDStatus      (事件驱动)
  *   /robot_position    — RMUCRobotPosition   (50 Hz)
- *   /radar/enemy_tracks— RMUCEnemyTracks     (10-30 Hz)
  *
  * 话题约定 (输出 — 发布):
  *   /sentry_cmd        — RMUCSentryCmd       (2 Hz)
@@ -65,10 +64,6 @@ int main(int argc, char ** argv)
   params_robot_position.nh = std::make_shared<rclcpp::Node>("rmuc_robot_position_io");
   params_robot_position.default_port_value = "robot_position";
 
-  BT::RosNodeParams params_radar;
-  params_radar.nh = std::make_shared<rclcpp::Node>("rmuc_radar_io");
-  params_radar.default_port_value = "radar/enemy_tracks";
-
   // ── 输出话题（发布者） ──
   BT::RosNodeParams params_sentry_cmd;
   params_sentry_cmd.nh = std::make_shared<rclcpp::Node>("rmuc_sentry_cmd_io");
@@ -81,11 +76,6 @@ int main(int argc, char ** argv)
   BT::RosNodeParams params_nav_cmd;
   params_nav_cmd.nh = std::make_shared<rclcpp::Node>("rmuc_nav_cmd_io");
   params_nav_cmd.default_port_value = "nav_control_cmd";
-
-  // ── 发布者：aim_target (/aim_target → PointStamped) ──
-  BT::RosNodeParams params_aim_target;
-  params_aim_target.nh = std::make_shared<rclcpp::Node>("rmuc_aim_target_io");
-  params_aim_target.default_port_value = "aim_target";
 
   // ── 通用 ROS 节点（不绑定特定消息话题，供工具类插件使用） ──
   BT::RosNodeParams params_utility;
@@ -131,9 +121,6 @@ int main(int argc, char ** argv)
   // ── D. 订阅者：robot_position (/robot_position → RMUCRobotPosition) ──
   regRos("rmuc_sub_robot_position",             params_robot_position);
 
-  // ── E. 订阅者：radar/enemy_tracks (/radar/enemy_tracks → RMUCEnemyTracks) ──
-  regRos("rmuc_sub_radar_tracks",               params_radar);
-
   // ── F. 发布者：sentry_cmd (/sentry_cmd → RMUCSentryCmd) ──
   regRos("rmuc_sentry_cmd_mux",                 params_sentry_cmd);
 
@@ -159,8 +146,6 @@ int main(int argc, char ** argv)
   regBT("rmuc_decide_economy_cmd");
   regBT("rmuc_decide_respawn_cmd");
   regBT("rmuc_parse_sentry_blackboard");
-  regBT("rmuc_select_best_target");
-  regRos("rmuc_aim_at_target",                  params_aim_target);
   regBT("rmuc_hold_and_heal");
   regBT("rmuc_hold_for_supply_ammo_tick");
   regBT("rmuc_select_nearest_resupply_station");
@@ -174,7 +159,6 @@ int main(int argc, char ** argv)
   regBT("rmuc_is_at_goal");
   regBT("rmuc_is_zone_card_detected");
   regBT("rmuc_is_base_threatened");
-  regBT("rmuc_has_valid_target");
   regBT("rmuc_is_combat_allowed");
   regBT("rmuc_is_detect_enemy");
   regBT("rmuc_is_ammo_below");

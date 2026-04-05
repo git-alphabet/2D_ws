@@ -148,10 +148,6 @@ ament_auto_add_library(rmuc_is_hp_below SHARED
 add_target_dependencies(rmuc_is_hp_below)
 
 # ── RMUC 2026 感知/指令类 RMUC 特有插件 ──
-ament_auto_add_library(rmuc_sub_radar_tracks SHARED
-    plugins/rmuc_2026/action/sub_radar_tracks.cpp)
-add_target_dependencies(rmuc_sub_radar_tracks)
-
 ament_auto_add_library(rmuc_parse_sentry_blackboard SHARED
     plugins/rmuc_2026/action/parse_sentry_blackboard.cpp)
 add_target_dependencies(rmuc_parse_sentry_blackboard)
@@ -184,15 +180,6 @@ add_target_dependencies(rmuc_decide_posture)
 ament_auto_add_library(rmuc_decide_economy_cmd SHARED
     plugins/rmuc_2026/action/decide_economy_cmd.cpp)
 add_target_dependencies(rmuc_decide_economy_cmd)
-
-# ── RMUC 2026 战斗/瞄准 ──
-ament_auto_add_library(rmuc_select_best_target SHARED
-    plugins/rmuc_2026/action/select_best_target.cpp)
-add_target_dependencies(rmuc_select_best_target)
-
-ament_auto_add_library(rmuc_aim_at_target SHARED
-    plugins/rmuc_2026/action/aim_at_target.cpp)
-add_target_dependencies(rmuc_aim_at_target)
 
 # ── RMUC 2026 后勤/补给 ──
 ament_auto_add_library(rmuc_hold_and_heal SHARED
@@ -228,10 +215,6 @@ add_target_dependencies(rmuc_is_ammo_below)
 ament_auto_add_library(rmuc_is_base_threatened SHARED
     plugins/rmuc_2026/condition/is_base_threatened.cpp)
 add_target_dependencies(rmuc_is_base_threatened)
-
-ament_auto_add_library(rmuc_has_valid_target SHARED
-    plugins/rmuc_2026/condition/has_valid_target.cpp)
-add_target_dependencies(rmuc_has_valid_target)
 
 ament_auto_add_library(rmuc_is_combat_allowed SHARED
     plugins/rmuc_2026/condition/is_combat_allowed.cpp)

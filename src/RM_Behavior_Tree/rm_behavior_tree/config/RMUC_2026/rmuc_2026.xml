@@ -108,7 +108,6 @@
     <include path="LowHPRetreat.xml"/>
     <include path="BaseDefense.xml"/>
     <include path="EngageCombat.xml"/>
-    <include path="CombatLoop.xml"/>
     <include path="SustainAndEconomy.xml"/>
     <include path="AmmoPlan.xml"/>
     <include path="ObjectivePlanner.xml"/>
@@ -138,10 +137,6 @@
             <output_port name="pose_yaw" default="{pose.yaw}"/>
             <output_port name="is_at_nav_goal" default="{is_at_nav_goal}"/>
             <output_port name="pose" default="{pose}"/>
-        </Action>
-        <Action ID="SubRadarTracks" editable="true">
-            <input_port name="topic_name" default="/radar/enemy_tracks"/>
-            <output_port name="radar_tracks" default="{radar.tracks}"/>
         </Action>
 
         <!-- P0 新增: 7 个裁判系统话题订阅节点 -->
@@ -180,7 +175,6 @@
             <output_port name="topic_robot_status" default="/robot_status"/>
             <output_port name="topic_rfid_status" default="/rfid_status"/>
             <output_port name="topic_robot_pose" default="/robot_position"/>
-            <output_port name="topic_radar_tracks" default="/radar/enemy_tracks"/>
 
             <!-- TODO: 以下所有坐标需根据实际地图填写（单位：米，map 坐标系） -->
             <output_port name="home_x" default="0.0"/>          <!-- TODO: 己方出生点/复活点 x -->
@@ -228,7 +222,6 @@
         <Action ID="ParseSentryBlackboard" editable="true">
             <input_port name="game_status" default="{game_status}"/>
             <input_port name="robot_status" default="{robot_status}"/>
-            <input_port name="radar_tracks" default="{radar.tracks}"/>
             <input_port name="pose_x" default="{pose.x}"/>
             <input_port name="pose_y" default="{pose.y}"/>
             <input_port name="now_ms" default="{time.now_ms}"/>
@@ -252,13 +245,10 @@
             <output_port name="base_hp_max" default="{base.hp.max}"/>
             <output_port name="outpost_alive" default="{outpost.alive}"/>
             <output_port name="is_dead" default="{state.is_dead}"/>
-            <output_port name="is_disengaged" default="{state.disengaged}"/>
-            <output_port name="disengage_countdown" default="{state.disengage_cd_s}"/>
             <output_port name="can_remote_heal" default="{economy.can_remote_heal}"/>
             <output_port name="can_remote_ammo" default="{economy.can_remote_ammo}"/>
             <output_port name="team_coins" default="{economy.coins}"/>
             <output_port name="has_target" default="{combat.has_target}"/>
-            <output_port name="best_target" default="{combat.best_target}"/>
             <output_port name="base_threat" default="{threat.base}"/>
             <output_port name="fortress_threat" default="{threat.fortress}"/>
             <!-- P0 新增 outputs: 0x020D -->
@@ -311,10 +301,8 @@
             <input_port name="heat_high" default="{cfg.heat_high}"/>
             <input_port name="has_target" default="{combat.has_target}"/>
             <input_port name="base_threat" default="{threat.base}"/>
-            <input_port name="is_disengaged" default="{state.disengaged}"/>
             <input_port name="stage_elapsed_time" default="{game.elapsed_s}"/>
             <input_port name="now_ms" default="{time.now_ms}"/>
-            <!-- P4 新增 -->
             <input_port name="active_subtree" default=""/>
             <input_port name="current_posture" default="{sentry.current_posture}"/>
             <input_port name="buff_cool_value" default="{buff.cool_value}"/>
@@ -330,7 +318,6 @@
             <input_port name="ammo_allow" default="{ammo.allow}"/>
             <input_port name="ammo_target" default="{cfg.ammo_target}"/>
             <input_port name="ammo_low" default="{cfg.ammo_low}"/>
-            <input_port name="is_disengaged" default="{state.disengaged}"/>
             <input_port name="can_remote_heal" default="{economy.can_remote_heal}"/>
             <input_port name="can_remote_ammo" default="{economy.can_remote_ammo}"/>
             <input_port name="team_coins" default="{economy.coins}"/>
@@ -398,25 +385,6 @@
             <input_port name="message" default="{pose}"/>
         </Action>
         <Action ID="KeepRunning" editable="true"/>
-
-        <!-- 动作：战斗节点 -->
-        <Action ID="SelectBestTarget" editable="true">
-            <input_port name="radar_tracks" default="{radar.tracks}"/>
-            <input_port name="pose_x" default="{pose.x}"/>
-            <input_port name="pose_y" default="{pose.y}"/>
-            <input_port name="base_x" default="{cfg.base_buff_x}"/>
-            <input_port name="base_y" default="{cfg.base_buff_y}"/>
-            <!-- P3 补充7: 敌方易伤 (0x020C) -->
-            <input_port name="enemy_hero_vuln" default="{enemy.hero_vuln}"/>
-            <input_port name="enemy_engi_vuln" default="{enemy.engi_vuln}"/>
-            <input_port name="enemy_infantry3_vuln" default="{enemy.infantry3_vuln}"/>
-            <input_port name="enemy_infantry4_vuln" default="{enemy.infantry4_vuln}"/>
-            <input_port name="enemy_sentry_vuln" default="{enemy.sentry_vuln}"/>
-            <output_port name="out_target" default="{combat.best_target}"/>
-        </Action>
-        <Action ID="AimAtTarget" editable="true">
-            <input_port name="target" default="{combat.best_target}"/>
-        </Action>
 
         <Action ID="RmucRobotControl" editable="true">
             <input_port name="stop_gimbal_scan" default="False"/>
@@ -505,7 +473,6 @@
             <input_port name="hp_max" default="{hp.max}"/>
             <input_port name="hp_safe" default="{cfg.hp_safe}"/>
             <input_port name="stage_elapsed_time" default="{game.elapsed_s}"/>
-            <input_port name="is_disengaged" default="{state.disengaged}"/>
         </Action>
 
         <Action ID="HoldForSupplyAmmoTick" editable="true">
@@ -543,13 +510,7 @@
             <input_port name="outpost_alive" default="{outpost.alive}"/>
         </Condition>
 
-        <Condition ID="HasValidTarget" editable="true">
-            <input_port name="has_target" default="{combat.has_target}"/>
-            <input_port name="best_target" default="{combat.best_target}"/>
-        </Condition>
-
         <Condition ID="IsCombatAllowed" editable="true">
-            <input_port name="robot_status" default="{robot_status}"/>
             <input_port name="ammo_allow" default="{ammo.allow}"/>
             <input_port name="heat_cur" default="{heat.cur}"/>
             <input_port name="heat_high" default="{cfg.heat_high}"/>

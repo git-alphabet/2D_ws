@@ -20,7 +20,6 @@ public:
       BT::InputPort<int>("heat_high"),
       BT::InputPort<bool>("has_target"),
       BT::InputPort<bool>("base_threat"),
-      BT::InputPort<bool>("is_disengaged"),
       BT::InputPort<int>("stage_elapsed_time"),
       BT::InputPort<std::uint64_t>("now_ms"),
       BT::InputPort<int>("current_posture"),

@@ -16,8 +16,6 @@
                                   pose_yaw="{pose.yaw}"
                                   is_at_nav_goal="{is_at_nav_goal}"
                                   pose="{pose}"/>
-            <SubRadarTracks topic_name="/radar/enemy_tracks"
-                            radar_tracks="{radar.tracks}"/>
 
             <!-- P0 新增: 7 个裁判系统话题订阅 -->
             <RmucSubSentryDecisionStatus topic_name="/sentry_decision_status"
@@ -38,7 +36,6 @@
             <!-- Parse/derive common fields used by tactics -->
             <ParseSentryBlackboard game_status="{game_status}"
                                    robot_status="{robot_status}"
-                                   radar_tracks="{radar.tracks}"
                                    pose_x="{pose.x}"
                                    pose_y="{pose.y}"
                                    now_ms="{time.now_ms}"
@@ -60,13 +57,10 @@
                                    base_hp_max="{base.hp.max}"
                                    outpost_alive="{outpost.alive}"
                                    is_dead="{state.is_dead}"
-                                   is_disengaged="{state.disengaged}"
-                                   disengage_countdown="{state.disengage_cd_s}"
                                    can_remote_heal="{economy.can_remote_heal}"
                                    can_remote_ammo="{economy.can_remote_ammo}"
                                    team_coins="{economy.coins}"
                                    has_target="{combat.has_target}"
-                                   best_target="{combat.best_target}"
                                    base_threat="{threat.base}"
                                    fortress_threat="{threat.fortress}"
                                    can_free_respawn="{sentry.can_free_respawn}"

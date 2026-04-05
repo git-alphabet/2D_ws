@@ -10,7 +10,7 @@ DecidePostureAction::DecidePostureAction(
 BT::NodeStatus DecidePostureAction::tick()
 {
   int hp = 400, hp_max = 400, heat = 0, heat_high = 210, elapsed = 0;
-  bool has_target = false, base_threat = false, disengaged = false;
+  bool has_target = false, base_threat = false;
   int current_posture = 3, buff_cool = 0, buff_defense = 0, buff_vuln = 0, ammo = 300;
 
   getInput("hp_cur", hp);
@@ -19,7 +19,6 @@ BT::NodeStatus DecidePostureAction::tick()
   getInput("heat_high", heat_high);
   getInput("has_target", has_target);
   getInput("base_threat", base_threat);
-  getInput("is_disengaged", disengaged);
   getInput("stage_elapsed_time", elapsed);
   getInput("current_posture", current_posture);
   getInput("buff_cool_value", buff_cool);
@@ -54,7 +53,6 @@ BT::NodeStatus DecidePostureAction::tick()
   // ── 移动评分 (posture=3) ──
   int score_move = 10;                                   // 基础分(默认倾向)
   if (ammo <= 0)           score_move += 50;             // 无弹药必须机动
-  if (disengaged)          score_move += 20;             // 脱战状态
   if (!has_target)         score_move += 10;             // 无目标巡逻
   if (hp_ratio >= 0.3 && hp_ratio < 0.5) score_move += 5; // 中低血量灵活走位
 

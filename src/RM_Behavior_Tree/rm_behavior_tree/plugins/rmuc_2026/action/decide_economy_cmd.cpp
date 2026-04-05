@@ -10,7 +10,7 @@ DecideEconomyCmdAction::DecideEconomyCmdAction(
 BT::NodeStatus DecideEconomyCmdAction::tick()
 {
   int hp = 400, hp_max = 400, ammo = 300, ammo_target = 300, ammo_low = 80;
-  bool disengaged = false, can_heal = false, can_ammo = false, base_threat = false;
+  bool can_heal = false, can_ammo = false, base_threat = false;
   int coins = 0, remain_s = 420;
 
   getInput("hp_cur", hp);
@@ -18,7 +18,6 @@ BT::NodeStatus DecideEconomyCmdAction::tick()
   getInput("ammo_allow", ammo);
   getInput("ammo_target", ammo_target);
   getInput("ammo_low", ammo_low);
-  getInput("is_disengaged", disengaged);
   getInput("can_remote_heal", can_heal);
   getInput("can_remote_ammo", can_ammo);
   getInput("team_coins", coins);
@@ -29,8 +28,8 @@ BT::NodeStatus DecideEconomyCmdAction::tick()
   int allow_ammo = 0;
   getInput("allow_ammo_target_in", allow_ammo);
 
-  // 远程回血：脱战且血量<50% 且金币充足
-  if (disengaged && can_heal && hp_max > 0 && hp < hp_max / 2) {
+  // 远程回血：can_remote_heal 已包含脱战判断，血量<50%
+  if (can_heal && hp_max > 0 && hp < hp_max / 2) {
     trig_hp = 1;
   }
 

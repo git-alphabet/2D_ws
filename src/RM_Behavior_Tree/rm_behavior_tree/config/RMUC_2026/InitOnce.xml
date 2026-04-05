@@ -8,7 +8,6 @@
                 topic_robot_status="{cfg.topic_robot_status}"
                 topic_rfid_status="{cfg.topic_rfid_status}"
                 topic_robot_pose="{cfg.topic_robot_pose}"
-                topic_radar_tracks="{cfg.topic_radar_tracks}"
 
                 home_x="{cfg.home_x}" home_y="{cfg.home_y}"
                 supply_zone_x="{cfg.supply_zone_x}" supply_zone_y="{cfg.supply_zone_y}"

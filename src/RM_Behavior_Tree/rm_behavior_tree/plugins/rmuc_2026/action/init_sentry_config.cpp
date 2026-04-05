@@ -19,7 +19,6 @@ BT::NodeStatus InitSentryConfigAction::tick()
   setStr("topic_robot_status", "robot_status");
   setStr("topic_rfid_status", "rfid_status");
   setStr("topic_robot_pose", "robot_position");
-  setStr("topic_radar_tracks", "radar/enemy_tracks");
 
   // 坐标参数 (double, 默认 0.0)
   for (auto * k : {"home_x","home_y","supply_zone_x","supply_zone_y",

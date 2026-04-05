@@ -19,7 +19,6 @@ public:
       BT::OutputPort<std::string>("topic_robot_status", "robot status topic"),
       BT::OutputPort<std::string>("topic_rfid_status", "rfid status topic"),
       BT::OutputPort<std::string>("topic_robot_pose", "robot pose topic"),
-      BT::OutputPort<std::string>("topic_radar_tracks", "radar tracks topic"),
       BT::OutputPort<double>("home_x"), BT::OutputPort<double>("home_y"),
       BT::OutputPort<double>("supply_zone_x"), BT::OutputPort<double>("supply_zone_y"),
       BT::OutputPort<double>("base_buff_x"), BT::OutputPort<double>("base_buff_y"),

@@ -7,7 +7,6 @@
 #include "behaviortree_cpp/action_node.h"
 #include "sp_msgs/msg/rmuc_game_status.hpp"
 #include "sp_msgs/msg/rmuc_robot_status.hpp"
-#include "sp_msgs/msg/rmuc_enemy_tracks.hpp"
 
 namespace rm_behavior_tree
 {
@@ -23,7 +22,6 @@ public:
       // inputs (原始消息 — 拆分后各自独立类型)
       BT::InputPort<sp_msgs::msg::RMUCGameStatus>("game_status"),
       BT::InputPort<std::shared_ptr<sp_msgs::msg::RMUCRobotStatus>>("robot_status"),
-      BT::InputPort<sp_msgs::msg::RMUCEnemyTracks>("radar_tracks"),
       BT::InputPort<double>("pose_x"),
       BT::InputPort<double>("pose_y"),
       BT::InputPort<std::uint64_t>("now_ms"),
@@ -39,14 +37,10 @@ public:
       BT::OutputPort<int>("base_hp_max"),
       BT::OutputPort<bool>("outpost_alive"),
       BT::OutputPort<bool>("is_dead"),
-      BT::OutputPort<bool>("is_weak"),
-      BT::OutputPort<bool>("is_disengaged"),
-      BT::OutputPort<int>("disengage_countdown"),
       BT::OutputPort<bool>("can_remote_heal"),
       BT::OutputPort<bool>("can_remote_ammo"),
       BT::OutputPort<int>("team_coins"),
       BT::OutputPort<bool>("has_target"),
-      BT::OutputPort<std::string>("best_target"),
       BT::OutputPort<bool>("base_threat"),
       BT::OutputPort<bool>("fortress_threat")};
   }

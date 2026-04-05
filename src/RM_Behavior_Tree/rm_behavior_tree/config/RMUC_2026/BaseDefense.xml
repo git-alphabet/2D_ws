@@ -11,13 +11,13 @@
                               outpost_alive="{outpost.alive}"/>
 
             <ReactiveFallback>
-                <!-- 检测到敌人 → 停车 + 旋转 + 选目标发布 -->
+                <!-- 检测到敌人 → 停车 + 旋转 -->
                 <ReactiveSequence>
                     <RmucIsDetectEnemy message="{robot_status}"/>
                     <RmucNavControlCmd cmd_type="3" emergency_stop="False"/>
                     <RmucRobotControl stop_gimbal_scan="False"
                                       chassis_spin="True"/>
-                    <SubTree ID="CombatLoop" _autoremap="true"/>
+                    <KeepRunning/>
                 </ReactiveSequence>
 
                 <!-- 未检测到敌人 → 正常导航到防御锚点，关闭旋转 -->

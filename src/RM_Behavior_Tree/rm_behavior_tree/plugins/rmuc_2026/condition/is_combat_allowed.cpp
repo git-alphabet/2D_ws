@@ -9,16 +9,13 @@ IsCombatAllowedCondition::IsCombatAllowedCondition(
 
 BT::NodeStatus IsCombatAllowedCondition::tick()
 {
-  bool weak = false;
   int ammo = 300, heat = 0, heat_high = 210, hp = 400, hp_low = 180;
-  getInput("is_weak", weak);
   getInput("ammo_allow", ammo);
   getInput("heat_cur", heat);
   getInput("heat_high", heat_high);
   getInput("hp_cur", hp);
   getInput("hp_low", hp_low);
 
-  if (weak) return BT::NodeStatus::FAILURE;
   if (ammo <= 0) return BT::NodeStatus::FAILURE;
   if (heat >= heat_high) return BT::NodeStatus::FAILURE;
   if (hp < hp_low) return BT::NodeStatus::FAILURE;

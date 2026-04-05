@@ -17,8 +17,7 @@ public:
       BT::InputPort<int>("hp_cur"),
       BT::InputPort<int>("hp_max"),
       BT::InputPort<int>("hp_safe", "280", "hp_safe"),
-      BT::InputPort<int>("stage_elapsed_time"),
-      BT::InputPort<bool>("is_disengaged")};
+      BT::InputPort<int>("stage_elapsed_time")};
   }
   BT::NodeStatus onStart() override;
   BT::NodeStatus onRunning() override;
