@@ -20,10 +20,8 @@
                     <KeepRunning/>
                 </ReactiveSequence>
 
-                <!-- 未检测到敌人 → 正常导航到防御锚点，关闭旋转 -->
+                <!-- 未检测到敌人 → 导航到防御锚点，到达后旋转 -->
                 <ReactiveSequence>
-                    <RmucRobotControl stop_gimbal_scan="False"
-                                      chassis_spin="False"/>
                     <RateController hz="1">
                         <SendGoal name="DefendAnchor"
                                   goal_x="{cfg.defend_anchor_x}"
@@ -31,7 +29,23 @@
                                   frame_id="map"
                                   action_name="navigate_to_pose"/>
                     </RateController>
-                    <KeepRunning/>
+                    <ReactiveFallback>
+                        <!-- 到达锚点 → 旋转 -->
+                        <ReactiveSequence>
+                            <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
+                                      goal_x="{cfg.defend_anchor_x}" goal_y="{cfg.defend_anchor_y}"
+                                      arrive_radius="{cfg.arrive_radius}"/>
+                            <RmucRobotControl stop_gimbal_scan="False"
+                                              chassis_spin="True"/>
+                            <KeepRunning/>
+                        </ReactiveSequence>
+                        <!-- 未到达 → 正常导航 -->
+                        <ReactiveSequence>
+                            <RmucRobotControl stop_gimbal_scan="False"
+                                              chassis_spin="False"/>
+                            <KeepRunning/>
+                        </ReactiveSequence>
+                    </ReactiveFallback>
                 </ReactiveSequence>
             </ReactiveFallback>
         </ReactiveSequence>
