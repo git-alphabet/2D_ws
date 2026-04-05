@@ -24,6 +24,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
+#include "sensor_msgs/point_cloud2_iterator.hpp"
 #include "std_msgs/msg/float32.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2_ros/transform_broadcaster.h"
@@ -150,7 +151,93 @@ void laserCloudHandler(
   }
 
   laserCloud->clear();
-  pcl::fromROSMsg(*laserCloud2, *laserCloud);
+  auto fill_xyz_only = [&]() {
+    pcl::PointCloud<pcl::PointXYZ> laserCloudXYZ;
+    pcl::fromROSMsg(*laserCloud2, laserCloudXYZ);
+    laserCloud->reserve(laserCloudXYZ.points.size());
+    for (const auto & pt : laserCloudXYZ.points) {
+      pcl::PointXYZI out;
+      out.x = pt.x;
+      out.y = pt.y;
+      out.z = pt.z;
+      out.intensity = 0.0f;
+      laserCloud->push_back(out);
+    }
+  };
+
+  const sensor_msgs::msg::PointField * intensity_field = nullptr;
+  for (const auto & field : laserCloud2->fields) {
+    if (field.name == "intensity") {
+      intensity_field = &field;
+      break;
+    }
+  }
+
+  if (intensity_field == nullptr) {
+    fill_xyz_only();
+  } else if (intensity_field->datatype == sensor_msgs::msg::PointField::FLOAT32) {
+    pcl::fromROSMsg(*laserCloud2, *laserCloud);
+  } else {
+    sensor_msgs::PointCloud2ConstIterator<float> it_x(*laserCloud2, "x");
+    sensor_msgs::PointCloud2ConstIterator<float> it_y(*laserCloud2, "y");
+    sensor_msgs::PointCloud2ConstIterator<float> it_z(*laserCloud2, "z");
+
+    laserCloud->reserve(laserCloud2->width * laserCloud2->height);
+
+    switch (intensity_field->datatype) {
+      case sensor_msgs::msg::PointField::UINT8: {
+        sensor_msgs::PointCloud2ConstIterator<uint8_t> it_i(*laserCloud2, "intensity");
+        for (; it_x != it_x.end(); ++it_x, ++it_y, ++it_z, ++it_i) {
+          pcl::PointXYZI out;
+          out.x = *it_x;
+          out.y = *it_y;
+          out.z = *it_z;
+          out.intensity = static_cast<float>(*it_i);
+          laserCloud->push_back(out);
+        }
+        break;
+      }
+      case sensor_msgs::msg::PointField::UINT16: {
+        sensor_msgs::PointCloud2ConstIterator<uint16_t> it_i(*laserCloud2, "intensity");
+        for (; it_x != it_x.end(); ++it_x, ++it_y, ++it_z, ++it_i) {
+          pcl::PointXYZI out;
+          out.x = *it_x;
+          out.y = *it_y;
+          out.z = *it_z;
+          out.intensity = static_cast<float>(*it_i);
+          laserCloud->push_back(out);
+        }
+        break;
+      }
+      case sensor_msgs::msg::PointField::INT8: {
+        sensor_msgs::PointCloud2ConstIterator<int8_t> it_i(*laserCloud2, "intensity");
+        for (; it_x != it_x.end(); ++it_x, ++it_y, ++it_z, ++it_i) {
+          pcl::PointXYZI out;
+          out.x = *it_x;
+          out.y = *it_y;
+          out.z = *it_z;
+          out.intensity = static_cast<float>(*it_i);
+          laserCloud->push_back(out);
+        }
+        break;
+      }
+      case sensor_msgs::msg::PointField::INT16: {
+        sensor_msgs::PointCloud2ConstIterator<int16_t> it_i(*laserCloud2, "intensity");
+        for (; it_x != it_x.end(); ++it_x, ++it_y, ++it_z, ++it_i) {
+          pcl::PointXYZI out;
+          out.x = *it_x;
+          out.y = *it_y;
+          out.z = *it_z;
+          out.intensity = static_cast<float>(*it_i);
+          laserCloud->push_back(out);
+        }
+        break;
+      }
+      default:
+        fill_xyz_only();
+        break;
+    }
+  }
 
   pcl::PointXYZI point;
   laserCloudCrop->clear();
