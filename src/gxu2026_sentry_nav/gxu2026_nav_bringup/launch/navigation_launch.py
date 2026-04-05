@@ -55,6 +55,8 @@ def generate_launch_description():
     container_name_full = (namespace, "/", container_name)
     use_respawn = LaunchConfiguration("use_respawn")
     log_level = LaunchConfiguration("log_level")
+    terrain_registered_scan_topic = LaunchConfiguration("terrain_registered_scan_topic")
+    terrain_lidar_odometry_topic = LaunchConfiguration("terrain_lidar_odometry_topic")
 
 
     enable_gimbal_yaw_bridge = LaunchConfiguration("enable_gimbal_yaw_bridge")
@@ -208,6 +210,10 @@ def generate_launch_description():
         respawn_delay=2.0,
         arguments=["--ros-args", "--log-level", log_level],
         parameters=[configured_params],
+        remappings=[
+            ("registered_scan", terrain_registered_scan_topic),
+            ("lidar_odometry", terrain_lidar_odometry_topic),
+        ],
     )
 
     start_terrain_analysis_ext_cmd = Node(
@@ -219,6 +225,10 @@ def generate_launch_description():
         respawn_delay=2.0,
         arguments=["--ros-args", "--log-level", log_level],
         parameters=[configured_params],
+        remappings=[
+            ("registered_scan", terrain_registered_scan_topic),
+            ("lidar_odometry", terrain_lidar_odometry_topic),
+        ],
     )
 
     start_rm_behavior_tree_cmd = Node(
@@ -458,9 +468,13 @@ def generate_launch_description():
         neupan_frame_name = None
         enable_obstacle_scan_value = "false"
         enable_gimbal_yaw_bridge_value = False
+        terrain_registered_scan_topic_value = "registered_scan"
+        terrain_lidar_odometry_topic_value = "lidar_odometry"
 
         slam_raw = slam.perform(context)
         slam_enabled = str(slam_raw).strip().lower() in {"true", "1", "yes", "on"}
+        sim_raw = use_sim_time.perform(context)
+        sim_enabled = str(sim_raw).strip().lower() in {"true", "1", "yes", "on"}
 
         def _resolve_bt_style_path(style_value):
             candidate = style_value.strip() if isinstance(style_value, str) else ""
@@ -578,6 +592,16 @@ def generate_launch_description():
             if not switches and target_data is not raw_yaml:
                 switches = _get_ros_params(raw_yaml, "pb_navigation_switches")
             enable_rm_bt = bool(switches.get("enable_rm_behavior_tree", enable_rm_bt))
+
+            odometry_source = switches.get("odometry_source")
+            if isinstance(odometry_source, str):
+                odometry_source = odometry_source.strip().lower()
+            else:
+                odometry_source = ""
+
+            if odometry_source == "odin1" and not sim_enabled:
+                terrain_registered_scan_topic_value = "odin1/cloud_slam"
+                terrain_lidar_odometry_topic_value = "odin1/odometry_highfreq"
 
             # 收敛接口：只暴露一个开关 enable_gimbal_yaw_bridge。
             # 兼容旧配置：enable_auto_aim_yaw_bridge / enable_auto_aim_yaw_sim_pub。
@@ -741,6 +765,12 @@ def generate_launch_description():
                 "enable_gimbal_yaw_bridge",
                 "true" if enable_gimbal_yaw_bridge_value else "false",
             ),
+            SetLaunchConfiguration(
+                "terrain_registered_scan_topic", terrain_registered_scan_topic_value
+            ),
+            SetLaunchConfiguration(
+                "terrain_lidar_odometry_topic", terrain_lidar_odometry_topic_value
+            ),
             # Backward-compatible launch configurations (not used in this file anymore).
             SetLaunchConfiguration(
                 "enable_auto_aim_yaw_bridge",
@@ -805,6 +835,8 @@ def generate_launch_description():
     # processed params defaults to original params file
     ld.add_action(SetLaunchConfiguration("processed_params_file", params_file))
     ld.add_action(SetLaunchConfiguration("enable_obstacle_scan", "false"))
+    ld.add_action(SetLaunchConfiguration("terrain_registered_scan_topic", "registered_scan"))
+    ld.add_action(SetLaunchConfiguration("terrain_lidar_odometry_topic", "lidar_odometry"))
     # Set switches before starting nodes
     ld.add_action(set_switches_cmd)
     # Add the actions to launch all of the navigation nodes

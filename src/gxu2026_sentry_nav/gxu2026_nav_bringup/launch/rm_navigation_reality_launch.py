@@ -38,6 +38,7 @@ def generate_launch_description():
     # Get the launch directory
     bringup_dir = get_package_share_directory("gxu2026_nav_bringup")
     odin_driver_dir = get_package_share_directory("odin_ros_driver")
+    mid360_driver_dir = get_package_share_directory("mid360_driver")
     launch_dir = os.path.join(bringup_dir, "launch")
 
     # Create the launch configuration variables
@@ -55,6 +56,8 @@ def generate_launch_description():
     use_robot_state_pub = LaunchConfiguration("use_robot_state_pub")
     use_rviz = LaunchConfiguration("use_rviz")
     odin_config_file = LaunchConfiguration("odin_config_file")
+    mid360_config_file = LaunchConfiguration("mid360_config_file")
+    use_mid360_driver = LaunchConfiguration("use_mid360_driver")
     robot_name = LaunchConfiguration("robot_name")
 
     # Declare the launch arguments
@@ -157,6 +160,18 @@ def generate_launch_description():
         "odin_config_file",
         default_value=os.path.join(odin_driver_dir, "config", "control_command.yaml"),
         description="Full path to odin_ros_driver control config file",
+    )
+
+    declare_mid360_config_file_cmd = DeclareLaunchArgument(
+        "mid360_config_file",
+        default_value=os.path.join(mid360_driver_dir, "config", "param.yaml"),
+        description="Full path to mid360_driver config file",
+    )
+
+    declare_use_mid360_driver_cmd = DeclareLaunchArgument(
+        "use_mid360_driver",
+        default_value="True",
+        description="Whether to start mid360_driver in reality entry launch",
     )
 
     declare_odin_map_mode_cmd = DeclareLaunchArgument(
@@ -264,6 +279,16 @@ def generate_launch_description():
         parameters=[{"config_file": odin_config_file}],
     )
 
+    start_mid360_driver_node = Node(
+        package="mid360_driver",
+        executable="mid360_driver_node",
+        name="mid360_driver",
+        output="screen",
+        namespace=namespace,
+        parameters=[mid360_config_file, configured_params],
+        condition=IfCondition(use_mid360_driver),
+    )
+
     rviz_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(launch_dir, "rviz_launch.py")),
         condition=IfCondition(use_rviz),
@@ -308,6 +333,8 @@ def generate_launch_description():
     ld.add_action(declare_use_rviz_cmd)
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_odin_config_file_cmd)
+    ld.add_action(declare_mid360_config_file_cmd)
+    ld.add_action(declare_use_mid360_driver_cmd)
     ld.add_action(declare_odin_map_mode_cmd)
     ld.add_action(SetLaunchConfiguration("resolved_robot_name", "pb2025_sentry_robot"))
     ld.add_action(set_robot_name_cmd)
@@ -315,6 +342,7 @@ def generate_launch_description():
     # Add the actions to launch all of the navigation nodes
     ld.add_action(start_robot_state_publisher_cmd)
     ld.add_action(start_odin_driver_node)
+    ld.add_action(start_mid360_driver_node)
     ld.add_action(bringup_cmd)
     ld.add_action(rviz_cmd)
 
