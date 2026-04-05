@@ -50,6 +50,8 @@ def generate_launch_description():
     use_composition = LaunchConfiguration("use_composition")
     use_respawn = LaunchConfiguration("use_respawn")
     log_level = LaunchConfiguration("log_level")
+    terrain_registered_scan_topic = LaunchConfiguration("terrain_registered_scan_topic")
+    terrain_lidar_odometry_topic = LaunchConfiguration("terrain_lidar_odometry_topic")
     # Create our own temporary YAML files that include substitutions
     param_substitutions = {"use_sim_time": use_sim_time, "yaml_filename": map_yaml_file}
 
@@ -135,6 +137,18 @@ def generate_launch_description():
         "log_level", default_value="info", description="log level"
     )
 
+    declare_terrain_registered_scan_topic_cmd = DeclareLaunchArgument(
+        "terrain_registered_scan_topic",
+        default_value="",
+        description="Optional override for terrain point cloud input topic",
+    )
+
+    declare_terrain_lidar_odometry_topic_cmd = DeclareLaunchArgument(
+        "terrain_lidar_odometry_topic",
+        default_value="",
+        description="Optional override for terrain odometry input topic",
+    )
+
     declare_publish_static_map_tf_cmd = DeclareLaunchArgument(
         "publish_static_map_tf",
         default_value="True",
@@ -201,6 +215,8 @@ def generate_launch_description():
                     "use_composition": use_composition,
                     "use_respawn": use_respawn,
                     "container_name": "nav2_container",
+                    "terrain_registered_scan_topic": terrain_registered_scan_topic,
+                    "terrain_lidar_odometry_topic": terrain_lidar_odometry_topic,
                 }.items(),
             ),
         ]
@@ -224,6 +240,8 @@ def generate_launch_description():
     ld.add_action(declare_use_composition_cmd)
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_log_level_cmd)
+    ld.add_action(declare_terrain_registered_scan_topic_cmd)
+    ld.add_action(declare_terrain_lidar_odometry_topic_cmd)
     ld.add_action(declare_publish_static_map_tf_cmd)
 
     # Add the actions to launch all of the navigation nodes

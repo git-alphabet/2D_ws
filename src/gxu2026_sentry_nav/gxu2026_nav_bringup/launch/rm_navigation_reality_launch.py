@@ -58,6 +58,8 @@ def generate_launch_description():
     odin_config_file = LaunchConfiguration("odin_config_file")
     mid360_config_file = LaunchConfiguration("mid360_config_file")
     use_mid360_driver = LaunchConfiguration("use_mid360_driver")
+    terrain_registered_scan_topic = LaunchConfiguration("terrain_registered_scan_topic")
+    terrain_lidar_odometry_topic = LaunchConfiguration("terrain_lidar_odometry_topic")
     robot_name = LaunchConfiguration("robot_name")
 
     # Declare the launch arguments
@@ -172,6 +174,18 @@ def generate_launch_description():
         "use_mid360_driver",
         default_value="True",
         description="Whether to start mid360_driver in reality entry launch",
+    )
+
+    declare_terrain_registered_scan_topic_cmd = DeclareLaunchArgument(
+        "terrain_registered_scan_topic",
+        default_value="",
+        description="Optional override for terrain point cloud input topic",
+    )
+
+    declare_terrain_lidar_odometry_topic_cmd = DeclareLaunchArgument(
+        "terrain_lidar_odometry_topic",
+        default_value="",
+        description="Optional override for terrain odometry input topic",
     )
 
     declare_odin_map_mode_cmd = DeclareLaunchArgument(
@@ -312,6 +326,8 @@ def generate_launch_description():
             "use_composition": use_composition,
             "use_respawn": use_respawn,
             "publish_static_map_tf": publish_static_map_tf,
+            "terrain_registered_scan_topic": terrain_registered_scan_topic,
+            "terrain_lidar_odometry_topic": terrain_lidar_odometry_topic,
         }.items(),
     )
 
@@ -335,6 +351,8 @@ def generate_launch_description():
     ld.add_action(declare_odin_config_file_cmd)
     ld.add_action(declare_mid360_config_file_cmd)
     ld.add_action(declare_use_mid360_driver_cmd)
+    ld.add_action(declare_terrain_registered_scan_topic_cmd)
+    ld.add_action(declare_terrain_lidar_odometry_topic_cmd)
     ld.add_action(declare_odin_map_mode_cmd)
     ld.add_action(SetLaunchConfiguration("resolved_robot_name", "pb2025_sentry_robot"))
     ld.add_action(set_robot_name_cmd)
