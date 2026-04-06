@@ -43,15 +43,25 @@ if [ "$(id -u)" -eq 0 ]; then
     RUN_AS_ROOT=""
 elif command -v sudo >/dev/null 2>&1; then
     RUN_AS_ROOT="sudo"
+    if ! sudo -n true >/dev/null 2>&1; then
+        if [ -t 0 ] && [ -t 1 ]; then
+            echo "[INFO] sudo authentication required. Please enter your password to continue chown..."
+            if ! sudo -v; then
+                echo "[WARN] sudo authentication failed. Skip chown."
+                echo "[SUCCESS] Unlock complete (directory layout prepared; ownership unchanged)."
+                exit 0
+            fi
+        else
+            echo "[WARN] sudo requires password but current shell is non-interactive."
+            echo "[WARN] Skip chown. If needed, run manually with privileges:"
+            echo "       sudo find ${WS_DIR} -xdev -uid 0 ! -xtype l -exec chown ${USER}:${USER} {} +"
+            echo "       sudo find ${WS_DIR} -xdev -uid 0 -xtype l -exec chown -h ${USER}:${USER} {} +"
+            echo "[SUCCESS] Unlock complete (directory layout prepared; ownership unchanged)."
+            exit 0
+        fi
+    fi
 else
-    RUN_AS_ROOT=""
-fi
-
-if [ -n "$RUN_AS_ROOT" ] && ! $RUN_AS_ROOT -n true >/dev/null 2>&1; then
-    echo "[WARN] sudo requires password or is unavailable in non-interactive mode."
-    echo "[WARN] Skip chown. If needed, run manually with privileges:" 
-    echo "       sudo find ${WS_DIR} -xdev -uid 0 ! -xtype l -exec chown ${USER}:${USER} {} +"
-    echo "       sudo find ${WS_DIR} -xdev -uid 0 -xtype l -exec chown -h ${USER}:${USER} {} +"
+    echo "[WARN] sudo is unavailable and current user is not root. Skip chown."
     echo "[SUCCESS] Unlock complete (directory layout prepared; ownership unchanged)."
     exit 0
 fi
