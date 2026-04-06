@@ -12,7 +12,7 @@ pb_navigation_switches:
   ros__parameters:
     controller_plugin: "pb_omni_pid_pursuit_controller"   # 控制器插件选择：neupan_nav2_controller / pb_omni_pid_pursuit_controller
     odometry_source: "point_lio"                   #point_lio / small_point_lio / loam_interface
-    behavior_tree: "config/RMUL_2026/new_rmul_2026.xml"                       # .xml or default,none
+    behavior_tree: "config/RMUC_2026/rmuc_2026.xml"                       # .xml or default,none
 
 
     enable_gimbal_yaw_bridge: false               # 仿真中 TF 由 Gazebo bringup 的 robot_state_publisher 直接提供，无需此通路。
@@ -339,12 +339,12 @@ terrain_analysis:
     scanVoxelSize: 0.05       # 输入点云体素下采样分辨率（m），越大越稀疏、越快，但细节丢失
 
     # ── 时间衰减：控制点云在地图中保留多久 ────────────────────────
-    decayTime: 0.7            # 点云帧时间戳差超过此值（s）则丢弃，防止旧点污染地图
+    decayTime: 0.5            # 点云帧时间戳差超过此值（s）则丢弃，防止旧点污染地图
     noDecayDis: 0.0           # 距离机器人小于此值（m）的点忽略衰减，始终保留（0=禁用）
     clearingDis: 0.0          # 距离机器人超过此值（m）的点强制清除（0=禁用）
 
     # ── 地面估计：决定哪些点算"地面"、哪些算"障碍" ────────────────
-    useSorting: false          # 开启后以周围点的分位数估计地面，能正确处理坡面（推荐开）
+    useSorting: true          # 开启后以周围点的分位数估计地面，能正确处理坡面（推荐开）
                               # 关闭则以最低点为地面，坡面会被误判为障碍
                               # 不要与 considerDrop 同时开启，逻辑冲突
     quantileZ: 0.5            # useSorting=True 时的地面估计分位数（0~1）
