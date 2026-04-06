@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="rmuc2026-oneflow" name="RMUC2026 从头到尾单图">
-        <mxGraphModel dx="1158" dy="650" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="11000" pageHeight="7600" math="0" shadow="0">
+        <mxGraphModel dx="882" dy="495" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="11000" pageHeight="7600" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -280,62 +280,61 @@
                 <mxCell id="e_nm_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="nm_2" target="nm_3" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-
                 <mxCell id="dec_title" value="决策条件面板（按当前源码实现）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#333333;fontSize=18;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
                     <mxGeometry x="8360" y="150" width="2440" height="70" as="geometry"/>
                 </mxCell>
-
                 <mxCell id="dec_stage" value="RmucIsGameTime（比赛阶段）&#xa;SUCCESS 条件：&#xa;1) game_progress == 4&#xa;2) 0 &lt;= stage_remain_time &lt;= 420" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
                     <mxGeometry x="8360" y="260" width="760" height="130" as="geometry"/>
                 </mxCell>
-
                 <mxCell id="dec_posture" value="DecidePosture（姿态决策）&#xa;三姿态打分，取最高分：&#xa;攻击加分：有目标 +35，hp&gt;50% +20，防御增益 +15，冷却增益 +12，后半场 +18；ammo&lt;=0 则攻击分归零&#xa;防御加分：易伤 +50，基地威胁 +30，hp&lt;30% +35，hp&lt;50% +15，热量超限 +25，无目标 +8&#xa;移动加分：ammo&lt;=0 +50，无目标 +10，30%-50%血量 +5&#xa;平分优先级：防御 &gt; 移动 &gt; 攻击" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
                     <mxGeometry x="8360" y="430" width="1180" height="250" as="geometry"/>
                 </mxCell>
-
                 <mxCell id="dec_econ" value="DecideEconomyCmd（经济指令：买弹/回血）&#xa;trigger_remote_hp = 1 条件：can_remote_heal &amp;&amp; hp_cur &lt; hp_max/2&#xa;trigger_remote_ammo = 1 条件：can_remote_ammo &amp;&amp; ammo_allow &lt; ammo_low&#xa;allow_ammo_target 递增条件：&#xa;ammo_allow &lt; ammo_target &amp;&amp; team_coins &gt;= 100 &amp;&amp; allow_ammo_target_in &lt; allow_ammo_max&#xa;满足时 allow_ammo_target_out += 50，且不超过 allow_ammo_max" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
                     <mxGeometry x="9580" y="430" width="1220" height="250" as="geometry"/>
                 </mxCell>
-
                 <mxCell id="dec_respawn" value="DecideRespawnCmd（复活/买活）&#xa;若 is_dead == true：&#xa;confirm_respawn = 1（始终确认普通复活）&#xa;confirm_instant_respawn = 1 条件：&#xa;A) base_hp_cur &lt; base_hp_max/2 且 team_coins &gt;= 1.7 * instant_respawn_cost 且 instant_respawn_cost &gt; 0&#xa;或 B) stage_remain_time &lt; 60 秒" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
                     <mxGeometry x="8360" y="730" width="1180" height="220" as="geometry"/>
                 </mxCell>
-
                 <mxCell id="dec_lowhp" value="LowHPRetreat（低血撤退）&#xa;入口条件：RmucIsHPBelow = (current_hp &lt; hp_low)&#xa;补给区恢复结束条件：HoldAndHeal SUCCESS 当 hp_cur &gt;= hp_safe" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
                     <mxGeometry x="8360" y="990" width="760" height="140" as="geometry"/>
                 </mxCell>
-
                 <mxCell id="dec_base" value="BaseDefense（基地受威胁）&#xa;IsBaseThreatened SUCCESS 条件：&#xa;base_threat == true&#xa;或 base_hp_cur &lt; base_hp_max/2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
                     <mxGeometry x="9160" y="990" width="640" height="140" as="geometry"/>
                 </mxCell>
-
                 <mxCell id="dec_ammo" value="AmmoPlan（补弹决策）&#xa;入口条件：IsAmmoBelow = (ammo_allow &lt; ammo_low)&#xa;在补给区停留结束：HoldForSupplyAmmoTick SUCCESS 当 ammo_allow &gt;= ammo_target" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
                     <mxGeometry x="9840" y="990" width="960" height="140" as="geometry"/>
                 </mxCell>
-
-                <mxCell id="dec_obj" value="ObjectivePlanner（战略点选择）&#xa;SelectObjective：&#xa;outpost_alive == true  -> CENTRAL_HIGHLAND&#xa;outpost_alive == false -> TRAPEZOIDAL_HIGHLAND" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
+                <mxCell id="dec_obj" value="ObjectivePlanner（战略点选择）&#xa;SelectObjective：&#xa;outpost_alive == true  -&gt; CENTRAL_HIGHLAND&#xa;outpost_alive == false -&gt; TRAPEZOIDAL_HIGHLAND" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
                     <mxGeometry x="8360" y="1180" width="1180" height="140" as="geometry"/>
                 </mxCell>
-
                 <mxCell id="dec_patrol" value="ObjectivePatrol（巡逻激活条件）&#xa;patrol_enable == true&#xa;&amp;&amp; objective_name == TRAPEZOIDAL_HIGHLAND&#xa;&amp;&amp; patrol_waypoints 非空&#xa;否则直接回战略目标点" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
                     <mxGeometry x="9580" y="1180" width="1220" height="140" as="geometry"/>
                 </mxCell>
-
-                <mxCell id="dec_note" value="说明：以上条件来自当前源码文件&#xa;decide_posture.cpp / decide_economy_cmd.cpp / decide_respawn_cmd.cpp 等，不是推断。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
+                <mxCell id="dec_note" value="说明：以上条件来自当前源码文件&lt;br&gt;decide_posture.cpp / decide_economy_cmd.cpp / decide_respawn_cmd.cpp 等。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
                     <mxGeometry x="8360" y="1360" width="2440" height="90" as="geometry"/>
                 </mxCell>
-
                 <mxCell id="e_dec_stage" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;strokeColor=#d6b656;" parent="1" source="wde" target="dec_stage" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="e_dec_posture" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;strokeColor=#9673a6;" parent="1" source="cmd_1" target="dec_posture" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="2745" y="2120"/>
+                            <mxPoint x="8950" y="2120"/>
+                        </Array>
+                    </mxGeometry>
                 </mxCell>
-                <mxCell id="e_dec_econ" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;strokeColor=#d79b00;" parent="1" source="cmd_2" target="dec_econ" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
+                <mxCell id="e_dec_econ" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;strokeColor=#d79b00;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="3070" y="1960" as="sourcePoint"/>
+                        <mxPoint x="10180" y="610" as="targetPoint"/>
+                    </mxGeometry>
                 </mxCell>
-                <mxCell id="e_dec_respawn" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;strokeColor=#b85450;" parent="1" source="cmd_3" target="dec_respawn" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
+                <mxCell id="e_dec_respawn" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;strokeColor=#b85450;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="3440" y="2030" as="sourcePoint"/>
+                        <mxPoint x="8950.058823529413" y="930" as="targetPoint"/>
+                    </mxGeometry>
                 </mxCell>
                 <mxCell id="e_dec_lowhp" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;strokeColor=#b85450;" parent="1" source="p0_b" target="dec_lowhp" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
@@ -351,6 +350,12 @@
                 </mxCell>
                 <mxCell id="e_dec_patrol" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;strokeColor=#82b366;" parent="1" source="p4_2" target="dec_patrol" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 3;strokeWidth=2;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" target="cmd_2">
+                    <mxGeometry width="50" height="50" relative="1" as="geometry">
+                        <mxPoint x="3070" y="1960" as="sourcePoint"/>
+                        <mxPoint x="3220" y="1960" as="targetPoint"/>
+                    </mxGeometry>
                 </mxCell>
             </root>
         </mxGraphModel>
