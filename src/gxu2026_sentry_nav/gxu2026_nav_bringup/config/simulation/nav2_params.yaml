@@ -200,7 +200,7 @@ rm_behavior_tree:
   ros__parameters:
     is_blue_team: False
     executable: rm_behavior_tree_rmuc
-    style: config/RMUC_2026/spin_and_navigate.xml
+    style: config/RMUC_2026/rmuc_2026.xml
     use_sim_time: True
     hp_high_threshold: 120  #先保留两个参数口，其实应该只用保留一个，这两个数值要一样
     hp_medium_threshold: 120
