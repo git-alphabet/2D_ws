@@ -4,9 +4,9 @@
 <!-- |    EDITING THIS FILE BY HAND IS NOT RECOMMENDED                                 | -->
 <!-- =================================================================================== -->
 <sdf version="1.7">
-	<!--xmacro_define_block: livox-->
-	<!--Livox mid360-->
-	<model name="simple_livox">
+	<!--xmacro_define_block: odin1-->
+	<!--Odin1-->
+	<model name="simple_odin1">
 		<pose>0 0 0.2 0 0 0</pose>
 		<link name="base_link">
 			<inertial>
@@ -36,13 +36,13 @@
 			</collision>
 		</link>
 		<!--update_rate(10-15),samples(400)-->
-		<joint name="simple_livox_joint" type="fixed">
+		<joint name="simple_odin1_joint" type="fixed">
 			<pose relative_to="base_link">0 0 0.2 0 0 0</pose>
 			<parent>base_link</parent>
-			<child>simple_mid360</child>
+			<child>simple_odin1</child>
 		</joint>
-		<link name="simple_mid360">
-			<pose relative_to="simple_livox_joint">0.0 0.0 0.0 0 0 0</pose>
+		<link name="simple_odin1">
+			<pose relative_to="simple_odin1_joint">0.0 0.0 0.0 0 0 0</pose>
 			<inertial>
 				<pose>0 0 0.02 0 0 0</pose>
 				<mass>0.005</mass>
@@ -56,21 +56,31 @@
 				</inertia>
 			</inertial>
 			<visual name="visual">
-				<pose>0.0 0.0 0.0 0 0 3.141592653589793</pose>
+				<pose>0.0 0.0 0.0 0 0 0</pose>
 				<geometry>
 					<mesh>
-						<uri>model://mid360/meshes/mid360.dae</uri>
+						<uri>model://odin1/meshes/odin1.dae</uri>
+						<scale>0.001 0.001 0.001</scale>
 					</mesh>
 				</geometry>
 			</visual>
-			<sensor name="simple_mid360_imu" type="imu">
-				<ignition_frame_id>simple_mid360</ignition_frame_id>
+			<collision name="collision">
+				<pose>0.0 0.0 0.0 0 0 0</pose>
+				<geometry>
+					<mesh>
+						<uri>model://odin1/meshes/odin1.dae</uri>
+						<scale>0.001 0.001 0.001</scale>
+					</mesh>
+				</geometry>
+			</collision>
+			<sensor name="simple_odin1_imu" type="imu">
+				<ignition_frame_id>simple_odin1</ignition_frame_id>
 				<always_on>1</always_on>
 				<update_rate>200</update_rate>
 				<visualize>true</visualize>
 			</sensor>
-			<sensor name="simple_mid360_lidar" type="gpu_lidar">
-				<ignition_frame_id>simple_mid360</ignition_frame_id>
+			<sensor name="simple_odin1_lidar" type="gpu_lidar">
+				<ignition_frame_id>simple_odin1</ignition_frame_id>
 				<pose>0 0 0.03 0 0 0</pose>
 				<always_on>true</always_on>
 				<visualize>true</visualize>
@@ -90,8 +100,8 @@
 						</vertical>
 					</scan>
 					<range>
-						<min>0.15</min>
-						<max>15.0</max>
+						<min>0.1</min>
+						<max>40.0</max>
 					</range>
 				</ray>
 				<noise>
