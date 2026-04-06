@@ -1,0 +1,286 @@
+<mxfile host="65bd71144e">
+    <diagram id="rmuc2026-oneflow" name="RMUC2026 从头到尾单图">
+        <mxGraphModel dx="1158" dy="650" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="11000" pageHeight="7600" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="RMUC 2026 行为树（从头到尾单图）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=28;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="3700" y="20" width="3000" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="root_seq" value="ReactiveSequence&#xa;rmuc_2026" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="4700" y="110" width="360" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="percep_tree" value="PerceptionAndBlackboard&#xa;Sequence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="4620" y="290" width="520" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_root_per" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="root_seq" target="percep_tree" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="per_sub_1" value="订阅基础话题&#xa;/game_status /robot_status /rfid_status /robot_position" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="4440" y="460" width="880" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="per_sub_2" value="订阅扩展裁判话题&#xa;sentry_decision_status robot_buff projectile_allowance field_status enemy_mark team_positions team_hp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="4300" y="620" width="1160" height="95" as="geometry"/>
+                </mxCell>
+                <mxCell id="per_parse" value="ParseSentryBlackboard&#xa;解析 game hp heat ammo base outpost buff economy threat 等字段到黑板" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="4300" y="780" width="1160" height="95" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_per_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="percep_tree" target="per_sub_1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_per_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="per_sub_1" target="per_sub_2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_per_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="per_sub_2" target="per_parse" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="init_tree" value="InitOnce&#xa;Sequence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="4620" y="980" width="520" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="init_cfg" value="InitSentryConfig&#xa;加载话题名 关键坐标 阈值 巡逻参数" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="4370" y="1140" width="1020" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="init_cmd" value="InitCmdState&#xa;初始化 cmd.state 与 allow_ammo_target" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="4480" y="1290" width="800" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_parse_init" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="per_parse" target="init_tree" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_init_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="init_tree" target="init_cfg" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_init_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="init_cfg" target="init_cmd" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="wde" value="WhileDoElse&#xa;RmucIsGameTime(比赛阶段?)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="4540" y="1460" width="680" height="95" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_init_wde" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="init_cmd" target="wde" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="match_seq" value="比赛阶段&#xa;ReactiveSequence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="3500" y="1670" width="520" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="nonmatch_seq" value="非比赛阶段&#xa;ReactiveSequence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="6500" y="1670" width="520" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_wde_match" value="比赛中" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="wde" target="match_seq" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_wde_non" value="否则" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#777777;" parent="1" source="wde" target="nonmatch_seq" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="cmdhub" value="CommandHub&#xa;Sequence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="2640" y="1670" width="560" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="priority_rf" value="ReactiveFallback&#xa;优先级战术分支" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="3900" y="1850" width="620" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_match_cmd" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="match_seq" target="cmdhub" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_match_pri" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="match_seq" target="priority_rf" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="cmd_1" value="DecidePosture" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="2630" y="2010" width="230" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="cmd_2" value="DecideEconomyCmd" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="2930" y="2010" width="230" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="cmd_3" value="DecideRespawnCmd" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="3210" y="2010" width="230" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="cmd_4" value="RateController 5Hz&#xa;SentryCmdMux" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="2940" y="2365" width="490" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_cmd_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="cmdhub" target="cmd_1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_cmd_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="cmd_1" target="cmd_2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_cmd_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="cmd_2" target="cmd_3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_cmd_4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="cmd_3" target="cmd_4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p0" value="P0 LowHPRetreat&#xa;SetBlackboard + SubTree" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="900" y="2050" width="500" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1" value="P1 BaseDefense&#xa;SetBlackboard + SubTree" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="2080" y="2050" width="500" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2" value="P2 EngageCombat&#xa;SetBlackboard + SubTree" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="3500" y="2050" width="500" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3" value="P3 SustainAndEconomy&#xa;SetBlackboard + SubTree" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="4900" y="2050" width="560" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="p4" value="P4 ObjectivePlanner&#xa;SetBlackboard + SubTree" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="6400" y="2050" width="560" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_pri_0" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#b85450;" parent="1" source="priority_rf" target="p0" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_pri_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#b85450;" parent="1" source="priority_rf" target="p1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_pri_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#d79b00;" parent="1" source="priority_rf" target="p2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_pri_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#d79b00;" parent="1" source="priority_rf" target="p3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_pri_4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#82b366;" parent="1" source="priority_rf" target="p4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p0_a" value="A 死亡分支&#xa;RmucIsDead -&gt; RobotControl(停扫描) -&gt; NavControlCmd 停车" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="830" y="2205" width="640" height="95" as="geometry"/>
+                </mxCell>
+                <mxCell id="p0_b" value="B 低血量分支&#xa;IsHPBelow -&gt; RobotControl(不旋转) -&gt; ReactiveFallback" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="830" y="2365" width="640" height="95" as="geometry"/>
+                </mxCell>
+                <mxCell id="p0_b1" value="B1 在补给区&#xa;IsZoneCardDetected -&gt; HoldAndHeal" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="670" y="2510" width="360" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="p0_b2" value="B2 不在补给区&#xa;1Hz SendGoal(补给区) -&gt; KeepRunning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="1310" y="2512.5" width="360" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p0_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p0" target="p0_a" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p0_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p0_a" target="p0_b" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p0_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p0_b" target="p0_b1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p0_4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p0_b" target="p0_b2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1_1" value="IsBaseThreatened" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="2140" y="2210" width="380" height="85" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1_2" value="1Hz SendGoal(defend_anchor)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="2140" y="2350" width="380" height="85" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1_3" value="近锚点且检测敌人&#xa;停车 + 底盘旋转 + KeepRunning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="1920" y="2510" width="360" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1_4" value="否则继续赶路或驻守&#xa;到锚点旋转 否则不旋转 + KeepRunning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="2380" y="2510" width="360" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p1_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p1" target="p1_1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p1_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p1_1" target="p1_2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p1_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p1_2" target="p1_3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p1_4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p1_2" target="p1_4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2_1" value="RmucIsDetectEnemy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="3560" y="2210" width="380" height="85" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2_2" value="RmucNavControlCmd 停止导航" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="3560" y="2360" width="380" height="85" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2_3" value="RmucRobotControl&#xa;底盘旋转" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="3560" y="2510" width="380" height="85" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2_4" value="KeepRunning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="3560" y="2660" width="380" height="85" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p2_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p2" target="p2_1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p2_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p2_1" target="p2_2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p2_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p2_2" target="p2_3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p2_4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p2_3" target="p2_4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3_1" value="SustainAndEconomy&#xa;SubTree -&gt; AmmoPlan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="5000" y="2210" width="360" height="85" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3_2" value="IsAmmoBelow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="5000" y="2360" width="360" height="85" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3_3" value="在补给区&#xa;HoldForSupplyAmmoTick" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="4780" y="2510" width="300" height="95" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3_4" value="不在补给区&#xa;SelectNearestResupplyStation -&gt; 1Hz SendGoal -&gt; RobotControl(不旋转) -&gt; KeepRunning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="5120" y="2510" width="420" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p3_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p3" target="p3_1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p3_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p3_1" target="p3_2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p3_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p3_2" target="p3_3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p3_4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p3_2" target="p3_4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="p4_1" value="SelectObjective" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="6490" y="2210" width="380" height="85" as="geometry"/>
+                </mxCell>
+                <mxCell id="p4_2" value="ObjectivePatrol" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="6490" y="2360" width="380" height="85" as="geometry"/>
+                </mxCell>
+                <mxCell id="p4_3" value="1Hz SendGoal(nav.goal)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="6490" y="2510" width="380" height="85" as="geometry"/>
+                </mxCell>
+                <mxCell id="p4_4" value="已到达目标&#xa;旋转=True + KeepRunning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="6270" y="2660" width="280" height="95" as="geometry"/>
+                </mxCell>
+                <mxCell id="p4_5" value="未到达目标&#xa;旋转=False + KeepRunning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="6590" y="2660" width="280" height="95" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p4_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p4" target="p4_1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p4_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p4_1" target="p4_2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p4_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p4_2" target="p4_3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p4_4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p4_3" target="p4_4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_p4_5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p4_3" target="p4_5" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="nm_1" value="RateController 1Hz&#xa;SendGoal(Home)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="6990" y="1810" width="560" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="nm_2" value="RmucRobotControl&#xa;stop_gimbal_scan=True chassis_spin=False" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="6990" y="2090" width="560" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="nm_3" value="RateController 2Hz&#xa;SentryCmdMux(posture=3 trigger_remote_ammo=0 trigger_remote_hp=0)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="6990" y="2455" width="560" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_nm_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="nonmatch_seq" target="nm_1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_nm_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="nm_1" target="nm_2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_nm_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="nm_2" target="nm_3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
