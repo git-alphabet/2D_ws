@@ -59,6 +59,7 @@ def generate_launch_description():
 
     enable_gimbal_yaw_bridge = LaunchConfiguration("enable_gimbal_yaw_bridge")
     enable_rm_behavior_tree = LaunchConfiguration("enable_rm_behavior_tree")
+    rm_behavior_tree_executable = LaunchConfiguration("rm_behavior_tree_executable")
     rm_behavior_tree_style_path = LaunchConfiguration("rm_behavior_tree_style_path")
 
     lifecycle_nodes = [
@@ -223,7 +224,7 @@ def generate_launch_description():
 
     start_rm_behavior_tree_cmd = Node(
         package="rm_behavior_tree",
-        executable="rm_behavior_tree",
+        executable=rm_behavior_tree_executable,
         name="rm_behavior_tree",
         output="screen",
         respawn=use_respawn,
@@ -453,6 +454,7 @@ def generate_launch_description():
         default_style_file = "rmuc_01.xml"
         enable_rm_bt = False
         style_file = default_style_file
+        rm_bt_executable = "rm_behavior_tree"
         processed_file = str(params_path)
         controller_plugin_name = None
         neupan_frame_name = None
@@ -568,6 +570,7 @@ def generate_launch_description():
             if not rm_bt_params and target_data is not raw_yaml:
                 rm_bt_params = _get_ros_params(raw_yaml, "rm_behavior_tree")
             style_file = rm_bt_params.get("style", style_file)
+            rm_bt_executable = rm_bt_params.get("executable", rm_bt_executable)
             if behavior_tree_selector:
                 selector_lower = behavior_tree_selector.lower()
                 if selector_lower in {"disabled", "none", "nav2", "default"}:
@@ -692,6 +695,7 @@ def generate_launch_description():
             SetLaunchConfiguration(
                 "enable_rm_behavior_tree", "true" if enable_rm_bt else "false"
             ),
+            SetLaunchConfiguration("rm_behavior_tree_executable", rm_bt_executable),
             SetLaunchConfiguration("rm_behavior_tree_style_path", style_path),
             SetLaunchConfiguration("processed_params_file", processed_file),
             SetLaunchConfiguration("enable_obstacle_scan", enable_obstacle_scan_value),
