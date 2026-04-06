@@ -1,0 +1,61 @@
+# RMUC 2026 哨兵行为树参数配置文件
+
+# 使用方式：在 launch 文件中通过 parameters 加载本文件
+# 所有参数前缀：rmuc_sentry_config.*
+# 坐标单位：米 (map 坐标系)
+
+rmuc_sentry_config:
+
+  # 地图坐标
+  # 请根据实际比赛场地填写 (单位: 米, map 坐标系)
+
+  home_x: 0.0                    # 己方出生点/复活点 x
+  home_y: 0.0                    # 己方出生点/复活点 y
+
+  supply_zone_x: 0.0             # 补给区坐标 x (RFID刷卡 + 导航 + 选点 统一使用)
+  supply_zone_y: 0.0             # 补给区坐标 y
+
+  base_buff_x: 0.0               # 己方基地增益区中心 x
+  base_buff_y: 0.0               # 己方基地增益区中心 y
+
+  outpost_buff_x: 0.0            # 己方前哨站增益区中心 x
+  outpost_buff_y: 0.0            # 己方前哨站增益区中心 y
+
+  fortress_ally_x: 0.0           # 己方堡垒区中心 x
+  fortress_ally_y: 0.0           # 己方堡垒区中心 y
+
+  fortress_enemy_x: 0.0          # 敌方堡垒区中心 x
+  fortress_enemy_y: 0.0          # 敌方堡垒区中心 y
+
+  central_highland_x: 0.0        # 中央高地中心 x
+  central_highland_y: 0.0        # 中央高地中心 y
+
+  ladder_highland_x: 0.0         # 梯形高地中心 x
+  ladder_highland_y: 0.0         # 梯形高地中心 y
+
+  defend_anchor_x: 0.0           # 防御锚点 (基地前守卫位置) x 直接写基地位置即可
+  defend_anchor_y: 0.0           # 防御锚点 y
+
+  # ─────────── 巡逻航点 (3个点组成巡逻三角形) ───────────
+  # ── 巡逻配置 ──
+  patrol_enable: false              # 是否启用巡逻 (仅前哨站被毁时生效)
+  patrol_waypoints: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # 巡逻点数组 [x1,y1,x2,y2,...] 填几组就巡几个点
+  patrol_hold_ms: 5000              # 巡逻到达每个点后停留时间 (毫秒)
+
+  # ─────────── 战斗/生存阈值 ───────────
+  hp_low: 180                    # 低血量阈值 (触发 LowHPRetreat 撤退回补给区)
+  hp_safe: 280                   # 安全血量阈值 (HoldAndHeal 回血目标)
+  heat_high: 210                 # 高热量阈值 (限制开火)
+  ammo_low: 80                   # 低弹药阈值 (触发 AmmoPlan) 即低于多少弹药量的时候需要去补给
+  ammo_target: 300               # 目标弹药量 (AmmoPlan 补给目标) 即在增益点补充到多少才停
+  allow_ammo_max: 400            # 允许发弹量上限 (防止无限累加)
+
+  # ─────────── 导航参数 ───────────
+  arrive_radius: 0.35            # 到达判定半径 (米)
+
+  # ─────────── 基地防御参数 ───────────
+  base_deficit_for_fortress: 500  # 基地血量差值阈值 (判断是否需要堡垒支援)
+  enemy_near_base_radius: 2.0    # 敌人距基地威胁半径 (米)
+
+  # ─────────── 目标控制参数 ───────────
+  objective_hold_ms: 12000       # 目标点占据等待时间 (毫秒)

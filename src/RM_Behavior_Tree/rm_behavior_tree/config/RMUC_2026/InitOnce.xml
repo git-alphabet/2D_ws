@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="InitOnce">
+        <Sequence>
+            <InitSentryConfig
+                topic_game_status="{cfg.topic_game_status}"
+                topic_robot_status="{cfg.topic_robot_status}"
+                topic_rfid_status="{cfg.topic_rfid_status}"
+                topic_robot_pose="{cfg.topic_robot_pose}"
+
+                home_x="{cfg.home_x}" home_y="{cfg.home_y}"
+                supply_zone_x="{cfg.supply_zone_x}" supply_zone_y="{cfg.supply_zone_y}"
+                base_buff_x="{cfg.base_buff_x}" base_buff_y="{cfg.base_buff_y}"
+                outpost_buff_x="{cfg.outpost_buff_x}" outpost_buff_y="{cfg.outpost_buff_y}"
+                fortress_ally_x="{cfg.fortress_ally_x}" fortress_ally_y="{cfg.fortress_ally_y}"
+                fortress_enemy_x="{cfg.fortress_enemy_x}" fortress_enemy_y="{cfg.fortress_enemy_y}"
+                central_highland_x="{cfg.central_highland_x}" central_highland_y="{cfg.central_highland_y}"
+                ladder_highland_x="{cfg.ladder_highland_x}" ladder_highland_y="{cfg.ladder_highland_y}"
+                defend_anchor_x="{cfg.defend_anchor_x}" defend_anchor_y="{cfg.defend_anchor_y}"
+
+                arrive_radius="{cfg.arrive_radius}"
+                hp_low="{cfg.hp_low}"
+                hp_safe="{cfg.hp_safe}"
+                heat_high="{cfg.heat_high}"
+                ammo_low="{cfg.ammo_low}"
+                ammo_target="{cfg.ammo_target}"
+                allow_ammo_max="{cfg.allow_ammo_max}"
+                enemy_near_base_radius="{cfg.enemy_near_base_radius}"
+                objective_hold_ms="{cfg.objective_hold_ms}"
+                patrol_hold_ms="{cfg.patrol_hold_ms}"
+                patrol_enable="{cfg.patrol_enable}"
+                patrol_waypoints="{cfg.patrol_waypoints}"
+                />
+            <InitCmdState cmd_state="{cmd.state}"
+                          allow_ammo_target="{cmd.allow_ammo_target}"/>
+        </Sequence>
+    </BehaviorTree>
+
+</root>

@@ -1,0 +1,202 @@
+<root BTCPP_format="4">
+  <!--
+    HighHPCombatLogic — 高血量(≥300)战斗策略
+    ================================================================
+    设计原则 (RMUL 3v3):
+      1. 检测到敌人 → 立即刹车+原地不动，停止云台扫描让瞄准程序接管，
+         开启小陀螺增强防护 → 最大化射击精度
+      2. 枪口热量过高 → 暂停射击姿态，开启小陀螺闪避等热量冷却
+      3. 未检测到敌人 → 主动巡逻占控制区，保持云台扫描搜敌
+    ================================================================
+    使用的已有插件:
+      Condition: IsHPAbove, IsDetectEnemy, IsStatusOK
+      Action:    RobotControl, NavControlCmd, SendGoal, GetCurrentLocation,
+                 MoveAround
+      Decorator: RateController
+  -->
+  <BehaviorTree ID="HighHPCombatLogic">
+    <ReactiveSequence>
+      <!-- 前置条件: 血量 ≥ cfg.hp_high_threshold 才进入高血量逻辑 -->
+      <IsHPAbove message="{robot_status}" hp_threshold="{cfg.hp_high_threshold}"/>
+
+      <ReactiveFallback>
+        <!-- ══════════════════════════════════════════════════════════
+             分支 A: 靠近控制区(路径距离≤2m) + 非回家模式 + 检测到敌人 → 进入交战状态
+             远离控制区时忽略敌人，优先导航抢点不恋战
+             回家（need_recovery）模式时强制忽略敌人，以补给区为最优先目标
+             路径距离由Nav2全局规划路径(plan topic)计算，无规划时回退为欧氏距离
+             ══════════════════════════════════════════════════════════ -->
+        <ReactiveSequence>
+          <!-- 门控1: 非回家模式（need_recovery=false），残血回家时不允许战斗 -->
+          <Inverter>
+            <IsRecoveryNeeded need_recovery="{need_recovery}"/>
+          </Inverter>
+          <!-- 门控2: 靠近控制区（路径距离≤0.5m），远途中不恋战 -->
+          <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
+                         goal_x="{cfg.control_zone_goal_x}" goal_y="{cfg.control_zone_goal_y}"
+                         arrive_radius="0.5"
+                         use_path_distance="true"/>
+          <IsDetectEnemy message="{robot_status}"/>
+
+          <!-- 检测到敌人后立即取消正在执行的Nav2导航目标，否则Nav2会继续驱动机器人移动 -->
+          <ForceSuccess>
+            <CancelNavGoal action_name="navigate_to_pose" min_interval_ms="1000"/>
+          </ForceSuccess>
+
+          <Fallback>
+            <!-- A-1: 热量安全(≤280) → 刹车+原地，停云台扫描让自瞄接管，开小陀螺
+                 说明: 机器人停止移动以最大化射击精度，
+                       小陀螺提供被动防护减少受弹面积 -->
+            <Sequence>
+              <IsStatusOK message="{robot_status}"
+                          hp_threshold="0"
+                          heat_threshold="280"/>
+              <NavControlCmd cmd_type="3" emergency_stop="False"/>
+              <RobotControl stop_gimbal_scan="True"
+                            chassis_spin="True"/>
+            </Sequence>
+
+            <!-- A-2: 热量过高(>280) → 暂停射击姿态，小幅闪避等冷却
+                 说明: 热量超限继续射击会被裁判系统扣血,
+                       此时利用闪避拉开距离、降低被命中率 -->
+            <Sequence>
+              <RobotControl stop_gimbal_scan="False"
+                            chassis_spin="True"/>
+              <NavControlCmd cmd_type="3" emergency_stop="False"/>
+              <KeepRunning/>
+            </Sequence>
+          </Fallback>
+        </ReactiveSequence>
+
+        <!-- ══════════════════════════════════════════════════════════
+             分支 B: 未检测到敌人 → 主动巡逻+占控制区
+             三状态切换: B-1 到达控制区 / B-2 脱困点待命 / B-3 导航移动
+             ══════════════════════════════════════════════════════════ -->
+        <ReactiveFallback>
+          <!-- ─── B-1: 已到达控制区 → 站定搜敌 + 小陀螺防护 ─── -->
+          <ReactiveSequence>
+            <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
+                           goal_x="{cfg.control_zone_goal_x}" goal_y="{cfg.control_zone_goal_y}"
+                           arrive_radius="{cfg.arrive_radius}"/>
+            <RobotControl stop_gimbal_scan="False" chassis_spin="True"/>
+            <NavControlCmd cmd_type="3" emergency_stop="False"/>
+            <KeepRunning/>
+          </ReactiveSequence>
+
+          <!-- ─── B-2: 到达脱困点且控制区仍被阻 → 原地小陀螺待命 ───
+               激活条件: 已到达脱困目标点(escape.goal_x/y) 且 控制区不可通行
+               退出条件: 控制区恢复通行(Inverter返回FAILURE) → B-2失败 → B-3接管
+               escape.goal_x/y未设置时: IsWithinScope用默认值(0,0)→FAILURE → B-3直接运行
+          -->
+          <ReactiveSequence>
+            <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
+                           goal_x="{escape.goal_x}" goal_y="{escape.goal_y}"
+                           arrive_radius="0.5"/>
+            <Inverter>
+              <IsGoalAreaClear goal_x="{cfg.control_zone_goal_x}"
+                               goal_y="{cfg.control_zone_goal_y}"
+                               check_radius="1.0"
+                               min_free_neighbors="2"
+                               free_threshold="200"/>
+            </Inverter>
+            <RobotControl stop_gimbal_scan="False" chassis_spin="True"/>
+            <NavControlCmd cmd_type="3" emergency_stop="False"/>
+            <KeepRunning/>
+          </ReactiveSequence>
+
+          <!-- ─── B-3: 未到达 → 导航前往控制区 ─── -->
+          <ReactiveSequence>
+            <RobotControl stop_gimbal_scan="False" chassis_spin="False"/>
+            <NavControlCmd cmd_type="1" emergency_stop="False"/>
+            <ReactiveFallback name="NavUntilArrived_ControlZone">
+              <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}" goal_x="{cfg.control_zone_goal_x}" goal_y="{cfg.control_zone_goal_y}" arrive_radius="{cfg.arrive_radius}"/>
+              <ReactiveSequence>
+                <RateController hz="1">
+                  <Fallback>
+                    <!-- 1) 未卡住+目标可通行+Nav2未拒绝 → 正常前往控制区 -->
+                    <Sequence>
+                      <Inverter>
+                        <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
+                                           goal_x="{cfg.control_zone_goal_x}"
+                                           goal_y="{cfg.control_zone_goal_y}"
+                                           stuck_check_radius="{cfg.stuck_check_radius}"
+                                           stuck_timeout_ms="5000"
+                                           far_stuck_timeout_ms="10000"
+                                           movement_threshold="0.15"
+                                           reset_distance="0.5"
+                                           near_goal_skip_radius="0.4"/>
+                      </Inverter>
+                      <IsGoalAreaClear goal_x="{cfg.control_zone_goal_x}"
+                                       goal_y="{cfg.control_zone_goal_y}"
+                                       check_radius="1.0"
+                                       min_free_neighbors="2"
+                                       free_threshold="200"/>
+                      <Inverter>
+                        <IsNavGoalRejected action_name="navigate_to_pose"
+                                           latch_timeout_ms="10000"/>
+                      </Inverter>
+                      <SendGoal name="PatrolControlZone_Normal"
+                                goal_x="{cfg.control_zone_goal_x}"
+                                goal_y="{cfg.control_zone_goal_y}"
+                                frame_id="map"
+                                action_name="navigate_to_pose" min_interval_ms="1000"/>
+                    </Sequence>
+                    <!-- 2) 未卡住+远距(>4.5m路径)+目标被阻 → 接近点 -->
+                    <Sequence>
+                      <Inverter>
+                        <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
+                                           goal_x="{cfg.control_zone_goal_x}"
+                                           goal_y="{cfg.control_zone_goal_y}"
+                                           stuck_check_radius="{cfg.stuck_check_radius}"
+                                           stuck_timeout_ms="5000"
+                                           far_stuck_timeout_ms="10000"
+                                           movement_threshold="0.15"
+                                           reset_distance="0.5"
+                                           near_goal_skip_radius="0.4"/>
+                      </Inverter>
+                      <Inverter>
+                        <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
+                                       goal_x="{cfg.control_zone_goal_x}"
+                                       goal_y="{cfg.control_zone_goal_y}"
+                                       arrive_radius="3.0"
+                                       use_path_distance="true"/>
+                      </Inverter>
+                      <FindApproachPoint robot_x="{pose.x}" robot_y="{pose.y}"
+                                         goal_x="{cfg.control_zone_goal_x}"
+                                         goal_y="{cfg.control_zone_goal_y}"
+                                         search_radius="3.0"
+                                         cost_threshold="150"
+                                         approach_x="{nav.goal_x}"
+                                         approach_y="{nav.goal_y}"
+                                         approach_pose="{nav.goal_pose}"/>
+                      <SendGoal name="PatrolControlZone_Approach"
+                                goal_pose="{nav.goal_pose}"
+                                frame_id="map"
+                                action_name="navigate_to_pose" min_interval_ms="1000"/>
+                    </Sequence>
+                    <!-- 3) 兜底：卡住/近距被阻/Nav2拒绝 → 脱困点(单实例，避免多点竞争) -->
+                    <Sequence>
+                      <FindEscapePoint robot_x="{pose.x}" robot_y="{pose.y}"
+                                       goal_x="{cfg.control_zone_goal_x}"
+                                       goal_y="{cfg.control_zone_goal_y}"
+                                       escape_x="{escape.goal_x}"
+                                       escape_y="{escape.goal_y}"
+                                       escape_pose="{escape.goal_pose}"
+                                       zones_file="{cfg.semantic_zones_file}"/>
+                      <SendGoal name="PatrolControlZone_Escape"
+                                goal_pose="{escape.goal_pose}"
+                                frame_id="map"
+                                action_name="navigate_to_pose" min_interval_ms="1000"/>
+                    </Sequence>
+                  </Fallback>
+                </RateController>
+                <KeepRunning/>
+              </ReactiveSequence>
+            </ReactiveFallback>
+          </ReactiveSequence>
+        </ReactiveFallback>
+
+      </ReactiveFallback>
+    </ReactiveSequence>
+  </BehaviorTree>
+</root>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="SustainAndEconomy">
+        <!-- Ammo management (prefer supply free ticks & station purchase; remote only when disengaged) -->
+        <SubTree ID="AmmoPlan" _autoremap="true"/>
+    </BehaviorTree>
+
+</root>

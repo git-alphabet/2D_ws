@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="EngageCombat">
+        <ReactiveSequence>
+            <!-- 门控：视觉检测到敌人才执行 -->
+            <RmucIsDetectEnemy message="{robot_status}"/>
+ 
+            <!-- 检测到敌人 → 终止导航，原地站定 -->
+            <RmucNavControlCmd cmd_type="3" emergency_stop="False"/>
+
+            <!-- 开启底盘旋转，保持云台扫描 -->
+            <RmucRobotControl stop_gimbal_scan="False"
+                              chassis_spin="True"/>
+
+            <!-- 保持运行，直到上层条件打断 -->
+            <KeepRunning/>
+        </ReactiveSequence>
+    </BehaviorTree>
+</root>

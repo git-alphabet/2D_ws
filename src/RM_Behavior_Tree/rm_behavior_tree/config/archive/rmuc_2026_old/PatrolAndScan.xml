@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="PatrolAndScan">
+        <Sequence>
+            <RmucRobotControl stop_gimbal_scan="False"
+                              chassis_spin="False"
+                              fire_enable="False"/>
+            <WaypointPatrol pose_x="{pose.x}" pose_y="{pose.y}"
+                            wpt0_x="{cfg.patrol.0.x}" wpt0_y="{cfg.patrol.0.y}"
+                            wpt1_x="{cfg.patrol.1.x}" wpt1_y="{cfg.patrol.1.y}"
+                            wpt2_x="{cfg.patrol.2.x}" wpt2_y="{cfg.patrol.2.y}"
+                            goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"/>
+            <RateController hz="1">
+                <SendGoal name="Patrol"
+                          goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                          frame_id="map" action_name="navigate_to_pose"/>
+            </RateController>
+            <KeepRunning/>
+        </Sequence>
+    </BehaviorTree>
+
+</root>

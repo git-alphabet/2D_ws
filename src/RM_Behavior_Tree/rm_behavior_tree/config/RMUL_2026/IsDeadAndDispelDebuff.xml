@@ -1,0 +1,171 @@
+<root BTCPP_format="4">
+    <!--
+      IsDeadAndDispelDebuff 子树 (修复版)
+      ======================================
+      原始 bug: 外层 Sequence 将 IsDead 和 DetectRespawn 串联，
+        导致复活后 IsDead=FAILURE → 整个子树短路退出，
+        DetectRespawnAndSetRecovery 永远不会被 tick 到。
+
+        修复方案:
+          1. DetectRespawn 提升到最外层，每次 tick 都能执行（持续跟踪 was_dead）
+          2. 用 Fallback 分叉两种互斥状态：
+              - 死亡 → 停车等待
+              - 需要恢复 → 回补给区等待回血（无 RFID 依赖）
+          3. 两个分支都 FAILURE 时，整棵子树 FAILURE → 上层 Fallback 进入战斗逻辑
+
+      状态机:
+        存活(hp>0, no recovery) → FAILURE (正常退出，去战斗)
+        死亡(hp=0)             → SUCCESS (停车等待复活)
+        复活(was_dead→alive)   → DetectRespawn 置 need_recovery=true
+        恢复中(need_recovery)  → SUCCESS (导航补给区→等待回血→清flag)
+    -->
+    <BehaviorTree ID="IsDeadAndDispelDebuff">
+        <ReactiveSequence>
+
+            <!-- 0. 每次 tick 都执行：持续跟踪 was_dead / 检测复活沿 -->
+            <DetectRespawnAndSetRecovery
+                topic_name="robot_status"
+                was_dead="{was_dead}"
+                hp_cur="{hp_cur}"
+                need_recovery="{need_recovery}"
+                recovery_start_ms="{recovery_start_ms}"
+                search_start_ms="{search_start_ms}"
+                heal_start_ms="{heal_start_ms}"/>
+
+            <!-- 1. 根据当前状态选择分支（两个都 FAILURE = 正常存活，子树 FAILURE） -->
+            <Fallback>
+
+                <!-- A. 战亡：取消导航+停车等待复活读条结束 -->
+                <Sequence name="IfDead_StopAndWait">
+                    <IsDead message="{robot_status}"/>
+                    <ForceSuccess>
+                        <CancelNavGoal action_name="navigate_to_pose" min_interval_ms="1000"/>
+                    </ForceSuccess>
+                    <RobotControl stop_gimbal_scan="True" 
+                                  chassis_spin="False"/>
+                    <NavControlCmd cmd_type="3" 
+                                   emergency_stop="False"/>
+                </Sequence>
+
+                <!-- B. 恢复模式：复活后强制回补给区并回血
+                     使用 ReactiveSequence 确保每次 tick 重新检查 need_recovery，
+                     当 DetectRespawnAndSetRecovery 检测到 hp >= recovery_exit_hp 时
+                     自动清除 need_recovery=false，本节点立即 FAILURE 退出恢复流程 -->
+                <ReactiveSequence name="RecoveryMode">
+
+                    <IsRecoveryNeeded need_recovery="{need_recovery}"/>
+
+                    <!--
+                      恢复主流程：去补给区 -> 到点等待回血 -> 退出恢复模式
+                      说明：不再使用 IsHPAbove(message={robot_status}) 的“快速退出”分支，
+                      避免与 DetectRespawn 读取血量存在消息时序差时误清 need_recovery。
+                    -->
+                    <Sequence name="GoSupply_ThenHeal">
+
+                            <!-- 0. 关闭小陀螺（避免从战斗模式切入恢复时 spin 残留） -->
+                            <RobotControl stop_gimbal_scan="False"
+                                          chassis_spin="False"/>
+
+                            <!-- 1. 启动导航模式 -->
+                            <NavControlCmd cmd_type="1" emergency_stop="False"/>
+
+                            <!-- 2. 导航到补给区（到达前持续RUNNING，含卡住检测+逃脱恢复） -->
+                            <ReactiveFallback name="NavUntilArrived">
+                                <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}" goal_x="{cfg.supply_goal_x}" goal_y="{cfg.supply_goal_y}" arrive_radius="{cfg.arrive_radius}"/>
+                                <!-- HP在回升 → 脱困点恰好在补给区内，视为已到达 -->
+                                <IsHPIncreasing message="{robot_status}"/>
+                                <ReactiveSequence>
+                                    <RateController hz="1">
+                                        <Fallback>
+                                            <!-- 1) 未卡住 + 目标区域安全 → 正常前往补给区 -->
+                                            <Sequence>
+                                                <Inverter>
+                                                    <IsNavigationStuck pose_x="{pose.x}" pose_y="{pose.y}"
+                                                                       goal_x="{cfg.supply_goal_x}"
+                                                                       goal_y="{cfg.supply_goal_y}"
+                                                                       stuck_check_radius="{cfg.stuck_check_radius}"
+                                                                       stuck_timeout_ms="5000"
+                                                                       far_stuck_timeout_ms="10000"
+                                                                       movement_threshold="0.15"
+                                                                       reset_distance="0.5"
+                                                                       near_goal_skip_radius="0.0"/>
+                                                </Inverter>
+                                                <IsGoalAreaClear goal_x="{cfg.supply_goal_x}"
+                                                                 goal_y="{cfg.supply_goal_y}"
+                                                                 check_radius="0.3"
+                                                                 min_free_neighbors="2"
+                                                                 free_threshold="200"/>
+                                                <SendGoal name="GoSupplyToHeal_Normal"
+                                                          goal_x="{cfg.supply_goal_x}"
+                                                          goal_y="{cfg.supply_goal_y}"
+                                                          frame_id="map"
+                                                          action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                            </Sequence>
+                                            <!-- 2) 脱困：清除代价地图 + 搜索逃脱点（在脱困点等待最多3秒） -->
+                                            <Sequence>
+                                                <ForceSuccess>
+                                                    <ClearCostmap service_name="local_costmap/clear_entirely" timeout_ms="1000"/>
+                                                </ForceSuccess>
+                                                <ForceSuccess>
+                                                    <ClearCostmap service_name="global_costmap/clear_entirely" timeout_ms="1000"/>
+                                                </ForceSuccess>
+                                                <FindEscapePoint robot_x="{pose.x}" robot_y="{pose.y}"
+                                                                 goal_x="{cfg.supply_goal_x}"
+                                                                 goal_y="{cfg.supply_goal_y}"
+                                                                 escape_timeout_ms="3000"
+                                                                 escape_x="{nav.goal_x}"
+                                                                 escape_y="{nav.goal_y}"
+                                                                 escape_pose="{nav.goal_pose}"
+                                                                 zones_file="{cfg.semantic_zones_file}"/>
+                                                <SendGoal name="GoSupplyToHeal_Escape"
+                                                          goal_pose="{nav.goal_pose}"
+                                                          frame_id="map"
+                                                          action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                            </Sequence>
+                                            <!-- 3) 脱困超时3秒 → 不顾风险，强制返航补给区 -->
+                                            <SendGoal name="GoSupplyToHeal_Forced"
+                                                      goal_x="{cfg.supply_goal_x}"
+                                                      goal_y="{cfg.supply_goal_y}"
+                                                      frame_id="map"
+                                                      action_name="navigate_to_pose" min_interval_ms="1000"/>
+                                        </Fallback>
+                                    </RateController>
+                                    <KeepRunning/>
+                                </ReactiveSequence>
+                            </ReactiveFallback>
+
+                            <!-- 3. 到达后刹车 -->
+                            <RobotControl stop_gimbal_scan="True" 
+                                          chassis_spin="False"/>
+                            <NavControlCmd cmd_type="3" 
+                                           emergency_stop="False"/>
+
+                            <!-- 4. 到点后按时间+血量门限等待回血 -->
+                            <RetryUntilSuccessful num_attempts="-1">
+                                <WaitAndHeal
+                                    topic_name="robot_status"
+                                    now_ms="{now_ms}"
+                                    heal_start_ms="{heal_start_ms}"
+                                    heal_wait_ms="{cfg.heal_wait_ms}"
+                                    hp_cur="{hp_cur}"
+                                    hp_max="{hp_max}"
+                                    heal_min_hp="{cfg.heal_min_hp}"/>
+                            </RetryUntilSuccessful>
+
+                            <!-- 5. 退出恢复模式 -->
+                            <ClearRecoveryFlag
+                                need_recovery="{need_recovery}"
+                                heal_start_ms="{heal_start_ms}"
+                                search_start_ms="{search_start_ms}"
+                                recovery_start_ms="{recovery_start_ms}"/>
+
+                    </Sequence>
+
+                </ReactiveSequence>
+
+            </Fallback>
+
+        </ReactiveSequence>
+    </BehaviorTree>
+
+</root>

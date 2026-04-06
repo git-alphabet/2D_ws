@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="ObjectivePlanner">
+        <ReactiveSequence>
+            <!-- 选择战略目标 (中心高地 / 梯形高地) -->
+            <SelectObjective pose_x="{pose.x}" pose_y="{pose.y}"
+                             stage_elapsed_time="{game.elapsed_s}"
+                             stage_remain_time="{game.remain_s}"
+                             hp_cur="{hp.cur}" hp_max="{hp.max}"
+                             outpost_alive="{outpost.alive}"
+                             central_highland_x="{cfg.central_highland_x}"
+                             central_highland_y="{cfg.central_highland_y}"
+                             ladder_highland_x="{cfg.ladder_highland_x}"
+                             ladder_highland_y="{cfg.ladder_highland_y}"
+                             goal_x="{nav.objective_x}" goal_y="{nav.objective_y}"
+                             objective_name="{nav.objective}"/>
+
+            <!-- 巡逻决策：如果前哨站被毁+巡逻开启 → 在目标点和巡逻点间循环 -->
+            <ObjectivePatrol pose_x="{pose.x}" pose_y="{pose.y}"
+                             objective_x="{nav.objective_x}"
+                             objective_y="{nav.objective_y}"
+                             objective_name="{nav.objective}"
+                             patrol_enable="{cfg.patrol_enable}"
+                             patrol_waypoints="{cfg.patrol_waypoints}"
+                             patrol_hold_ms="{cfg.patrol_hold_ms}"
+                             arrive_radius="{cfg.arrive_radius}"
+                             goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"/>
+
+            <!-- 导航到当前目标 -->
+            <RateController hz="1">
+                <SendGoal name="{nav.objective}"
+                          goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                          frame_id="map" action_name="navigate_to_pose"/>
+            </RateController>
+
+            <ReactiveFallback>
+                <!-- 到达目标 → 开启旋转 -->
+                <ReactiveSequence>
+                    <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
+                              goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                              arrive_radius="{cfg.arrive_radius}"/>
+                    <RmucRobotControl stop_gimbal_scan="False"
+                                      chassis_spin="True"/>
+                    <KeepRunning/>
+                </ReactiveSequence>
+
+                <!-- 未到达 → 正常导航，不旋转 -->
+                <ReactiveSequence>
+                    <RmucRobotControl stop_gimbal_scan="False"
+                                      chassis_spin="False"/>
+                    <KeepRunning/>
+                </ReactiveSequence>
+            </ReactiveFallback>
+        </ReactiveSequence>
+    </BehaviorTree>
+
+</root>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="CommandHub">
+        <Sequence>
+            <!-- Decide posture (1 attack / 2 defense / 3 move), obey 5s cooldown & 3min degradation policy inside node -->
+            <DecidePosture hp_cur="{hp.cur}"
+                           hp_max="{hp.max}"
+                           heat_cur="{heat.cur}"
+                           heat_high="{cfg.heat_high}"
+                           has_target="{combat.has_target}"
+                           base_threat="{threat.base}"
+                           is_disengaged="{state.disengaged}"
+                           stage_elapsed_time="{game.elapsed_s}"
+                           now_ms="{time.now_ms}"
+                           posture_out="{cmd.posture}"/>
+
+            <!-- Decide remote exchange & allow-ammo target (monotonic target is maintained inside node) -->
+            <DecideEconomyCmd hp_cur="{hp.cur}"
+                              hp_max="{hp.max}"
+                              ammo_allow="{ammo.allow}"
+                              ammo_target="{cfg.ammo_target}"
+                              ammo_low="{cfg.ammo_low}"
+                              is_disengaged="{state.disengaged}"
+                              can_remote_heal="{economy.can_remote_heal}"
+                              can_remote_ammo="{economy.can_remote_ammo}"
+                              team_coins="{economy.coins}"
+                              stage_remain_time="{game.remain_s}"
+                              base_threat="{threat.base}"
+                              allow_ammo_target_in="{cmd.allow_ammo_target}"
+                              allow_ammo_target_out="{cmd.allow_ammo_target}"
+                              trigger_remote_ammo="{cmd.trig_remote_ammo}"
+                              trigger_remote_hp="{cmd.trig_remote_hp}"
+                              enable_big_energy="{cmd.enable_big_energy}"/>
+
+            <!-- Decide respawn confirm / instant respawn request (sends 0 when alive) -->
+            <DecideRespawnCmd is_dead="{state.is_dead}"
+                              robot_status="{robot_status}"
+                              team_coins="{economy.coins}"
+                              stage_remain_time="{game.remain_s}"
+                              base_hp_cur="{base.hp.cur}"
+                              base_hp_max="{base.hp.max}"
+                              base_threat="{threat.base}"
+                              confirm_respawn="{cmd.confirm_respawn}"
+                              confirm_instant_respawn="{cmd.confirm_instant_respawn}"/>
+
+            <RateController hz="5">
+                <SentryCmdMux posture="{cmd.posture}"
+                              confirm_respawn="{cmd.confirm_respawn}"
+                              confirm_instant_respawn="{cmd.confirm_instant_respawn}"
+                              allow_ammo_target="{cmd.allow_ammo_target}"
+                              trigger_remote_ammo="{cmd.trig_remote_ammo}"
+                              trigger_remote_hp="{cmd.trig_remote_hp}"
+                              enable_big_energy="{cmd.enable_big_energy}"
+                              cmd_state="{cmd.state}"/>
+            </RateController>
+
+            <KeepRunning/>
+        </Sequence>
+    </BehaviorTree>
+
+</root>

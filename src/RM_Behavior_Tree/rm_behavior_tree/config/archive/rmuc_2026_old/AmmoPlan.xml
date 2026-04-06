@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="AmmoPlan">
+        <ReactiveSequence>
+            <IsAmmoBelow ammo_allow="{ammo.allow}" ammo_low="{cfg.ammo_low}"/>
+
+            <ReactiveFallback>
+                <!-- If at supply: claim free ticks and optionally stay for next minute -->
+                <ReactiveSequence>
+                    <IsZoneCardDetected zone="SUPPLY" rfid_status="{rfid.status}" robot_status="{robot_status}"/>
+                    <HoldForSupplyAmmoTick stage_elapsed_time="{game.elapsed_s}"
+                                           ammo_allow="{ammo.allow}"
+                                           ammo_target="{cfg.ammo_target}"/>
+                </ReactiveSequence>
+
+                <!-- Else: go to nearest station (supply/base/outpost) -->
+                <ReactiveSequence>
+                    <SelectNearestResupplyStation pose_x="{pose.x}" pose_y="{pose.y}"
+                                                  supply_x="{cfg.supply_x}" supply_y="{cfg.supply_y}"
+                                                  base_buff_x="{cfg.base_buff_x}" base_buff_y="{cfg.base_buff_y}"
+                                                  outpost_buff_x="{cfg.outpost_buff_x}" outpost_buff_y="{cfg.outpost_buff_y}"
+                                                  goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"/>
+                    <RateController hz="1">
+                        <SendGoal name="GoResupplyStation"
+                                  goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                                  frame_id="map" action_name="navigate_to_pose"/>
+                    </RateController>
+                    <RmucRobotControl stop_gimbal_scan="False"
+                                      chassis_spin="False"
+                                      fire_enable="False"/>
+                    <KeepRunning/>
+                </ReactiveSequence>
+            </ReactiveFallback>
+        </ReactiveSequence>
+    </BehaviorTree>
+
+</root>

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4"
+      main_tree_to_execute="rmuc_2026"> 
+
+    <!--
+      哨兵自主决策行为树 (BT.CPP v4 XML)
+      - 核心：生存能力 + 目标控制 + 经济感知补给 + 姿态管理
+      - 基于 RoboMaster 2026 哨兵规则设计：姿态系统、远程兑换、补给回血、堡垒/基地/前哨站增益
+      - 所有地图坐标可通过 InitSentryConfig 输出配置
+    -->
+
+    <BehaviorTree ID="rmuc_2026">
+        <ReactiveSequence>
+            <!-- 感知 -> 黑板（应持续 tick；节点预期为非阻塞） -->
+            <SubTree ID="PerceptionAndBlackboard" _autoremap="true"/>
+
+            <!-- 初始化配置 + 内部命令状态（幂等；可安全重复 tick） -->
+            <SubTree ID="InitOnce" _autoremap="true"/>
+
+            <!-- 比赛阶段循环（7 分钟 = 420 秒） -->
+            <WhileDoElse>
+                <RmucIsGameTime name="IsMatchStage"
+                                message="{game_status}"
+                                game_progress="4"
+                                lower_remain_time="0"
+                                higher_remain_time="420"/>
+
+                <!-- ===================== 比赛阶段 ===================== -->
+                <ReactiveSequence>
+
+                    <!-- 构建并按控制速率发送哨兵自主决策指令 (0x0120) -->
+                    <SubTree ID="CommandHub" _autoremap="true"/>
+
+                    <!-- 基于优先级的战术 -->
+                    <ReactiveFallback>
+
+                        <!-- 0) 死亡停车 / 低血量撤退回补给区回血 -->
+                        <Sequence>
+                            <SetBlackboard output_key="active_subtree" value="LowHPRetreat"/>
+                            <SubTree ID="LowHPRetreat" _autoremap="true"/>
+                        </Sequence>
+
+                        <!-- 1) 基地/堡垒防御（受威胁时） -->
+                        <Sequence>
+                            <SetBlackboard output_key="active_subtree" value="BaseDefense"/>
+                            <SubTree ID="BaseDefense" _autoremap="true"/>
+                        </Sequence>
+
+                        <!-- 2) 交战（有有效目标且安全时） -->
+                        <Sequence>
+                            <SetBlackboard output_key="active_subtree" value="EngageCombat"/>
+                            <SubTree ID="EngageCombat" _autoremap="true"/>
+                        </Sequence>
+
+                        <!-- 3) 后勤：补弹（经济感知） -->
+                        <Sequence>
+                            <SetBlackboard output_key="active_subtree" value="SustainAndEconomy"/>
+                            <SubTree ID="SustainAndEconomy" _autoremap="true"/>
+                        </Sequence>
+
+                        <!-- 4) 目标控制：中央高地/梯形高地/堡垒/隧道等 -->
+                        <Sequence>
+                            <SetBlackboard output_key="active_subtree" value="ObjectivePlanner"/>
+                            <SubTree ID="ObjectivePlanner" _autoremap="true"/>
+                        </Sequence>
+
+
+                    </ReactiveFallback>
+
+                </ReactiveSequence>
+
+                <!-- ===================== 非比赛阶段 ===================== -->
+                <ReactiveSequence>
+                    <RateController hz="1">
+                        <SendGoal name="Home"
+                                  goal_x="{cfg.home_x}"
+                                  goal_y="{cfg.home_y}"
+                                  frame_id="map"
+                                  action_name="navigate_to_pose"/>
+                    </RateController>
+                    <RmucRobotControl stop_gimbal_scan="True"
+                                      chassis_spin="False"/>
+                    <RateController hz="2">
+                        <SentryCmdMux posture="3"
+                                      confirm_respawn="0"
+                                      confirm_instant_respawn="0"
+                                      allow_ammo_target="{cmd.allow_ammo_target}"
+                                      trigger_remote_ammo="0"
+                                      trigger_remote_hp="0"
+                                      cmd_state="{cmd.state}"/>
+                    </RateController>
+                </ReactiveSequence>
+
+            </WhileDoElse>
+        </ReactiveSequence>
+    </BehaviorTree>
+
+    <!-- ===================== 子树引用 ===================== -->
+    <include path="PerceptionAndBlackboard.xml"/>
+    <include path="InitOnce.xml"/>
+    <include path="CommandHub.xml"/>
+    <include path="LowHPRetreat.xml"/>
+    <include path="BaseDefense.xml"/>
+    <include path="EngageCombat.xml"/>
+    <include path="SustainAndEconomy.xml"/>
+    <include path="AmmoPlan.xml"/>
+    <include path="ObjectivePlanner.xml"/>
+
+</root>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="BaseDefense">
+        <ReactiveSequence>
+            <!-- 判断基地是否受到威胁：base_threat 为 true 或基地当前血量低于最大血量的 50%，否则整棵树不执行 -->
+            <IsBaseThreatened base_threat="{threat.base}"
+                              base_hp_cur="{base.hp.cur}"
+                              base_hp_max="{base.hp.max}"
+                              enemy_near_base_radius="{cfg.enemy_near_base_radius}"/>
+            <!-- 开启云台跟踪和开火，关闭底盘旋转，进入防御战斗状态 -->
+            <RmucRobotControl stop_gimbal_scan="False"
+                              chassis_spin="False"
+                              fire_enable="True"/>
+            <!-- 以 1Hz 的频率导航到防御锚点，在基地附近就位 -->
+            <RateController hz="1">
+                <SendGoal name="DefendAnchor"
+                          goal_x="{cfg.defend_anchor_x}"
+                          goal_y="{cfg.defend_anchor_y}"
+                          frame_id="map"
+                          action_name="navigate_to_pose"/>
+            </RateController>
+
+            <!-- 就位后进入战斗循环：选择最优目标、瞄准、判断射击窗口、连发射击，持续运行 -->
+            <SubTree ID="CombatLoop" _autoremap="true"/>
+        </ReactiveSequence>
+    </BehaviorTree>
+
+</root>
