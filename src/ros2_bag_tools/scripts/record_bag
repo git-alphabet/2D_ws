@@ -59,6 +59,26 @@ def _read_topics(path: Path) -> list[str]:
     return topics
 
 
+def _available_storages() -> set[str]:
+    try:
+        out = subprocess.check_output(
+            ["ros2", "bag", "record", "-h"], text=True, stderr=subprocess.STDOUT
+        )
+    except Exception:
+        return set()
+
+    for line in out.splitlines():
+        if "--storage" not in line:
+            continue
+        lb = line.find("{")
+        rb = line.find("}", lb + 1)
+        if lb == -1 or rb == -1:
+            continue
+        return {item.strip() for item in line[lb + 1 : rb].split(",") if item.strip()}
+
+    return set()
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(
         prog="record_bag",
@@ -93,6 +113,20 @@ def main(argv: list[str]) -> int:
     if not topics:
         print(f"话题列表为空: {topics_file}", file=sys.stderr)
         return 1
+
+    available_storages = _available_storages()
+    if available_storages and args.storage not in available_storages:
+        joined = ", ".join(sorted(available_storages))
+        print(
+            f"当前环境不支持 storage='{args.storage}'，可用 storage: {joined}",
+            file=sys.stderr,
+        )
+        if args.storage == "mcap":
+            print(
+                "请安装 ros-humble-rosbag2-storage-mcap，或临时改用 --storage sqlite3",
+                file=sys.stderr,
+            )
+        return 2
 
     ts = _dt.datetime.now(_BEIJING_TZ).strftime("%F_%H-%M-%S")
     bag_path = out_dir / ts
