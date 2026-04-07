@@ -34,7 +34,7 @@ class RobotPositionBridge(Node):
         self.declare_parameter('publish_rate', 50.0)
         self.declare_parameter('map_frame', 'map')
         self.declare_parameter('base_frame', 'base_footprint')
-        self.declare_parameter('nav_action', '/navigate_to_pose')
+        self.declare_parameter('nav_action', 'navigate_to_pose')
 
         rate = self.get_parameter('publish_rate').value
         self.map_frame = self.get_parameter('map_frame').value

@@ -35,9 +35,6 @@ void RmucSubRobotPositionAction::callback(
 BT::NodeStatus RmucSubRobotPositionAction::tick()
 {
   std::lock_guard<std::mutex> lock(mutex_);
-  if (!has_data_) {
-    return BT::NodeStatus::SUCCESS;
-  }
   setOutput("pose_x", pose_x_);
   setOutput("pose_y", pose_y_);
   setOutput("pose_yaw", pose_yaw_);

@@ -35,7 +35,7 @@ private:
   rclcpp::Subscription<sp_msgs::msg::RMUCRobotPosition>::SharedPtr sub_;
   mutable std::mutex mutex_;
   double pose_x_{0.0}, pose_y_{0.0}, pose_yaw_{0.0};
-  bool is_at_nav_goal_{false};
+  bool is_at_nav_goal_{true};
   bool has_data_{false};
 };
 }  // namespace rm_behavior_tree

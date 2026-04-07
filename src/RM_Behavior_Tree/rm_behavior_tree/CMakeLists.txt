@@ -438,6 +438,11 @@ ament_auto_add_library(clear_costmap SHARED
 add_target_dependencies(clear_costmap)
 target_link_libraries(clear_costmap ${nav2_msgs_TARGETS})
 
+install(PROGRAMS config/RMUC_2026/robot_position_bridge.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME robot_position_bridge
+)
+
 ament_auto_package(
   INSTALL_TO_SHARE
   launch

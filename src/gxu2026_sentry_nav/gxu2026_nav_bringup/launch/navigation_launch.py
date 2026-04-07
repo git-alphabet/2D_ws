@@ -234,6 +234,18 @@ def generate_launch_description():
         condition=IfCondition(enable_rm_behavior_tree),
     )
 
+    start_robot_position_bridge_cmd = Node(
+        package="rm_behavior_tree",
+        executable="robot_position_bridge",
+        name="robot_position_bridge",
+        output="screen",
+        respawn=use_respawn,
+        respawn_delay=2.0,
+        parameters=[configured_params],
+        arguments=["--ros-args", "--log-level", log_level],
+        condition=IfCondition(enable_rm_behavior_tree),
+    )
+
     load_nodes = GroupAction(
         condition=UnlessCondition(use_composition),
         actions=[
@@ -779,6 +791,7 @@ def generate_launch_description():
     ld.add_action(start_terrain_analysis_cmd)
     ld.add_action(start_terrain_analysis_ext_cmd)
     ld.add_action(start_rm_behavior_tree_cmd)
+    ld.add_action(start_robot_position_bridge_cmd)
     ld.add_action(load_nodes)
     ld.add_action(load_composable_nodes)
     ld.add_action(load_pointcloud_to_laserscan_composable_cmd)
