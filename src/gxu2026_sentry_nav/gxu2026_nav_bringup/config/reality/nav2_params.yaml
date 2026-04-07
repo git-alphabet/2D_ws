@@ -412,16 +412,28 @@ nonlinear_spin_publisher:
     cmd_spin_topic: "cmd_spin"
     publish_rate_hz: 50.0
 
-    # 实车默认中心值与 init_spin_speed 对齐，后续你可按底盘能力改
-    center_speed: 2.8
-    range_speed: 2.0
-    target_update_period: 0.15
-    accel_limit: 16.0
+    # 变频变幅正弦叠加：center_speed + A1*sin(phi1) + A2*sin(phi2 + offset)
+    center_speed: 3.14            # 中心角速度(rad/s)
+    range_speed: 2.0              # 总振幅基准(rad/s)
+    primary_amp_ratio: 0.65       # 主正弦分量振幅占比(会和 secondary 归一化)
+    secondary_amp_ratio: 0.35     # 次正弦分量振幅占比
+    primary_freq_hz: 0.8          # 主正弦基础频率(Hz)
+    secondary_freq_hz: 1.7        # 次正弦基础频率(Hz)
+    harmonic_phase_offset: 1.57   # 次正弦相位偏移(rad)
+    amp_scale_min: 0.75           # 振幅缩放下限
+    amp_scale_max: 1.20           # 振幅缩放上限
+    freq_scale_min: 0.80          # 频率缩放下限
+    freq_scale_max: 1.20          # 频率缩放上限
+    modulation_slew_rate: 2.2     # 幅频缩放变化斜率上限(每秒)
 
-    max_abs_speed: 4.8
-    min_abs_speed: 1.5
-    seed: 1
-    start_delay_sec: 0.5
+    # 每隔 target_update_period 重采样幅频缩放目标，并按 modulation_slew_rate 平滑跟踪
+    target_update_period: 0.15    # 重采样周期(s)
+    accel_limit: 16.0             # 输出角速度加速度限幅(rad/s^2)
+
+    max_abs_speed: 4.8            # 输出绝对值上限(rad/s)
+    min_abs_speed: 2.8            # 输出绝对值下限(rad/s)，避免转速贴近 0
+    seed: 1                       # 随机种子(0 为每次随机)
+    start_delay_sec: 0.5          # 节点启动后延迟生效时间(s)
 
     # Cancel 停转：当 trigger topic 超过 idle_timeout_sec 无新消息时，停止自旋并发布零速
     stop_on_idle: false
