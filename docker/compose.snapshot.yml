@@ -12,12 +12,14 @@ services:
   snapshot:
     image: docker:27-cli
     env_file:
-      - ../.env
+      - ./.env
     working_dir: /workspace
     environment:
       DOCKER_HUB_USER: ${DOCKER_HUB_USER:-}
       IMAGE_NAME: ${IMAGE_NAME:-}
-      TARGET_CONTAINER: ${TARGET_CONTAINER:-docker-nav-1}
+      DOCKERHUB_NS: ${DOCKERHUB_NS:-}
+      IMAGE_REPO: ${IMAGE_REPO:-}
+      TARGET_CONTAINER: ${TARGET_CONTAINER:-gxu2026-nav-laptop}
       SNAPSHOT_TAG: ${SNAPSHOT_TAG:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -27,12 +29,16 @@ services:
       - -lc
       - |
         set -eu
-        if [ -z "$$DOCKER_HUB_USER" ] || [ -z "$$IMAGE_NAME" ]; then
+        HUB_USER="$${DOCKER_HUB_USER:-$${DOCKERHUB_NS:-}}"
+        IMAGE_NAME_EFFECTIVE="$${IMAGE_NAME:-$${IMAGE_REPO:-}}"
+
+        if [ -z "$$HUB_USER" ] || [ -z "$$IMAGE_NAME_EFFECTIVE" ]; then
           echo "[错误] 缺少 DOCKER_HUB_USER 或 IMAGE_NAME，请先在 .env 配置。"
+          echo "[提示] 也可使用 DOCKERHUB_NS 与 IMAGE_REPO（docker/.env 默认就是这两个变量）。"
           exit 1
         fi
 
-        REPO="$$DOCKER_HUB_USER/$$IMAGE_NAME"
+        REPO="$$HUB_USER/$$IMAGE_NAME_EFFECTIVE"
         TAG="$${SNAPSHOT_TAG:-$$(TZ=Asia/Shanghai date +%Y%m%d-%H%M)}"
         TARGET="$$TARGET_CONTAINER"
 
