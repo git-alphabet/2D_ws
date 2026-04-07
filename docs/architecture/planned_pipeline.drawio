@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="planned-flow" name="Planned Architecture">
-        <mxGraphModel dx="2718" dy="385" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1600" math="0" shadow="0">
+        <mxGraphModel dx="2806" dy="495" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1600" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -58,7 +58,9 @@
                     <mxGeometry x="20" y="30" width="360" height="70" as="geometry"/>
                 </mxCell>
                 <mxCell id="30" value="legacy odin1-&gt;loam (disabled)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="2" target="3" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
+                    <mxGeometry x="-0.5368" y="10" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
                 </mxCell>
                 <mxCell id="32" value="terrain_map_ext_odin1 (intensity=disZ)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="4" target="5" edge="1">
                     <mxGeometry x="1" y="43" relative="1" as="geometry">
