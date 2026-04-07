@@ -12,31 +12,36 @@ rmuc_sentry_config:
   home_x: 0.0                    # 己方出生点/复活点 x
   home_y: 0.0                    # 己方出生点/复活点 y
 
-  supply_zone_x: 0.0             # 补给区坐标 x (RFID刷卡 + 导航 + 选点 统一使用)
-  supply_zone_y: 0.0             # 补给区坐标 y
+  supply_zone_x: -2.35             # 补给区坐标 x (RFID刷卡 + 导航 + 选点 统一使用)
+  supply_zone_y: -6.89             # 补给区坐标 y
 
-  base_buff_x: 0.0               # 己方基地增益区中心 x
-  base_buff_y: 0.0               # 己方基地增益区中心 y
+  base_buff_x: -0.06               # 己方基地增益区中心 x
+  base_buff_y: -2.49               # 己方基地增益区中心 y
 
-  outpost_buff_x: 0.0            # 己方前哨站增益区中心 x
-  outpost_buff_y: 0.0            # 己方前哨站增益区中心 y
+  outpost_buff_x: 6.53            # 己方前哨站增益区中心 x
+  outpost_buff_y: -5.12            # 己方前哨站增益区中心 y
 
-  fortress_ally_x: 0.0           # 己方堡垒区中心 x
-  fortress_ally_y: 0.0           # 己方堡垒区中心 y
+  fortress_ally_x: 2.76           # 己方堡垒区中心 x
+  fortress_ally_y: -1.93           # 己方堡垒区中心 y
 
-  fortress_enemy_x: 0.0          # 敌方堡垒区中心 x
-  fortress_enemy_y: 0.0          # 敌方堡垒区中心 y
+  central_highland_x: 6.70        # 中央高地中线偏家 x
+  central_highland_y: -1.95        # 中央高地中线偏家 y
 
-  central_highland_x: 0.0        # 中央高地中心 x
-  central_highland_y: 0.0        # 中央高地中心 y
 
-  ladder_highland_x: 0.0         # 梯形高地中心 x
-  ladder_highland_y: 0.0         # 梯形高地中心 y
+  ladder_highland_x: -0.714         # 梯形高地 x
+  ladder_highland_y: 3.207         # 梯形高地 y
 
-  defend_anchor_x: 0.0           # 防御锚点 (基地前守卫位置) x 直接写基地位置即可
-  defend_anchor_y: 0.0           # 防御锚点 y
+  defend_anchor_x: 2.76           # 防御锚点 (基地前守卫位置) x 直接写基地位置即可
+  defend_anchor_y: -1.93           # 防御锚点 y
 
-  # ─────────── 巡逻航点 (3个点组成巡逻三角形) ───────────
+  # 可能有用的预设点（目前没用上，先放这儿）
+  central_highland_left_x: 9.00
+  central_highland_left_y: 2.30    # 中央高地左侧点坐标 暂时还没用上，目前决策是中央高地只在中线偏家位置
+  
+  ramp_jump_x: 7.8
+  ramp_jump_y: 5.0               # 梯形高地飞坡坐标 (即敌方飞坡过来我们这边的增益区，打算让哨兵堵在这不让他们过来)
+
+  # ─────────── 巡逻航点 ───────────
   # ── 巡逻配置 ──
   patrol_enable: false              # 是否启用巡逻 (仅前哨站被毁时生效)
   patrol_waypoints: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # 巡逻点数组 [x1,y1,x2,y2,...] 填几组就巡几个点

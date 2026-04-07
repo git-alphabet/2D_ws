@@ -59,5 +59,98 @@
       <pose>4.9294 8.1159 0.5354 1.57 0 0</pose>
       <static>true</static>
     </model>    
+
+    <!-- ========== 边界墙 (防止机器人掉出场地) ========== -->
+    <!-- 东墙 -->
+    <model name='boundary_wall_east'>
+      <static>true</static>
+      <pose>15.1 0.6 1.0 0 0 0</pose>
+      <link name='link'>
+        <collision name='collision'>
+          <geometry><box><size>1.0 17.0 2.0</size></box></geometry>
+          <surface>
+            <friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction>
+            <contact><ode><kp>1e8</kp><kd>1.0</kd></ode></contact>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry><box><size>1.0 17.0 2.0</size></box></geometry>
+          <material>
+            <ambient>0.8 0.2 0.2 0.3</ambient>
+            <diffuse>0.8 0.2 0.2 0.3</diffuse>
+          </material>
+          <transparency>0.7</transparency>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 西墙 -->
+    <model name='boundary_wall_west'>
+      <static>true</static>
+      <pose>-15.1 0.6 1.0 0 0 0</pose>
+      <link name='link'>
+        <collision name='collision'>
+          <geometry><box><size>1.0 17.0 2.0</size></box></geometry>
+          <surface>
+            <friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction>
+            <contact><ode><kp>1e8</kp><kd>1.0</kd></ode></contact>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry><box><size>1.0 17.0 2.0</size></box></geometry>
+          <material>
+            <ambient>0.8 0.2 0.2 0.3</ambient>
+            <diffuse>0.8 0.2 0.2 0.3</diffuse>
+          </material>
+          <transparency>0.7</transparency>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 北墙 -->
+    <model name='boundary_wall_north'>
+      <static>true</static>
+      <pose>0.0 9.1 1.0 0 0 0</pose>
+      <link name='link'>
+        <collision name='collision'>
+          <geometry><box><size>31.2 1.0 2.0</size></box></geometry>
+          <surface>
+            <friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction>
+            <contact><ode><kp>1e8</kp><kd>1.0</kd></ode></contact>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry><box><size>31.2 1.0 2.0</size></box></geometry>
+          <material>
+            <ambient>0.8 0.2 0.2 0.3</ambient>
+            <diffuse>0.8 0.2 0.2 0.3</diffuse>
+          </material>
+          <transparency>0.7</transparency>
+        </visual>
+      </link>
+    </model>
+
+    <!-- 南墙 -->
+    <model name='boundary_wall_south'>
+      <static>true</static>
+      <pose>0.0 -7.9 1.0 0 0 0</pose>
+      <link name='link'>
+        <collision name='collision'>
+          <geometry><box><size>31.2 1.0 2.0</size></box></geometry>
+          <surface>
+            <friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction>
+            <contact><ode><kp>1e8</kp><kd>1.0</kd></ode></contact>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry><box><size>31.2 1.0 2.0</size></box></geometry>
+          <material>
+            <ambient>0.8 0.2 0.2 0.3</ambient>
+            <diffuse>0.8 0.2 0.2 0.3</diffuse>
+          </material>
+          <transparency>0.7</transparency>
+        </visual>
+      </link>
+    </model>
   </world>
 </sdf>
