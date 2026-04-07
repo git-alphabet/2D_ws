@@ -65,6 +65,7 @@ private:
   std::string lidar_frame_;
   std::string current_scan_frame_id_;
   std::string input_cloud_topic_;
+  bool enable_registration_;
   rclcpp::Time last_scan_time_;
   Eigen::Isometry3d result_t_;
   Eigen::Isometry3d previous_result_t_;

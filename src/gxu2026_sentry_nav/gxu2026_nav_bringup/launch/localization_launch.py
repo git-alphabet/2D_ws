@@ -159,30 +159,18 @@ def generate_launch_description():
         ),
     )
 
-    start_static_map_to_odom_tf_node = Node(
-        package="tf2_ros",
-        executable="static_transform_publisher",
-        name="static_transform_publisher_map2odom",
+    start_manual_map_to_odom_node = Node(
+        package="small_gicp_relocalization",
+        executable="small_gicp_relocalization_node",
+        name="small_gicp_relocalization",
         output="screen",
-        arguments=[
-            "--x",
-            "0.0",
-            "--y",
-            "0.0",
-            "--z",
-            "0.0",
-            "--roll",
-            "0.0",
-            "--pitch",
-            "0.0",
-            "--yaw",
-            "0.0",
-            "--frame-id",
-            "map",
-            "--child-frame-id",
-            "odom",
-        ],
-        condition=IfCondition(PythonExpression(["not ", enable_relocalization])),
+        respawn=use_respawn,
+        respawn_delay=2.0,
+        parameters=[configured_params, {"enable_registration": False}],
+        arguments=["--ros-args", "--log-level", log_level],
+        condition=IfCondition(
+            PythonExpression(["(not ", use_composition, ") and (not ", enable_relocalization, ")"])
+        ),
     )
 
     load_nodes = GroupAction(
@@ -205,7 +193,7 @@ def generate_launch_description():
                 output="screen",
                 respawn=use_respawn,
                 respawn_delay=2.0,
-                parameters=[configured_params],
+                parameters=[configured_params, {"prior_pcd_file": prior_pcd_file}],
                 arguments=["--ros-args", "--log-level", log_level],
                 condition=IfCondition(enable_relocalization),
             ),
@@ -259,7 +247,22 @@ def generate_launch_description():
                 package="small_gicp_relocalization",
                 plugin="small_gicp_relocalization::SmallGicpRelocalizationNode",
                 name="small_gicp_relocalization",
-                parameters=[configured_params],
+                parameters=[configured_params, {"prior_pcd_file": prior_pcd_file}],
+            ),
+        ],
+    )
+
+    load_manual_map_to_odom_composable_node = LoadComposableNodes(
+        condition=IfCondition(
+            PythonExpression([use_composition, " and not ", enable_relocalization])
+        ),
+        target_container=container_name_full,
+        composable_node_descriptions=[
+            ComposableNode(
+                package="small_gicp_relocalization",
+                plugin="small_gicp_relocalization::SmallGicpRelocalizationNode",
+                name="small_gicp_relocalization",
+                parameters=[configured_params, {"enable_registration": False}],
             ),
         ],
     )
@@ -353,9 +356,10 @@ def generate_launch_description():
     # Add the actions to launch all of the localiztion nodes
     ld.add_action(start_small_point_lio_node)
     ld.add_action(start_point_lio_node)
-    ld.add_action(start_static_map_to_odom_tf_node)
+    ld.add_action(start_manual_map_to_odom_node)
     ld.add_action(load_nodes)
     ld.add_action(load_composable_nodes)
     ld.add_action(load_relocalization_composable_node)
+    ld.add_action(load_manual_map_to_odom_composable_node)
 
     return ld

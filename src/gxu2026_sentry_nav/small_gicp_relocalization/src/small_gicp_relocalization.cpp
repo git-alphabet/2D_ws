@@ -41,6 +41,7 @@ SmallGicpRelocalizationNode::SmallGicpRelocalizationNode(const rclcpp::NodeOptio
   this->declare_parameter("robot_base_frame", "");
   this->declare_parameter("lidar_frame", "");
   this->declare_parameter("prior_pcd_file", "");
+  this->declare_parameter("enable_registration", true);
   this->declare_parameter("init_pose", std::vector<double>{0., 0., 0., 0., 0., 0.});
   this->declare_parameter("input_cloud_topic", "registered_scan");
 
@@ -55,6 +56,7 @@ SmallGicpRelocalizationNode::SmallGicpRelocalizationNode(const rclcpp::NodeOptio
   this->get_parameter("robot_base_frame", robot_base_frame_);
   this->get_parameter("lidar_frame", lidar_frame_);
   this->get_parameter("prior_pcd_file", prior_pcd_file_);
+  this->get_parameter("enable_registration", enable_registration_);
   this->get_parameter("init_pose", init_pose_);
   this->get_parameter("input_cloud_topic", input_cloud_topic_);
 
@@ -77,23 +79,30 @@ SmallGicpRelocalizationNode::SmallGicpRelocalizationNode(const rclcpp::NodeOptio
   tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_, this);
   tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
-  loadGlobalMap(prior_pcd_file_);
+  if (enable_registration_) {
+    loadGlobalMap(prior_pcd_file_);
 
-  // Downsample points and convert them into pcl::PointCloud<pcl::PointCovariance>
-  target_ = small_gicp::voxelgrid_sampling_omp<
-    pcl::PointCloud<pcl::PointXYZ>, pcl::PointCloud<pcl::PointCovariance>>(
-    *global_map_, global_leaf_size_);
+    // Downsample points and convert them into pcl::PointCloud<pcl::PointCovariance>
+    target_ = small_gicp::voxelgrid_sampling_omp<
+      pcl::PointCloud<pcl::PointXYZ>, pcl::PointCloud<pcl::PointCovariance>>(
+      *global_map_, global_leaf_size_);
 
-  // Estimate covariances of points
-  small_gicp::estimate_covariances_omp(*target_, num_neighbors_, num_threads_);
+    // Estimate covariances of points
+    small_gicp::estimate_covariances_omp(*target_, num_neighbors_, num_threads_);
 
-  // Create KdTree for target
-  target_tree_ = std::make_shared<small_gicp::KdTree<pcl::PointCloud<pcl::PointCovariance>>>(
-    target_, small_gicp::KdTreeBuilderOMP(num_threads_));
+    // Create KdTree for target
+    target_tree_ = std::make_shared<small_gicp::KdTree<pcl::PointCloud<pcl::PointCovariance>>>(
+      target_, small_gicp::KdTreeBuilderOMP(num_threads_));
 
-  pcd_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-    input_cloud_topic_, 10,
-    std::bind(&SmallGicpRelocalizationNode::registeredPcdCallback, this, std::placeholders::_1));
+    pcd_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
+      input_cloud_topic_, 10,
+      std::bind(
+        &SmallGicpRelocalizationNode::registeredPcdCallback, this, std::placeholders::_1));
+  } else {
+    RCLCPP_INFO(
+      this->get_logger(),
+      "Registration disabled. Using /initialpose to set map->odom for odometry-only navigation.");
+  }
 
   initial_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
     "initialpose", 10,
@@ -101,9 +110,11 @@ SmallGicpRelocalizationNode::SmallGicpRelocalizationNode(const rclcpp::NodeOptio
 
   // Use rclcpp::create_timer (sim-time aware) instead of create_wall_timer
   // to avoid "jump back in time" errors in Gazebo simulation
-  register_timer_ = rclcpp::create_timer(
-    this, this->get_clock(), std::chrono::milliseconds(500),  // 2 Hz
-    std::bind(&SmallGicpRelocalizationNode::performRegistration, this));
+  if (enable_registration_) {
+    register_timer_ = rclcpp::create_timer(
+      this, this->get_clock(), std::chrono::milliseconds(500),  // 2 Hz
+      std::bind(&SmallGicpRelocalizationNode::performRegistration, this));
+  }
 
   transform_timer_ = rclcpp::create_timer(
     this, this->get_clock(), std::chrono::milliseconds(50),  // 20 Hz
@@ -151,6 +162,10 @@ void SmallGicpRelocalizationNode::registeredPcdCallback(
 
 void SmallGicpRelocalizationNode::performRegistration()
 {
+  if (!enable_registration_) {
+    return;
+  }
+
   if (accumulated_cloud_->empty()) {
     RCLCPP_WARN(this->get_logger(), "No accumulated points to process.");
     return;
@@ -198,8 +213,8 @@ void SmallGicpRelocalizationNode::publishTransform()
   }
 
   geometry_msgs::msg::TransformStamped transform_stamped;
-  // `+ 0.1` means transform into future. according to https://robotics.stackexchange.com/a/96615
-  transform_stamped.header.stamp = last_scan_time_ + rclcpp::Duration::from_seconds(0.1);
+  // Publish with current ROS time to avoid future-extrapolation errors in Nav2 lookups.
+  transform_stamped.header.stamp = this->now();
   transform_stamped.header.frame_id = map_frame_;
   transform_stamped.child_frame_id = odom_frame_;
 
@@ -233,16 +248,22 @@ void SmallGicpRelocalizationNode::initialPoseCallback(
                                  .toRotationMatrix();
 
   try {
-    auto transform =
-      tf_buffer_->lookupTransform(robot_base_frame_, current_scan_frame_id_, tf2::TimePointZero);
-    Eigen::Isometry3d robot_base_to_odom = tf2::transformToEigen(transform.transform);
+    Eigen::Isometry3d robot_base_to_odom = Eigen::Isometry3d::Identity();
+    if (!enable_registration_ || current_scan_frame_id_.empty()) {
+      auto tf_stamped =
+        tf_buffer_->lookupTransform(robot_base_frame_, odom_frame_, tf2::TimePointZero);
+      robot_base_to_odom = tf2::transformToEigen(tf_stamped.transform);
+    } else {
+      auto tf_stamped = tf_buffer_->lookupTransform(
+        robot_base_frame_, current_scan_frame_id_, tf2::TimePointZero);
+      robot_base_to_odom = tf2::transformToEigen(tf_stamped.transform);
+    }
     Eigen::Isometry3d map_to_odom = map_to_robot_base * robot_base_to_odom;
 
     previous_result_t_ = result_t_ = map_to_odom;
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN(
-      this->get_logger(), "Could not transform initial pose from %s to %s: %s",
-      robot_base_frame_.c_str(), current_scan_frame_id_.c_str(), ex.what());
+      this->get_logger(), "Could not apply initial pose to map->odom: %s", ex.what());
   }
 }
 
