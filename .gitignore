@@ -10,6 +10,7 @@ neupan_env/
 src/ros2_bag_tools/bags/
 launch_logs/
 maps/
+bags/
 
 # Python 编译缓存
 __pycache__/
