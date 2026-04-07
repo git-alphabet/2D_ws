@@ -19,6 +19,7 @@ from typing import Callable, Optional
 GAZEBO_STARTUP_DELAY = float(os.environ.get("GAZEBO_STARTUP_DELAY", "3"))
 AUTO_MAP_DIR_NAME = "maps"
 AUTO_MAP_SIM_NS = os.environ.get("AUTO_MAP_SIM_NS", "/red_standard_robot1").strip() or "/red_standard_robot1"
+ODIN_SAVE_GRACE_SEC = float(os.environ.get("ODIN_SAVE_GRACE_SEC", "8"))
 
 RUNTIME_LOG_DIR_NAME = "launch_logs"
 BEIJING_TZ = timezone(timedelta(hours=8), name="Asia/Shanghai")
@@ -92,6 +93,95 @@ def _ensure_launch_arg(cmd: str, name: str, value: str) -> str:
     if re.search(rf"(^|\s){re.escape(name)}:=", cmd):
         return cmd
     return cmd + f" {name}:={value}"
+
+
+def _extract_launch_arg(cmd: str, name: str) -> Optional[str]:
+    try:
+        for token in shlex.split(cmd):
+            prefix = f"{name}:="
+            if token.startswith(prefix):
+                return token[len(prefix):]
+    except Exception:
+        pass
+    return None
+
+
+def _read_odin_custom_map_mode(ws_dir: Path, ros_cmd: str) -> Optional[int]:
+    odin_cfg_from_cmd = _extract_launch_arg(ros_cmd, "odin_config_file")
+    odin_cfg_env = os.environ.get("ODIN_CONFIG_FILE", "").strip()
+    odin_cfg_default = ws_dir / "src/odin_ros_driver/config/control_command.yaml"
+
+    cfg_path = Path(odin_cfg_from_cmd or odin_cfg_env or str(odin_cfg_default)).expanduser()
+    if not cfg_path.exists():
+        return None
+
+    try:
+        import yaml  # type: ignore
+
+        data = yaml.safe_load(cfg_path.read_text()) or {}
+        register_keys = data.get("register_keys", {}) if isinstance(data, dict) else {}
+        raw_mode = register_keys.get("custom_map_mode")
+        if raw_mode is None:
+            return None
+        return int(raw_mode)
+    except Exception:
+        return None
+
+
+def _ensure_odin_mode_consistency(cfg: "CommonConfig", mode: str, ros_cmd: str) -> str:
+    # 仅对实车入口做自动一致性处理，避免 launch 参数与 odin YAML 配置漂移。
+    if mode not in {"reality_mapping", "reality_navigation"}:
+        return ros_cmd
+
+    custom_mode = _read_odin_custom_map_mode(cfg.ws_dir, ros_cmd)
+    if custom_mode is None:
+        print(
+            f"[{cfg.script_name}] WARN cannot read custom_map_mode from odin config; skip mode auto-check.",
+            file=sys.stderr,
+        )
+        return ros_cmd
+
+    launch_mode = _extract_launch_arg(ros_cmd, "odin_map_mode")
+    if launch_mode is not None:
+        try:
+            launch_mode_int = int(launch_mode)
+        except ValueError as exc:
+            raise RuntimeError(f"Invalid odin_map_mode '{launch_mode}' in launch cmd") from exc
+        if launch_mode_int != custom_mode:
+            raise RuntimeError(
+                "odin_map_mode mismatch: "
+                f"launch={launch_mode_int}, control_command.yaml custom_map_mode={custom_mode}. "
+                "Please keep them identical."
+            )
+        return ros_cmd
+
+    ros_cmd = _ensure_launch_arg(ros_cmd, "odin_map_mode", str(custom_mode))
+    print(
+        f"[{cfg.script_name}] Auto-inject odin_map_mode:={custom_mode} to match control_command.yaml",
+        file=sys.stderr,
+    )
+    return ros_cmd
+
+
+def _save_odin_bin_now(cfg: "CommonConfig") -> None:
+    odin_dir = cfg.ws_dir / "src/odin_ros_driver"
+    set_param_sh = odin_dir / "set_param.sh"
+    if not set_param_sh.exists():
+        print(f"[{cfg.script_name}] Skip odin bin save: {set_param_sh} not found", file=sys.stderr)
+        return
+
+    base_env = _build_base_env(cfg)
+    cmd = (
+        f"{base_env}; "
+        f"cd {shlex.quote(str(odin_dir))}; "
+        "bash set_param.sh save_map 1"
+    )
+
+    print(f"[{cfg.script_name}] Trigger odin save_map=1 for bin export", file=sys.stderr)
+    try:
+        _run_shell(cmd)
+    except Exception as exc:
+        print(f"[{cfg.script_name}] Trigger odin bin save failed: {exc}", file=sys.stderr)
 
 
 def _which(cmd: str) -> Optional[str]:
@@ -570,7 +660,17 @@ def _kill_reality(script_name: str) -> None:
         _kill_by_pattern(pat, title, script_name)
 
 
-def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: str, *, background: bool = False, bg: Optional[BackgroundGroup] = None, pgid_file: Optional[Path] = None) -> None:
+def _launch_in_terminal(
+    cfg: CommonConfig,
+    title: str,
+    command: str,
+    extra_env: str,
+    *,
+    background: bool = False,
+    bg: Optional[BackgroundGroup] = None,
+    pgid_file: Optional[Path] = None,
+    pre_shutdown_hook: Optional[Callable[[], None]] = None,
+) -> None:
     base_env = _build_base_env(cfg)
 
     full_cmd = f"cd {shlex.quote(str(cfg.ws_dir))}; {base_env}"
@@ -623,6 +723,7 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
         # 优雅关闭超时（秒）：SIGINT 后等待这么久，超时或第二次 Ctrl+C 则 SIGKILL。
         _shutdown_timeout = int(os.environ.get("SHUTDOWN_TIMEOUT", "15"))
         _shutdown_requested = [False]   # mutable cell 供嵌套函数修改
+        _pre_shutdown_done = [False]
 
         def _force_kill() -> None:
             try:
@@ -636,6 +737,12 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
                 print(f"\n[{cfg.script_name}] Force killing (SIGKILL)...", file=sys.stderr)
                 _force_kill()
                 return
+            if pre_shutdown_hook is not None and not _pre_shutdown_done[0]:
+                _pre_shutdown_done[0] = True
+                try:
+                    pre_shutdown_hook()
+                except Exception as exc:
+                    print(f"[{cfg.script_name}] pre-shutdown hook failed: {exc}", file=sys.stderr)
             _shutdown_requested[0] = True
             print(
                 f"\n[{cfg.script_name}] Shutting down (timeout {_shutdown_timeout}s)..."
@@ -838,6 +945,8 @@ def main(argv: list[str]) -> int:
         if extra_args:
             ros_cmd += " " + " ".join(map(shlex.quote, extra_args))
 
+        ros_cmd = _ensure_odin_mode_consistency(cfg, mode, ros_cmd)
+
         _is_multi_terminal = bool(cfg.terminal_cmd) and not cfg.no_new_terminal
 
         if _is_multi_terminal:
@@ -877,7 +986,37 @@ def main(argv: list[str]) -> int:
             ("/scan", 5.0),
         ], _wd_bg)
 
-    _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env, pgid_file=_PGID_FILES["reality"])
+    pre_shutdown_hook = None
+    if mode == "reality_mapping":
+        mapping_ns = _extract_launch_arg(ros_cmd, "namespace")
+        if mapping_ns is not None:
+            mapping_ns = mapping_ns.strip()
+            if mapping_ns == "":
+                mapping_ns = None
+
+        mapping_ts = _beijing_timestamp()
+
+        def _mapping_presave() -> None:
+            print(f"[{cfg.script_name}] Mapping pre-shutdown save: bin + 2D map", file=sys.stderr)
+            _save_odin_bin_now(cfg)
+            _save_map_now(cfg, "reality", mapping_ts, mapping_ns)
+            if ODIN_SAVE_GRACE_SEC > 0:
+                print(
+                    f"[{cfg.script_name}] Wait {ODIN_SAVE_GRACE_SEC:.1f}s for odin map transfer before shutdown",
+                    file=sys.stderr,
+                )
+                time.sleep(ODIN_SAVE_GRACE_SEC)
+
+        pre_shutdown_hook = _mapping_presave
+
+    _launch_in_terminal(
+        cfg,
+        fg_title,
+        ros_cmd,
+        neupan_env,
+        pgid_file=_PGID_FILES["reality"],
+        pre_shutdown_hook=pre_shutdown_hook,
+    )
     return 0
 
 
