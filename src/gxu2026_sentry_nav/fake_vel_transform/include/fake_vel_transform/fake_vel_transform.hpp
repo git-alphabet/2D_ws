@@ -27,6 +27,8 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "sp_msgs/msg/rmuc_robot_control.hpp"
+#include "std_msgs/msg/bool.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 
 namespace fake_vel_transform
@@ -43,13 +45,16 @@ private:
   void odometryCallback(const nav_msgs::msg::Odometry::ConstSharedPtr & msg);
   void localPlanCallback(const nav_msgs::msg::Path::ConstSharedPtr & msg);
   void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg);
-  void cmdSpinCallback(example_interfaces::msg::Float32::SharedPtr msg);
+  void robotControlCallback(const sp_msgs::msg::RMUCRobotControl::SharedPtr msg);
+  void cmdSpinCallback(const example_interfaces::msg::Float32::SharedPtr msg);
+  void manualSpinOverrideCallback(const std_msgs::msg::Bool::SharedPtr msg);
   void publishTransform();
   void publishHoldCmdVelIfNeeded(const rclcpp::Time & now);
   geometry_msgs::msg::Twist transformVelocity(
     const geometry_msgs::msg::Twist::SharedPtr & twist, float yaw_diff);
 
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
+  rclcpp::Subscription<sp_msgs::msg::RMUCRobotControl>::SharedPtr robot_control_sub_;
   rclcpp::Subscription<example_interfaces::msg::Float32>::SharedPtr cmd_spin_sub_;
 
   message_filters::Subscriber<nav_msgs::msg::Odometry> odom_sub_filter_;

@@ -52,13 +52,21 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->get_parameter("cmd_spin_topic", cmd_spin_topic_);
   this->get_parameter("input_cmd_vel_topic", input_cmd_vel_topic_);
   this->get_parameter("output_cmd_vel_topic", output_cmd_vel_topic_);
-  this->get_parameter("init_spin_speed", spin_speed_);
+  this->get_parameter("init_spin_speed", init_spin_speed_);
+
+  RCLCPP_INFO(
+    get_logger(),
+    "Spin control: topic=%s, init_spin_speed=%.3f rad/s (enabled when RMUCRobotControl.chassis_spin=true)",
+    robot_control_topic_.c_str(), init_spin_speed_);
 
   tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
   cmd_vel_chassis_pub_ =
     this->create_publisher<geometry_msgs::msg::Twist>(output_cmd_vel_topic_, 1);
 
+  robot_control_sub_ = this->create_subscription<sp_msgs::msg::RMUCRobotControl>(
+    robot_control_topic_, 10,
+    std::bind(&FakeVelTransform::robotControlCallback, this, std::placeholders::_1));
   cmd_spin_sub_ = this->create_subscription<example_interfaces::msg::Float32>(
     cmd_spin_topic_, 1, std::bind(&FakeVelTransform::cmdSpinCallback, this, std::placeholders::_1));
   cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
@@ -86,6 +94,22 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   timer_ = rclcpp::create_timer(
     this, this->get_clock(), std::chrono::milliseconds(20),
     std::bind(&FakeVelTransform::publishTransform, this));
+}
+
+void FakeVelTransform::robotControlCallback(const sp_msgs::msg::RMUCRobotControl::SharedPtr msg)
+{
+  if (use_manual_spin_override_) {
+    return;
+  }
+
+  const bool prev = spin_enabled_;
+  spin_enabled_ = msg->chassis_spin;
+  if (spin_enabled_ != prev || !last_spin_enabled_logged_) {
+    RCLCPP_INFO(
+      get_logger(), "Spin switch updated: chassis_spin=%s",
+      spin_enabled_ ? "true" : "false");
+    last_spin_enabled_logged_ = true;
+  }
 }
 
 void FakeVelTransform::cmdSpinCallback(const example_interfaces::msg::Float32::SharedPtr msg)
