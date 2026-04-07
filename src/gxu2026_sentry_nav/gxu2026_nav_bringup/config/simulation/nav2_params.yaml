@@ -400,19 +400,28 @@ nonlinear_spin_publisher:
     # 发布频率（Hz）
     publish_rate_hz: 100.0
 
-    # 角速度目标生成：每隔 target_update_period 生成一个新的目标角速度 w_target
-    # w_target = center_speed + range_speed * U(-1, 1)
+    # 变频变幅正弦叠加：center_speed + A1*sin(phi1) + A2*sin(phi2 + offset)
     center_speed: 3.14          # 角速度中心值（rad/s）
-    range_speed: 2.0            # 随机扰动范围（rad/s）
-    target_update_period: 0.15  # 目标更新周期（s）
-    accel_limit: 15.0           # 角加速度限幅（rad/s^2），越大变化越“跳”
+    range_speed: 2.0            # 总振幅基准（rad/s）
+    primary_amp_ratio: 0.65
+    secondary_amp_ratio: 0.35
+    primary_freq_hz: 0.8
+    secondary_freq_hz: 1.7
+    harmonic_phase_offset: 1.57
+    amp_scale_min: 0.70
+    amp_scale_max: 1.30
+    freq_scale_min: 0.75
+    freq_scale_max: 1.25
+    modulation_slew_rate: 2.5
+    target_update_period: 0.15  # 幅频缩放目标重采样周期（s）
+    accel_limit: 15.0           # 角加速度限幅（rad/s^2）
 
     # 安全限幅（最终发布前会 clamp 到 [-max_abs_speed, +max_abs_speed]）
     # 重要：max_abs_speed 必须 >= |center_speed| + range_speed，否则会长期卡在限幅值，看起来“不随机”。
     max_abs_speed: 6.28         # 最大绝对角速度（rad/s）
     min_abs_speed: 2.0          # 最小绝对角速度（rad/s），>0 可避免转速贴近 0
 
-    # 随机性：seed 固定则每次复现同一序列；seed=0 则每次随机
+    # 幅频重采样随机种子：seed 固定可复现；seed=0 则每次随机
     seed: 0
 
     # 启动延迟：给系统起完其他节点，避免刚启动就对底盘施加扰动
