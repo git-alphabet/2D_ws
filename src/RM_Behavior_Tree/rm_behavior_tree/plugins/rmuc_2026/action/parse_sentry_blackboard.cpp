@@ -157,6 +157,37 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
   setOutput("base_threat", base_threat);
   setOutput("fortress_threat", false);
 
+  // ── 脱战检测 ──
+  // 规则: 存活状态下连续 6 秒未发射弹丸且未被扣血 = 脱战。
+  // 开局默认脱战。
+  std::uint64_t now_ms = 0;
+  getInput("now_ms", now_ms);
+
+  if (robot_ptr) {
+    const auto & rd = **robot_ptr;
+    if (!disengage_initialized_) {
+      last_shooter_heat_ = rd.shooter_heat;
+      last_current_hp_ = rd.current_hp;
+      last_activity_ms_ = 0;  // 开局视为脱战(activity=0 → elapsed > 6s 立即成立)
+      disengage_initialized_ = true;
+    }
+
+    const bool fired = (rd.shooter_heat > last_shooter_heat_);
+    const bool took_damage = (rd.current_hp < last_current_hp_ && last_current_hp_ > 0);
+
+    if (fired || took_damage || rd.is_dead) {
+      last_activity_ms_ = now_ms;
+    }
+    last_shooter_heat_ = rd.shooter_heat;
+    last_current_hp_ = rd.current_hp;
+
+    const bool is_disengaged = (!rd.is_dead && now_ms > 0 &&
+      (now_ms - last_activity_ms_) >= 6000);
+    setOutput("is_disengaged", is_disengaged);
+  } else {
+    setOutput("is_disengaged", false);
+  }
+
   return BT::NodeStatus::SUCCESS;
 }
 

@@ -95,6 +95,7 @@
                                    enemy_sentry_vuln="{enemy.sentry_vuln}"
                                    team_outpost_hp="{team.outpost_hp}"
                                    team_base_hp="{team.base_hp}"
+                                   is_disengaged="{state.disengaged}"
                                    />
         </Sequence>
     </BehaviorTree>

@@ -103,7 +103,10 @@ public:
 
       // ── outputs: 占位/兼容 ──
       BT::OutputPort<bool>("base_threat"),
-      BT::OutputPort<bool>("fortress_threat")};
+      BT::OutputPort<bool>("fortress_threat"),
+
+      // ── outputs: 脱战派生 ──
+      BT::OutputPort<bool>("is_disengaged")};
   }
 
   BT::NodeStatus tick() override;
@@ -111,6 +114,12 @@ public:
 private:
   bool base_threat_latched_{false};
   int last_base_hp_{-1};
+
+  // 脱战检测
+  uint16_t last_shooter_heat_{0};
+  uint16_t last_current_hp_{0};
+  uint64_t last_activity_ms_{0};
+  bool disengage_initialized_{false};
 };
 }  // namespace rm_behavior_tree
 

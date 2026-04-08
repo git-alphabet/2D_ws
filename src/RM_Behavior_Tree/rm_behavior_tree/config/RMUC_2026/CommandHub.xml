@@ -25,6 +25,7 @@
                               ammo_allow="{ammo.allow}"
                               ammo_target="{cfg.ammo_target}"
                               ammo_low="{cfg.ammo_low}"
+                              is_disengaged="{state.disengaged}"
                               allow_ammo_max="{cfg.allow_ammo_max}"
                               can_remote_heal="{economy.can_remote_heal}"
                               can_remote_ammo="{economy.can_remote_ammo}"

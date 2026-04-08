@@ -19,6 +19,7 @@ public:
       BT::InputPort<int>("ammo_allow"),
       BT::InputPort<int>("ammo_target"),
       BT::InputPort<int>("ammo_low"),
+      BT::InputPort<bool>("is_disengaged", "false", "is_disengaged"),
       BT::InputPort<bool>("can_remote_heal"),
       BT::InputPort<bool>("can_remote_ammo"),
       BT::InputPort<int>("team_coins"),
