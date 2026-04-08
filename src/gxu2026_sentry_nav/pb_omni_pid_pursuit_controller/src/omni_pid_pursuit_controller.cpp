@@ -179,6 +179,9 @@ void OmniPidPursuitController::configure(
     translation_ki_);
   heading_pid_ = std::make_shared<PID>(
     control_duration_, v_angular_max_, v_angular_min_, rotation_kp_, rotation_kd_, rotation_ki_);
+  move_pid_->setIntegralLimit(min_max_sum_error_);
+  heading_pid_->setIntegralLimit(min_max_sum_error_);
+  last_velocity_scaling_factor_ = 0.0;
 
   // Reset controller frequency stats
   control_cycle_count_ = 0;
@@ -726,6 +729,10 @@ rcl_interfaces::msg::SetParametersResult OmniPidPursuitController::dynamicParame
 {
   rcl_interfaces::msg::SetParametersResult result;
   std::lock_guard<std::mutex> lock_reinit(mutex_);
+  bool refresh_move_pid = false;
+  bool refresh_heading_pid = false;
+  bool refresh_pid_dt = false;
+  bool refresh_pid_integral_limit = false;
 
   for (const auto & parameter : parameters) {
     const auto & type = parameter.get_type();
@@ -734,21 +741,28 @@ rcl_interfaces::msg::SetParametersResult OmniPidPursuitController::dynamicParame
     if (type == ParameterType::PARAMETER_DOUBLE) {
       if (name == plugin_name_ + ".translation_kp") {
         translation_kp_ = parameter.as_double();
+        refresh_move_pid = true;
       } else if (name == plugin_name_ + ".translation_ki") {
         translation_ki_ = parameter.as_double();
+        refresh_move_pid = true;
       } else if (name == plugin_name_ + ".translation_kd") {
         translation_kd_ = parameter.as_double();
+        refresh_move_pid = true;
       } else if (name == plugin_name_ + ".rotation_kp") {
         rotation_kp_ = parameter.as_double();
+        refresh_heading_pid = true;
       } else if (name == plugin_name_ + ".rotation_ki") {
         rotation_ki_ = parameter.as_double();
+        refresh_heading_pid = true;
       } else if (name == plugin_name_ + ".rotation_kd") {
         rotation_kd_ = parameter.as_double();
+        refresh_heading_pid = true;
       } else if (name == plugin_name_ + ".transform_tolerance") {
         double transform_tolerance = parameter.as_double();
         transform_tolerance_ = tf2::durationFromSec(transform_tolerance);
       } else if (name == plugin_name_ + ".min_max_sum_error") {
         min_max_sum_error_ = parameter.as_double();
+        refresh_pid_integral_limit = true;
       } else if (name == plugin_name_ + ".lookahead_dist") {
         lookahead_dist_ = parameter.as_double();
       } else if (name == plugin_name_ + ".min_lookahead_dist") {
@@ -765,12 +779,16 @@ rcl_interfaces::msg::SetParametersResult OmniPidPursuitController::dynamicParame
         approach_velocity_scaling_dist_ = parameter.as_double();
       } else if (name == plugin_name_ + ".v_linear_max") {
         v_linear_max_ = parameter.as_double();
+        refresh_move_pid = true;
       } else if (name == plugin_name_ + ".v_linear_min") {
         v_linear_min_ = parameter.as_double();
+        refresh_move_pid = true;
       } else if (name == plugin_name_ + ".v_angular_max") {
         v_angular_max_ = parameter.as_double();
+        refresh_heading_pid = true;
       } else if (name == plugin_name_ + ".v_angular_min") {
         v_angular_min_ = parameter.as_double();
+        refresh_heading_pid = true;
       } else if (name == plugin_name_ + ".curvature_min") {
         curvature_min_ = parameter.as_double();
       } else if (name == plugin_name_ + ".curvature_max") {
@@ -783,6 +801,12 @@ rcl_interfaces::msg::SetParametersResult OmniPidPursuitController::dynamicParame
         curvature_backward_dist_ = parameter.as_double();
       } else if (name == plugin_name_ + ".max_velocity_scaling_factor_rate") {
         max_velocity_scaling_factor_rate_ = parameter.as_double();
+      } else if (name == "controller_frequency") {
+        const double controller_frequency = parameter.as_double();
+        if (controller_frequency > 1e-6) {
+          control_duration_ = 1.0 / controller_frequency;
+          refresh_pid_dt = true;
+        }
       }
     } else if (type == ParameterType::PARAMETER_BOOL) {
       if (name == plugin_name_ + ".use_velocity_scaled_lookahead_dist") {
@@ -791,9 +815,29 @@ rcl_interfaces::msg::SetParametersResult OmniPidPursuitController::dynamicParame
         use_interpolation_ = parameter.as_bool();
       } else if (name == plugin_name_ + ".use_rotate_to_heading") {
         use_rotate_to_heading_ = parameter.as_bool();
+      } else if (name == plugin_name_ + ".enable_rotation") {
+        enable_rotation_ = parameter.as_bool();
       }
     }
   }
+
+  if (refresh_pid_dt) {
+    move_pid_->setDt(control_duration_);
+    heading_pid_->setDt(control_duration_);
+  }
+  if (refresh_move_pid) {
+    move_pid_->setGains(translation_kp_, translation_kd_, translation_ki_);
+    move_pid_->setOutputLimits(v_linear_max_, v_linear_min_);
+  }
+  if (refresh_heading_pid) {
+    heading_pid_->setGains(rotation_kp_, rotation_kd_, rotation_ki_);
+    heading_pid_->setOutputLimits(v_angular_max_, v_angular_min_);
+  }
+  if (refresh_pid_integral_limit) {
+    move_pid_->setIntegralLimit(min_max_sum_error_);
+    heading_pid_->setIntegralLimit(min_max_sum_error_);
+  }
+
   result.successful = true;
   return result;
 }

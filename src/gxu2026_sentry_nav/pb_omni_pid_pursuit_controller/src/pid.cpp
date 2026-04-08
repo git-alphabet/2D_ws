@@ -14,8 +14,19 @@
 
 #include "pb_omni_pid_pursuit_controller/pid.hpp"
 
+#include <algorithm>
+#include <cmath>
+
 PID::PID(double dt, double max, double min, double kp, double kd, double ki)
-: dt_(dt), max_(max), min_(min), kp_(kp), kd_(kd), ki_(ki), pre_error_(0), integral_(0)
+: dt_(dt),
+  max_(max),
+  min_(min),
+  kp_(kp),
+  kd_(kd),
+  ki_(ki),
+  pre_error_(0),
+  integral_(0),
+  integral_limit_(1.0)
 {
 }
 
@@ -29,16 +40,14 @@ double PID::calculate(double set_point, double pv)
 
   // Integral term
   integral_ += error * dt_;
+  integral_ = std::clamp(integral_, -integral_limit_, integral_limit_);
   double i_out = ki_ * integral_;
 
-  if (integral_ > 1) {
-    integral_ = 1;
-  } else if (integral_ < -1) {
-    integral_ = -1;
-  }
-
   // Derivative term
-  double derivative = (error - pre_error_) / dt_;
+  double derivative = 0.0;
+  if (dt_ > 1e-9) {
+    derivative = (error - pre_error_) / dt_;
+  }
   double d_out = kd_ * derivative;
 
   // Calculate total output
@@ -56,6 +65,30 @@ double PID::calculate(double set_point, double pv)
   return output;
 }
 
-void PID::setSumError(double sum_error) { integral_ = sum_error; }
+void PID::setGains(double kp, double kd, double ki)
+{
+  kp_ = kp;
+  kd_ = kd;
+  ki_ = ki;
+}
+
+void PID::setOutputLimits(double max, double min)
+{
+  max_ = max;
+  min_ = min;
+}
+
+void PID::setDt(double dt) { dt_ = dt; }
+
+void PID::setIntegralLimit(double limit)
+{
+  integral_limit_ = std::max(std::abs(limit), 1e-6);
+  integral_ = std::clamp(integral_, -integral_limit_, integral_limit_);
+}
+
+void PID::setSumError(double sum_error)
+{
+  integral_ = std::clamp(sum_error, -integral_limit_, integral_limit_);
+}
 
 PID::~PID() {}

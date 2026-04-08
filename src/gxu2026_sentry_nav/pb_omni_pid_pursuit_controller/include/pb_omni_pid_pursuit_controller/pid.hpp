@@ -28,6 +28,10 @@ public:
 
   // Returns the manipulated variable given a set_point and current process value
   double calculate(double set_point, double pv);
+  void setGains(double kp, double kd, double ki);
+  void setOutputLimits(double max, double min);
+  void setDt(double dt);
+  void setIntegralLimit(double limit);
   void setSumError(double sum_error);
   ~PID();
 
@@ -40,6 +44,7 @@ private:
   double ki_;
   double pre_error_;
   double integral_;
+  double integral_limit_;
 };
 
 #endif  // PB_OMNI_PID_PURSUIT_CONTROLLER__PID_HPP_
