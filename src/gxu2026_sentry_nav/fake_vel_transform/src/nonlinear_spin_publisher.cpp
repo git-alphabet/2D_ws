@@ -417,11 +417,14 @@ private:
   std::string cmd_spin_topic_;
   std::string start_trigger_topic_;
   std::string start_trigger_msg_type_;
+  std::string robot_control_topic_;
 
   bool enabled_{false};
   bool start_on_first_trigger_{false};
   bool triggered_{false};
   bool trigger_require_nonzero_{false};
+  bool stop_on_idle_{true};
+  bool chassis_spin_enabled_{false};
 
   double publish_rate_hz_{50.0};
   double center_speed_{6.28};
@@ -442,6 +445,7 @@ private:
   double accel_limit_{30.0};
   int64_t seed_{1};
   double start_delay_sec_{0.5};
+  double idle_timeout_sec_{0.5};
 
   rclcpp::Publisher<example_interfaces::msg::Float32>::SharedPtr cmd_spin_pub_;
   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr trigger_path_sub_;
@@ -452,6 +456,7 @@ private:
   rclcpp::Time start_time_;
   rclcpp::Time last_time_;
   rclcpp::Time last_target_update_time_;
+  rclcpp::Time last_msg_time_;
 
   double w_current_{0.0};
   double w_target_{0.0};
