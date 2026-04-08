@@ -12,7 +12,7 @@ pb_navigation_switches:
   ros__parameters:
     controller_plugin: "pb_omni_pid_pursuit_controller"   # 控制器插件选择：neupan_nav2_controller / pb_omni_pid_pursuit_controller
     odometry_source: "point_lio"                   #point_lio / small_point_lio / loam_interface
-    behavior_tree: "config/RMUC_2026/rmuc_2026.xml"                       # .xml or default,none
+    behavior_tree: "none"                       # .xml or default,none
 
 
     enable_gimbal_yaw_bridge: false               # 仿真中 TF 由 Gazebo bringup 的 robot_state_publisher 直接提供，无需此通路。
@@ -451,15 +451,19 @@ terrain_analysis_ext:
 # 坐标变换：把 Nav2 内部期望的底盘速度/局部路径做一层适配
 fake_vel_transform:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
     odom_topic: "odometry"
+    # Nav2 内部规划使用 gimbal_yaw，经过该节点转换后对外发布 fake 底盘框架。
     robot_base_frame: "gimbal_yaw"
     fake_robot_base_frame: "gimbal_yaw_fake"
-    local_plan_topic: "local_plan"
+    # 输入是 controller 结果速度，输出是底盘最终执行速度。
+    local_plan_topic: "controller_server/FollowPath/local_plan"
     input_cmd_vel_topic: "cmd_vel_nav2_result"
     output_cmd_vel_topic: "cmd_vel"
     robot_control_topic: "robot_control"
-    init_spin_speed: 3.14
+    # 测试开关：true=移动时关闭小陀螺，false=移动时也保留小陀螺
+    disable_spin_while_moving: false
+    init_spin_speed: 3.0
 
 # 非线性小陀螺：发布 cmd_spin（Float32，单位 rad/s），被 fake_vel_transform 叠加到 cmd_vel.angular.z
 # 注意：cmd_spin_topic 不要写成以 / 开头的绝对话题名，这样才会跟随 namespace。
