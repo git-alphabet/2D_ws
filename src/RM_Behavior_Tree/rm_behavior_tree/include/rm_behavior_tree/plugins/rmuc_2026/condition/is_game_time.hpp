@@ -3,6 +3,7 @@
 
 #include "behaviortree_cpp/condition_node.h"
 #include "sp_msgs/msg/rmuc_game_status.hpp"
+#include "sp_msgs/msg/rmuc_robot_status.hpp"
 
 namespace rm_behavior_tree
 {
@@ -16,10 +17,16 @@ public:
   {
     return {
       BT::InputPort<sp_msgs::msg::RMUCGameStatus>("message"),
+      BT::InputPort<sp_msgs::msg::RMUCRobotStatus>("robot_status"),
       BT::InputPort<int>("game_progress"),
       BT::InputPort<int>("lower_remain_time"),
-      BT::InputPort<int>("higher_remain_time")};
+      BT::InputPort<int>("higher_remain_time"),
+      BT::InputPort<bool>("allow_no_game_status_hp_fallback", "false")};
   }
+
+private:
+  bool game_started_{false};
+  int last_hp_{-1};
 };
 }  // namespace rm_behavior_tree
 

@@ -11,19 +11,44 @@ RmucIsGameTimeCondition::RmucIsGameTimeCondition(
 
 BT::NodeStatus RmucIsGameTimeCondition::checkGameTime()
 {
+  // 已锁存则直接返回
+  if (game_started_) {
+    return BT::NodeStatus::SUCCESS;
+  }
+
   int game_progress = 0, lower_remain_time = 0, higher_remain_time = 0;
+  bool allow_no_game_status_hp_fallback = false;
+
   auto msg = getInput<sp_msgs::msg::RMUCGameStatus>("message");
+  auto robot_status = getInput<sp_msgs::msg::RMUCRobotStatus>("robot_status");
+
   getInput("game_progress", game_progress);
   getInput("lower_remain_time", lower_remain_time);
   getInput("higher_remain_time", higher_remain_time);
-  if (!msg) {
+  getInput("allow_no_game_status_hp_fallback", allow_no_game_status_hp_fallback);
+
+  // 条件1: game_progress 正常匹配（仅在存在 game_status 时判断）
+  if (msg) {
+    if (msg->game_progress == game_progress &&
+        msg->stage_remain_time >= lower_remain_time &&
+        msg->stage_remain_time <= higher_remain_time) {
+      game_started_ = true;
+      return BT::NodeStatus::SUCCESS;
+    }
+  } else if (!allow_no_game_status_hp_fallback) {
     return BT::NodeStatus::FAILURE;
   }
-  if (msg->game_progress == game_progress &&
-      msg->stage_remain_time >= lower_remain_time &&
-      msg->stage_remain_time <= higher_remain_time) {
-    return BT::NodeStatus::SUCCESS;
+
+  // 条件2: HP 下降 → 比赛已在进行（电控丢包/无 game_status 容错）
+  if (robot_status) {
+    int cur_hp = static_cast<int>(robot_status->current_hp);
+    if (last_hp_ >= 0 && cur_hp < last_hp_) {
+      game_started_ = true;
+      return BT::NodeStatus::SUCCESS;
+    }
+    last_hp_ = cur_hp;
   }
+
   return BT::NodeStatus::FAILURE;
 }
 

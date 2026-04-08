@@ -225,6 +225,39 @@ rm_behavior_tree:
     # 语义禁行区文件（FindEscapePoint 用于过滤脱困点）
     semantic_zones_file: /ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml
 
+    # ── RMUC 2026 哨兵行为树参数 (注入到黑板 cfg.* 键) ──
+    rmuc_sentry_config:
+      home_x: 0.0
+      home_y: 0.0
+      supply_zone_x: -2.35
+      supply_zone_y: -6.89
+      base_buff_x: -0.06
+      base_buff_y: -2.49
+      outpost_buff_x: 6.53
+      outpost_buff_y: -5.12
+      fortress_ally_x: 2.76
+      fortress_ally_y: -1.93
+      fortress_enemy_x: 0.0
+      fortress_enemy_y: 0.0
+      central_highland_x: 6.70
+      central_highland_y: -1.95
+      ladder_highland_x: -0.714
+      ladder_highland_y: 3.207
+      defend_anchor_x: 2.76
+      defend_anchor_y: -1.93
+      arrive_radius: 0.35
+      enemy_near_base_radius: 4.0
+      hp_low: 180
+      hp_safe: 280
+      heat_high: 210
+      ammo_low: 80
+      ammo_target: 300
+      allow_ammo_max: 400
+      objective_hold_ms: 12000
+      patrol_hold_ms: 5000
+      patrol_enable: false
+      patrol_waypoints: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
 # Point-LIO：里程计/定位源之一（注意其 tf_send_en = False 时不会发布 TF）
 point_lio:
   ros__parameters:

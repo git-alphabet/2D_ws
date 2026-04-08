@@ -60,7 +60,7 @@ rmuc_sentry_config:
 
   # ─────────── 基地防御参数 ───────────
   base_deficit_for_fortress: 500  # 基地血量差值阈值 (判断是否需要堡垒支援)
-  enemy_near_base_radius: 2.0    # 敌人距基地威胁半径 (米)
+  enemy_near_base_radius: 4.0    # 敌人距基地威胁半径 (米)
 
   # ─────────── 目标控制参数 ───────────
   objective_hold_ms: 12000       # 目标点占据等待时间 (毫秒)

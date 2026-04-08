@@ -82,6 +82,35 @@ int main(int argc, char ** argv)
   params_utility.nh = std::make_shared<rclcpp::Node>("rmuc_utility");
   params_utility.default_port_value = "";
 
+  // ── P0 新增: 7 个裁判系统话题对应的 RosNodeParams ──
+  BT::RosNodeParams params_sentry_decision;
+  params_sentry_decision.nh = std::make_shared<rclcpp::Node>("rmuc_sentry_decision_io");
+  params_sentry_decision.default_port_value = "sentry_decision_status";
+
+  BT::RosNodeParams params_robot_buff;
+  params_robot_buff.nh = std::make_shared<rclcpp::Node>("rmuc_robot_buff_io");
+  params_robot_buff.default_port_value = "robot_buff";
+
+  BT::RosNodeParams params_projectile_allowance;
+  params_projectile_allowance.nh = std::make_shared<rclcpp::Node>("rmuc_projectile_allowance_io");
+  params_projectile_allowance.default_port_value = "projectile_allowance";
+
+  BT::RosNodeParams params_field_status;
+  params_field_status.nh = std::make_shared<rclcpp::Node>("rmuc_field_status_io");
+  params_field_status.default_port_value = "field_status";
+
+  BT::RosNodeParams params_enemy_mark;
+  params_enemy_mark.nh = std::make_shared<rclcpp::Node>("rmuc_enemy_mark_io");
+  params_enemy_mark.default_port_value = "enemy_mark";
+
+  BT::RosNodeParams params_team_positions;
+  params_team_positions.nh = std::make_shared<rclcpp::Node>("rmuc_team_positions_io");
+  params_team_positions.default_port_value = "team_positions";
+
+  BT::RosNodeParams params_team_hp;
+  params_team_hp.nh = std::make_shared<rclcpp::Node>("rmuc_team_hp_io");
+  params_team_hp.default_port_value = "team_hp";
+
   // ── SendGoal (共享 RMUL 通用导航话题，PoseStamped 类型) ──
   BT::RosNodeParams params_send_goal;
   params_send_goal.nh = std::make_shared<rclcpp::Node>("send_goal");
@@ -120,6 +149,15 @@ int main(int argc, char ** argv)
 
   // ── D. 订阅者：robot_position (/robot_position → RMUCRobotPosition) ──
   regRos("rmuc_sub_robot_position",             params_robot_position);
+
+  // ── E. P0 新增: 7 个裁判系统订阅者 ──
+  regRos("rmuc_sub_sentry_decision_status",     params_sentry_decision);
+  regRos("rmuc_sub_robot_buff",                 params_robot_buff);
+  regRos("rmuc_sub_projectile_allowance",       params_projectile_allowance);
+  regRos("rmuc_sub_field_status",               params_field_status);
+  regRos("rmuc_sub_enemy_mark",                 params_enemy_mark);
+  regRos("rmuc_sub_team_positions",             params_team_positions);
+  regRos("rmuc_sub_team_hp",                    params_team_hp);
 
   // ── F. 发布者：sentry_cmd (/sentry_cmd → RMUCSentryCmd) ──
   regRos("rmuc_sentry_cmd_mux",                 params_sentry_cmd);
@@ -180,6 +218,90 @@ int main(int argc, char ** argv)
                  bt_xml_path.c_str(), e.what());
     rclcpp::shutdown();
     return 1;
+  }
+
+  // ─── RMUC 2026 参数注入 ───
+  // 从 ROS 参数 (rmuc_sentry_config.*) 读取，注入到树的根黑板
+  // InitSentryConfig 的 getInput 会优先读取黑板中已有的值
+  {
+    auto bb = tree.rootBlackboard();
+    const std::vector<std::string> coord_keys = {
+      "home_x","home_y","supply_zone_x","supply_zone_y",
+      "base_buff_x","base_buff_y","outpost_buff_x","outpost_buff_y",
+      "fortress_ally_x","fortress_ally_y","fortress_enemy_x","fortress_enemy_y",
+      "central_highland_x","central_highland_y",
+      "ladder_highland_x","ladder_highland_y",
+      "defend_anchor_x","defend_anchor_y"
+    };
+    const std::vector<std::pair<std::string, double>> double_keys = {
+      {"arrive_radius", 0.35}, {"enemy_near_base_radius", 2.0}
+    };
+    const std::vector<std::pair<std::string, int>> int_keys = {
+      {"hp_low", 180}, {"hp_safe", 280},
+      {"heat_high", 210},
+      {"ammo_low", 80}, {"ammo_target", 300}, {"allow_ammo_max", 400},
+      {"objective_hold_ms", 12000},
+      {"patrol_hold_ms", 5000}
+    };
+
+    const std::string prefix = "rmuc_sentry_config.";
+    int injected = 0;
+
+    for (const auto & k : coord_keys) {
+      auto param_name = prefix + k;
+      if (!node->has_parameter(param_name)) {
+        node->declare_parameter<double>(param_name, 0.0);
+      }
+      double v = node->get_parameter(param_name).as_double();
+      if (v != 0.0) {
+        bb->set("cfg." + k, v);
+        injected++;
+      }
+    }
+    for (const auto & [k, def] : double_keys) {
+      auto param_name = prefix + k;
+      if (!node->has_parameter(param_name)) {
+        node->declare_parameter<double>(param_name, def);
+      }
+      double v = node->get_parameter(param_name).as_double();
+      bb->set("cfg." + k, v);
+      injected++;
+    }
+    for (const auto & [k, def] : int_keys) {
+      auto param_name = prefix + k;
+      if (!node->has_parameter(param_name)) {
+        node->declare_parameter<int>(param_name, def);
+      }
+      int v = static_cast<int>(node->get_parameter(param_name).as_int());
+      bb->set("cfg." + k, v);
+      injected++;
+    }
+    RCLCPP_INFO(node->get_logger(), "Injected %d RMUC config params into blackboard", injected);
+
+    // patrol_enable (bool)
+    {
+      auto pn = prefix + "patrol_enable";
+      if (!node->has_parameter(pn)) node->declare_parameter<bool>(pn, false);
+      bool v = node->get_parameter(pn).as_bool();
+      bb->set("cfg.patrol_enable", v);
+      injected++;
+    }
+    // patrol_waypoints (vector<double> → string "x1,y1;x2,y2;...")
+    {
+      auto pn = prefix + "patrol_waypoints";
+      if (!node->has_parameter(pn))
+        node->declare_parameter<std::vector<double>>(pn, std::vector<double>{});
+      auto vec = node->get_parameter(pn).as_double_array();
+      std::string wpts_str;
+      for (size_t i = 0; i + 1 < vec.size(); i += 2) {
+        if (!wpts_str.empty()) wpts_str += ";";
+        wpts_str += std::to_string(vec[i]) + "," + std::to_string(vec[i + 1]);
+      }
+      bb->set("cfg.patrol_waypoints", wpts_str);
+      if (!wpts_str.empty()) injected++;
+      RCLCPP_INFO(node->get_logger(), "Patrol waypoints (%zu points): %s",
+                  vec.size() / 2, wpts_str.c_str());
+    }
   }
 
   // Groot2Publisher 端口 1668（RMUL 用 1667，避免冲突）

@@ -21,9 +21,11 @@
             <WhileDoElse>
                 <RmucIsGameTime name="IsMatchStage"
                                 message="{game_status}"
+                                robot_status="{robot_status}"
                                 game_progress="4"
                                 lower_remain_time="0"
-                                higher_remain_time="420"/>
+                                higher_remain_time="420"
+                                allow_no_game_status_hp_fallback="true"/>
 
                 <!-- ===================== 比赛阶段 ===================== -->
                 <ReactiveSequence>
