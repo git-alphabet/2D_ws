@@ -86,6 +86,8 @@ private:
   bool last_spin_enabled_logged_{false};
   bool use_manual_spin_override_{false};
   bool manual_spin_override_enabled_{false};
+  bool disable_spin_while_moving_{true};
+  bool cmd_spin_override_logged_{false};
 
   std::mutex cmd_vel_mutex_;
   geometry_msgs::msg::Twist::SharedPtr latest_cmd_vel_;

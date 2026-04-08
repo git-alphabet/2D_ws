@@ -394,6 +394,8 @@ fake_vel_transform:
     input_cmd_vel_topic: "cmd_vel_nav2_result"
     output_cmd_vel_topic: "cmd_vel"
     robot_control_topic: "robot_control"
+    # 测试开关：true=移动时关闭小陀螺，false=移动时也保留小陀螺
+    disable_spin_while_moving: true
     init_spin_speed: 3.0
 
 # 非线性小陀螺（实车）：同仿真，发布 cmd_spin（Float32，单位 rad/s）
