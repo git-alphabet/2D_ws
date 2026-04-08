@@ -4,11 +4,7 @@
     <BehaviorTree ID="BaseDefense">
         <ReactiveSequence>
             <!-- 判断基地是否受到威胁：base_threat 为 true 或基地当前血量低于最大血量的 50% -->
-            <IsBaseThreatened base_threat="{threat.base}"
-                              base_hp_cur="{base.hp.cur}"
-                              base_hp_max="{base.hp.max}"
-                              enemy_near_base_radius="{cfg.enemy_near_base_radius}"
-                              outpost_alive="{outpost.alive}"/>
+            <IsBaseThreatened base_threat="{threat.base}"/>
 
             <!-- 导航到防御锚点 -->
             <RateController hz="1">

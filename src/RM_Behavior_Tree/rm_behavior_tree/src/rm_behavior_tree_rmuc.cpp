@@ -260,10 +260,8 @@ int main(int argc, char ** argv)
         node->declare_parameter<double>(param_name, 0.0);
       }
       double v = node->get_parameter(param_name).as_double();
-      if (v != 0.0) {
-        bb->set("cfg." + k, v);
-        injected++;
-      }
+      bb->set("cfg." + k, v);
+      injected++;
     }
     for (const auto & [k, def] : double_keys) {
       auto param_name = prefix + k;

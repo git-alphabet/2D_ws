@@ -14,10 +14,7 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
-      BT::InputPort<bool>("base_threat"),
-      BT::InputPort<int>("base_hp_cur"),
-      BT::InputPort<int>("base_hp_max"),
-      BT::InputPort<double>("enemy_near_base_radius", "2.0", "enemy_near_base_radius")};
+      BT::InputPort<bool>("base_threat")};
   }
   BT::NodeStatus tick() override;
 };
