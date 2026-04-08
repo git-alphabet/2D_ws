@@ -18,8 +18,8 @@ BT::NodeStatus SelectNearestResupplyStationAction::tick()
   struct Pt { double x; double y; };
   std::array<Pt, 3> pts{};
   double v = 0;
-  getInput("supply_x", v); pts[0].x = v;
-  getInput("supply_y", v); pts[0].y = v;
+  getInput("supply_zone_x", v); pts[0].x = v;
+  getInput("supply_zone_y", v); pts[0].y = v;
   getInput("base_buff_x", v); pts[1].x = v;
   getInput("base_buff_y", v); pts[1].y = v;
   getInput("outpost_buff_x", v); pts[2].x = v;

@@ -6,7 +6,7 @@
 
 namespace rm_behavior_tree
 {
-/// 基地受威胁判定：base_threat 为 true 或 基地血量低于 50%
+/// 基地受威胁判定：统一消费黑板派生后的 base_threat
 class IsBaseThreatenedCondition : public BT::ConditionNode
 {
 public:

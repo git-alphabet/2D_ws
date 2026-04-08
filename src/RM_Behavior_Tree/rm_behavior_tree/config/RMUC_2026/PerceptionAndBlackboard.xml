@@ -16,6 +16,8 @@
                                   pose_yaw="{pose.yaw}"
                                   is_at_nav_goal="{is_at_nav_goal}"
                                   pose="{pose}"/>
+            <SubRadarTracks topic_name="/radar/enemy_tracks"
+                            radar_tracks="{radar_tracks}"/>
 
             <!-- P0 新增: 7 个裁判系统话题订阅 -->
             <RmucSubSentryDecisionStatus topic_name="/sentry_decision_status"
@@ -42,6 +44,7 @@
                                    sentry_decision_status="{sentry_decision_status}"
                                    robot_buff="{robot_buff}"
                                    projectile_allowance="{projectile_allowance}"
+                                   radar_tracks="{radar_tracks}"
                                    field_status="{field_status}"
                                    enemy_mark="{enemy_mark}"
                                    team_hp="{team_hp}"

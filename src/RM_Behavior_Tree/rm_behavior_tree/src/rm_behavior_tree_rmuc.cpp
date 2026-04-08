@@ -64,6 +64,10 @@ int main(int argc, char ** argv)
   params_robot_position.nh = std::make_shared<rclcpp::Node>("rmuc_robot_position_io");
   params_robot_position.default_port_value = "robot_position";
 
+  BT::RosNodeParams params_radar_tracks;
+  params_radar_tracks.nh = std::make_shared<rclcpp::Node>("rmuc_radar_tracks_io");
+  params_radar_tracks.default_port_value = "radar/enemy_tracks";
+
   // ── 输出话题（发布者） ──
   BT::RosNodeParams params_sentry_cmd;
   params_sentry_cmd.nh = std::make_shared<rclcpp::Node>("rmuc_sentry_cmd_io");
@@ -149,6 +153,9 @@ int main(int argc, char ** argv)
 
   // ── D. 订阅者：robot_position (/robot_position → RMUCRobotPosition) ──
   regRos("rmuc_sub_robot_position",             params_robot_position);
+
+  // ── D2. 订阅者：radar_tracks (/radar/enemy_tracks → RMUCEnemyTracks) ──
+  regRos("rmuc_sub_radar_tracks",               params_radar_tracks);
 
   // ── E. P0 新增: 7 个裁判系统订阅者 ──
   regRos("rmuc_sub_sentry_decision_status",     params_sentry_decision);

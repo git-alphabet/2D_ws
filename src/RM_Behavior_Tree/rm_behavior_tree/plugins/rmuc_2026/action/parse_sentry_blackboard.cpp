@@ -37,6 +37,14 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
     setOutput("has_target", r.is_detect_enemy);
   }
 
+  auto radar_tracks = getInput<sp_msgs::msg::RMUCEnemyTracks>("radar_tracks");
+  if (radar_tracks) {
+    const bool has_radar_target = radar_tracks->enemy_count > 0;
+    if (has_radar_target) {
+      setOutput("has_target", true);
+    }
+  }
+
   // ── 哨兵决策状态 (SentryDecisionStatus 0x020D) ──
   auto sds = getInput<sp_msgs::msg::RMUCSentryDecisionStatus>("sentry_decision_status");
   if (sds) {
@@ -95,8 +103,13 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
     setOutput("team_base_hp", static_cast<int>(th->base_hp));
   }
 
-  // base_threat / fortress_threat 由 base HP 判定兜底（IsBaseThreatened 检查 hp < 50%）
-  setOutput("base_threat", false);
+  // 先把基地半血条件前移到黑板派生层，统一由 base_threat 表示。
+  bool base_threat = false;
+  if (robot_ptr) {
+    const auto & r = **robot_ptr;
+    base_threat = (r.base_hp_max > 0 && r.base_hp_cur < r.base_hp_max / 2);
+  }
+  setOutput("base_threat", base_threat);
   setOutput("fortress_threat", false);
 
   return BT::NodeStatus::SUCCESS;

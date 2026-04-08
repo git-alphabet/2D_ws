@@ -10,6 +10,7 @@
 #include "sp_msgs/msg/rmuc_sentry_decision_status.hpp"
 #include "sp_msgs/msg/rmuc_robot_buff.hpp"
 #include "sp_msgs/msg/rmuc_projectile_allowance.hpp"
+#include "sp_msgs/msg/rmuc_enemy_tracks.hpp"
 #include "sp_msgs/msg/rmuc_field_status.hpp"
 #include "sp_msgs/msg/rmuc_enemy_mark.hpp"
 #include "sp_msgs/msg/rmuc_team_hp.hpp"
@@ -31,6 +32,7 @@ public:
       BT::InputPort<sp_msgs::msg::RMUCSentryDecisionStatus>("sentry_decision_status"),
       BT::InputPort<sp_msgs::msg::RMUCRobotBuff>("robot_buff"),
       BT::InputPort<sp_msgs::msg::RMUCProjectileAllowance>("projectile_allowance"),
+      BT::InputPort<sp_msgs::msg::RMUCEnemyTracks>("radar_tracks"),
       BT::InputPort<sp_msgs::msg::RMUCFieldStatus>("field_status"),
       BT::InputPort<sp_msgs::msg::RMUCEnemyMark>("enemy_mark"),
       BT::InputPort<sp_msgs::msg::RMUCTeamHP>("team_hp"),

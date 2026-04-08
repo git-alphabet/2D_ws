@@ -139,6 +139,10 @@ ament_auto_add_library(rmuc_sub_robot_position SHARED
     plugins/rmuc_2026/action/sub_robot_position.cpp)
 add_target_dependencies(rmuc_sub_robot_position)
 
+ament_auto_add_library(rmuc_sub_radar_tracks SHARED
+    plugins/rmuc_2026/action/sub_radar_tracks.cpp)
+add_target_dependencies(rmuc_sub_radar_tracks)
+
 ament_auto_add_library(rmuc_is_game_time SHARED
     plugins/rmuc_2026/condition/is_game_time.cpp)
 add_target_dependencies(rmuc_is_game_time)
