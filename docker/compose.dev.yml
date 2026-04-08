@@ -46,7 +46,7 @@ x-base: &base
     - ../.git:/ws/.git:ro
     - ../.buildcache:/ws/.buildcache
     - /tmp/.X11-unix:/tmp/.X11-unix:rw
-    - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
+    - ${XAUTH_FILE:-${HOME}/.docker.xauth}:/tmp/.docker.xauth:rw
     - ../src:/ws/src                        # 代码挂载（改代码立刻生效）
     - ../scripts:/ws/scripts
     - ../build:/ws/build                    # bind mount：宿主机可直接 rm -rf 清除
@@ -97,7 +97,7 @@ services:
       - ../.git:/ws/.git:ro
       - ../.buildcache:/ws/.buildcache
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
+      - ${XAUTH_FILE:-${HOME}/.docker.xauth}:/tmp/.docker.xauth:rw
       - ../src:/ws/src
       - ../scripts:/ws/scripts
       - ../build:/ws/build
