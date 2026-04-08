@@ -38,6 +38,8 @@
             <!-- Parse/derive common fields used by tactics -->
             <ParseSentryBlackboard game_status="{game_status}"
                                    robot_status="{robot_status}"
+                                   defend_anchor_x="{cfg.defend_anchor_x}"
+                                   defend_anchor_y="{cfg.defend_anchor_y}"
                                    pose_x="{pose.x}"
                                    pose_y="{pose.y}"
                                    now_ms="{time.now_ms}"

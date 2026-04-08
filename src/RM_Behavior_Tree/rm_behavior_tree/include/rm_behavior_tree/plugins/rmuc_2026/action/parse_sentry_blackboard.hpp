@@ -36,6 +36,8 @@ public:
       BT::InputPort<sp_msgs::msg::RMUCFieldStatus>("field_status"),
       BT::InputPort<sp_msgs::msg::RMUCEnemyMark>("enemy_mark"),
       BT::InputPort<sp_msgs::msg::RMUCTeamHP>("team_hp"),
+      BT::InputPort<double>("defend_anchor_x"),
+      BT::InputPort<double>("defend_anchor_y"),
       BT::InputPort<double>("pose_x"),
       BT::InputPort<double>("pose_y"),
       BT::InputPort<std::uint64_t>("now_ms"),
@@ -105,6 +107,10 @@ public:
   }
 
   BT::NodeStatus tick() override;
+
+private:
+  bool base_threat_latched_{false};
+  int last_base_hp_{-1};
 };
 }  // namespace rm_behavior_tree
 

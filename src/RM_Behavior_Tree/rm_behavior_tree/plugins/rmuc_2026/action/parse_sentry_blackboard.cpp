@@ -3,6 +3,12 @@
 namespace rm_behavior_tree
 {
 
+namespace
+{
+constexpr double kBaseThreatEnterDistance = 5.0;
+constexpr double kBaseThreatExitDistance = 12.0;
+}
+
 ParseSentryBlackboardAction::ParseSentryBlackboardAction(
   const std::string & name, const BT::NodeConfig & conf)
 : BT::SyncActionNode(name, conf)
@@ -103,12 +109,51 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
     setOutput("team_base_hp", static_cast<int>(th->base_hp));
   }
 
-  // 先把基地半血条件前移到黑板派生层，统一由 base_threat 表示。
-  bool base_threat = false;
+  // 基地危机锁存：进入条件是基地 HP 下降且敌人进入 5m；
+  // 退出条件是雷达确认所有敌人都被赶到 12m 之外。
+  bool base_threat = base_threat_latched_;
+  double defend_anchor_x = 0.0;
+  double defend_anchor_y = 0.0;
+  getInput("defend_anchor_x", defend_anchor_x);
+  getInput("defend_anchor_y", defend_anchor_y);
+
+  bool any_enemy_near = false;
+  bool has_enemy_tracks = false;
+  bool all_enemies_far = false;
+
+  if (radar_tracks &&
+    radar_tracks->enemy_x.size() == radar_tracks->enemy_y.size() &&
+    !radar_tracks->enemy_x.empty())
+  {
+    has_enemy_tracks = true;
+    all_enemies_far = true;
+    for (size_t index = 0; index < radar_tracks->enemy_x.size(); ++index) {
+      const double dx = static_cast<double>(radar_tracks->enemy_x[index]) - defend_anchor_x;
+      const double dy = static_cast<double>(radar_tracks->enemy_y[index]) - defend_anchor_y;
+      const double distance = std::hypot(dx, dy);
+      if (distance < kBaseThreatEnterDistance) {
+        any_enemy_near = true;
+      }
+      if (distance <= kBaseThreatExitDistance) {
+        all_enemies_far = false;
+      }
+    }
+  }
+
   if (robot_ptr) {
     const auto & r = **robot_ptr;
-    base_threat = (r.base_hp_max > 0 && r.base_hp_cur < r.base_hp_max / 2);
+    const bool base_hp_is_dropping = (last_base_hp_ >= 0 && r.base_hp_cur < last_base_hp_);
+    if (base_hp_is_dropping && any_enemy_near) {
+      base_threat = true;
+    }
+    last_base_hp_ = r.base_hp_cur;
   }
+
+  if (base_threat && has_enemy_tracks && all_enemies_far) {
+    base_threat = false;
+  }
+
+  base_threat_latched_ = base_threat;
   setOutput("base_threat", base_threat);
   setOutput("fortress_threat", false);
 

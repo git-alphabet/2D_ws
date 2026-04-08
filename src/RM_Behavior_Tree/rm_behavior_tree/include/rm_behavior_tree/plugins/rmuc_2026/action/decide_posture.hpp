@@ -30,6 +30,12 @@ public:
       BT::OutputPort<int>("posture_out")};
   }
   BT::NodeStatus tick() override;
+
+private:
+  int last_posture_{3};
+  std::uint64_t last_switch_ms_{0};
+  bool posture_initialized_{false};
+  bool crisis_override_active_{false};
 };
 }  // namespace rm_behavior_tree
 #endif

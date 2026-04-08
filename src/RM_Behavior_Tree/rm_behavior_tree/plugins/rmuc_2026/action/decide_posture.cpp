@@ -1,7 +1,32 @@
 #include "rm_behavior_tree/plugins/rmuc_2026/action/decide_posture.hpp"
 
+#include <algorithm>
+
 namespace rm_behavior_tree
 {
+
+namespace
+{
+constexpr std::uint64_t kPostureCooldownMs = 5000;
+constexpr int kPostureSwitchMargin = 12;
+
+int getScoreForPosture(
+  int posture,
+  int score_attack,
+  int score_defense,
+  int score_move)
+{
+  switch (posture) {
+    case 1:
+      return score_attack;
+    case 2:
+      return score_defense;
+    case 3:
+    default:
+      return score_move;
+  }
+}
+}  // namespace
 
 DecidePostureAction::DecidePostureAction(
   const std::string & name, const BT::NodeConfig & conf)
@@ -12,6 +37,7 @@ BT::NodeStatus DecidePostureAction::tick()
   int hp = 400, hp_max = 400, heat = 0, heat_high = 210, elapsed = 0;
   bool has_target = false, base_threat = false;
   int current_posture = 3, buff_cool = 0, buff_defense = 0, buff_vuln = 0, ammo = 300;
+  std::uint64_t now_ms = 0;
 
   getInput("hp_cur", hp);
   getInput("hp_max", hp_max);
@@ -20,6 +46,7 @@ BT::NodeStatus DecidePostureAction::tick()
   getInput("has_target", has_target);
   getInput("base_threat", base_threat);
   getInput("stage_elapsed_time", elapsed);
+  getInput("now_ms", now_ms);
   getInput("current_posture", current_posture);
   getInput("buff_cool_value", buff_cool);
   getInput("buff_defense_pct", buff_defense);
@@ -65,6 +92,51 @@ BT::NodeStatus DecidePostureAction::tick()
   }
   if (score_attack > max_score) {
     posture = 1;
+  }
+
+  int stable_posture = (current_posture >= 1 && current_posture <= 3) ? current_posture : last_posture_;
+  if (!posture_initialized_) {
+    last_posture_ = stable_posture;
+    if (now_ms > 0) {
+      last_switch_ms_ = now_ms;
+    }
+    posture_initialized_ = true;
+  }
+
+  if (base_threat) {
+    posture = 1;
+    last_posture_ = posture;
+    crisis_override_active_ = true;
+    setOutput("posture_out", posture);
+    return BT::NodeStatus::SUCCESS;
+  }
+
+  if (crisis_override_active_) {
+    crisis_override_active_ = false;
+    if (now_ms > kPostureCooldownMs) {
+      last_switch_ms_ = now_ms - kPostureCooldownMs;
+    } else {
+      last_switch_ms_ = 0;
+    }
+  }
+
+  const int current_score = getScoreForPosture(stable_posture, score_attack, score_defense, score_move);
+  const int desired_score = getScoreForPosture(posture, score_attack, score_defense, score_move);
+  const bool cooldown_active = (now_ms > 0 && last_switch_ms_ > 0 &&
+    (now_ms - last_switch_ms_) < kPostureCooldownMs);
+  const bool switch_has_margin = (desired_score >= current_score + kPostureSwitchMargin);
+
+  if (posture != stable_posture) {
+    if (cooldown_active || !switch_has_margin) {
+      posture = stable_posture;
+    } else {
+      last_posture_ = posture;
+      if (now_ms > 0) {
+        last_switch_ms_ = now_ms;
+      }
+    }
+  } else {
+    last_posture_ = stable_posture;
   }
 
   setOutput("posture_out", posture);
