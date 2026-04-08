@@ -393,10 +393,29 @@ fake_vel_transform:
     local_plan_topic: "controller_server/FollowPath/local_plan"
     input_cmd_vel_topic: "cmd_vel_nav2_result"
     output_cmd_vel_topic: "cmd_vel"
+    # 角速度输出模式：
+    # - spin_only: 仅自旋前馈
+    # - controller_only: 仅控制器角速度
+    # - controller_plus_spin_ff: 控制器角速度 + 自旋前馈（推荐）
+    angular_z_mode: "controller_plus_spin_ff"
+    # 控制器角速度缩放系数（对 input_cmd_vel_topic.angular.z 生效）
+    controller_angular_z_scale: 1.0
+    # 自旋前馈缩放系数（对 cmd_spin 或基础前馈角速度生效）
+    spin_feedforward_scale: 1.0
+    # 线速度衰减增益：越大则速度高时前馈自旋衰减越明显。
+    spin_ff_velocity_decay_gain: 0.6
+    # 最终角速度上下限（rad/s）
+    angular_z_lower_limit: -3.0
+    angular_z_upper_limit: 3.0
+    # 对称绝对值限幅（<=0 表示关闭；开启后与上下限共同生效）。
+    max_abs_angular_z: 0.0
     robot_control_topic: "robot_control"
-    # 测试开关：true=移动时关闭小陀螺，false=移动时也保留小陀螺
-    disable_spin_while_moving: true
-    init_spin_speed: 3.0
+    # 是否在移动时关闭自旋前馈。
+    # 你希望“自转不中断”，这里保持 false。
+    disable_spin_while_moving: false
+    # 基础自旋前馈角速度（rad/s）；当没有 cmd_spin 输入时使用。
+    spin_feedforward_base_speed: 3.0
+    # 兼容旧参数（建议不再使用）：init_spin_speed
 
 # 非线性小陀螺（实车）：同仿真，发布 cmd_spin（Float32，单位 rad/s）
 nonlinear_spin_publisher:

@@ -31,12 +31,26 @@ Related issue: [Switch from Twist to TwistStamped for cmd_vel #1594](https://git
 * `manual_spin_override_topic` (`string`, default: "manual_chassis_spin") - 手动覆盖话题（`std_msgs/msg/Bool`）
 * `input_cmd_vel_topic` (`string`, default: "") - 输入速度指令的话题
 * `output_cmd_vel_topic` (`string`, default: "") - 输出速度指令的话题。将原本基于 `fake_robot_base_frame` 的速度变换到 `robot_base_frame` 后发布
-* `init_spin_speed` (`double`, default: 0.0) - 匀速旋转角速度（`chassis_spin=true` 时叠加到 `output_cmd_vel_topic.angular.z`）
+* `angular_z_mode` (`string`, default: "spin_only") - 输出角速度模式：`spin_only`（仅前馈自旋）、`controller_only`（仅控制器角速度）、`controller_plus_spin_ff`（控制器角速度 + 自旋前馈）
+* `spin_feedforward_base_speed` (`double`, default: NaN) - 基础自旋前馈角速度（rad/s）。若未设置则回退到 `init_spin_speed`
+* `init_spin_speed` (`double`, default: 0.0) - 兼容旧配置的别名参数，建议迁移到 `spin_feedforward_base_speed`
+* `controller_angular_z_scale` (`double`, default: 1.0) - 控制器角速度缩放系数
+* `spin_feedforward_scale` (`double`, default: 1.0) - 自旋前馈缩放系数（作用于 `cmd_spin` 或 `init_spin_speed`）
+* `spin_ff_velocity_decay_gain` (`double`, default: 0.0) - 自旋前馈随线速度衰减增益，实际前馈为 `spin_ff/(1+k*|v|)`
+* `angular_z_lower_limit` (`double`, default: -inf) - 最终角速度下限（rad/s）
+* `angular_z_upper_limit` (`double`, default: +inf) - 最终角速度上限（rad/s）
+* `max_abs_angular_z` (`double`, default: 0.0) - 最终角速度限幅（`<=0` 表示不额外限幅）
 * `disable_spin_while_moving` (`bool`, default: true) - 移动过程中是否关闭小陀螺。`true`：线速度超过阈值时 `angular.z=0`；`false`：移动时仍叠加小陀螺，便于联调测试
 
 ### 自旋来源优先级
 
-`output_cmd_vel_topic.angular.z` 的小陀螺角速度来源优先级如下：
+`output_cmd_vel_topic.angular.z` 的来源由 `angular_z_mode` 决定：
+
+1. `spin_only`：仅使用自旋前馈
+2. `controller_only`：仅使用控制器 `input_cmd_vel_topic.angular.z`
+3. `controller_plus_spin_ff`：控制器角速度 + 自旋前馈（推荐轨迹跟随场景）
+
+自旋前馈来源优先级如下：
 
 1. `cmd_spin_topic`（变速小陀螺实时值，收到后持续生效）
-2. `init_spin_speed`（仅在尚未收到任何 `cmd_spin` 时作为回退值）
+2. `spin_feedforward_base_speed`（若未设置则回退为 `init_spin_speed`）

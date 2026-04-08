@@ -18,6 +18,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <limits>
 
 #include "example_interfaces/msg/float32.hpp"
 #include "geometry_msgs/msg/twist.hpp"
@@ -79,7 +80,14 @@ private:
   std::string manual_spin_override_topic_;
   std::string input_cmd_vel_topic_;
   std::string output_cmd_vel_topic_;
-  float init_spin_speed_;
+  std::string angular_z_mode_;
+  float spin_feedforward_base_speed_{0.0f};
+  double controller_angular_z_scale_{1.0};
+  double spin_feedforward_scale_{1.0};
+  double spin_ff_velocity_decay_gain_{0.0};
+  double angular_z_lower_limit_{-std::numeric_limits<double>::infinity()};
+  double angular_z_upper_limit_{std::numeric_limits<double>::infinity()};
+  double max_abs_angular_z_{0.0};
   float spin_speed_{0.0f};
   bool has_received_cmd_spin_{false};
   bool spin_enabled_{false};

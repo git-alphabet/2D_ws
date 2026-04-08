@@ -15,7 +15,10 @@
 #include "fake_vel_transform/fake_vel_transform.hpp"
 
 #include "example_interfaces/msg/float32.hpp"
+#include <algorithm>
+#include <cctype>
 #include <cmath>
+#include <limits>
 
 #include "tf2/utils.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
@@ -27,6 +30,10 @@ constexpr double EPSILON = 1e-5;
 constexpr double CONTROLLER_TIMEOUT = 0.5;
 constexpr double OUTPUT_HOLD_PUBLISH_TIMEOUT = 0.1;
 constexpr double SPIN_LINEAR_STOP_THRESHOLD = 0.05;
+constexpr const char * ANGULAR_Z_MODE_SPIN_ONLY = "spin_only";
+constexpr const char * ANGULAR_Z_MODE_CONTROLLER_ONLY = "controller_only";
+constexpr const char * ANGULAR_Z_MODE_CONTROLLER_PLUS_SPIN_FF = "controller_plus_spin_ff";
+constexpr const char * ANGULAR_Z_MODE_BLEND_ALIAS = "blend";
 
 FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
 : Node("fake_vel_transform", options)
@@ -49,7 +56,18 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->declare_parameter<std::string>("manual_spin_override_topic", "manual_chassis_spin");
   this->declare_parameter<std::string>("input_cmd_vel_topic", "");
   this->declare_parameter<std::string>("output_cmd_vel_topic", "");
-  this->declare_parameter<float>("init_spin_speed", 0.0);
+  this->declare_parameter<std::string>("angular_z_mode", ANGULAR_Z_MODE_SPIN_ONLY);
+  this->declare_parameter<double>(
+    "spin_feedforward_base_speed", std::numeric_limits<double>::quiet_NaN());
+  this->declare_parameter<float>("init_spin_speed", 0.0);  // legacy alias
+  this->declare_parameter<double>("controller_angular_z_scale", 1.0);
+  this->declare_parameter<double>("spin_feedforward_scale", 1.0);
+  this->declare_parameter<double>("spin_ff_velocity_decay_gain", 0.0);
+  this->declare_parameter<double>(
+    "angular_z_lower_limit", -std::numeric_limits<double>::infinity());
+  this->declare_parameter<double>(
+    "angular_z_upper_limit", std::numeric_limits<double>::infinity());
+  this->declare_parameter<double>("max_abs_angular_z", 0.0);
   this->declare_parameter<bool>("disable_spin_while_moving", true);
 
   this->get_parameter("robot_base_frame", robot_base_frame_);
@@ -62,13 +80,53 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->get_parameter("manual_spin_override_topic", manual_spin_override_topic_);
   this->get_parameter("input_cmd_vel_topic", input_cmd_vel_topic_);
   this->get_parameter("output_cmd_vel_topic", output_cmd_vel_topic_);
-  this->get_parameter("init_spin_speed", init_spin_speed_);
+  this->get_parameter("angular_z_mode", angular_z_mode_);
+  double spin_feedforward_base_speed_param = std::numeric_limits<double>::quiet_NaN();
+  this->get_parameter("spin_feedforward_base_speed", spin_feedforward_base_speed_param);
+  this->get_parameter("init_spin_speed", spin_feedforward_base_speed_);
+  if (std::isfinite(spin_feedforward_base_speed_param)) {
+    spin_feedforward_base_speed_ = static_cast<float>(spin_feedforward_base_speed_param);
+  }
+  this->get_parameter("controller_angular_z_scale", controller_angular_z_scale_);
+  this->get_parameter("spin_feedforward_scale", spin_feedforward_scale_);
+  this->get_parameter("spin_ff_velocity_decay_gain", spin_ff_velocity_decay_gain_);
+  this->get_parameter("angular_z_lower_limit", angular_z_lower_limit_);
+  this->get_parameter("angular_z_upper_limit", angular_z_upper_limit_);
+  this->get_parameter("max_abs_angular_z", max_abs_angular_z_);
   this->get_parameter("disable_spin_while_moving", disable_spin_while_moving_);
+
+  if (angular_z_lower_limit_ > angular_z_upper_limit_) {
+    RCLCPP_WARN(
+      get_logger(),
+      "Invalid angular_z limits: lower(%.3f) > upper(%.3f), fallback to unbounded.",
+      angular_z_lower_limit_, angular_z_upper_limit_);
+    angular_z_lower_limit_ = -std::numeric_limits<double>::infinity();
+    angular_z_upper_limit_ = std::numeric_limits<double>::infinity();
+  }
+
+  std::transform(
+    angular_z_mode_.begin(), angular_z_mode_.end(), angular_z_mode_.begin(),
+    [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  if (angular_z_mode_ == ANGULAR_Z_MODE_BLEND_ALIAS) {
+    angular_z_mode_ = ANGULAR_Z_MODE_CONTROLLER_PLUS_SPIN_FF;
+  }
+  if (
+    angular_z_mode_ != ANGULAR_Z_MODE_SPIN_ONLY &&
+    angular_z_mode_ != ANGULAR_Z_MODE_CONTROLLER_ONLY &&
+    angular_z_mode_ != ANGULAR_Z_MODE_CONTROLLER_PLUS_SPIN_FF)
+  {
+    RCLCPP_WARN(
+      get_logger(), "Invalid angular_z_mode='%s', fallback to '%s'", angular_z_mode_.c_str(),
+      ANGULAR_Z_MODE_SPIN_ONLY);
+    angular_z_mode_ = ANGULAR_Z_MODE_SPIN_ONLY;
+  }
 
   RCLCPP_INFO(
     get_logger(),
-    "Spin control: topic=%s, init_spin_speed=%.3f rad/s, disable_spin_while_moving=%s",
-    robot_control_topic_.c_str(), init_spin_speed_,
+    "Spin control: topic=%s, mode=%s, spin_ff_base=%.3f, ctrl_scale=%.3f, ff_scale=%.3f, ff_decay=%.3f, lower_w=%.3f, upper_w=%.3f, max_abs_w=%.3f, disable_spin_while_moving=%s",
+    robot_control_topic_.c_str(), angular_z_mode_.c_str(), spin_feedforward_base_speed_,
+    controller_angular_z_scale_, spin_feedforward_scale_,
+    spin_ff_velocity_decay_gain_, angular_z_lower_limit_, angular_z_upper_limit_, max_abs_angular_z_,
     disable_spin_while_moving_ ? "true" : "false");
 
   tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
@@ -141,7 +199,7 @@ void FakeVelTransform::cmdSpinCallback(const example_interfaces::msg::Float32::S
   if (!cmd_spin_override_logged_) {
     RCLCPP_INFO(
       get_logger(),
-      "Received cmd_spin for the first time, dynamic cmd_spin now overrides init_spin_speed.");
+      "Received cmd_spin for the first time, dynamic cmd_spin now overrides spin_feedforward_base_speed.");
     cmd_spin_override_logged_ = true;
   }
 }
@@ -270,15 +328,34 @@ geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
   if (has_received_cmd_spin_) {
     current_spin = spin_speed_;
   } else {
-    current_spin = init_spin_speed_;
+    current_spin = spin_feedforward_base_speed_;
   }
 
   const double linear_speed = std::hypot(twist->linear.x, twist->linear.y);
   const bool is_moving = linear_speed > SPIN_LINEAR_STOP_THRESHOLD;
+  const double controller_angular_z = twist->angular.z * controller_angular_z_scale_;
+
+  double spin_feedforward = static_cast<double>(current_spin) * spin_feedforward_scale_;
+  if (spin_ff_velocity_decay_gain_ > 0.0) {
+    spin_feedforward /= (1.0 + spin_ff_velocity_decay_gain_ * linear_speed);
+  }
   if (disable_spin_while_moving_ && is_moving) {
-    aft_tf_vel.angular.z = 0.0;
+    spin_feedforward = 0.0;
+  }
+
+  if (angular_z_mode_ == ANGULAR_Z_MODE_CONTROLLER_ONLY) {
+    aft_tf_vel.angular.z = controller_angular_z;
+  } else if (angular_z_mode_ == ANGULAR_Z_MODE_CONTROLLER_PLUS_SPIN_FF) {
+    aft_tf_vel.angular.z = controller_angular_z + spin_feedforward;
   } else {
-    aft_tf_vel.angular.z = current_spin;
+    aft_tf_vel.angular.z = spin_feedforward;
+  }
+
+  aft_tf_vel.angular.z = std::clamp(
+    aft_tf_vel.angular.z, angular_z_lower_limit_, angular_z_upper_limit_);
+
+  if (max_abs_angular_z_ > 0.0) {
+    aft_tf_vel.angular.z = std::clamp(aft_tf_vel.angular.z, -max_abs_angular_z_, max_abs_angular_z_);
   }
 
   aft_tf_vel.linear.x = twist->linear.x * cos(yaw_diff) + twist->linear.y * sin(yaw_diff);
