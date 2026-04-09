@@ -27,6 +27,7 @@
                               ammo_low="{cfg.ammo_low}"
                               is_disengaged="{state.disengaged}"
                               allow_ammo_max="{cfg.allow_ammo_max}"
+                              ammo_increase_interval_ms="{cfg.ammo_increase_interval_ms}"
                               can_remote_heal="{economy.can_remote_heal}"
                               can_remote_ammo="{economy.can_remote_ammo}"
                               team_coins="{economy.coins}"
@@ -84,6 +85,7 @@
             <input_port name="ammo_target" default="{cfg.ammo_target}"/>
             <input_port name="ammo_low" default="{cfg.ammo_low}"/>
             <input_port name="allow_ammo_max" default="{cfg.allow_ammo_max}"/>
+            <input_port name="ammo_increase_interval_ms" default="{cfg.ammo_increase_interval_ms}"/>
             <input_port name="can_remote_heal" default="{economy.can_remote_heal}"/>
             <input_port name="can_remote_ammo" default="{economy.can_remote_ammo}"/>
             <input_port name="team_coins" default="{economy.coins}"/>

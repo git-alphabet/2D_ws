@@ -35,6 +35,7 @@ public:
       BT::OutputPort<int>("ammo_low"),
       BT::OutputPort<int>("ammo_target"),
       BT::OutputPort<int>("allow_ammo_max"),
+      BT::OutputPort<int>("ammo_increase_interval_ms"),
       BT::OutputPort<double>("enemy_near_base_radius"),
       BT::OutputPort<int>("objective_hold_ms"),
       BT::OutputPort<int>("patrol_hold_ms"),

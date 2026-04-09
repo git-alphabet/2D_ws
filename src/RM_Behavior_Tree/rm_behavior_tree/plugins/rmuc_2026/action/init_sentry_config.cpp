@@ -54,6 +54,7 @@ BT::NodeStatus InitSentryConfigAction::tick()
   setInt("ammo_low", 80);
   setInt("ammo_target", 300);
   setInt("allow_ammo_max", 400);
+  setInt("ammo_increase_interval_ms", 1000);
   setInt("objective_hold_ms", 12000);
   setInt("patrol_hold_ms", 5000);
 

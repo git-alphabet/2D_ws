@@ -54,6 +54,7 @@ rmuc_sentry_config:
   ammo_low: 80                   # 低弹药阈值 (触发 AmmoPlan) 即低于多少弹药量的时候需要去补给
   ammo_target: 300               # 目标弹药量 (AmmoPlan 补给目标) 即在增益点补充到多少才停
   allow_ammo_max: 400            # 允许发弹量上限 (防止无限累加)
+  ammo_increase_interval_ms: 1000 # 允许弹量每次累加的最小间隔 (毫秒, 防止瞬间拉满)
 
   # ─────────── 导航参数 ───────────
   arrive_radius: 0.35            # 到达判定半径 (米)
