@@ -9,7 +9,7 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "example_interfaces/msg/float32.hpp"
-#include "sp_msgs/msg/rmul.hpp"
+#include "sp_msgs/msg/rmuc_robot_control.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace
@@ -187,8 +187,8 @@ public:
       }
     }
 
-    // Subscribe to robot_control (RMUL msg) for chassis_spin master toggle
-    robot_control_sub_ = this->create_subscription<sp_msgs::msg::RMUL>(
+    // Subscribe to robot_control (RMUCRobotControl msg) for chassis_spin master toggle
+    robot_control_sub_ = this->create_subscription<sp_msgs::msg::RMUCRobotControl>(
       robot_control_topic_, rclcpp::QoS(10),
       std::bind(&NonlinearSpinPublisher::onRobotControl, this, std::placeholders::_1));
 
@@ -282,7 +282,7 @@ private:
     RCLCPP_INFO(this->get_logger(), "NonlinearSpinPublisher triggered: start spinning now.");
   }
 
-  void onRobotControl(const sp_msgs::msg::RMUL::ConstSharedPtr msg)
+  void onRobotControl(const sp_msgs::msg::RMUCRobotControl::ConstSharedPtr msg)
   {
     chassis_spin_enabled_ = msg->chassis_spin;
   }
@@ -450,7 +450,7 @@ private:
   rclcpp::Publisher<example_interfaces::msg::Float32>::SharedPtr cmd_spin_pub_;
   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr trigger_path_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr trigger_twist_sub_;
-  rclcpp::Subscription<sp_msgs::msg::RMUL>::SharedPtr robot_control_sub_;
+  rclcpp::Subscription<sp_msgs::msg::RMUCRobotControl>::SharedPtr robot_control_sub_;
   rclcpp::TimerBase::SharedPtr timer_;
 
   rclcpp::Time start_time_;
