@@ -214,11 +214,19 @@ def generate_launch_description():
         ),
     )
 
-    # Mode0: 需要我们发 static identity map->odom TF
-    # Mode1/2: odin 自己发 map->odom TF，我们不能再发（否则冲突）
+    # Mode0: 需要我们发 static identity map->odom TF。
+    # 实车建图(slam=True)阶段同样需要兜底发布 static map->odom，
+    # 避免设备在 mode1 初始化阶段尚未提供 map TF 时，Nav2/SLAM 因 map 帧缺失无法正常工作。
+    # 导航阶段(slam=False)仍按 odin_map_mode 决定，避免与重定位/动态 map->odom 冲突。
     from launch.substitutions import PythonExpression
     publish_static_map_tf = PythonExpression(
-        ["'True' if '", LaunchConfiguration("odin_map_mode"), "' == '0' else 'False'"]
+        [
+            "'True' if ('",
+            LaunchConfiguration("odin_map_mode"),
+            "' == '0' or '",
+            LaunchConfiguration("slam"),
+            "'.lower() in ['true', '1', 'yes', 'on']) else 'False'",
+        ]
     )
 
     # Create our own temporary YAML files that include substitutions

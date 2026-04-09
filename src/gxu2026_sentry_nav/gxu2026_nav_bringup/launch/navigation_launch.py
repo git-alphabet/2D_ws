@@ -28,11 +28,14 @@ from ament_index_python.packages import (
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
+    ExecuteProcess,
     GroupAction,
     OpaqueFunction,
+    RegisterEventHandler,
     SetEnvironmentVariable,
     SetLaunchConfiguration,
 )
+from launch.event_handlers import OnProcessExit
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import LoadComposableNodes, Node
@@ -60,6 +63,11 @@ def generate_launch_description():
     sensor_scan_registered_scan_topic = LaunchConfiguration("sensor_scan_registered_scan_topic")
     sensor_scan_lidar_odometry_topic = LaunchConfiguration("sensor_scan_lidar_odometry_topic")
     point_lio_config_file = LaunchConfiguration("point_lio_config_file")
+    nav2_tf_warmup_enabled = LaunchConfiguration("nav2_tf_warmup_enabled")
+    nav2_tf_warmup_target_frame = LaunchConfiguration("nav2_tf_warmup_target_frame")
+    nav2_tf_warmup_source_frame = LaunchConfiguration("nav2_tf_warmup_source_frame")
+    nav2_tf_warmup_timeout_sec = LaunchConfiguration("nav2_tf_warmup_timeout_sec")
+    nav2_tf_warmup_check_hz = LaunchConfiguration("nav2_tf_warmup_check_hz")
 
 
     enable_gimbal_yaw_bridge = LaunchConfiguration("enable_gimbal_yaw_bridge")
@@ -197,6 +205,36 @@ def generate_launch_description():
             get_package_share_directory("point_lio"), "config", "mid360.yaml"
         ),
         description="Full path to point_lio config file for mid360 obstacle supplement chain",
+    )
+
+    declare_nav2_tf_warmup_enabled_cmd = DeclareLaunchArgument(
+        "nav2_tf_warmup_enabled",
+        default_value="True",
+        description="Wait for TF chain before starting nav2 lifecycle manager",
+    )
+
+    declare_nav2_tf_warmup_target_frame_cmd = DeclareLaunchArgument(
+        "nav2_tf_warmup_target_frame",
+        default_value="odom",
+        description="TF warmup target frame",
+    )
+
+    declare_nav2_tf_warmup_source_frame_cmd = DeclareLaunchArgument(
+        "nav2_tf_warmup_source_frame",
+        default_value="gimbal_yaw_fake",
+        description="TF warmup source frame",
+    )
+
+    declare_nav2_tf_warmup_timeout_sec_cmd = DeclareLaunchArgument(
+        "nav2_tf_warmup_timeout_sec",
+        default_value="25.0",
+        description="TF warmup max wait seconds",
+    )
+
+    declare_nav2_tf_warmup_check_hz_cmd = DeclareLaunchArgument(
+        "nav2_tf_warmup_check_hz",
+        default_value="20.0",
+        description="TF warmup polling frequency",
     )
 
     enable_obstacle_scan = LaunchConfiguration("enable_obstacle_scan")
@@ -475,18 +513,6 @@ def generate_launch_description():
                     ("cmd_vel_smoothed", "cmd_vel_nav2_result"),  # remap output
                 ],
             ),
-            Node(
-                package="nav2_lifecycle_manager",
-                executable="lifecycle_manager",
-                name="lifecycle_manager_navigation",
-                output="screen",
-                arguments=["--ros-args", "--log-level", log_level],
-                parameters=[
-                    {"use_sim_time": use_sim_time},
-                    {"autostart": autostart},
-                    {"node_names": lifecycle_nodes},
-                ],
-            ),
         ],
     )
 
@@ -566,19 +592,62 @@ def generate_launch_description():
                     ("cmd_vel_smoothed", "cmd_vel_nav2_result"),  # remap output
                 ],
             ),
-            ComposableNode(
-                package="nav2_lifecycle_manager",
-                plugin="nav2_lifecycle_manager::LifecycleManager",
-                name="lifecycle_manager_navigation",
-                parameters=[
-                    {
-                        "use_sim_time": use_sim_time,
-                        "autostart": autostart,
-                        "node_names": lifecycle_nodes,
-                    }
-                ],
-            ),
         ],
+    )
+
+    wait_nav2_tf_warmup_cmd = ExecuteProcess(
+        condition=IfCondition(nav2_tf_warmup_enabled),
+        cmd=[
+            "python3",
+            os.path.join(bringup_dir, "launch", "nav2_tf_warmup_wait.py"),
+            "--target-frame",
+            nav2_tf_warmup_target_frame,
+            "--source-frame",
+            nav2_tf_warmup_source_frame,
+            "--timeout-sec",
+            nav2_tf_warmup_timeout_sec,
+            "--check-hz",
+            nav2_tf_warmup_check_hz,
+            "--namespace",
+            namespace,
+            "--use-sim-time",
+            use_sim_time,
+        ],
+        output="screen",
+    )
+
+    start_lifecycle_manager_cmd_direct = Node(
+        condition=UnlessCondition(nav2_tf_warmup_enabled),
+        package="nav2_lifecycle_manager",
+        executable="lifecycle_manager",
+        name="lifecycle_manager_navigation",
+        output="screen",
+        arguments=["--ros-args", "--log-level", log_level],
+        parameters=[
+            {"use_sim_time": use_sim_time},
+            {"autostart": autostart},
+            {"node_names": lifecycle_nodes},
+        ],
+    )
+
+    start_lifecycle_manager_after_warmup_cmd = RegisterEventHandler(
+        OnProcessExit(
+            target_action=wait_nav2_tf_warmup_cmd,
+            on_exit=[
+                Node(
+                    package="nav2_lifecycle_manager",
+                    executable="lifecycle_manager",
+                    name="lifecycle_manager_navigation",
+                    output="screen",
+                    arguments=["--ros-args", "--log-level", log_level],
+                    parameters=[
+                        {"use_sim_time": use_sim_time},
+                        {"autostart": autostart},
+                        {"node_names": lifecycle_nodes},
+                    ],
+                )
+            ],
+        )
     )
 
     def _set_navigation_switches(
@@ -1087,6 +1156,11 @@ def generate_launch_description():
     ld.add_action(declare_sensor_scan_registered_scan_topic_cmd)
     ld.add_action(declare_sensor_scan_lidar_odometry_topic_cmd)
     ld.add_action(declare_point_lio_config_file_cmd)
+    ld.add_action(declare_nav2_tf_warmup_enabled_cmd)
+    ld.add_action(declare_nav2_tf_warmup_target_frame_cmd)
+    ld.add_action(declare_nav2_tf_warmup_source_frame_cmd)
+    ld.add_action(declare_nav2_tf_warmup_timeout_sec_cmd)
+    ld.add_action(declare_nav2_tf_warmup_check_hz_cmd)
     # processed params defaults to original params file
     ld.add_action(SetLaunchConfiguration("processed_params_file", params_file))
     ld.add_action(SetLaunchConfiguration("enable_obstacle_scan", "false"))
@@ -1112,5 +1186,8 @@ def generate_launch_description():
     ld.add_action(load_nodes)
     ld.add_action(load_composable_nodes)
     ld.add_action(load_pointcloud_to_laserscan_composable_cmd)
+    ld.add_action(wait_nav2_tf_warmup_cmd)
+    ld.add_action(start_lifecycle_manager_cmd_direct)
+    ld.add_action(start_lifecycle_manager_after_warmup_cmd)
 
     return ld

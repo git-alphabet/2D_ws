@@ -1,12 +1,11 @@
-# 里程计 控制器 行为树 配置
 pb_navigation_switches:
   ros__parameters:
     controller_plugin: "pb_omni_pid_pursuit_controller"
     odometry_source: "odin1"
-    behavior_tree: "default"
+    behavior_tree: "none"
     robot_description_file: "simulation_robot"  # 机器人描述文件基名：对应 gxu2026_robot_description/resource/xmacro/<name>.sdf.xmacro
 
-    # 地形分析输入源（可选参数）：
+    # 地形分析输入源（这里需要整理）：
     # - 默认走 odin1 的 cloud_slam + odometry_highfreq
     # - 若需改源，可在这里改，或 launch 入参覆盖
     terrain_registered_scan_topic: "odin1/cloud_slam"
@@ -112,7 +111,7 @@ rm_behavior_tree:
 loam_interface:
   ros__parameters:
     use_sim_time: False
-    # Mid360 接入（loam 仅处理 mid360 链路，避免与 odin1 cloud_slam 冲突）
+    # Mid360 接入（loam 仅处理 mid360 链路，避免与 odin1 cloud_slam 语义重叠）
     state_estimation_topic: "aft_mapped_to_init"
     registered_scan_topic: "cloud_registered"
     odom_frame: "odom"

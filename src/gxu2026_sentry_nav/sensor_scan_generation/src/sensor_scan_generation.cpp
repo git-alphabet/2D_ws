@@ -14,6 +14,8 @@
 
 #include "sensor_scan_generation/sensor_scan_generation.hpp"
 
+#include <algorithm>
+
 #include "pcl_ros/transforms.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
@@ -60,6 +62,8 @@ SensorScanGenerationNode::SensorScanGenerationNode(const rclcpp::NodeOptions & o
   this->declare_parameter<bool>("freeze_lidar_mount_tf", false);
   this->declare_parameter<bool>("debug_tf", false);
   this->declare_parameter<int>("debug_tf_throttle_ms", 1000);
+  this->declare_parameter<double>("tf_lookup_timeout_sec", 0.5);
+  this->declare_parameter<bool>("fallback_to_latest_tf_on_extrapolation", true);
 
   this->get_parameter("lidar_frame", lidar_frame_);
   this->get_parameter("base_frame", base_frame_);
@@ -67,6 +71,9 @@ SensorScanGenerationNode::SensorScanGenerationNode(const rclcpp::NodeOptions & o
   this->get_parameter("freeze_lidar_mount_tf", freeze_lidar_mount_tf_);
   this->get_parameter("debug_tf", debug_tf_);
   this->get_parameter("debug_tf_throttle_ms", debug_tf_throttle_ms_);
+  this->get_parameter("tf_lookup_timeout_sec", tf_lookup_timeout_sec_);
+  this->get_parameter(
+    "fallback_to_latest_tf_on_extrapolation", fallback_to_latest_tf_on_extrapolation_);
 
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_, this, true);
@@ -104,23 +111,27 @@ void SensorScanGenerationNode::laserCloudAndOdometryHandler(
   tf2::Transform tf_odom_to_chassis;
   tf2::Transform tf_odom_to_robot_base;
   tf2::Transform tf_odom_to_lidar;
+  const rclcpp::Time odom_stamp = odometry_msg->header.stamp;
+  const rclcpp::Time cloud_stamp = pcd_msg->header.stamp;
+  const rclcpp::Time tf_lookup_stamp = std::min(odom_stamp, cloud_stamp);
 
   tf2::fromMsg(odometry_msg->pose.pose, tf_odom_to_lidar);
 
   if (freeze_lidar_mount_tf_ && !mount_tf_cached_) {
     try {
       const auto lidar_to_base = tf_buffer_->lookupTransform(
-        lidar_frame_, base_frame_, pcd_msg->header.stamp, rclcpp::Duration::from_seconds(0.5));
+        lidar_frame_, base_frame_, tf_lookup_stamp,
+        rclcpp::Duration::from_seconds(tf_lookup_timeout_sec_));
       const auto lidar_to_robot_base = tf_buffer_->lookupTransform(
-        lidar_frame_, robot_base_frame_, pcd_msg->header.stamp,
-        rclcpp::Duration::from_seconds(0.5));
+        lidar_frame_, robot_base_frame_, tf_lookup_stamp,
+        rclcpp::Duration::from_seconds(tf_lookup_timeout_sec_));
       tf2::fromMsg(lidar_to_base.transform, cached_lidar_to_base_);
       tf2::fromMsg(lidar_to_robot_base.transform, cached_lidar_to_robot_base_);
       mount_tf_cached_ = true;
       RCLCPP_INFO(
         this->get_logger(),
         "freeze_lidar_mount_tf=true: cached lidar mount TFs at t=%.3f (lidar='%s', base='%s', robot_base='%s')",
-        rclcpp::Time(pcd_msg->header.stamp).seconds(), lidar_frame_.c_str(), base_frame_.c_str(),
+        tf_lookup_stamp.seconds(), lidar_frame_.c_str(), base_frame_.c_str(),
         robot_base_frame_.c_str());
     } catch (tf2::TransformException & ex) {
       RCLCPP_WARN_THROTTLE(
@@ -136,8 +147,8 @@ void SensorScanGenerationNode::laserCloudAndOdometryHandler(
     tf_lidar_to_robot_base_ = cached_lidar_to_robot_base_;
     tf_lidar_to_chassis = cached_lidar_to_base_;
   } else {
-    tf_lidar_to_robot_base_ = getTransform(lidar_frame_, robot_base_frame_, pcd_msg->header.stamp);
-    tf_lidar_to_chassis = getTransform(lidar_frame_, base_frame_, pcd_msg->header.stamp);
+    tf_lidar_to_robot_base_ = getTransform(lidar_frame_, robot_base_frame_, tf_lookup_stamp);
+    tf_lidar_to_chassis = getTransform(lidar_frame_, base_frame_, tf_lookup_stamp);
   }
 
   if (debug_tf_) {
@@ -155,7 +166,7 @@ void SensorScanGenerationNode::laserCloudAndOdometryHandler(
       base_frame_.c_str(), lidar_frame_.c_str(), id_lidar_to_chassis ? "IDENTITY" : "OK",
       robot_base_frame_.c_str(), lidar_frame_.c_str(), id_lidar_to_robot_base ? "IDENTITY" : "OK",
       base_frame_.c_str(), robot_base_frame_.c_str(), yaw, yaw_deg,
-      rclcpp::Time(pcd_msg->header.stamp).seconds());
+        tf_lookup_stamp.seconds());
   }
 
   tf_odom_to_chassis = tf_odom_to_lidar * tf_lidar_to_chassis;
@@ -176,10 +187,40 @@ tf2::Transform SensorScanGenerationNode::getTransform(
 {
   try {
     auto transform_stamped = tf_buffer_->lookupTransform(
-      target_frame, source_frame, time, rclcpp::Duration::from_seconds(0.5));
+      target_frame, source_frame, time, rclcpp::Duration::from_seconds(tf_lookup_timeout_sec_));
     tf2::Transform transform;
     tf2::fromMsg(transform_stamped.transform, transform);
     return transform;
+  } catch (const tf2::ExtrapolationException & ex) {
+    if (!fallback_to_latest_tf_on_extrapolation_) {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 2000,
+        "TF lookup extrapolation (%s -> %s) at t=%.3f: %s. Returning identity.",
+        source_frame.c_str(), target_frame.c_str(), time.seconds(), ex.what());
+      return tf2::Transform::getIdentity();
+    }
+
+    try {
+      const rclcpp::Time latest_time(0, 0, this->get_clock()->get_clock_type());
+      auto latest_transform_stamped = tf_buffer_->lookupTransform(
+        target_frame, source_frame, latest_time,
+        rclcpp::Duration::from_seconds(tf_lookup_timeout_sec_));
+      tf2::Transform latest_transform;
+      tf2::fromMsg(latest_transform_stamped.transform, latest_transform);
+
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 2000,
+        "TF lookup extrapolation (%s -> %s) at t=%.3f: %s. Fallback to latest TF at t=%.3f.",
+        source_frame.c_str(), target_frame.c_str(), time.seconds(), ex.what(),
+        rclcpp::Time(latest_transform_stamped.header.stamp).seconds());
+      return latest_transform;
+    } catch (const tf2::TransformException & latest_ex) {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 2000,
+        "TF extrapolation fallback failed (%s -> %s): %s. Returning identity.",
+        source_frame.c_str(), target_frame.c_str(), latest_ex.what());
+      return tf2::Transform::getIdentity();
+    }
   } catch (tf2::TransformException & ex) {
     RCLCPP_WARN_THROTTLE(
       this->get_logger(), *this->get_clock(), 2000,
