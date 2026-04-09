@@ -37,7 +37,7 @@ def main() -> int:
     node = rclpy.create_node("nav2_tf_warmup_waiter")
     node.set_parameters([Parameter("use_sim_time", value=parse_bool(args.use_sim_time))])
 
-    tf_buffer = tf2_ros.Buffer(node.get_clock())
+    tf_buffer = tf2_ros.Buffer(node=node)
     tf_listener = tf2_ros.TransformListener(tf_buffer, node, spin_thread=False)
 
     timeout_sec = max(0.0, float(args.timeout_sec))
