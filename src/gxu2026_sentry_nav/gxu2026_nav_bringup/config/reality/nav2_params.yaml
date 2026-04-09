@@ -1,3 +1,16 @@
+mid360_driver:
+  ros__parameters:
+    lidar_topic: livox/lidar
+    lidar_frame: front_mid360
+    imu_topic: livox/imu
+    imu_frame: front_mid360
+    publish_custom_msg: true
+    custom_msg_topic: livox/lidar/pointcloud
+    lidar_publish_time_interval: 0.05
+    host_ip: 0.0.0.0
+    is_topic_name_with_lidar_ip: false
+
+
 pb_navigation_switches:
   ros__parameters:
     controller_plugin: "pb_omni_pid_pursuit_controller"
@@ -17,7 +30,7 @@ pb_navigation_switches:
     sensor_scan_lidar_odometry_topic: "odin1/odometry_highfreq"
 
 
-    enable_gimbal_yaw_bridge: true             #是否启用 gimbal_yaw_bridge 通路,传感器放小yaw要开启
+    enable_gimbal_yaw_bridge: true             # 与 reality_mid360 框架一致：补齐 gimbal_yaw 关节态链路
 
 
 # /auto_aim_yaw -> serial/gimbal_joint_state
@@ -49,7 +62,7 @@ auto_aim_yaw_joint_state_bridge:
 controller_server:
   ros__parameters:
     use_sim_time: False
-    odom_topic: odometry
+    odom_topic: odin1/odometry_highfreq
     controller_frequency: 20.0
     failure_tolerance: 0.3
     progress_checker_plugins: ["progress_checker"]
@@ -106,6 +119,79 @@ rm_behavior_tree:
   ros__parameters:
     style: rmuc_01.xml
     use_sim_time: False
+
+
+point_lio:
+  ros__parameters:
+    use_imu_as_input: False
+    prop_at_freq_of_imu: True
+    check_satu: True
+    init_map_size: 10
+    point_filter_num: 8
+    space_down_sample: True
+    filter_size_surf: 0.2
+    filter_size_map: 0.2
+    ivox_nearby_type: 18
+    runtime_pos_log_enable: False
+
+    common:
+      lid_topic: "livox/lidar/pointcloud"
+      imu_topic: "livox/imu"
+      con_frame: False
+      con_frame_num: 1
+      cut_frame: False
+      cut_frame_time_interval: 0.05
+      time_diff_lidar_to_imu: 0.0
+
+    prior_pcd:
+      enable: False
+      init_pose: [0.0, 0.0, 0.0]
+
+    preprocess:
+      lidar_type: 1
+      scan_line: 4
+      timestamp_unit: 3
+      blind: 0.6
+
+    mapping:
+      imu_en: True
+      extrinsic_est_en: False
+      imu_time_inte: 0.005
+      lidar_time_inte: 0.1
+      satu_acc: 4.0
+      satu_gyro: 35.0
+      acc_norm: 1.0
+      lidar_meas_cov: 0.01
+      acc_cov_output: 500.0
+      gyr_cov_output: 1000.0
+      b_acc_cov: 0.0001
+      b_gyr_cov: 0.0001
+      imu_meas_acc_cov: 0.1
+      imu_meas_omg_cov: 0.1
+      gyr_cov_input: 0.1
+      acc_cov_input: 0.1
+      plane_thr: 0.1
+      match_s: 81.0
+      ivox_grid_resolution: 0.5
+      gravity: [0.0, 0.5305473804473877, -0.8383715748786926]
+      gravity_init: [0.0, 0.5305473804473877, -0.8383715748786926]
+      extrinsic_T: [-0.011, -0.02329, 0.04412]
+      extrinsic_R: [1.0, 0.0, 0.0,
+                   0.0, 1.0, 0.0,
+                   0.0, 0.0, 1.0]
+
+    odometry:
+      publish_odometry_without_downsample: True
+
+    publish:
+      path_en: False
+      scan_publish_en: True
+      scan_bodyframe_pub_en: False
+      tf_send_en: False
+
+    pcd_save:
+      pcd_save_en: True
+      interval: -1
 
 # LOAM 接口：把状态估计/点云里程计转换成 Nav2 期望的 odom/base 等
 loam_interface:
@@ -186,7 +272,7 @@ terrain_analysis_ext:
 fake_vel_transform:
   ros__parameters:
     use_sim_time: False
-    odom_topic: "odometry"
+    odom_topic: "odin1/odometry_highfreq"
     robot_base_frame: "gimbal_yaw"
     fake_robot_base_frame: "gimbal_yaw_fake"
     local_plan_topic: "controller_server/FollowPath/local_plan"
@@ -247,7 +333,7 @@ pointcloud_to_laserscan:
     angle_max: 3.1415926                    # M_PI/2
     angle_increment: 0.00872665             # M_PI/360.0
     scan_time: 0.05
-    range_min: 0.3
+    range_min: 0.6
     range_max: 10.0
     use_inf: true
 
@@ -333,7 +419,7 @@ bt_navigator:
     use_sim_time: False
     global_frame: map
     robot_base_frame: gimbal_yaw_fake
-    odom_topic: odometry
+    odom_topic: odin1/odometry_highfreq
     bt_loop_duration: 10
     default_server_timeout: 100
     wait_for_service_timeout: 1000
@@ -429,7 +515,7 @@ local_costmap:
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 5.0
-          obstacle_min_range: 0.2
+          obstacle_min_range: 0.6
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
@@ -480,7 +566,7 @@ global_costmap:
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 10.0
-          obstacle_min_range: 0.2
+          obstacle_min_range: 0.6
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
@@ -587,16 +673,22 @@ velocity_smoother:
     min_velocity: [-2.5, -2.5, -3.0]
     max_accel: [4.5, 4.5, 5.0]
     max_decel: [-4.5, -4.5, -5.0]
-    odom_topic: "odometry"
+    odom_topic: "odin1/odometry_highfreq"
     odom_duration: 0.1
     deadband_velocity: [0.0, 0.0, 0.0]
     velocity_timeout: 1.0
+
+
+lifecycle_manager_navigation:
+  ros__parameters:
+    bond_timeout: 8.0
+    attempt_respawn_reconnection: true
 
 # 手柄遥控：auto/manual 控制模式切换
 teleop_twist_joy_node:
   ros__parameters:
     use_sim_time: False
-    robot_base_frame: gimbal_yaw
+    robot_base_frame: gimbal_yaw_fake
     control_mode: auto_control    # Option: auto_control, manual_control
 
     require_enable_button: true
