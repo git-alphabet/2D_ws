@@ -238,6 +238,7 @@ def generate_launch_description():
     )
 
     enable_obstacle_scan = LaunchConfiguration("enable_obstacle_scan")
+    enable_mid360_costmap_additive = LaunchConfiguration("enable_mid360_costmap_additive")
     enable_scan_additive = LaunchConfiguration("enable_scan_additive")
     obstacle_scan_output_topic = LaunchConfiguration("obstacle_scan_output_topic")
 
@@ -299,7 +300,7 @@ def generate_launch_description():
             ("livox/lidar", "/livox/lidar"),
             ("livox/imu", "/livox/imu"),
         ],
-        condition=IfCondition(enable_scan_additive),
+        condition=IfCondition(enable_mid360_costmap_additive),
     )
 
     start_terrain_analysis_ext_mid360_cmd = Node(
@@ -316,7 +317,7 @@ def generate_launch_description():
             ("lidar_odometry", "lidar_odometry"),
             ("terrain_map_ext", "terrain_map_ext_mid360"),
         ],
-        condition=IfCondition(enable_scan_additive),
+        condition=IfCondition(enable_mid360_costmap_additive),
     )
 
     start_pointcloud_to_laserscan_mid360_cmd = Node(
@@ -332,7 +333,17 @@ def generate_launch_description():
             ("cloud_in", "terrain_map_ext_mid360"),
             ("scan", "scan_mid360"),
         ],
-        condition=IfCondition(enable_scan_additive),
+        condition=IfCondition(
+            PythonExpression(
+                [
+                    "('",
+                    enable_scan_additive,
+                    "' == 'true') and ('",
+                    enable_mid360_costmap_additive,
+                    "' == 'true')",
+                ]
+            )
+        ),
     )
 
     start_scan_additive_adapter_cmd = Node(
@@ -352,7 +363,17 @@ def generate_launch_description():
             }
         ],
         arguments=["--ros-args", "--log-level", log_level],
-        condition=IfCondition(enable_scan_additive),
+        condition=IfCondition(
+            PythonExpression(
+                [
+                    "('",
+                    enable_scan_additive,
+                    "' == 'true') and ('",
+                    enable_mid360_costmap_additive,
+                    "' == 'true')",
+                ]
+            )
+        ),
     )
 
     start_terrain_analysis_cmd = Node(
@@ -679,6 +700,7 @@ def generate_launch_description():
         controller_plugin_name = None
         neupan_frame_name = None
         enable_obstacle_scan_value = "false"
+        enable_mid360_costmap_additive_value = "false"
         enable_scan_additive_value = "false"
         obstacle_scan_output_topic_value = "obstacle_scan"
         enable_gimbal_yaw_bridge_value = False
@@ -867,6 +889,27 @@ def generate_launch_description():
             else:
                 odometry_source = ""
 
+            def _optional_bool(raw_value):
+                if isinstance(raw_value, bool):
+                    return raw_value
+                if isinstance(raw_value, (int, float)):
+                    return bool(raw_value)
+                if isinstance(raw_value, str):
+                    normalized = raw_value.strip().lower()
+                    if normalized in {"true", "1", "yes", "on"}:
+                        return True
+                    if normalized in {"false", "0", "no", "off"}:
+                        return False
+                return None
+
+            mid360_costmap_switch = _optional_bool(
+                switches.get("enable_mid360_costmap_additive")
+            )
+            if mid360_costmap_switch is not None:
+                enable_mid360_costmap_additive_value = (
+                    "true" if mid360_costmap_switch else "false"
+                )
+
             if switches_terrain_registered_scan_topic:
                 terrain_registered_scan_topic_value = switches_terrain_registered_scan_topic
             elif odometry_source == "odin1" and not sim_enabled:
@@ -1036,6 +1079,10 @@ def generate_launch_description():
                     enable_scan_additive_value = "true"
                     obstacle_scan_output_topic_value = "scan_odin1"
 
+            # scan_additive 依赖 mid360 costmap 链路，若开启 scan_additive 则强制开启 costmap additive。
+            if enable_scan_additive_value == "true":
+                enable_mid360_costmap_additive_value = "true"
+
             if override_required:
                 with tempfile.NamedTemporaryFile(
                     mode="w", delete=False, suffix=".yaml"
@@ -1067,6 +1114,10 @@ def generate_launch_description():
             SetLaunchConfiguration("rm_behavior_tree_style_path", style_path),
             SetLaunchConfiguration("processed_params_file", processed_file),
             SetLaunchConfiguration("enable_obstacle_scan", enable_obstacle_scan_value),
+            SetLaunchConfiguration(
+                "enable_mid360_costmap_additive",
+                enable_mid360_costmap_additive_value,
+            ),
             SetLaunchConfiguration("enable_scan_additive", enable_scan_additive_value),
             SetLaunchConfiguration(
                 "obstacle_scan_output_topic", obstacle_scan_output_topic_value
@@ -1172,6 +1223,7 @@ def generate_launch_description():
     # processed params defaults to original params file
     ld.add_action(SetLaunchConfiguration("processed_params_file", params_file))
     ld.add_action(SetLaunchConfiguration("enable_obstacle_scan", "false"))
+    ld.add_action(SetLaunchConfiguration("enable_mid360_costmap_additive", "false"))
     ld.add_action(SetLaunchConfiguration("enable_scan_additive", "false"))
     ld.add_action(SetLaunchConfiguration("obstacle_scan_output_topic", "obstacle_scan"))
     ld.add_action(SetLaunchConfiguration("terrain_registered_scan_topic", ""))
