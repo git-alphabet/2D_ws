@@ -12,7 +12,7 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="2" value="odin_ros_driver&#xa;(host_sdk_sample)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" parent="1" vertex="1">
+                <mxCell id="2" value="odin_ros_driver&#xa;(host_sdk_sample)&#xa;odom-&gt;base_footprint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" parent="1" vertex="1">
                     <mxGeometry x="380" y="267.5" width="180" height="65" as="geometry"/>
                 </mxCell>
                 <mxCell id="3" value="loam_interface&#xa;(mid360 path only)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;" parent="1" vertex="1">
@@ -48,7 +48,7 @@
                 <mxCell id="14" value="neupan_nav2_controller&#xa;(FollowPath)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=14;" parent="1" vertex="1">
                     <mxGeometry x="1770" y="470" width="200" height="70" as="geometry"/>
                 </mxCell>
-                <mxCell id="16" value="fake_vel_transform&#xa;(cmd adapt)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;" parent="1" vertex="1">
+                <mxCell id="16" value="fake_vel_transform&#xa;(cmd adapt + TF)&#xa;gimbal_yaw-&gt;gimbal_yaw_fake" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;" parent="1" vertex="1">
                     <mxGeometry x="1060" y="985" width="210" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="17" value="cmd_vel" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=14;" parent="1" vertex="1">
@@ -173,8 +173,30 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="91" value="direct mode: remap&#xa;registered_scan &lt;= odin1/cloud_slam&#xa;lidar_odometry &lt;= odin1/odometry_highfreq" style="shape=note;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" parent="1" vertex="1">
+                <mxCell id="91" value="odin1-only reality mode:&#xa;registered_scan &lt;= odin1/cloud_slam&#xa;lidar_odometry/odom_topic &lt;= odin1/odometry_highfreq&#xa;driver TF: odom-&gt;base_footprint; nav2 base: gimbal_yaw_fake" style="shape=note;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" parent="1" vertex="1">
                     <mxGeometry x="430" y="20" width="470" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="173" value="odin1/odometry_highfreq&#xa;(odom source for nav2 + fake_vel_transform)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="2" target="16" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="650" y="1040"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="174" value="TF chain dependency&#xa;base_footprint-&gt;gimbal_yaw" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="136" target="16" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="560" y="220"/>
+                            <mxPoint x="960" y="220"/>
+                            <mxPoint x="960" y="1015"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="175" value="TF warmup gate&#xa;wait odom &lt;- gimbal_yaw_fake&#xa;then start lifecycle_manager_navigation" style="shape=note;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="760" y="1215" width="330" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="176" value="startup order" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="175" target="162" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="94" value="aft_mapped_to_init + cloud_registered" style="endArrow=classic;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="9" target="3" edge="1">
                     <mxGeometry y="-57" relative="1" as="geometry">
