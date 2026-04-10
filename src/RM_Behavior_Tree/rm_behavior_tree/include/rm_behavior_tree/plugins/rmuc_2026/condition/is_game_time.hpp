@@ -2,6 +2,7 @@
 #define RM_BEHAVIOR_TREE__PLUGINS__RMUC_2026__CONDITION__IS_GAME_TIME_HPP_
 
 #include <chrono>
+#include <memory>
 #include "behaviortree_cpp/condition_node.h"
 #include "sp_msgs/msg/rmuc_game_status.hpp"
 #include "sp_msgs/msg/rmuc_robot_status.hpp"
@@ -18,7 +19,7 @@ public:
   {
     return {
       BT::InputPort<sp_msgs::msg::RMUCGameStatus>("message"),
-      BT::InputPort<sp_msgs::msg::RMUCRobotStatus>("robot_status"),
+      BT::InputPort<std::shared_ptr<sp_msgs::msg::RMUCRobotStatus>>("robot_status"),
       BT::InputPort<int>("game_progress"),
       BT::InputPort<int>("lower_remain_time"),
       BT::InputPort<int>("higher_remain_time"),

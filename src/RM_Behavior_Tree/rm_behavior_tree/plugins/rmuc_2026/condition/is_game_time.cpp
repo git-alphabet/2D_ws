@@ -21,7 +21,7 @@ BT::NodeStatus RmucIsGameTimeCondition::checkGameTime()
   bool allow_no_game_status_hp_fallback = false;
 
   auto msg = getInput<sp_msgs::msg::RMUCGameStatus>("message");
-  auto robot_status = getInput<sp_msgs::msg::RMUCRobotStatus>("robot_status");
+  auto robot_status = getInput<std::shared_ptr<sp_msgs::msg::RMUCRobotStatus>>("robot_status");
 
   getInput("game_progress", game_progress);
   getInput("lower_remain_time", lower_remain_time);
@@ -41,8 +41,8 @@ BT::NodeStatus RmucIsGameTimeCondition::checkGameTime()
   }
 
   // 条件2: HP 下降 → 比赛已在进行（电控丢包/无 game_status 容错）
-  if (robot_status) {
-    int cur_hp = static_cast<int>(robot_status->current_hp);
+  if (robot_status && *robot_status) {
+    int cur_hp = static_cast<int>((*robot_status)->current_hp);
     if (last_hp_ >= 0 && cur_hp < last_hp_) {
       game_started_ = true;
       return BT::NodeStatus::SUCCESS;
