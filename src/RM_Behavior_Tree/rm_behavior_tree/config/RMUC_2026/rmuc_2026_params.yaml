@@ -41,6 +41,11 @@ rmuc_sentry_config:
   ramp_jump_x: 7.8
   ramp_jump_y: 5.0               # 梯形高地飞坡坐标 (即敌方飞坡过来我们这边的增益区，打算让哨兵堵在这不让他们过来)
 
+  # ─────────── 标定覆盖 ───────────
+  # CSV 文件路径，为空则不启用标定覆盖（使用上面的 YAML 默认值）
+  # 填写绝对路径，如 /ws/src/RM_Behavior_Tree/rm_behavior_tree/config/RMUC_2026/rmuc_calibration.csv
+  calibration_csv_path: "/ws/src/RM_Behavior_Tree/rm_behavior_tree/config/RMUC_2026/rmuc_calibration.csv"
+
   # ─────────── 巡逻航点 ───────────
   # ── 巡逻配置 ──
   patrol_enable: false              # 是否启用巡逻 (仅前哨站被毁时生效)

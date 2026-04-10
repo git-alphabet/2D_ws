@@ -1,6 +1,7 @@
 #ifndef RM_BEHAVIOR_TREE__PLUGINS__RMUC_2026__CONDITION__IS_GAME_TIME_HPP_
 #define RM_BEHAVIOR_TREE__PLUGINS__RMUC_2026__CONDITION__IS_GAME_TIME_HPP_
 
+#include <chrono>
 #include "behaviortree_cpp/condition_node.h"
 #include "sp_msgs/msg/rmuc_game_status.hpp"
 #include "sp_msgs/msg/rmuc_robot_status.hpp"
@@ -27,6 +28,7 @@ public:
 private:
   bool game_started_{false};
   int last_hp_{-1};
+  std::chrono::steady_clock::time_point last_wait_log_{};
 };
 }  // namespace rm_behavior_tree
 

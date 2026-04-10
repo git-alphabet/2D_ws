@@ -1,4 +1,5 @@
 #include "rm_behavior_tree/plugins/rmuc_2026/condition/is_game_time.hpp"
+#include <iostream>
 
 namespace rm_behavior_tree
 {
@@ -47,6 +48,13 @@ BT::NodeStatus RmucIsGameTimeCondition::checkGameTime()
       return BT::NodeStatus::SUCCESS;
     }
     last_hp_ = cur_hp;
+  }
+
+  // 节流日志：每 3 秒打印一次等待提示
+  auto now = std::chrono::steady_clock::now();
+  if (now - last_wait_log_ > std::chrono::seconds(3)) {
+    std::cout << "[RmucIsGameTime] 比赛未开始，等待接收数据" << std::endl;
+    last_wait_log_ = now;
   }
 
   return BT::NodeStatus::FAILURE;

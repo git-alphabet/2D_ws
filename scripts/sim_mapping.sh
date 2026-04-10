@@ -13,7 +13,7 @@ export GAZEBO_HEADLESS=0
 # Gazebo 启动后等待时间(秒)，等稳定后再启动 rviz2/SLAM
 export GAZEBO_STARTUP_DELAY=10
 
-export QT_FONT_DPI=192
+export QT_FONT_DPI=400
 export __NV_PRIME_RENDER_OFFLOAD=1
 export __GLX_VENDOR_LIBRARY_NAME=nvidia
 

@@ -267,9 +267,9 @@ def main():
     parser = argparse.ArgumentParser(description="RMUC 2026 裁判系统话题模拟器")
     parser.add_argument("--ns", default="/red_standard_robot1", help="命名空间")
     parser.add_argument("--phase", type=int, default=4, help="比赛阶段 (0-5, 4=比赛中)")
-    parser.add_argument("--remain", type=int, default=300, help="阶段剩余时间 (秒)")
+    parser.add_argument("--remain", type=int, default=420, help="阶段剩余时间 (秒)")
     parser.add_argument("--hp", type=int, default=400, help="当前血量")
-    parser.add_argument("--ammo", type=int, default=200, help="允许发弹量")
+    parser.add_argument("--ammo", type=int, default=300, help="允许发弹量")
     parser.add_argument("--dead", action="store_true", help="是否战亡")
     args = parser.parse_args()
 

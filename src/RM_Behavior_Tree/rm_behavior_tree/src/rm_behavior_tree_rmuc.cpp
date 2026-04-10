@@ -187,6 +187,7 @@ int main(int argc, char ** argv)
   // 动作
   regBT("rmuc_init_sentry_config");
   regBT("rmuc_init_cmd_state");
+  regBT("rmuc_load_calibration_csv");
   regBT("rmuc_decide_posture");
   regBT("rmuc_decide_economy_cmd");
   regBT("rmuc_decide_respawn_cmd");
@@ -238,7 +239,9 @@ int main(int argc, char ** argv)
       "fortress_ally_x","fortress_ally_y","fortress_enemy_x","fortress_enemy_y",
       "central_highland_x","central_highland_y",
       "ladder_highland_x","ladder_highland_y",
-      "defend_anchor_x","defend_anchor_y"
+      "defend_anchor_x","defend_anchor_y",
+      "central_highland_left_x","central_highland_left_y",
+      "ramp_jump_x","ramp_jump_y"
     };
     const std::vector<std::pair<std::string, double>> double_keys = {
       {"arrive_radius", 0.35}, {"enemy_near_base_radius", 2.0}
@@ -307,6 +310,16 @@ int main(int argc, char ** argv)
       if (!wpts_str.empty()) injected++;
       RCLCPP_INFO(node->get_logger(), "Patrol waypoints (%zu points): %s",
                   vec.size() / 2, wpts_str.c_str());
+    }
+    // calibration_csv_path (string)
+    {
+      auto pn = prefix + "calibration_csv_path";
+      if (!node->has_parameter(pn)) node->declare_parameter<std::string>(pn, "");
+      std::string v = node->get_parameter(pn).as_string();
+      bb->set("cfg.calibration_csv_path", v);
+      if (!v.empty()) {
+        RCLCPP_INFO(node->get_logger(), "Calibration CSV path: %s", v.c_str());
+      }
     }
   }
 

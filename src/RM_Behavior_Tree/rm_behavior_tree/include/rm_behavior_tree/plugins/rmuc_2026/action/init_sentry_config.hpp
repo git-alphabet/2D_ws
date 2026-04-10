@@ -28,6 +28,8 @@ public:
       BT::OutputPort<double>("central_highland_x"), BT::OutputPort<double>("central_highland_y"),
       BT::OutputPort<double>("ladder_highland_x"), BT::OutputPort<double>("ladder_highland_y"),
       BT::OutputPort<double>("defend_anchor_x"), BT::OutputPort<double>("defend_anchor_y"),
+      BT::OutputPort<double>("central_highland_left_x"), BT::OutputPort<double>("central_highland_left_y"),
+      BT::OutputPort<double>("ramp_jump_x"), BT::OutputPort<double>("ramp_jump_y"),
       BT::OutputPort<double>("arrive_radius"),
       BT::OutputPort<int>("hp_low"),
       BT::OutputPort<int>("hp_safe"),

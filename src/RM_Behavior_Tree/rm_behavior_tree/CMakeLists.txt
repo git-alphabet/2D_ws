@@ -214,6 +214,10 @@ ament_auto_add_library(rmuc_decide_economy_cmd SHARED
     plugins/rmuc_2026/action/decide_economy_cmd.cpp)
 add_target_dependencies(rmuc_decide_economy_cmd)
 
+ament_auto_add_library(rmuc_load_calibration_csv SHARED
+    plugins/rmuc_2026/action/load_calibration_csv.cpp)
+add_target_dependencies(rmuc_load_calibration_csv)
+
 # ── RMUC 2026 后勤/补给 ──
 ament_auto_add_library(rmuc_hold_and_heal SHARED
     plugins/rmuc_2026/action/hold_and_heal.cpp)
