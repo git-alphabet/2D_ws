@@ -366,7 +366,9 @@ def generate_launch_description():
         parameters=[configured_params],
         remappings=[
             ("registered_scan", terrain_registered_scan_topic),
+            ("/registered_scan", terrain_registered_scan_topic),
             ("lidar_odometry", terrain_lidar_odometry_topic),
+            ("/lidar_odometry", terrain_lidar_odometry_topic),
         ],
     )
 
@@ -381,7 +383,9 @@ def generate_launch_description():
         parameters=[configured_params],
         remappings=[
             ("registered_scan", terrain_registered_scan_topic),
+            ("/registered_scan", terrain_registered_scan_topic),
             ("lidar_odometry", terrain_lidar_odometry_topic),
+            ("/lidar_odometry", terrain_lidar_odometry_topic),
         ],
     )
 
@@ -421,7 +425,9 @@ def generate_launch_description():
                 arguments=["--ros-args", "--log-level", log_level],
                 remappings=[
                     ("registered_scan", sensor_scan_registered_scan_topic),
+                    ("/registered_scan", sensor_scan_registered_scan_topic),
                     ("lidar_odometry", sensor_scan_lidar_odometry_topic),
+                    ("/lidar_odometry", sensor_scan_lidar_odometry_topic),
                 ],
             ),
             start_pointcloud_to_laserscan_cmd,
@@ -533,7 +539,9 @@ def generate_launch_description():
                 parameters=[configured_params],
                 remappings=[
                     ("registered_scan", sensor_scan_registered_scan_topic),
+                    ("/registered_scan", sensor_scan_registered_scan_topic),
                     ("lidar_odometry", sensor_scan_lidar_odometry_topic),
+                    ("/lidar_odometry", sensor_scan_lidar_odometry_topic),
                 ],
             ),
             ComposableNode(
@@ -1166,10 +1174,10 @@ def generate_launch_description():
     ld.add_action(SetLaunchConfiguration("enable_obstacle_scan", "false"))
     ld.add_action(SetLaunchConfiguration("enable_scan_additive", "false"))
     ld.add_action(SetLaunchConfiguration("obstacle_scan_output_topic", "obstacle_scan"))
-    ld.add_action(SetLaunchConfiguration("terrain_registered_scan_topic", "registered_scan"))
-    ld.add_action(SetLaunchConfiguration("terrain_lidar_odometry_topic", "lidar_odometry"))
-    ld.add_action(SetLaunchConfiguration("sensor_scan_registered_scan_topic", "registered_scan"))
-    ld.add_action(SetLaunchConfiguration("sensor_scan_lidar_odometry_topic", "lidar_odometry"))
+    ld.add_action(SetLaunchConfiguration("terrain_registered_scan_topic", ""))
+    ld.add_action(SetLaunchConfiguration("terrain_lidar_odometry_topic", ""))
+    ld.add_action(SetLaunchConfiguration("sensor_scan_registered_scan_topic", ""))
+    ld.add_action(SetLaunchConfiguration("sensor_scan_lidar_odometry_topic", ""))
     # Set switches before starting nodes
     ld.add_action(set_switches_cmd)
     # Add the actions to launch all of the navigation nodes

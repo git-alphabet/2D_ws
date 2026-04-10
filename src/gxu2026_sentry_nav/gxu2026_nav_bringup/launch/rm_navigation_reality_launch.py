@@ -180,25 +180,25 @@ def generate_launch_description():
 
     declare_terrain_registered_scan_topic_cmd = DeclareLaunchArgument(
         "terrain_registered_scan_topic",
-        default_value="",
+        default_value="odin1/cloud_slam",
         description="Optional override for terrain point cloud input topic",
     )
 
     declare_terrain_lidar_odometry_topic_cmd = DeclareLaunchArgument(
         "terrain_lidar_odometry_topic",
-        default_value="",
+        default_value="odin1/odometry_highfreq",
         description="Optional override for terrain odometry input topic",
     )
 
     declare_sensor_scan_registered_scan_topic_cmd = DeclareLaunchArgument(
         "sensor_scan_registered_scan_topic",
-        default_value="",
+        default_value="odin1/cloud_slam",
         description="Optional override for sensor_scan_generation point cloud input topic",
     )
 
     declare_sensor_scan_lidar_odometry_topic_cmd = DeclareLaunchArgument(
         "sensor_scan_lidar_odometry_topic",
-        default_value="",
+        default_value="odin1/odometry_highfreq",
         description="Optional override for sensor_scan_generation odometry input topic",
     )
 
