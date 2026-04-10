@@ -84,19 +84,30 @@ class CalibPointHelper(Node):
 
         # 如果有已标定的点，跳到第一个未标定的
         self._advance_to_first_uncalibrated()
-        self._print_current_hint()
-        self._publish_hint_marker()
         if self.calibrated:
             self._publish_all_markers()
+        self._print_current_hint()
+        self._publish_hint_marker()
 
         # 等待数据的周期提示
         self._interaction_started = False
         self._wait_timer = self.create_timer(5.0, self._wait_callback)
 
-        self.get_logger().info(
-            f"[CALIB] 标定辅助节点已启动，共 {len(CALIB_POINTS)} 个标定点"
-            f"，已加载 {len(self.calibrated)} 个，CSV: {csv_path}"
-        )
+        loaded = len(self.calibrated)
+        total = len(CALIB_POINTS)
+        if loaded > 0:
+            loaded_keys = ", ".join(self.calibrated.keys())
+            self.get_logger().info(
+                f"[CALIB] 标定辅助节点已启动 | 从 CSV 加载了 {loaded}/{total} 个旧坐标\n"
+                f"  已有: {loaded_keys}\n"
+                f"  点击地图可覆盖更新对应坐标\n"
+                f"  CSV: {csv_path}"
+            )
+        else:
+            self.get_logger().info(
+                f"[CALIB] 标定辅助节点已启动 | 共 {total} 个标定点，从空白开始\n"
+                f"  CSV: {csv_path}"
+            )
 
     def _current_point(self) -> tuple[str, str, tuple[float, float, float, float]]:
         return CALIB_POINTS[self.current_idx]
@@ -112,20 +123,26 @@ class CalibPointHelper(Node):
         key, name, _ = self._current_point()
         total = len(CALIB_POINTS)
         done = len(self.calibrated)
+        if key in self.calibrated:
+            cx, cy = self.calibrated[key]
+            status = f"  当前值: ({cx:.3f}, {cy:.3f})  ← 点击地图可覆盖更新"
+        else:
+            status = "  ← 未标定，在地图上点击标定位置"
         self.get_logger().info(
             f"\n{'='*50}\n"
             f"  [CALIB] 当前标定: {name} ({self.current_idx+1}/{total})\n"
-            f"  已完成: {done}/{total}  |  在地图上点击标定位置\n"
+            f"  已完成: {done}/{total}\n"
+            f"{status}\n"
             f"  切换: ros2 topic pub --once /calib/next std_msgs/msg/Empty '{{}}'\n"
             f"{'='*50}"
         )
 
     def _wait_callback(self):
-        """仿真已启动但还没开始标定时，周期打印等待提示。"""
+        """仿真已启动但还没开始标定时，只在 DEBUG 级别打印。"""
         if self._interaction_started:
             self._wait_timer.cancel()
             return
-        self.get_logger().info("[CALIB] 等待标定操作...")
+        self.get_logger().debug("[CALIB] 等待标定操作...")
 
     def _on_click(self, msg: PointStamped):
         self._interaction_started = True
@@ -143,17 +160,20 @@ class CalibPointHelper(Node):
         self._publish_hint_marker()
 
     def _advance_to_next(self):
-        """跳到下一个还未标定的点。"""
+        """跳到下一个还未标定的点；如果全部已标定则循环到下一个。"""
         total = len(CALIB_POINTS)
+        # 优先找未标定的点
         for offset in range(1, total + 1):
             idx = (self.current_idx + offset) % total
             key = CALIB_POINTS[idx][0]
             if key not in self.calibrated:
                 self.current_idx = idx
                 return
-        if self.current_idx < total - 1:
-            self.current_idx += 1
-        self.get_logger().info("[CALIB] 🎉 所有标定点已完成！可以重复点击更新坐标")
+        # 全部已标定 → 循环到下一个，方便逐个重新标定
+        self.current_idx = (self.current_idx + 1) % total
+        self.get_logger().info(
+            f"[CALIB] ✅ 所有 {total} 个标定点均已有坐标，继续轮转可重新标定"
+        )
 
     def _on_select(self, msg: String):
         target = msg.data.strip()

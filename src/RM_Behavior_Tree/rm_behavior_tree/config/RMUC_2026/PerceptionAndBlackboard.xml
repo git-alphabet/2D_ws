@@ -14,8 +14,7 @@
                                   pose_x="{pose.x}"
                                   pose_y="{pose.y}"
                                   pose_yaw="{pose.yaw}"
-                                  is_at_nav_goal="{is_at_nav_goal}"
-                                  pose="{pose}"/>
+                                  is_at_nav_goal="{is_at_nav_goal}"/>
             <SubRadarTracks topic_name="/radar/enemy_tracks"
                             radar_tracks="{radar_tracks}"/>
 

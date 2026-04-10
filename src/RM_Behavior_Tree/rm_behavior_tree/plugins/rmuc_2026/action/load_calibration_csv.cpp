@@ -1,5 +1,6 @@
 #include "rm_behavior_tree/plugins/rmuc_2026/action/load_calibration_csv.hpp"
 
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -92,13 +93,18 @@ BT::NodeStatus LoadCalibrationCSVAction::tick()
   }
   file.close();
 
-  // 覆写已识别的坐标点
+  // 覆写已识别的坐标点 (跳过 (0,0) — 视为未标定)
   int overridden = 0;
   for (const auto & pt_name : known_points) {
     auto it = point_map.find(pt_name);
     if (it == point_map.end()) continue;
 
     const auto & [x, y] = it->second;
+    // (0,0) 视为未标定，保留 YAML 默认值
+    if (std::abs(x) < 1e-6 && std::abs(y) < 1e-6) {
+      std::cout << "[CALIB_CSV] 跳过 " << pt_name << " (0,0) → 使用 YAML 默认值\n";
+      continue;
+    }
     setOutput(pt_name + "_x", x);
     setOutput(pt_name + "_y", y);
     overridden++;

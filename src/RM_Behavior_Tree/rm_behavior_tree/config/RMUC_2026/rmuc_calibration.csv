@@ -14,11 +14,11 @@
 #
 # ─────────── 地图坐标 ───────────
 
-home,0.0,0.0
-supply_zone,-2.35,-6.89
-base_buff,-0.06,-2.49
-outpost_buff,6.53,-5.12
-fortress_ally,2.76,-1.93
-central_highland,6.70,-1.95
-ladder_highland,-0.714,3.207
-defend_anchor,2.76,-1.93
+home,1.5263,-0.8714
+supply_zone,-2.3500,-6.8900
+base_buff,-0.0600,-2.4900
+outpost_buff,6.5300,-5.1200
+fortress_ally,2.7600,-1.9300
+central_highland,6.7000,-1.9500
+ladder_highland,-0.7140,3.2070
+defend_anchor,2.7600,-1.9300
