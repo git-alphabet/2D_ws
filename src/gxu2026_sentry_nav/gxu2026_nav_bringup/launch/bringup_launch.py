@@ -54,6 +54,7 @@ def generate_launch_description():
     terrain_lidar_odometry_topic = LaunchConfiguration("terrain_lidar_odometry_topic")
     sensor_scan_registered_scan_topic = LaunchConfiguration("sensor_scan_registered_scan_topic")
     sensor_scan_lidar_odometry_topic = LaunchConfiguration("sensor_scan_lidar_odometry_topic")
+    point_lio_config_file = LaunchConfiguration("point_lio_config_file")
     # Create our own temporary YAML files that include substitutions
     param_substitutions = {"use_sim_time": use_sim_time, "yaml_filename": map_yaml_file}
 
@@ -163,6 +164,14 @@ def generate_launch_description():
         description="Optional override for sensor_scan_generation odometry input topic",
     )
 
+    declare_point_lio_config_file_cmd = DeclareLaunchArgument(
+        "point_lio_config_file",
+        default_value=os.path.join(
+            bringup_dir, "config", "reality", "point_lio_obstacle_only.yaml"
+        ),
+        description="Full path to point_lio config file for obstacle-only supplement chain",
+    )
+
     declare_publish_static_map_tf_cmd = DeclareLaunchArgument(
         "publish_static_map_tf",
         default_value="True",
@@ -233,6 +242,7 @@ def generate_launch_description():
                     "terrain_lidar_odometry_topic": terrain_lidar_odometry_topic,
                     "sensor_scan_registered_scan_topic": sensor_scan_registered_scan_topic,
                     "sensor_scan_lidar_odometry_topic": sensor_scan_lidar_odometry_topic,
+                    "point_lio_config_file": point_lio_config_file,
                 }.items(),
             ),
         ]
@@ -260,6 +270,7 @@ def generate_launch_description():
     ld.add_action(declare_terrain_lidar_odometry_topic_cmd)
     ld.add_action(declare_sensor_scan_registered_scan_topic_cmd)
     ld.add_action(declare_sensor_scan_lidar_odometry_topic_cmd)
+    ld.add_action(declare_point_lio_config_file_cmd)
     ld.add_action(declare_publish_static_map_tf_cmd)
 
     # Add the actions to launch all of the navigation nodes

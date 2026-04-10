@@ -120,78 +120,9 @@ rm_behavior_tree:
     style: rmuc_01.xml
     use_sim_time: False
 
-
-point_lio:
-  ros__parameters:
-    use_imu_as_input: False
-    prop_at_freq_of_imu: True
-    check_satu: True
-    init_map_size: 10
-    point_filter_num: 8
-    space_down_sample: True
-    filter_size_surf: 0.2
-    filter_size_map: 0.2
-    ivox_nearby_type: 18
-    runtime_pos_log_enable: False
-
-    common:
-      lid_topic: "livox/lidar/pointcloud"
-      imu_topic: "livox/imu"
-      con_frame: False
-      con_frame_num: 1
-      cut_frame: False
-      cut_frame_time_interval: 0.05
-      time_diff_lidar_to_imu: 0.0
-
-    prior_pcd:
-      enable: False
-      init_pose: [0.0, 0.0, 0.0]
-
-    preprocess:
-      lidar_type: 1
-      scan_line: 4
-      timestamp_unit: 3
-      blind: 0.6
-
-    mapping:
-      imu_en: True
-      extrinsic_est_en: False
-      imu_time_inte: 0.005
-      lidar_time_inte: 0.1
-      satu_acc: 4.0
-      satu_gyro: 35.0
-      acc_norm: 1.0
-      lidar_meas_cov: 0.01
-      acc_cov_output: 500.0
-      gyr_cov_output: 1000.0
-      b_acc_cov: 0.0001
-      b_gyr_cov: 0.0001
-      imu_meas_acc_cov: 0.1
-      imu_meas_omg_cov: 0.1
-      gyr_cov_input: 0.1
-      acc_cov_input: 0.1
-      plane_thr: 0.1
-      match_s: 81.0
-      ivox_grid_resolution: 0.5
-      gravity: [0.0, 0.5305473804473877, -0.8383715748786926]
-      gravity_init: [0.0, 0.5305473804473877, -0.8383715748786926]
-      extrinsic_T: [-0.011, -0.02329, 0.04412]
-      extrinsic_R: [1.0, 0.0, 0.0,
-                   0.0, 1.0, 0.0,
-                   0.0, 0.0, 1.0]
-
-    odometry:
-      publish_odometry_without_downsample: True
-
-    publish:
-      path_en: False
-      scan_publish_en: True
-      scan_bodyframe_pub_en: False
-      tf_send_en: False
-
-    pcd_save:
-      pcd_save_en: True
-      interval: -1
+# point_lio 参数统一由 navigation_launch.py 的 point_lio_config_file 加载，
+# reality 默认指向 config/reality/point_lio_obstacle_only.yaml。
+# 这里不再保留 point_lio 同名参数块，避免与独立配置文件产生歧义。
 
 # LOAM 接口：把状态估计/点云里程计转换成 Nav2 期望的 odom/base 等
 loam_interface:

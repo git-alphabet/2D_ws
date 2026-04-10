@@ -58,6 +58,7 @@ def generate_launch_description():
     odin_config_file = LaunchConfiguration("odin_config_file")
     mid360_config_file = LaunchConfiguration("mid360_config_file")
     use_mid360_driver = LaunchConfiguration("use_mid360_driver")
+    point_lio_config_file = LaunchConfiguration("point_lio_config_file")
     terrain_registered_scan_topic = LaunchConfiguration("terrain_registered_scan_topic")
     terrain_lidar_odometry_topic = LaunchConfiguration("terrain_lidar_odometry_topic")
     sensor_scan_registered_scan_topic = LaunchConfiguration("sensor_scan_registered_scan_topic")
@@ -176,6 +177,14 @@ def generate_launch_description():
         "use_mid360_driver",
         default_value="True",
         description="Whether to start mid360_driver in reality entry launch",
+    )
+
+    declare_point_lio_config_file_cmd = DeclareLaunchArgument(
+        "point_lio_config_file",
+        default_value=os.path.join(
+            bringup_dir, "config", "reality", "point_lio_obstacle_only.yaml"
+        ),
+        description="Full path to point_lio config file for obstacle-only supplement chain",
     )
 
     declare_terrain_registered_scan_topic_cmd = DeclareLaunchArgument(
@@ -352,6 +361,7 @@ def generate_launch_description():
             "terrain_lidar_odometry_topic": terrain_lidar_odometry_topic,
             "sensor_scan_registered_scan_topic": sensor_scan_registered_scan_topic,
             "sensor_scan_lidar_odometry_topic": sensor_scan_lidar_odometry_topic,
+            "point_lio_config_file": point_lio_config_file,
         }.items(),
     )
 
@@ -375,6 +385,7 @@ def generate_launch_description():
     ld.add_action(declare_odin_config_file_cmd)
     ld.add_action(declare_mid360_config_file_cmd)
     ld.add_action(declare_use_mid360_driver_cmd)
+    ld.add_action(declare_point_lio_config_file_cmd)
     ld.add_action(declare_terrain_registered_scan_topic_cmd)
     ld.add_action(declare_terrain_lidar_odometry_topic_cmd)
     ld.add_action(declare_sensor_scan_registered_scan_topic_cmd)

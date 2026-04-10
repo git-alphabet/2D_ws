@@ -202,9 +202,9 @@ def generate_launch_description():
     declare_point_lio_config_file_cmd = DeclareLaunchArgument(
         "point_lio_config_file",
         default_value=os.path.join(
-            get_package_share_directory("point_lio"), "config", "mid360.yaml"
+            bringup_dir, "config", "reality", "point_lio_obstacle_only.yaml"
         ),
-        description="Full path to point_lio config file for mid360 obstacle supplement chain",
+        description="Full path to point_lio config file for mid360 obstacle-only supplement chain",
     )
 
     declare_nav2_tf_warmup_enabled_cmd = DeclareLaunchArgument(
