@@ -64,6 +64,7 @@ SensorScanGenerationNode::SensorScanGenerationNode(const rclcpp::NodeOptions & o
   this->declare_parameter<int>("debug_tf_throttle_ms", 1000);
   this->declare_parameter<double>("tf_lookup_timeout_sec", 0.5);
   this->declare_parameter<bool>("fallback_to_latest_tf_on_extrapolation", true);
+  this->declare_parameter<bool>("publish_base_tf", true);
 
   this->get_parameter("lidar_frame", lidar_frame_);
   this->get_parameter("base_frame", base_frame_);
@@ -74,6 +75,7 @@ SensorScanGenerationNode::SensorScanGenerationNode(const rclcpp::NodeOptions & o
   this->get_parameter("tf_lookup_timeout_sec", tf_lookup_timeout_sec_);
   this->get_parameter(
     "fallback_to_latest_tf_on_extrapolation", fallback_to_latest_tf_on_extrapolation_);
+  this->get_parameter("publish_base_tf", publish_base_tf_);
 
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_, this, true);
@@ -172,8 +174,10 @@ void SensorScanGenerationNode::laserCloudAndOdometryHandler(
   tf_odom_to_chassis = tf_odom_to_lidar * tf_lidar_to_chassis;
   tf_odom_to_robot_base = tf_odom_to_lidar * tf_lidar_to_robot_base_;
 
-  publishTransform(
-    tf_odom_to_chassis, odometry_msg->header.frame_id, base_frame_, pcd_msg->header.stamp);
+  if (publish_base_tf_) {
+    publishTransform(
+      tf_odom_to_chassis, odometry_msg->header.frame_id, base_frame_, pcd_msg->header.stamp);
+  }
   publishOdometry(
     tf_odom_to_robot_base, odometry_msg->header.frame_id, robot_base_frame_, pcd_msg->header.stamp);
 

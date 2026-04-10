@@ -66,6 +66,7 @@ private:
   int debug_tf_throttle_ms_{1000};
   double tf_lookup_timeout_sec_{0.5};
   bool fallback_to_latest_tf_on_extrapolation_{true};
+  bool publish_base_tf_{true};
   bool mount_tf_cached_{false};
   tf2::Transform cached_lidar_to_base_;
   tf2::Transform cached_lidar_to_robot_base_;

@@ -212,6 +212,8 @@ sensor_scan_generation:
     lidar_frame: "odin1"
     base_frame: "base_footprint"
     robot_base_frame: "gimbal_yaw"
+    # 避免与 odin 驱动重复发布 odom->base_footprint，导致 TF 抖动
+    publish_base_tf: false
 
     # TF 调试：打印 TF lookup 是否成功，以及推导出来的 yaw(chassis->gimbal_yaw)
     debug_tf: false
