@@ -140,6 +140,69 @@ std::filesystem::path map_root_dir_;
 
 char driver_start_time[32];
 
+static std::filesystem::path resolve_odin_driver_root_dir() {
+    std::error_code ec;
+
+    const char* env_src_dir = std::getenv("ODIN_ROS_DRIVER_SOURCE_DIR");
+    if (env_src_dir && std::strlen(env_src_dir) > 0) {
+        std::filesystem::path candidate(env_src_dir);
+        if (std::filesystem::exists(candidate / "config", ec)) {
+            return candidate;
+        }
+    }
+
+    std::filesystem::path candidate_from_file =
+        std::filesystem::path(__FILE__).parent_path().parent_path();
+    if (std::filesystem::exists(candidate_from_file / "config", ec)) {
+        return candidate_from_file;
+    }
+
+    const std::filesystem::path fixed_workspace_path("/ws/src/odin_ros_driver");
+    if (std::filesystem::exists(fixed_workspace_path / "config", ec)) {
+        return fixed_workspace_path;
+    }
+
+#ifdef ROS2
+    char* ros_workspace = std::getenv("COLCON_PREFIX_PATH");
+    if (ros_workspace) {
+        std::string workspace_path(ros_workspace);
+        size_t pos = workspace_path.find("/install");
+        if (pos != std::string::npos) {
+            std::filesystem::path from_colcon =
+                std::filesystem::path(workspace_path.substr(0, pos)) /
+                "src/odin_ros_driver";
+            if (std::filesystem::exists(from_colcon / "config", ec)) {
+                return from_colcon;
+            }
+        }
+    }
+
+    return std::filesystem::path(
+        ament_index_cpp::get_package_share_directory("odin_ros_driver"));
+#else
+    return std::filesystem::path(ros::package::getPath("odin_ros_driver"));
+#endif
+}
+
+static std::tm to_beijing_time_tm(std::time_t t_utc) {
+    constexpr std::time_t kBeijingOffsetSeconds = 8 * 60 * 60;
+    std::time_t t_beijing = t_utc + kBeijingOffsetSeconds;
+    std::tm tm{};
+#ifdef _WIN32
+    gmtime_s(&tm, &t_beijing);
+#else
+    gmtime_r(&t_beijing, &tm);
+#endif
+    return tm;
+}
+
+static void format_now_beijing(char* out, size_t out_size) {
+    auto now = std::chrono::system_clock::now();
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
+    std::tm tm = to_beijing_time_tm(t);
+    std::strftime(out, out_size, "%Y%m%d_%H%M%S", &tm);
+}
+
 typedef struct  {
     struct timespec start = {0, 0};
     struct timespec last = {0, 0};
@@ -368,16 +431,8 @@ static void custom_parameter_monitor() {
                     // #endif
 
                     if (last_save_map_val == 1 && value == 0) {
-                        auto now = std::chrono::system_clock::now();
-                        std::time_t t = std::chrono::system_clock::to_time_t(now);
-                        std::tm tm{};
-                        #ifdef _WIN32
-                            localtime_s(&tm, &t);
-                        #else
-                            localtime_r(&t, &tm);
-                        #endif
                         char map_save_time[32];
-                        std::strftime(map_save_time, sizeof(map_save_time), "%Y%m%d_%H%M%S", &tm);
+                        format_now_beijing(map_save_time, sizeof(map_save_time));
 
                         std::string map_dir = g_mapping_result_dest_dir != "" ? g_mapping_result_dest_dir : map_root_dir_.string();
                         std::string map_name = g_mapping_result_file_name != "" ? g_mapping_result_file_name : "map_" + std::string(map_save_time) + ".bin";
@@ -1092,25 +1147,10 @@ static void lidar_device_callback(const lidar_device_info_t* device, bool attach
             #endif
             return;
         }
-	const std::string package_name = "odin_ros_driver";
-	std::string config_dir = "";
-	#ifdef ROS2
-	    char* ros_workspace = std::getenv("COLCON_PREFIX_PATH");
-	    if (ros_workspace) {
-		std::string workspace_path(ros_workspace);
-		size_t pos = workspace_path.find("/install");
-		if (pos != std::string::npos) {
-		    config_dir = workspace_path.substr(0, pos) + "/src/odin_ros_driver/config";
-		} else {
-		    config_dir = ament_index_cpp::get_package_share_directory(package_name) + "/config";
-		}
-	    } else {
-		config_dir = ament_index_cpp::get_package_share_directory(package_name) + "/config";
-	    }
-	#else
-	    config_dir = ros::package::getPath(package_name) + "/config";
-	#endif
-   		 std::cout << "config_dir"<< config_dir <<std::endl;
+        const std::filesystem::path odin_driver_root_dir =
+            resolve_odin_driver_root_dir();
+        std::string config_dir = (odin_driver_root_dir / "config").string();
+        std::cout << "config_dir" << config_dir << std::endl;
         #ifdef ROS2
             RCLCPP_INFO(rclcpp::get_logger("device_cb"), "Calibration files will be saved to: %s", config_dir.c_str());
         #else
@@ -1119,16 +1159,8 @@ static void lidar_device_callback(const lidar_device_info_t* device, bool attach
 
         std::filesystem::path per_con_log_root_dir;
         {
-            auto connection_time = std::chrono::system_clock::now();
-            std::time_t t = std::chrono::system_clock::to_time_t(connection_time);
-            std::tm tm{};
-            #ifdef _WIN32
-                localtime_s(&tm, &t);
-            #else
-                localtime_r(&t, &tm);
-            #endif
             char buf[32];
-            std::strftime(buf, sizeof(buf), "%Y%m%d_%H%M%S", &tm);
+            format_now_beijing(buf, sizeof(buf));
             std::string folder_name = std::string("Conn_") + std::string(buf);
             std::filesystem::path base_log_dir = log_root_dir_.empty()
                 ? std::filesystem::path(config_dir)
@@ -1686,48 +1718,17 @@ int main(int argc, char *argv[])
 
         lidar_log_set_level(LIDAR_LOG_INFO);
 
-        const std::string package_name = "odin_ros_driver";
-        std::string data_dir = "";
-        std::string log_dir = "";
-        std::string map_dir = "";
-        #ifdef ROS2
-            char* ros_workspace = std::getenv("COLCON_PREFIX_PATH");
-            if (ros_workspace) {
-                std::string workspace_path(ros_workspace);
-                size_t pos = workspace_path.find("/install");
-                if (pos != std::string::npos) {
-                    data_dir = workspace_path.substr(0, pos) + "/src/odin_ros_driver/recorddata";
-                    log_dir = workspace_path.substr(0, pos) + "/src/odin_ros_driver/log";
-                    map_dir = workspace_path.substr(0, pos) + "/src/odin_ros_driver/map";
-                } else {
-                    data_dir = ament_index_cpp::get_package_share_directory(package_name) + "/recorddata";
-                    log_dir = ament_index_cpp::get_package_share_directory(package_name) + "/log";
-                    map_dir = ament_index_cpp::get_package_share_directory(package_name) + "/map";
-                }
-            } else {
-                data_dir = ament_index_cpp::get_package_share_directory(package_name) + "/recorddata";
-                log_dir = ament_index_cpp::get_package_share_directory(package_name) + "/log";
-                map_dir = ament_index_cpp::get_package_share_directory(package_name) + "/map";
-            }
-        #else
-            data_dir = ros::package::getPath(package_name) + "/recorddata";
-            log_dir = ros::package::getPath(package_name) + "/log";
-            map_dir = ros::package::getPath(package_name) + "/map";
-        #endif
+        const std::filesystem::path odin_driver_root_dir =
+            resolve_odin_driver_root_dir();
+        std::string data_dir = (odin_driver_root_dir / "recorddata").string();
+        std::string log_dir = (odin_driver_root_dir / "log").string();
+        std::string map_dir = (odin_driver_root_dir / "map").string();
 
         if (g_record_data) {
             g_ros_object->initialize_data_logger(data_dir);
         }
 
-        auto now = std::chrono::system_clock::now();
-        std::time_t t = std::chrono::system_clock::to_time_t(now);
-        std::tm tm{};
-        #ifdef _WIN32
-            localtime_s(&tm, &t);
-        #else
-            localtime_r(&t, &tm);
-        #endif
-        std::strftime(driver_start_time, sizeof(driver_start_time), "%Y%m%d_%H%M%S", &tm);
+        format_now_beijing(driver_start_time, sizeof(driver_start_time));
 
         if (g_devstatus_log) {
             std::string folder_name = std::string("Driver_") + std::string(driver_start_time);
