@@ -530,7 +530,7 @@ void process_pair(const ImageConstPtr &rgb_msg, const PointCloud2ConstPtr &pcd_m
          
         // Create and publish RGB point cloud
         PointCloud2Msg output_msg;
-        output_msg.header.frame_id = "odin1";
+        output_msg.header.frame_id = "front_odin1";
         output_msg.header.stamp = rgb_msg->header.stamp; // Use original image timestamp
         output_msg.height = 1;
         output_msg.width = valid_point_num;
@@ -599,7 +599,7 @@ void publishIntensityCloud(capture_Image_List_t* stream, int idx)
     #endif
 
     // Set message header
-    msg->header.frame_id = "odin1";
+    msg->header.frame_id = "front_odin1";
     #ifdef ROS2
         msg->header.stamp = make_aligned_stamp(cloud.timestamp, node_);
     #else

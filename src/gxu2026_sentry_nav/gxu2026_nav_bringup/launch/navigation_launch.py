@@ -434,6 +434,7 @@ def generate_launch_description():
                 respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=["--ros-args", "--log-level", log_level],
+                condition=IfCondition(enable_mid360_costmap_additive),
             ),
             Node(
                 package="sensor_scan_generation",
@@ -548,12 +549,6 @@ def generate_launch_description():
         target_container=container_name_full,
         composable_node_descriptions=[
             ComposableNode(
-                package="loam_interface",
-                plugin="loam_interface::LoamInterfaceNode",
-                name="loam_interface",
-                parameters=[configured_params],
-            ),
-            ComposableNode(
                 package="sensor_scan_generation",
                 plugin="sensor_scan_generation::SensorScanGenerationNode",
                 name="sensor_scan_generation",
@@ -621,6 +616,29 @@ def generate_launch_description():
                     ("cmd_vel_smoothed", "cmd_vel_nav2_result"),  # remap output
                 ],
             ),
+        ],
+    )
+
+    load_loam_composable_node = LoadComposableNodes(
+        condition=IfCondition(
+            PythonExpression(
+                [
+                    "('",
+                    use_composition,
+                    "' == 'True') and ('",
+                    enable_mid360_costmap_additive,
+                    "' == 'true')",
+                ]
+            )
+        ),
+        target_container=container_name_full,
+        composable_node_descriptions=[
+            ComposableNode(
+                package="loam_interface",
+                plugin="loam_interface::LoamInterfaceNode",
+                name="loam_interface",
+                parameters=[configured_params],
+            )
         ],
     )
 
@@ -1244,6 +1262,7 @@ def generate_launch_description():
     ld.add_action(start_scan_additive_adapter_cmd)
     ld.add_action(start_rm_behavior_tree_cmd)
     ld.add_action(load_nodes)
+    ld.add_action(load_loam_composable_node)
     ld.add_action(load_composable_nodes)
     ld.add_action(load_pointcloud_to_laserscan_composable_cmd)
     ld.add_action(wait_nav2_tf_warmup_cmd)
