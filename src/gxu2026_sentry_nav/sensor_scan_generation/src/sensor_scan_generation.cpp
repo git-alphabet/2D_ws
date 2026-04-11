@@ -113,11 +113,26 @@ void SensorScanGenerationNode::laserCloudAndOdometryHandler(
   tf2::Transform tf_odom_to_chassis;
   tf2::Transform tf_odom_to_robot_base;
   tf2::Transform tf_odom_to_lidar;
+  tf2::Transform tf_odom_to_odom_child;
   const rclcpp::Time odom_stamp = odometry_msg->header.stamp;
   const rclcpp::Time cloud_stamp = pcd_msg->header.stamp;
   const rclcpp::Time tf_lookup_stamp = std::min(odom_stamp, cloud_stamp);
 
-  tf2::fromMsg(odometry_msg->pose.pose, tf_odom_to_lidar);
+  tf2::fromMsg(odometry_msg->pose.pose, tf_odom_to_odom_child);
+
+  // 兼容 odin1 直连链路：若里程计 child_frame 不是 lidar_frame，则通过 TF 补齐 child->lidar。
+  tf_odom_to_lidar = tf_odom_to_odom_child;
+  const std::string odom_child_frame = odometry_msg->child_frame_id;
+  if (odom_child_frame.empty()) {
+    RCLCPP_WARN_THROTTLE(
+      this->get_logger(), *this->get_clock(), 2000,
+      "odometry.child_frame_id is empty, assume odometry pose already in lidar_frame='%s'",
+      lidar_frame_.c_str());
+  } else if (odom_child_frame != lidar_frame_) {
+    const tf2::Transform tf_odom_child_to_lidar =
+      getTransform(lidar_frame_, odom_child_frame, tf_lookup_stamp);
+    tf_odom_to_lidar = tf_odom_to_odom_child * tf_odom_child_to_lidar;
+  }
 
   if (freeze_lidar_mount_tf_ && !mount_tf_cached_) {
     try {
