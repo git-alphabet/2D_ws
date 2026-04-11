@@ -628,13 +628,20 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
     base_env = _build_base_env(cfg)
     log_dir = _runtime_log_dir(cfg)
     slug = _slugify(title)
-    log_file = log_dir / f"{Path(cfg.script_name).stem}_{slug}.log"
+    ts = _beijing_timestamp()
+    log_file = log_dir / f"{Path(cfg.script_name).stem}_{slug}_{ts}.log"
+    latest_link = log_dir / f"{Path(cfg.script_name).stem}_{slug}.log"
+    try:
+        latest_link.unlink(missing_ok=True)
+        latest_link.symlink_to(log_file.name)
+    except OSError:
+        pass
 
     full_cmd = f"cd {shlex.quote(str(cfg.ws_dir))}; {base_env}"
     if extra_env:
         full_cmd += f"; {extra_env}"
     full_cmd += f"; {command}"
-    wrap_cmd = f"{full_cmd} 2>&1 | tee -a {shlex.quote(str(log_file))}"
+    wrap_cmd = f"export PYTHONUNBUFFERED=1; stdbuf -oL -eL bash -c {shlex.quote(full_cmd)} 2>&1 | tee {shlex.quote(str(log_file))}"
     print(f"[{cfg.script_name}] LaunchCmd[{title}]: {command}", file=sys.stderr)
     _log_start_status(cfg.script_name, title, command, log_file)
 
@@ -732,7 +739,7 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
     keep_core = full_cmd
     if post_command:
         keep_core += f"; {post_command}"
-    keep_shell = f"{keep_core} 2>&1 | tee -a {shlex.quote(str(log_file))}; exec bash"
+    keep_shell = f"export PYTHONUNBUFFERED=1; stdbuf -oL -eL bash -c {shlex.quote(keep_core)} 2>&1 | tee {shlex.quote(str(log_file))}; exec bash"
     if term == "gnome-terminal":
         _run_shell(f"gnome-terminal --title={shlex.quote(title)} -- bash -c {shlex.quote(keep_shell)}")
         print(f"[{cfg.script_name}] STARTED {title} in gnome-terminal", file=sys.stderr)

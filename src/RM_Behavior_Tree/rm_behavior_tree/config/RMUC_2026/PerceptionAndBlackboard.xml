@@ -29,8 +29,10 @@
                                 field_status="{field_status}"/>
             <RmucSubEnemyMark topic_name="enemy_mark"
                               enemy_mark="{enemy_mark}"/>
+            <!-- [幽灵端口] team_positions 黑板键从未被任何 BT 节点消费，暂时禁用
             <RmucSubTeamPositions topic_name="team_positions"
                                   team_positions="{team_positions}"/>
+            -->
             <RmucSubTeamHP topic_name="team_hp"
                            team_hp="{team_hp}"/>
 
@@ -73,7 +75,6 @@
                                    remote_ammo_count="{sentry.remote_ammo_count}"
                                    remote_heal_count="{sentry.remote_heal_count}"
                                    exchanged_ammo_total="{sentry.exchanged_ammo_total}"
-                                   can_activate_energy="{sentry.can_activate_energy}"
                                    buff_heal_rate="{buff.heal_rate}"
                                    buff_cool_value="{buff.cool_value}"
                                    buff_defense_pct="{buff.defense_pct}"

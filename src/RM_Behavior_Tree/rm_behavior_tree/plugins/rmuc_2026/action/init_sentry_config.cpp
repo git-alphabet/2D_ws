@@ -9,6 +9,10 @@ InitSentryConfigAction::InitSentryConfigAction(
 
 BT::NodeStatus InitSentryConfigAction::tick()
 {
+  if (loaded_once_) {
+    return BT::NodeStatus::SUCCESS;
+  }
+
   // 话题名称 (字符串默认值)
   auto setStr = [this](const char * key, const std::string & fallback) {
     std::string v = fallback;
@@ -69,6 +73,7 @@ BT::NodeStatus InitSentryConfigAction::tick()
   getInput("patrol_waypoints", patrol_waypoints);
   setOutput("patrol_waypoints", patrol_waypoints);
 
+  loaded_once_ = true;
   return BT::NodeStatus::SUCCESS;
 }
 

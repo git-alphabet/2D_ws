@@ -13,10 +13,6 @@ BT::NodeStatus RmucSubTeamPositionsAction::onTick(
   const std::shared_ptr<sp_msgs::msg::RMUCTeamPositions> & last_msg)
 {
   if (last_msg) {
-    RCLCPP_DEBUG(
-      logger(), "[%s] team_positions: hero=(%.1f,%.1f), inf3=(%.1f,%.1f)",
-      name().c_str(), last_msg->hero_x, last_msg->hero_y,
-      last_msg->infantry3_x, last_msg->infantry3_y);
     setOutput("team_positions", *last_msg);
   }
   return BT::NodeStatus::SUCCESS;

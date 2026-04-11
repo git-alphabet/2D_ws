@@ -69,7 +69,6 @@ public:
       BT::OutputPort<int>("remote_ammo_count"),
       BT::OutputPort<int>("remote_heal_count"),
       BT::OutputPort<int>("exchanged_ammo_total"),
-      BT::OutputPort<bool>("can_activate_energy"),
 
       // ── outputs: RobotBuff 派生 ──
       BT::OutputPort<int>("buff_heal_rate"),

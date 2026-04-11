@@ -14,8 +14,8 @@ BT::NodeStatus RmucSubTeamHPAction::onTick(
 {
   if (last_msg) {
     RCLCPP_DEBUG(
-      logger(), "[%s] team_hp: sentry=%d, outpost=%d, base=%d",
-      name().c_str(), last_msg->sentry_hp, last_msg->outpost_hp, last_msg->base_hp);
+      logger(), "[%s] team_hp: outpost=%d, base=%d",
+      name().c_str(), last_msg->outpost_hp, last_msg->base_hp);
     setOutput("team_hp", *last_msg);
   }
   return BT::NodeStatus::SUCCESS;

@@ -111,17 +111,12 @@ class RmucTestPublisher(Node):
         msg.current_hp = self.args.hp
         msg.max_hp = 600
         msg.shooter_heat = 30
-        msg.heat_limit = 240
-        msg.cooling_rate = 40
         msg.ammo_allow = self.args.ammo
         msg.ammo_left = 300
-        msg.shooter_power_output = not self.args.dead
         msg.is_dead = self.args.dead
         msg.can_remote_heal = True
         msg.can_remote_ammo = True
         msg.team_coins = 800
-        msg.can_respawn = False
-        msg.respawn_countdown_s = 0
         msg.base_hp_cur = 5000
         msg.base_hp_max = 5000
         msg.outpost_alive = True
@@ -138,7 +133,6 @@ class RmucTestPublisher(Node):
         msg.remote_ammo_count = 0
         msg.remote_heal_count = 0
         msg.exchanged_ammo_total = 0
-        msg.can_activate_energy = False
         self.pub_sentry_decision.publish(msg)
 
     def _pub_robot_buff(self):
@@ -149,15 +143,11 @@ class RmucTestPublisher(Node):
         msg.defense_pct = 0
         msg.vulnerability_pct = 0
         msg.attack_pct = 0
-        msg.remaining_energy = 0
         self.pub_robot_buff.publish(msg)
 
     def _pub_projectile_allowance(self):
         msg = RMUCProjectileAllowance()
         msg.header = self._header()
-        msg.ammo_17mm = self.args.ammo
-        msg.ammo_42mm = 0
-        msg.remaining_coins = 800
         msg.fortress_ammo = 0
         self.pub_projectile.publish(msg)
 
@@ -169,11 +159,6 @@ class RmucTestPublisher(Node):
         msg.enemy_infantry3_vuln = False
         msg.enemy_infantry4_vuln = False
         msg.enemy_sentry_vuln = False
-        msg.ally_hero_marked = False
-        msg.ally_engi_marked = False
-        msg.ally_infantry3_marked = False
-        msg.ally_infantry4_marked = False
-        msg.ally_sentry_marked = False
         self.pub_enemy_mark.publish(msg)
 
     # ────────── 1 Hz 话题 ──────────
@@ -204,7 +189,6 @@ class RmucTestPublisher(Node):
         msg.rfid_supply = False
         msg.rfid_base_buff = False
         msg.rfid_outpost_buff = False
-        msg.rfid_fortress_ally = False
         msg.rfid_fortress_enemy = False
         msg.rfid_central_highland = False
         msg.rfid_ladder_highland = False
@@ -213,14 +197,10 @@ class RmucTestPublisher(Node):
     def _pub_field_status(self):
         msg = RMUCFieldStatus()
         msg.header = self._header()
-        msg.supply_no_resource_occupied = False
-        msg.supply_resource_occupied = False
         msg.small_energy_status = 0
         msg.big_energy_status = 0
         msg.central_highland = 0  # 未占领
         msg.ladder_highland = 0
-        msg.dart_hit_time = 0
-        msg.dart_hit_target = 0
         msg.fortress = 0
         msg.outpost_buff = 0
         msg.base_buff = False
@@ -231,22 +211,13 @@ class RmucTestPublisher(Node):
         msg.header = self._header()
         msg.hero_x = 1.0
         msg.hero_y = -1.0
-        msg.engi_x = 0.5
-        msg.engi_y = -0.5
         msg.infantry3_x = 3.0
         msg.infantry3_y = -2.0
-        msg.infantry4_x = 4.0
-        msg.infantry4_y = -3.0
         self.pub_team_pos.publish(msg)
 
     def _pub_team_hp(self):
         msg = RMUCTeamHP()
         msg.header = self._header()
-        msg.hero_hp = 500
-        msg.engi_hp = 400
-        msg.infantry3_hp = 500
-        msg.infantry4_hp = 500
-        msg.sentry_hp = self.args.hp
         msg.outpost_hp = 1500
         msg.base_hp = 5000
         self.pub_team_hp.publish(msg)

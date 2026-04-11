@@ -61,7 +61,6 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
     setOutput("remote_ammo_count", static_cast<int>(sds->remote_ammo_count));
     setOutput("remote_heal_count", static_cast<int>(sds->remote_heal_count));
     setOutput("exchanged_ammo_total", static_cast<int>(sds->exchanged_ammo_total));
-    setOutput("can_activate_energy", sds->can_activate_energy);
   }
 
   // ── 增益状态 (RobotBuff) ──

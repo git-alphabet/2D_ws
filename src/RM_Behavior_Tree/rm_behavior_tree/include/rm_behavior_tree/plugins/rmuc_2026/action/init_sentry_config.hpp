@@ -45,6 +45,9 @@ public:
       BT::BidirectionalPort<std::string>("patrol_waypoints")};
   }
   BT::NodeStatus tick() override;
+
+private:
+  bool loaded_once_{false};
 };
 }  // namespace rm_behavior_tree
 #endif

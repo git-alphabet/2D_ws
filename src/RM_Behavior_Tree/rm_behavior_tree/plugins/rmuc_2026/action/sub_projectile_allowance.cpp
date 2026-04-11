@@ -14,8 +14,8 @@ BT::NodeStatus RmucSubProjectileAllowanceAction::onTick(
 {
   if (last_msg) {
     RCLCPP_DEBUG(
-      logger(), "[%s] projectile_allowance: 17mm=%d, coins=%d",
-      name().c_str(), last_msg->ammo_17mm, last_msg->remaining_coins);
+      logger(), "[%s] projectile_allowance: fortress_ammo=%d",
+      name().c_str(), last_msg->fortress_ammo);
     setOutput("projectile_allowance", *last_msg);
   }
   return BT::NodeStatus::SUCCESS;
