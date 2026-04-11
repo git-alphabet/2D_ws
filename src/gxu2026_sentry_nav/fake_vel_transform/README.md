@@ -32,3 +32,11 @@ Related issue: [Switch from Twist to TwistStamped for cmd_vel #1594](https://git
 * `input_cmd_vel_topic` (`string`, default: "") - 输入速度指令的话题
 * `output_cmd_vel_topic` (`string`, default: "") - 输出速度指令的话题。将原本基于 `fake_robot_base_frame` 的速度变换到 `robot_base_frame` 后发布
 * `init_spin_speed` (`double`, default: 0.0) - 匀速旋转角速度（`chassis_spin=true` 时叠加到 `output_cmd_vel_topic.angular.z`）
+* `disable_spin_while_moving` (`bool`, default: true) - 移动过程中是否关闭小陀螺。`true`：线速度超过阈值时 `angular.z=0`；`false`：移动时仍叠加小陀螺，便于联调测试
+
+### 自旋来源优先级
+
+`output_cmd_vel_topic.angular.z` 的小陀螺角速度来源优先级如下：
+
+1. `cmd_spin_topic`（变速小陀螺实时值，收到后持续生效）
+2. `init_spin_speed`（仅在尚未收到任何 `cmd_spin` 时作为回退值）

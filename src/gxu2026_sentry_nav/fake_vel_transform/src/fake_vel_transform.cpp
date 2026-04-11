@@ -50,6 +50,7 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->declare_parameter<std::string>("input_cmd_vel_topic", "");
   this->declare_parameter<std::string>("output_cmd_vel_topic", "");
   this->declare_parameter<float>("init_spin_speed", 0.0);
+  this->declare_parameter<bool>("disable_spin_while_moving", true);
 
   this->get_parameter("robot_base_frame", robot_base_frame_);
   this->get_parameter("fake_robot_base_frame", fake_robot_base_frame_);
@@ -62,11 +63,13 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->get_parameter("input_cmd_vel_topic", input_cmd_vel_topic_);
   this->get_parameter("output_cmd_vel_topic", output_cmd_vel_topic_);
   this->get_parameter("init_spin_speed", init_spin_speed_);
+  this->get_parameter("disable_spin_while_moving", disable_spin_while_moving_);
 
   RCLCPP_INFO(
     get_logger(),
-    "Spin control: topic=%s, init_spin_speed=%.3f rad/s (enabled when RMUCRobotControl.chassis_spin=true)",
-    robot_control_topic_.c_str(), init_spin_speed_);
+    "Spin control: topic=%s, init_spin_speed=%.3f rad/s, disable_spin_while_moving=%s",
+    robot_control_topic_.c_str(), init_spin_speed_,
+    disable_spin_while_moving_ ? "true" : "false");
 
   tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
@@ -135,6 +138,12 @@ void FakeVelTransform::cmdSpinCallback(const example_interfaces::msg::Float32::S
 {
   spin_speed_ = msg->data;
   has_received_cmd_spin_ = true;
+  if (!cmd_spin_override_logged_) {
+    RCLCPP_INFO(
+      get_logger(),
+      "Received cmd_spin for the first time, dynamic cmd_spin now overrides init_spin_speed.");
+    cmd_spin_override_logged_ = true;
+  }
 }
 
 void FakeVelTransform::manualSpinOverrideCallback(const std_msgs::msg::Bool::SharedPtr msg)
@@ -255,13 +264,23 @@ geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
 {
   geometry_msgs::msg::Twist aft_tf_vel;
 
-  const bool effective_spin_enabled =
-    use_manual_spin_override_ ? manual_spin_override_enabled_ : spin_enabled_;
-  const bool is_chassis_stationary =
-    std::hypot(twist->linear.x, twist->linear.y) < SPIN_LINEAR_STOP_THRESHOLD;
-  const float current_spin =
-    (effective_spin_enabled && is_chassis_stationary) ? init_spin_speed_ : 0.0f;
-  aft_tf_vel.angular.z = twist->angular.z + current_spin;
+  float current_spin = 0.0f;
+  // Always apply cmd_spin value; spin on/off is controlled by NonlinearSpinPublisher
+  // which publishes 0 when chassis_spin=False via BT RobotControl.
+  if (has_received_cmd_spin_) {
+    current_spin = spin_speed_;
+  } else {
+    current_spin = init_spin_speed_;
+  }
+
+  const double linear_speed = std::hypot(twist->linear.x, twist->linear.y);
+  const bool is_moving = linear_speed > SPIN_LINEAR_STOP_THRESHOLD;
+  if (disable_spin_while_moving_ && is_moving) {
+    aft_tf_vel.angular.z = 0.0;
+  } else {
+    aft_tf_vel.angular.z = current_spin;
+  }
+
   aft_tf_vel.linear.x = twist->linear.x * cos(yaw_diff) + twist->linear.y * sin(yaw_diff);
   aft_tf_vel.linear.y = -twist->linear.x * sin(yaw_diff) + twist->linear.y * cos(yaw_diff);
   return aft_tf_vel;
