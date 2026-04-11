@@ -16,5 +16,5 @@ uint8  defense_pct              # offset 3: 防御增益% (值为50表示50%防�
 uint8  vulnerability_pct        # offset 4: 负防御增益/易伤% (值为30表示-30%防御)
 uint16 attack_pct               # offset 5: 攻击增益% (值为50表示50%攻击增益)
 
-# ── 剩余能量反馈 ──
-uint8  remaining_energy         # offset 7: 剩余能量值反馈 (位标识)
+# # ── 以下字段暂未启用 ──
+# uint8  remaining_energy         # offset 7: 剩余能量值反馈 (位标识)

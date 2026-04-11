@@ -14,18 +14,10 @@ std_msgs/Header header
 uint16 current_hp            # 当前血量
 uint16 max_hp                # 血量上限
 uint16 shooter_heat          # 当前枪口热量
-uint16 heat_limit            # 热量上限
-uint16 cooling_rate          # 每秒冷却值
 
 # ── 弹丸与允许发弹量 ──
 uint16 ammo_allow            # 剩余允许发弹量
 uint16 ammo_left             # 物理剩余弹丸数
-
-# ── 电源管理模块输出 (0x0201 offset 12) ──
-bool    shooter_power_output # 0x0201 bit2: shooter 口 24V 输出 (1=有输出, 0=断电)
-                             # 虚弱状态下裁判系统会关闭 shooter 输出，
-                             # 但热量超限/初速超限/测速离线/允许发弹量=0 也会导致断电，
-                             # 需组合其他字段排除误判，详见 IsWeakness 插件。
 
 # ── 机器人状态标志 ──
 bool    is_dead              # 是否战亡
@@ -38,10 +30,6 @@ bool   can_remote_heal       # 是否可触发远程补血
 bool   can_remote_ammo       # 是否可触发远程补弹
 uint16 team_coins            # 队伍当前金币余额
 
-# ── 复活状态 ──
-bool   can_respawn           # 复活读条是否完成
-uint8  respawn_countdown_s   # 复活读条倒计时 (秒)
-
 # ── 己方基地与前哨站 ──
 uint16 base_hp_cur           # 己方基地当前血量
 uint16 base_hp_max           # 己方基地血量上限
@@ -49,3 +37,13 @@ bool   outpost_alive         # 己方前哨站是否存活
 
 # ── 视觉检测 ──
 bool    is_detect_enemy      # 是否检测到敌人
+
+# # ── 以下字段暂未启用 ──
+# uint16 heat_limit            # 热量上限
+# uint16 cooling_rate          # 每秒冷却值
+# bool    shooter_power_output # 0x0201 bit2: shooter 口 24V 输出 (1=有输出, 0=断电)
+#                              # 虚弱状态下裁判系统会关闭 shooter 输出，
+#                              # 但热量超限/初速超限/测速离线/允许发弹量=0 也会导致断电，
+#                              # 需组合其他字段排除误判，详见 IsWeakness 插件。
+# bool   can_respawn           # 复活读条是否完成
+# uint8  respawn_countdown_s   # 复活读条倒计时 (秒)

@@ -71,15 +71,8 @@
 
                 </ReactiveSequence>
 
-                <!-- ===================== 非比赛阶段 ===================== -->
+                <!-- ===================== 非比赛阶段（空闲等待） ===================== -->
                 <ReactiveSequence>
-                    <RateController hz="1">
-                        <SendGoal name="Home"
-                                  goal_x="{cfg.home_x}"
-                                  goal_y="{cfg.home_y}"
-                                  frame_id="map"
-                                  action_name="navigate_to_pose"/>
-                    </RateController>
                     <RmucRobotControl stop_gimbal_scan="True"
                                       chassis_spin="False"/>
                     <RateController hz="2">

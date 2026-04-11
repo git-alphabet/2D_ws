@@ -17,10 +17,11 @@ bool   enemy_infantry3_vuln    # bit2: 对方3号步兵易伤
 bool   enemy_infantry4_vuln    # bit3: 对方4号步兵易伤
 bool   enemy_sentry_vuln       # bit4: 对方哨兵易伤
 
-# ── 己方机器人特殊标识 ──
+# ── 己方机器人特殊标识 (暂未启用) ──
 # 标记进度>=50时为true (1), <50时为false (0)
-bool   ally_hero_marked        # bit5: 己方英雄被标记
-bool   ally_engi_marked        # bit6: 己方工程被标记
-bool   ally_infantry3_marked   # bit7: 己方3号步兵被标记
-bool   ally_infantry4_marked   # bit8: 己方4号步兵被标记
-bool   ally_sentry_marked      # bit9: 己方哨兵被标记
+# TODO: 当前行为树未使用以下字段
+# bool   ally_hero_marked        # bit5: 己方英雄被标记
+# bool   ally_engi_marked        # bit6: 己方工程被标记
+# bool   ally_infantry3_marked   # bit7: 己方3号步兵被标记
+# bool   ally_infantry4_marked   # bit8: 己方4号步兵被标记
+# bool   ally_sentry_marked      # bit9: 己方哨兵被标记

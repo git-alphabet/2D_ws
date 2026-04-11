@@ -14,4 +14,4 @@ bool   cmd_confirm_instant_respawn  # 确认兑换立即复活
 uint16 cmd_allow_ammo_target        # 允许发弹量目标值 (单调递增)
 bool   cmd_trigger_remote_ammo      # 触发远程兑换弹丸 (上升沿有效)
 bool   cmd_trigger_remote_hp        # 触发远程兑换血量 (上升沿有效)
-bool   cmd_enable_big_energy        # 大能量机关确认
+# bool   cmd_enable_big_energy        # 大能量机关确认

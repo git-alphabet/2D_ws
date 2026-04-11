@@ -15,10 +15,10 @@ RMUC 2026 裁判系统话题模拟器
      docker exec gxu2026-nav-laptop bash -c \
        "source /opt/ros/humble/setup.bash && \
         source /ws/.buildcache/Alphabet/install/setup.bash && \
-        python3 /ws/scripts/rmuc_test_publisher.py"
+        python3 /ws/scripts/used/rmuc_test_publisher.py"
 
 参数:
-  --ns       命名空间 (默认 /red_standard_robot1)
+  --ns       命名空间 (默认为空，裁判系统话题不带ns)
   --phase    比赛阶段 (0-5, 默认 4=比赛中)
   --remain   赛阶段剩余时间，秒 (默认 300)
   --hp       当前血量 (默认 400)
@@ -265,7 +265,7 @@ class RmucTestPublisher(Node):
 
 def main():
     parser = argparse.ArgumentParser(description="RMUC 2026 裁判系统话题模拟器")
-    parser.add_argument("--ns", default="/red_standard_robot1", help="命名空间")
+    parser.add_argument("--ns", default="/red_standard_robot1", help="命名空间 (仿真默认 /red_standard_robot1，实车用空字符串)")
     parser.add_argument("--phase", type=int, default=4, help="比赛阶段 (0-5, 4=比赛中)")
     parser.add_argument("--remain", type=int, default=420, help="阶段剩余时间 (秒)")
     parser.add_argument("--hp", type=int, default=400, help="当前血量")

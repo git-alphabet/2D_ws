@@ -20,14 +20,24 @@ BT::NodeStatus LoadCalibrationCSVAction::tick()
   getInput("csv_path", csv_path);
 
   if (csv_path.empty()) {
-    std::cout << "[CALIB_CSV] csv_path 为空，跳过标定覆盖，使用 YAML 默认值\n";
+    if (!logged_empty_path_) {
+      std::cout << "[CALIB_CSV] csv_path 为空，跳过标定覆盖，使用 YAML 默认值\n";
+      logged_empty_path_ = true;
+    }
+    return BT::NodeStatus::SUCCESS;
+  }
+
+  if (loaded_once_) {
     return BT::NodeStatus::SUCCESS;
   }
 
   std::ifstream file(csv_path);
   if (!file.is_open()) {
-    std::cerr << "[CALIB_CSV] 无法打开标定文件: " << csv_path
-              << "，使用 YAML 默认值\n";
+    if (!logged_open_fail_) {
+      std::cerr << "[CALIB_CSV] 无法打开标定文件: " << csv_path
+                << "，使用 YAML 默认值\n";
+      logged_open_fail_ = true;
+    }
     return BT::NodeStatus::SUCCESS;
   }
 
@@ -136,6 +146,7 @@ BT::NodeStatus LoadCalibrationCSVAction::tick()
   }
 
   std::cout << "[CALIB_CSV] 标定覆盖完成: " << overridden << " 项来自 " << csv_path << "\n";
+  loaded_once_ = true;
   return BT::NodeStatus::SUCCESS;
 }
 

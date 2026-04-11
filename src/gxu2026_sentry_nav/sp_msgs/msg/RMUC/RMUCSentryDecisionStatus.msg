@@ -24,5 +24,5 @@ uint8  remote_heal_count        # bit15-18: 成功远程兑换血量的次数
 # ── 允许发弹量兑换累计 ──
 uint16 exchanged_ammo_total     # bit0-10: 除远程兑换外，累计成功兑换的允许发弹量
 
-# ── 能量机关 ──
-bool   can_activate_energy      # 附加状态 bit14: 己方能量机关是否可进入激活状态
+# # ── 能量机关 ──
+# bool   can_activate_energy      # 附加状态 bit14: 己方能量机关是否可进入激活状态

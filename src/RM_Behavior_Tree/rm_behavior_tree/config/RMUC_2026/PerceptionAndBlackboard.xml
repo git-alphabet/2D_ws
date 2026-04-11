@@ -3,35 +3,35 @@
 
     <BehaviorTree ID="PerceptionAndBlackboard">
         <Sequence>
-            <RmucSubGameStatus topic_name="/game_status"
+            <RmucSubGameStatus topic_name="game_status"
                                game_status="{game_status}"
                                now_ms="{time.now_ms}"/>
-            <RmucSubRobotStatus topic_name="/robot_status"
+            <RmucSubRobotStatus topic_name="robot_status"
                                 robot_status="{robot_status}"/>
-            <RmucSubRFIDStatus topic_name="/rfid_status"
+            <RmucSubRFIDStatus topic_name="rfid_status"
                                rfid_status="{rfid.status}"/>
-            <RmucSubRobotPosition topic_name="/robot_position"
+            <RmucSubRobotPosition topic_name="robot_position"
                                   pose_x="{pose.x}"
                                   pose_y="{pose.y}"
                                   pose_yaw="{pose.yaw}"
                                   is_at_nav_goal="{is_at_nav_goal}"/>
-            <SubRadarTracks topic_name="/radar/enemy_tracks"
+            <SubRadarTracks topic_name="radar/enemy_tracks"
                             radar_tracks="{radar_tracks}"/>
 
             <!-- P0 新增: 7 个裁判系统话题订阅 -->
-            <RmucSubSentryDecisionStatus topic_name="/sentry_decision_status"
+            <RmucSubSentryDecisionStatus topic_name="sentry_decision_status"
                                           sentry_decision_status="{sentry_decision_status}"/>
-            <RmucSubRobotBuff topic_name="/robot_buff"
+            <RmucSubRobotBuff topic_name="robot_buff"
                               robot_buff="{robot_buff}"/>
-            <RmucSubProjectileAllowance topic_name="/projectile_allowance"
+            <RmucSubProjectileAllowance topic_name="projectile_allowance"
                                          projectile_allowance="{projectile_allowance}"/>
-            <RmucSubFieldStatus topic_name="/field_status"
+            <RmucSubFieldStatus topic_name="field_status"
                                 field_status="{field_status}"/>
-            <RmucSubEnemyMark topic_name="/enemy_mark"
+            <RmucSubEnemyMark topic_name="enemy_mark"
                               enemy_mark="{enemy_mark}"/>
-            <RmucSubTeamPositions topic_name="/team_positions"
+            <RmucSubTeamPositions topic_name="team_positions"
                                   team_positions="{team_positions}"/>
-            <RmucSubTeamHP topic_name="/team_hp"
+            <RmucSubTeamHP topic_name="team_hp"
                            team_hp="{team_hp}"/>
 
             <!-- Parse/derive common fields used by tactics -->

@@ -38,6 +38,11 @@ public:
   }
 
   BT::NodeStatus tick() override;
+
+private:
+  bool logged_empty_path_{false};
+  bool logged_open_fail_{false};
+  bool loaded_once_{false};
 };
 
 }  // namespace rm_behavior_tree

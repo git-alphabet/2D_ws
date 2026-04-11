@@ -92,17 +92,9 @@ BT::NodeStatus SendGoalAction::tick()
 
   auto now = node_->get_clock()->now();
 
-  if (min_interval_ms > 0 && has_last_) {
-    const bool same_goal = isSameGoal_(goal, last_goal_);
-    if (same_goal) {
-      const int64_t dt_ns = (now - last_pub_time_).nanoseconds();
-      const int64_t min_dt_ns = static_cast<int64_t>(min_interval_ms) * 1000000LL;
-      // If clock jumps backward OR interval not reached, skip publish
-      if (dt_ns < 0 || dt_ns < min_dt_ns) {
-        // Return SUCCESS even if we skip publishing! This prevents resetting the BT branch!
-        return BT::NodeStatus::SUCCESS;
-      }
-    }
+  // ── 去重：目标不变则跳过发布 ──
+  if (has_last_ && isSameGoal_(goal, last_goal_)) {
+    return BT::NodeStatus::SUCCESS;
   }
 
   geometry_msgs::msg::PoseStamped msg;
@@ -120,14 +112,11 @@ BT::NodeStatus SendGoalAction::tick()
   msg.pose.orientation.z = 0.0;
   msg.pose.orientation.w = 1.0;
 
-  // 使用 throttle 限制重复发导航点时的刷屏日志 (每2秒最多打印一次相同或不同动作的 Goal)
-  RCLCPP_INFO_THROTTLE(
+  RCLCPP_INFO(
     node_->get_logger(),
-    *node_->get_clock(),
-    2000,
-    "[%s] Goal position: [ %.3f, %.3f, %.3f ]",
+    "[%s] New goal: [ %.3f, %.3f ]",
     name().c_str(),
-    goal.pose.position.x, goal.pose.position.y, goal.pose.position.z);
+    goal.pose.position.x, goal.pose.position.y);
 
   last_goal_ = goal;
   last_pub_time_ = now;

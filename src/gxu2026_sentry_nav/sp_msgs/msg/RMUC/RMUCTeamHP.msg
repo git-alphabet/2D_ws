@@ -9,13 +9,13 @@
 
 std_msgs/Header header
 
-# ── 己方机器人血量  ──
-uint16 hero_hp                 # offset 0: 英雄血量
-uint16 engi_hp                 # offset 2: 工程血量
-uint16 infantry3_hp            # offset 4: 3号步兵血量
-uint16 infantry4_hp            # offset 6: 4号步兵血量
-uint16 sentry_hp               # offset 10: 哨兵血量
-
 # ── 己方建筑  ──
 uint16 outpost_hp              # offset 12: 前哨站血量 (0=被击毁)
 uint16 base_hp                 # offset 14: 基地血量
+
+# # ── 以下字段暂未启用 ──
+# uint16 hero_hp                 # offset 0: 英雄血量
+# uint16 engi_hp                 # offset 2: 工程血量
+# uint16 infantry3_hp            # offset 4: 3号步兵血量
+# uint16 infantry4_hp            # offset 6: 4号步兵血量
+# uint16 sentry_hp               # offset 10: 哨兵血量
