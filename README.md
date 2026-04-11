@@ -6,8 +6,8 @@ GXU RobotZ 2026 赛季 ROS 2（Humble）导航工作空间。
 - 集成 NeuPAN（`neupan_nav2_controller`）控制器插件：**必须在虚拟环境中构建与运行**（见下文）
 - 主要启动/构建入口集中在 `./scripts/`
 
-> 说明：本工作空间包含上游 `pb2025_sentry_nav` 的完整功能与更详细文档，推荐同时阅读：
-> - `src/pb2025_sentry_nav/README.md`
+> 说明：本工作空间导航主代码位于 `src/gxu2026_sentry_nav/`，本 README 仅保留高频入口与当前分支约定。
+> 更细的包级说明可按需查看各子包 README。
 
 ---
 
@@ -206,8 +206,8 @@ ros2 run ros2_bag_tools play_bag ./src/ros2_bag_tools/bags/<时间目录>
 
 对应默认参数文件路径：
 
-- 仿真：`src/pb2025_sentry_nav/pb2025_nav_bringup/config/simulation/nav2_params.yaml`
-- 实车：`src/pb2025_sentry_nav/pb2025_nav_bringup/config/reality/nav2_params.yaml`
+- 仿真：`src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/nav2_params.yaml`
+- 实车：`src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/nav2_params.yaml`
 
 ### 5.2 NeuPAN 模型加载（如果需要）
 
@@ -222,6 +222,84 @@ ros2 run ros2_bag_tools play_bag ./src/ros2_bag_tools/bags/<时间目录>
 ```bash
 NEUPAN_MODEL_SETUP=/path/to/local_setup.bash ./scripts/nav_sim.sh
 ```
+
+### 5.3 当前实车链路约定（2026-04 更新）
+
+以下为当前已落地并默认启用的 reality 侧约定：
+
+- 定位/里程计主源：`odin1`
+  - `pb_navigation_switches.odometry_source=odin1`
+  - `odom -> base_footprint` 由 odin 驱动链路负责
+
+- TF 防抖：避免重复发布 `odom -> base_footprint`
+  - `sensor_scan_generation.publish_base_tf=false`
+
+- mid360 角色：点云补盲（不接管定位）
+  - `point_lio` 使用 obstacle-only 配置：
+    `src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/point_lio_obstacle_only.yaml`
+  - 该配置默认关闭 `tf_send_en` 和 `path_en`，仅保留补盲所需点云输出
+
+- 规划/控制输入：local/global costmap 双源观测
+  - local costmap: `terrain_map` + `terrain_map_ext_mid360`
+  - global costmap: `terrain_map_ext` + `terrain_map_ext_mid360`
+  - 因此 PID 控制链路主要通过 costmap 间接受益于 mid360 补盲
+
+- `obstacle_scan` 使用边界
+  - `obstacle_scan_additive` 是共享话题，不是仅供某一控制器私有
+  - NeuPAN 必需使用该类激光输入（`laser_topic=/obstacle_scan`）
+  - PID 场景通常不直接依赖 `obstacle_scan`，主要依赖 costmap
+
+- 开关关系（navigation_launch）
+  - `enable_mid360_costmap_additive`：控制 mid360->costmap 补盲链路
+  - `enable_scan_additive`：控制 scan 合成链路（`scan_odin1 + scan_mid360 -> obstacle_scan`）
+
+### 5.4 Odin 地图保存路径与时间戳
+
+- 默认建图结果目录（`mapping_result_dest_dir` 留空时）：
+  - `/ws/src/odin_ros_driver/map/{driver_start_time}/`
+
+- 默认文件名（`mapping_result_file_name` 留空时）：
+  - `map_{save_time}.bin`
+
+- `driver_start_time` 与 `save_time` 使用北京时间（UTC+8）生成。
+
+### 5.5 当前分支框架图
+
+- Draw.io 源文件：`docs/architecture/planned_pipeline.drawio`
+
+```mermaid
+flowchart LR
+  A[odin_ros_driver\nlocalization + odometry owner] -->|cloud_slam + odometry_highfreq| B[terrain_analysis_ext odin1]
+  A --> C[sensor_scan_generation odin1 only]
+  D[mid360_driver] --> E[point_lio obstacle-only]
+  E --> F[loam_interface mid360 path]
+  F --> G[terrain_analysis_ext mid360]
+
+  B --> H[terrain_map_ext]
+  G --> I[terrain_map_ext_mid360]
+  C --> J[terrain_analysis local]
+  J --> K[terrain_map]
+
+  H --> L[local/global costmap]
+  I --> L
+  K --> L
+
+  L --> M[nav2_planner]
+  L --> N[controller_server\nPID or NeuPAN]
+
+  B --> O[pointcloud_to_laserscan odin1]
+  O --> P[scan_odin1]
+  G --> Q[pointcloud_to_laserscan mid360]
+  Q --> R[scan_mid360]
+  P --> S[scan_additive_adapter optional]
+  R --> S
+  S --> T[obstacle_scan additive shared topic]
+  T -->|required laser input| U[neupan_nav2_controller]
+```
+
+说明：
+- odin1 负责定位和里程计，不与 mid360 做位姿融合。
+- mid360 主要用于点云补盲，默认服务 costmap；scan additive 作为共享输出按需启用。
 
 ---
 
@@ -244,8 +322,10 @@ NEUPAN_MODEL_SETUP=/path/to/local_setup.bash ./scripts/nav_sim.sh
 
 ## 7. 参考
 
-- 上游导航包（含详细运行说明、launch 参数、地图/点云等）：
-  - `src/pb2025_sentry_nav/README.md`
+- 当前导航主包（含 launch、参数、行为树等）：
+  - `src/gxu2026_sentry_nav/gxu2026_nav_bringup/`
+- 框架图：
+  - `docs/architecture/planned_pipeline.drawio`
 
 ---
 
@@ -430,7 +510,7 @@ IMAGE_TAG=20260228 docker compose -f docker/compose.dev.yml --profile laptop up 
 colcon build --symlink-install
 
 # 仅编译指定包
-colcon build --symlink-install --packages-select pb2025_nav_bringup
+colcon build --symlink-install --packages-select gxu2026_nav_bringup
 
 # source 编译结果
 source install/setup.bash
