@@ -50,13 +50,15 @@
             <horizontal>
               <samples>${samples}</samples>
               <resolution>1.0</resolution>
-              <min_angle>0</min_angle>
-              <max_angle>6.2831852</max_angle>
+              <!-- Odin1 文档：约 120°H -->
+              <min_angle>-1.0471975512</min_angle>
+              <max_angle>1.0471975512</max_angle>
             </horizontal>
             <vertical>
               <samples>32</samples>
-              <min_angle>-0.12217304764</min_angle>
-              <max_angle>0.90757121104</max_angle>
+              <!-- Odin1 文档：约 90°V -->
+              <min_angle>-0.7853981634</min_angle>
+              <max_angle>0.7853981634</max_angle>
             </vertical>
           </scan>
           <range>
