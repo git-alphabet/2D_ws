@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="planned-flow" name="Planned Architecture">
-        <mxGraphModel dx="2806" dy="495" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1600" math="0" shadow="0">
+        <mxGraphModel dx="3435" dy="693" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1600" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -96,12 +96,12 @@
                 <mxCell id="39" value="scan_mid360 (blind-spot supplement)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="11" target="12" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="40" value="obstacle_scan_neupan" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="12" target="13" edge="1">
+                <mxCell id="40" value="obstacle_scan_additive (shared topic)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="12" target="13" edge="1">
                     <mxGeometry x="1" y="57" relative="1" as="geometry">
                         <mxPoint x="40" y="17" as="offset"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="41" value="laser_topic" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="13" target="14" edge="1">
+                <mxCell id="41" value="laser_topic (required by neupan)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="13" target="14" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="44" value="cmd_vel_nav2_result" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="156" target="16" edge="1">
@@ -110,7 +110,7 @@
                 <mxCell id="45" value="cmd_vel" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="16" target="17" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="13" value="obstacle_scan_neupan" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;" parent="1" vertex="1">
+                <mxCell id="13" value="obstacle_scan_additive" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;" parent="1" vertex="1">
                     <mxGeometry x="1500" y="585" width="190" height="50" as="geometry"/>
                 </mxCell>
                 <mxCell id="49" value="nav2_controller&#xa;controller_server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=14;" parent="1" vertex="1">
@@ -122,7 +122,7 @@
                 <mxCell id="52" value="" style="endArrow=classic;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="51" target="49" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="54" value="odin1内部&lt;br&gt;slam/定位" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                <mxCell id="54" value="odin1内部&lt;br&gt;定位/里程计主源" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="30" y="520" width="110" height="55" as="geometry"/>
                 </mxCell>
                 <mxCell id="58" value="在slam_toolbox生成的地图" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
@@ -173,7 +173,7 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="91" value="odin1-only reality mode:&#xa;registered_scan &lt;= odin1/cloud_slam&#xa;lidar_odometry/odom_topic &lt;= odin1/odometry_highfreq&#xa;driver TF: odom-&gt;base_footprint; nav2 base: gimbal_yaw_fake" style="shape=note;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" parent="1" vertex="1">
+                <mxCell id="91" value="Reality default: odin1 is localization + odometry source&#xa;registered_scan &lt;= odin1/cloud_slam&#xa;lidar_odometry/odom_topic &lt;= odin1/odometry_highfreq&#xa;driver TF: odom-&gt;base_footprint; nav2 base: gimbal_yaw_fake" style="shape=note;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" parent="1" vertex="1">
                     <mxGeometry x="430" y="20" width="470" height="80" as="geometry"/>
                 </mxCell>
                 <mxCell id="173" value="odin1/odometry_highfreq&#xa;(odom source for nav2 + fake_vel_transform)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="2" target="16" edge="1">
@@ -203,10 +203,10 @@
                         <mxPoint y="1" as="offset"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="95" value="reality_mid360 baseline: mid360_driver -&gt; point_lio/small_point_lio -&gt; loam_interface -&gt; terrain_analysis_ext -&gt; pointcloud_to_laserscan -&gt; obstacle_scan" style="shape=note;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" parent="1" vertex="1">
+                <mxCell id="95" value="mid360 supplement chain: mid360_driver -&gt; point_lio -&gt; loam_interface -&gt; terrain_analysis_ext(mid360)&#xa;Primary usage: feed local/global costmap for planner + controller blind-spot supplement" style="shape=note;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" parent="1" vertex="1">
                     <mxGeometry x="40" y="1430" width="780" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="96" value="No fusion: additive union only. Keep odin1 scan as primary, add mid360 scan for blind-spot supplement." style="shape=note;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" parent="1" vertex="1">
+                <mxCell id="96" value="No pose fusion: odin1 remains odometry/localization owner.&#xa;mid360 is cloud/scan supplement (costmap + shared obstacle_scan_additive output)." style="shape=note;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" parent="1" vertex="1">
                     <mxGeometry x="860" y="1430" width="700" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="97" value="sensor_scan_generation&#xa;(odin1 only)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" parent="1" vertex="1">
@@ -226,7 +226,7 @@
                 <mxCell id="101" value="Package coverage (full-chain view):&#xa;gxu2026_nav_bringup, gxu2026_sentry_nav(meta), odin_ros_driver, mid360_driver, point_lio/small_point_lio, loam_interface, sensor_scan_generation, terrain_analysis, terrain_analysis_ext, pointcloud_to_laserscan, neupan_nav2_controller, pb_omni_pid_pursuit_controller, pb_nav2_plugins, fake_vel_transform, gimbal_yaw_bridge, livox_ros_driver2(msg), sp_msgs, slam_toolbox, nav2_planner, nav2_smoother, nav2_controller, nav2_bt_navigator, nav2_velocity_smoother, lifecycle_manager_navigation, scan_additive_adapter(new), ign_sim_pointcloud_tool(sim), joint_state_publisher(sim)" style="shape=note;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" parent="1" vertex="1">
                     <mxGeometry x="40" y="1510" width="1820" height="80" as="geometry"/>
                 </mxCell>
-                <mxCell id="102" value="Mid360 chain does NOT use sensor_scan_generation; it is used for controller obstacle supplement only." style="shape=note;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" parent="1" vertex="1">
+                <mxCell id="102" value="Mid360 chain does NOT use sensor_scan_generation.&#xa;It supplies terrain_map_ext_mid360 to costmaps and can publish shared obstacle_scan_additive; neupan requires this as laser input." style="shape=note;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" parent="1" vertex="1">
                     <mxGeometry x="1180" y="860" width="430" height="45" as="geometry"/>
                 </mxCell>
                 <mxCell id="130" value="gxu2026_nav_bringup&#xa;(rm_navigation_reality_launch / bringup)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" parent="1" vertex="1">
@@ -316,11 +316,27 @@
                         <mxPoint as="offset"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="150" value="terrain_map_ext" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="10" target="147" edge="1">
+                <mxCell id="150" value="terrain_map_ext_mid360 (blind-spot supplement)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="10" target="147" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <Array as="points">
                             <mxPoint x="1240" y="840"/>
                             <mxPoint x="1520" y="840"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="177" value="global_costmap input" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="147" target="51" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1340" y="1020"/>
+                            <mxPoint x="270" y="1020"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="178" value="local/global costmap feedback" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#ffffff;verticalLabelPosition=top;verticalAlign=bottom;spacingBottom=2;" parent="1" source="147" target="49" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1320" y="950"/>
+                            <mxPoint x="660" y="950"/>
                         </Array>
                     </mxGeometry>
                 </mxCell>
