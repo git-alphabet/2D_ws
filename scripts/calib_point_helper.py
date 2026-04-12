@@ -36,11 +36,11 @@ from visualization_msgs.msg import Marker, MarkerArray
 # (key, display_name, color_rgba)
 CALIB_POINTS: list[tuple[str, str, tuple[float, float, float, float]]] = [
     ("supply_zone",            "1-补给区 Supply",            (0.0, 0.6, 1.0, 1.0)),
-    ("outpost_buff",           "2-前哨增益 OutpostBuff",     (0.8, 0.0, 0.8, 1.0)),
     # ── 以下暂时隐藏，需要时取消注释即可 ──
+    # ("outpost_buff",           "2-前哨增益 OutpostBuff",     (0.8, 0.0, 0.8, 1.0)),
     # ("base_buff",              "3-基地增益 BaseBuff",        (1.0, 0.8, 0.0, 1.0)),
     # ("fortress_ally",          "4-堡垒区 Fortress",          (1.0, 0.0, 0.0, 1.0)),
-    # ("central_highland",       "5-中央高地 CentralHL",       (1.0, 1.0, 0.0, 1.0)),
+    ("central_highland",       "5-中央高地 CentralHL",       (1.0, 1.0, 0.0, 1.0)),
     # ("ladder_highland",        "6-梯形高地 LadderHL",        (0.0, 1.0, 1.0, 1.0)),
     # ("defend_anchor",          "7-防御锚点 Defend",          (1.0, 0.4, 0.4, 1.0)),
 ]

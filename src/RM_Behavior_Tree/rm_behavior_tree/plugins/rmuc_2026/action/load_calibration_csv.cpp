@@ -1,6 +1,7 @@
 #include "rm_behavior_tree/plugins/rmuc_2026/action/load_calibration_csv.hpp"
 
 #include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -28,7 +29,15 @@ BT::NodeStatus LoadCalibrationCSVAction::tick()
   }
 
   if (loaded_once_) {
-    return BT::NodeStatus::SUCCESS;
+    // 检查文件是否被修改（标定工具可能在运行期间更新 CSV）
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    auto mtime = fs::last_write_time(csv_path, ec);
+    if (ec || mtime == last_mtime_) {
+      return BT::NodeStatus::SUCCESS;
+    }
+    std::cout << "[CALIB_CSV] 检测到标定文件变更，重新加载...\n";
+    // fall through to re-load
   }
 
   std::ifstream file(csv_path);
@@ -147,6 +156,14 @@ BT::NodeStatus LoadCalibrationCSVAction::tick()
 
   std::cout << "[CALIB_CSV] 标定覆盖完成: " << overridden << " 项来自 " << csv_path << "\n";
   loaded_once_ = true;
+
+  // 记录文件修改时间，用于检测后续变更
+  {
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    last_mtime_ = fs::last_write_time(csv_path, ec);
+  }
+
   return BT::NodeStatus::SUCCESS;
 }
 

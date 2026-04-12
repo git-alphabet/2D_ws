@@ -2,6 +2,7 @@
 #define RM_BEHAVIOR_TREE__PLUGINS__RMUC_2026__ACTION__LOAD_CALIBRATION_CSV_HPP_
 
 #include <string>
+#include <filesystem>
 #include "behaviortree_cpp/action_node.h"
 
 namespace rm_behavior_tree
@@ -43,6 +44,7 @@ private:
   bool logged_empty_path_{false};
   bool logged_open_fail_{false};
   bool loaded_once_{false};
+  std::filesystem::file_time_type last_mtime_{};
 };
 
 }  // namespace rm_behavior_tree
