@@ -251,7 +251,7 @@ def generate_launch_description():
     )
 
     def _set_robot_name_from_params(context, *, params_file, namespace, robot_name):
-        default_robot_name = "pb2025_sentry_robot"
+        default_robot_name = "gxu2026_sentry_robot"
         selected_robot_name = (robot_name.perform(context) or "").strip()
 
         if not selected_robot_name:
@@ -391,7 +391,7 @@ def generate_launch_description():
     ld.add_action(declare_sensor_scan_registered_scan_topic_cmd)
     ld.add_action(declare_sensor_scan_lidar_odometry_topic_cmd)
     ld.add_action(declare_odin_map_mode_cmd)
-    ld.add_action(SetLaunchConfiguration("resolved_robot_name", "pb2025_sentry_robot"))
+    ld.add_action(SetLaunchConfiguration("resolved_robot_name", "gxu2026_sentry_robot"))
     ld.add_action(set_robot_name_cmd)
 
     # Add the actions to launch all of the navigation nodes

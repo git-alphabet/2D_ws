@@ -17,7 +17,7 @@ pb_navigation_switches:
     odometry_source: "odin1"
     behavior_tree: "none"
     enable_mid360_costmap_additive: true      # 解耦：mid360补盲供给costmap，不再绑定neupan
-    robot_description_file: "simulation_robot"  # 机器人描述文件基名：对应 gxu2026_robot_description/resource/xmacro/<name>.sdf.xmacro
+    robot_description_file: "gxu2026_sentry_robot"  # 机器人描述文件基名：对应 gxu2026_robot_description/resource/xmacro/<name>.sdf.xmacro
 
     # 地形分析输入源（这里需要整理）：
     # - 默认走 odin1 的 cloud_slam + odometry_highfreq

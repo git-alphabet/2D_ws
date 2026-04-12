@@ -1,0 +1,76 @@
+<mxfile host="65bd71144e">
+    <diagram id="odin1-odom-then-what" name="odin1 odom then what">
+        <mxGraphModel dx="2682" dy="1695" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="10" value="odin_ros_driver&#xa;sendodom=1, sendcloudslam=1&#xa;publish TF: odom-&gt;base_footprint&#xa;topics: /odin1/odometry_highfreq, /odin1/cloud_slam" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="-680" y="290" width="320" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" value="navigation_launch remap/routing&#xa;terrain_* &lt;= odin1 topics&#xa;sensor_scan_* &lt;= odin1 topics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="410" y="-20" width="270" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="12" value="terrain_analysis + terrain_analysis_ext&#xa;input: registered_scan + lidar_odometry&#xa;output: /terrain_map, /terrain_map_ext&#xa;header.frame_id fixed to odom" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="410" y="210" width="300" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="13" value="sensor_scan_generation&#xa;input: registered_scan + lidar_odometry&#xa;output: /sensor_scan, /odometry&#xa;robot_base_frame: gimbal_yaw&#xa;publish_base_tf: false (current reality cfg)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="230" y="750" width="300" height="150" as="geometry"/>
+                </mxCell>
+                <mxCell id="14" value="local/global costmap&#xa;observe: terrain_map + terrain_map_ext&#xa;sensor_frame set in nav2 params" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="880" y="220" width="260" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="15" value="Nav2 controller/planner/bt&#xa;odom source in reality config&#xa;controller output: cmd_vel_nav2_result" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="990" y="395" width="260" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="16" value="fake_vel_transform&#xa;input: odom + local_plan + cmd_vel_nav2_result&#xa;output: /cmd_vel&#xa;base conversion: gimbal_yaw -&gt; gimbal_yaw_fake" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="1440" y="390" width="300" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="17" value="robot base / chassis driver&#xa;consume /cmd_vel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="1870" y="405" width="220" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="18" value="TF dependency&#xa;odom-&gt;base_footprint from odin driver&#xa;base_footprint-&gt;gimbal_yaw from robot_state_publisher/model" style="shape=note;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="1210" y="650" width="360" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="100" value="/odin1/cloud_slam + /odin1/odometry_highfreq" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;" parent="1" source="10" target="12" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="101" value="/odin1/cloud_slam + /odin1/odometry_highfreq" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;" parent="1" source="10" target="13" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="102" value="route defaults / overrides" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=block;endFill=1;fontSize=10;" parent="1" source="11" target="12" edge="1">
+                    <mxGeometry x="0.2824" y="32" relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="545" y="140"/>
+                            <mxPoint x="600" y="140"/>
+                        </Array>
+                        <mxPoint x="-2" y="-10" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="103" value="route defaults / overrides" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=block;endFill=1;fontSize=10;" parent="1" source="11" target="13" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="104" value="terrain_map + terrain_map_ext" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;" parent="1" source="12" target="14" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="105" value="costmap inputs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;" parent="1" source="14" target="15" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="106" value="cmd_vel_nav2_result + local_plan" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;" parent="1" source="15" target="16" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="107" value="/cmd_vel" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;" parent="1" source="16" target="17" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="108" value="/odometry" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;" parent="1" source="13" target="15" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="109" value="TF: odom-&gt;base_footprint" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=block;endFill=1;fontSize=10;" parent="1" source="10" target="18" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="110" value="TF lookups" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=block;endFill=1;fontSize=10;" parent="1" source="18" target="13" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
