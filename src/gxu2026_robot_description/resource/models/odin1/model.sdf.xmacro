@@ -39,7 +39,7 @@
         <visualize>true</visualize>
       </sensor>
 
-      <sensor name="${prefix}odin1_lidar" type="gpu_lidar">
+      <sensor name="${prefix}odin1_lidar" type="lidar">
         <ignition_frame_id>${prefix}odin1</ignition_frame_id>
         <pose>0 0 0.03 0 0 0</pose>
         <always_on>true</always_on>
@@ -76,7 +76,7 @@
   </xmacro_define_block>
 
   <!--Odin1-->
-  <model name='simple_odin1'>
+  <model name='odin1'>
     <pose>0 0 0.2 0 0 0</pose>
     <link name="base_link">
       <inertial>
@@ -89,7 +89,7 @@
         <xmacro_block name="geometry_box" x="0.4" y="0.4" z="0.4" />
       </collision>
     </link>
-    <!--update_rate(10-15),samples(400)-->
-    <xmacro_block name="odin1" prefix="simple_" parent="base_link" pose="0 0 0.2 0 0 0" update_rate="10" samples="1500"/>
+    <!--独立模型默认：不加前缀-->
+    <xmacro_block name="odin1" prefix="" parent="base_link" pose="0 0 0.2 0 0 0" update_rate="10" samples="1500"/>
   </model>
 </sdf>

@@ -6,8 +6,10 @@
 <sdf version="1.7">
 	<!--xmacro_define_block: odin1-->
 	<!--Odin1-->
-	<model name="simple_odin1">
+	<model name="odin1">
 		<pose>0 0 0.2 0 0 0</pose>
+
+		<!-- 基础基座 link -->
 		<link name="base_link">
 			<inertial>
 				<mass>0.4</mass>
@@ -35,14 +37,17 @@
 				</geometry>
 			</collision>
 		</link>
-		<!--update_rate(10-15),samples(400)-->
-		<joint name="simple_odin1_joint" type="fixed">
+
+		<!-- 独立模型默认：不加前缀 -->
+		<joint name="odin1_joint" type="fixed">
 			<pose relative_to="base_link">0 0 0.2 0 0 0</pose>
 			<parent>base_link</parent>
-			<child>simple_odin1</child>
+			<child>odin1</child>
 		</joint>
-		<link name="simple_odin1">
-			<pose relative_to="simple_odin1_joint">0.0 0.0 0.0 0 0 0</pose>
+
+		<!-- 雷达 + IMU 挂载的本体 link -->
+		<link name="odin1">
+			<pose relative_to="odin1_joint">0.0 0.0 0.0 0 0 0</pose>
 			<inertial>
 				<pose>0 0 0.02 0 0 0</pose>
 				<mass>0.005</mass>
@@ -55,6 +60,7 @@
 					<izz>4.000000000000001e-06</izz>
 				</inertia>
 			</inertial>
+
 			<visual name="visual">
 				<pose>0.0 0.0 0.0 0 0 0</pose>
 				<geometry>
@@ -64,6 +70,7 @@
 					</mesh>
 				</geometry>
 			</visual>
+
 			<collision name="collision">
 				<pose>0.0 0.0 0.0 0 0 0</pose>
 				<geometry>
@@ -73,22 +80,26 @@
 					</mesh>
 				</geometry>
 			</collision>
-			<sensor name="simple_odin1_imu" type="imu">
-				<ignition_frame_id>simple_odin1</ignition_frame_id>
+
+			<!-- IMU 传感器 -->
+			<sensor name="odin1_imu" type="imu">
+				<ignition_frame_id>odin1</ignition_frame_id>
 				<always_on>1</always_on>
 				<update_rate>200</update_rate>
 				<visualize>true</visualize>
 			</sensor>
-			<sensor name="simple_odin1_lidar" type="gpu_lidar">
-				<ignition_frame_id>simple_odin1</ignition_frame_id>
+
+			<!-- 3D 激光雷达 -->
+			<sensor name="odin1_lidar" type="lidar">
 				<pose>0 0 0.03 0 0 0</pose>
+				<ignition_frame_id>odin1</ignition_frame_id>
 				<always_on>true</always_on>
 				<visualize>true</visualize>
-				<update_rate>10.0</update_rate>
+				<update_rate>10</update_rate>
 				<ray>
 					<scan>
 						<horizontal>
-							<samples>1500.0</samples>
+							<samples>1500</samples>
 							<resolution>1.0</resolution>
 							<min_angle>-1.0471975512</min_angle>
 							<max_angle>1.0471975512</max_angle>
@@ -111,6 +122,6 @@
 				</noise>
 			</sensor>
 		</link>
+
 	</model>
 </sdf>
-
