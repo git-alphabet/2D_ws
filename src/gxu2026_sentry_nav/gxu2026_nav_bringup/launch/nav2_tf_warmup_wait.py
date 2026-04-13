@@ -43,16 +43,22 @@ def main() -> int:
     timeout_sec = max(0.0, float(args.timeout_sec))
     check_hz = max(1.0, float(args.check_hz))
     poll_interval = 1.0 / check_hz
-    deadline = time.monotonic() + timeout_sec
+    deadline = None if timeout_sec <= 0.0 else (time.monotonic() + timeout_sec)
     ready = False
 
-    node.get_logger().info(
-        "TF warmup start: waiting transform '%s' <- '%s', timeout=%.1fs"
-        % (args.target_frame, args.source_frame, timeout_sec)
-    )
+    if deadline is None:
+        node.get_logger().info(
+            "TF warmup start: waiting transform '%s' <- '%s', timeout=disabled"
+            % (args.target_frame, args.source_frame)
+        )
+    else:
+        node.get_logger().info(
+            "TF warmup start: waiting transform '%s' <- '%s', timeout=%.1fs"
+            % (args.target_frame, args.source_frame, timeout_sec)
+        )
 
     try:
-        while rclpy.ok() and time.monotonic() <= deadline:
+        while rclpy.ok() and (deadline is None or time.monotonic() <= deadline):
             rclpy.spin_once(node, timeout_sec=poll_interval)
             if tf_buffer.can_transform(
                 args.target_frame,

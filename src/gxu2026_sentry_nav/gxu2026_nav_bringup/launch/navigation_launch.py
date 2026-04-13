@@ -234,7 +234,7 @@ def generate_launch_description():
     declare_nav2_tf_warmup_timeout_sec_cmd = DeclareLaunchArgument(
         "nav2_tf_warmup_timeout_sec",
         default_value="25.0",
-        description="TF warmup max wait seconds",
+        description="TF warmup max wait seconds; <=0 disables timeout",
     )
 
     declare_nav2_tf_warmup_check_hz_cmd = DeclareLaunchArgument(
@@ -729,6 +729,9 @@ def generate_launch_description():
         terrain_lidar_odometry_topic,
         sensor_scan_registered_scan_topic,
         sensor_scan_lidar_odometry_topic,
+        nav2_tf_warmup_target_frame,
+        nav2_tf_warmup_source_frame,
+        nav2_tf_warmup_timeout_sec,
     ):
         params_path = Path(params_file.perform(context)).expanduser()
         ns_value = namespace.perform(context)
@@ -748,6 +751,15 @@ def generate_launch_description():
         terrain_lidar_odometry_topic_value = "lidar_odometry"
         sensor_scan_registered_scan_topic_value = "registered_scan"
         sensor_scan_lidar_odometry_topic_value = "lidar_odometry"
+        nav2_tf_warmup_target_frame_value = (
+            nav2_tf_warmup_target_frame.perform(context) or "odom"
+        ).strip() or "odom"
+        nav2_tf_warmup_source_frame_value = (
+            nav2_tf_warmup_source_frame.perform(context) or "gimbal_yaw_fake"
+        ).strip() or "gimbal_yaw_fake"
+        nav2_tf_warmup_timeout_sec_value = (
+            nav2_tf_warmup_timeout_sec.perform(context) or "25.0"
+        ).strip() or "25.0"
 
         slam_raw = slam.perform(context)
         slam_enabled = str(slam_raw).strip().lower() in {"true", "1", "yes", "on"}
@@ -1176,6 +1188,16 @@ def generate_launch_description():
             if enable_scan_additive_value == "true":
                 enable_mid360_costmap_additive_value = "true"
 
+            # odin1 实车导航（非 slam）需要等待 map 链路就绪，
+            # 否则会在重定位成功前提前激活 Nav2，导致持续报 map 帧不存在。
+            if odometry_source == "odin1" and not sim_enabled and not slam_enabled:
+                if nav2_tf_warmup_target_frame_value == "odom":
+                    nav2_tf_warmup_target_frame_value = "map"
+                if nav2_tf_warmup_source_frame_value == "gimbal_yaw_fake":
+                    nav2_tf_warmup_source_frame_value = "gimbal_yaw_fake"
+                if nav2_tf_warmup_timeout_sec_value == "25.0":
+                    nav2_tf_warmup_timeout_sec_value = "0.0"
+
             if override_required:
                 with tempfile.NamedTemporaryFile(
                     mode="w", delete=False, suffix=".yaml"
@@ -1237,6 +1259,18 @@ def generate_launch_description():
                 "sensor_scan_lidar_odometry_topic",
                 sensor_scan_lidar_odometry_topic_value,
             ),
+            SetLaunchConfiguration(
+                "nav2_tf_warmup_target_frame",
+                nav2_tf_warmup_target_frame_value,
+            ),
+            SetLaunchConfiguration(
+                "nav2_tf_warmup_source_frame",
+                nav2_tf_warmup_source_frame_value,
+            ),
+            SetLaunchConfiguration(
+                "nav2_tf_warmup_timeout_sec",
+                nav2_tf_warmup_timeout_sec_value,
+            ),
             # Backward-compatible launch configurations (not used in this file anymore).
             SetLaunchConfiguration(
                 "enable_auto_aim_yaw_bridge",
@@ -1259,6 +1293,9 @@ def generate_launch_description():
             "terrain_lidar_odometry_topic": terrain_lidar_odometry_topic,
             "sensor_scan_registered_scan_topic": sensor_scan_registered_scan_topic,
             "sensor_scan_lidar_odometry_topic": sensor_scan_lidar_odometry_topic,
+            "nav2_tf_warmup_target_frame": nav2_tf_warmup_target_frame,
+            "nav2_tf_warmup_source_frame": nav2_tf_warmup_source_frame,
+            "nav2_tf_warmup_timeout_sec": nav2_tf_warmup_timeout_sec,
         },
     )
 
