@@ -207,6 +207,12 @@ def generate_launch_description():
         description="Full path to point_lio config file for mid360 obstacle-only supplement chain",
     )
 
+    declare_enable_odin1_loam_reframe_cmd = DeclareLaunchArgument(
+        "enable_odin1_loam_reframe",
+        default_value="false",
+        description="Enable odin1->loam odometry reframing to output odom/lidar_frame semantics",
+    )
+
     declare_nav2_tf_warmup_enabled_cmd = DeclareLaunchArgument(
         "nav2_tf_warmup_enabled",
         default_value="True",
@@ -239,8 +245,18 @@ def generate_launch_description():
 
     enable_obstacle_scan = LaunchConfiguration("enable_obstacle_scan")
     enable_mid360_costmap_additive = LaunchConfiguration("enable_mid360_costmap_additive")
+    enable_odin1_loam_reframe = LaunchConfiguration("enable_odin1_loam_reframe")
     enable_scan_additive = LaunchConfiguration("enable_scan_additive")
     obstacle_scan_output_topic = LaunchConfiguration("obstacle_scan_output_topic")
+    enable_loam_interface = PythonExpression(
+        [
+            "('",
+            enable_mid360_costmap_additive,
+            "' == 'true') or ('",
+            enable_odin1_loam_reframe,
+            "' == 'true')",
+        ]
+    )
 
     start_pointcloud_to_laserscan_cmd = Node(
         package="pointcloud_to_laserscan",
@@ -313,8 +329,11 @@ def generate_launch_description():
         arguments=["--ros-args", "--log-level", log_level],
         parameters=[configured_params],
         remappings=[
-            ("registered_scan", "registered_scan"),
-            ("lidar_odometry", "lidar_odometry"),
+            # Mid360 additive branch only follows point_lio outputs.
+            ("registered_scan", "cloud_registered"),
+            ("/registered_scan", "cloud_registered"),
+            ("lidar_odometry", "aft_mapped_to_init"),
+            ("/lidar_odometry", "aft_mapped_to_init"),
             ("terrain_map_ext", "terrain_map_ext_mid360"),
         ],
         condition=IfCondition(enable_mid360_costmap_additive),
@@ -434,7 +453,7 @@ def generate_launch_description():
                 respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=["--ros-args", "--log-level", log_level],
-                condition=IfCondition(enable_mid360_costmap_additive),
+                condition=IfCondition(enable_loam_interface),
             ),
             Node(
                 package="sensor_scan_generation",
@@ -625,9 +644,11 @@ def generate_launch_description():
                 [
                     "('",
                     use_composition,
-                    "' == 'True') and ('",
+                    "' == 'True') and (('",
                     enable_mid360_costmap_additive,
-                    "' == 'true')",
+                    "' == 'true') or ('",
+                    enable_odin1_loam_reframe,
+                    "' == 'true'))",
                 ]
             )
         ),
@@ -719,6 +740,7 @@ def generate_launch_description():
         neupan_frame_name = None
         enable_obstacle_scan_value = "false"
         enable_mid360_costmap_additive_value = "false"
+        enable_odin1_loam_reframe_value = "false"
         enable_scan_additive_value = "false"
         obstacle_scan_output_topic_value = "obstacle_scan"
         enable_gimbal_yaw_bridge_value = False
@@ -855,6 +877,7 @@ def generate_launch_description():
                 return changed
 
             params_normalized = _normalize_costmap_size_types(target_data)
+            switch_override_required = False
 
             switches = _get_ros_params(target_data, "pb_navigation_switches")
             if not switches and target_data is not raw_yaml:
@@ -927,30 +950,82 @@ def generate_launch_description():
                 enable_mid360_costmap_additive_value = (
                     "true" if mid360_costmap_switch else "false"
                 )
-
-            if switches_terrain_registered_scan_topic:
-                terrain_registered_scan_topic_value = switches_terrain_registered_scan_topic
             elif odometry_source == "odin1" and not sim_enabled:
-                terrain_registered_scan_topic_value = "odin1/cloud_slam"
+                # Auto mode in odin1 reality: keep additive chain enabled,
+                # and rely on actual mid360 source availability for outputs.
+                enable_mid360_costmap_additive_value = "true"
 
-            if switches_terrain_lidar_odometry_topic:
-                terrain_lidar_odometry_topic_value = switches_terrain_lidar_odometry_topic
-            elif odometry_source == "odin1" and not sim_enabled:
-                terrain_lidar_odometry_topic_value = "odin1/odometry_highfreq"
-
-            if switches_sensor_scan_registered_scan_topic:
-                sensor_scan_registered_scan_topic_value = (
-                    switches_sensor_scan_registered_scan_topic
+            odin1_loam_reframe_switch = _optional_bool(
+                switches.get("enable_odin1_loam_reframe")
+            )
+            if odin1_loam_reframe_switch is not None:
+                enable_odin1_loam_reframe_value = (
+                    "true" if odin1_loam_reframe_switch else "false"
                 )
-            elif odometry_source == "odin1" and not sim_enabled:
-                sensor_scan_registered_scan_topic_value = "odin1/cloud_slam"
 
-            if switches_sensor_scan_lidar_odometry_topic:
-                sensor_scan_lidar_odometry_topic_value = (
-                    switches_sensor_scan_lidar_odometry_topic
+            odin1_loam_reframe_enabled = (
+                enable_odin1_loam_reframe_value == "true"
+                and odometry_source == "odin1"
+                and not sim_enabled
+            )
+
+            if odin1_loam_reframe_enabled:
+                # odin1 走 loam 输出：点云/里程计都从 loam 统一出口进入下游链路。
+                terrain_registered_scan_topic_value = "registered_scan"
+                terrain_lidar_odometry_topic_value = "lidar_odometry"
+                sensor_scan_registered_scan_topic_value = "registered_scan"
+                sensor_scan_lidar_odometry_topic_value = "lidar_odometry"
+
+                loam_params = target_data.setdefault("loam_interface", {}).setdefault(
+                    "ros__parameters", {}
                 )
-            elif odometry_source == "odin1" and not sim_enabled:
-                sensor_scan_lidar_odometry_topic_value = "odin1/odometry_highfreq"
+                desired_loam_params = {
+                    "state_estimation_topic": "odin1/odometry_highfreq",
+                    "registered_scan_topic": "odin1/cloud_slam",
+                    "odom_frame": "odom",
+                    "base_frame": "base_footprint",
+                    "lidar_frame": "front_odin1",
+                    "input_odom_semantics": "odom_to_base",
+                    "input_cloud_semantics": "odom",
+                    "freeze_base_to_lidar_tf": False,
+                    "tf_lookup_timeout_sec": 0.2,
+                }
+                for key, value in desired_loam_params.items():
+                    if loam_params.get(key) != value:
+                        loam_params[key] = value
+                        switch_override_required = True
+
+                sensor_scan_params = target_data.setdefault(
+                    "sensor_scan_generation", {}
+                ).setdefault("ros__parameters", {})
+                if sensor_scan_params.get("publish_base_tf") is not True:
+                    sensor_scan_params["publish_base_tf"] = True
+                    switch_override_required = True
+
+            if not odin1_loam_reframe_enabled:
+                if switches_terrain_registered_scan_topic:
+                    terrain_registered_scan_topic_value = switches_terrain_registered_scan_topic
+                elif odometry_source == "odin1" and not sim_enabled:
+                    terrain_registered_scan_topic_value = "odin1/cloud_slam"
+
+                if switches_terrain_lidar_odometry_topic:
+                    terrain_lidar_odometry_topic_value = switches_terrain_lidar_odometry_topic
+                elif odometry_source == "odin1" and not sim_enabled:
+                    terrain_lidar_odometry_topic_value = "odin1/odometry_highfreq"
+
+                if switches_sensor_scan_registered_scan_topic:
+                    sensor_scan_registered_scan_topic_value = (
+                        switches_sensor_scan_registered_scan_topic
+                    )
+                elif odometry_source == "odin1" and not sim_enabled:
+                    sensor_scan_registered_scan_topic_value = "odin1/cloud_slam"
+
+                if switches_sensor_scan_lidar_odometry_topic:
+                    sensor_scan_lidar_odometry_topic_value = (
+                        switches_sensor_scan_lidar_odometry_topic
+                    )
+                elif odometry_source == "odin1" and not sim_enabled:
+                    sensor_scan_lidar_odometry_topic_value = "odin1/odometry_highfreq"
 
             # 收敛接口：只暴露一个开关 enable_gimbal_yaw_bridge。
             # 兼容旧配置：enable_auto_aim_yaw_bridge / enable_auto_aim_yaw_sim_pub。
@@ -1072,7 +1147,7 @@ def generate_launch_description():
                 ["behavior_server", "ros__parameters", "robot_base_frame"],
             ]
 
-            override_required = params_normalized
+            override_required = params_normalized or switch_override_required
             if selected_plugin_key and selected_plugin_key in available_profiles:
                 target_profile = available_profiles[selected_plugin_key]
                 plugin_field = (
@@ -1135,6 +1210,10 @@ def generate_launch_description():
             SetLaunchConfiguration(
                 "enable_mid360_costmap_additive",
                 enable_mid360_costmap_additive_value,
+            ),
+            SetLaunchConfiguration(
+                "enable_odin1_loam_reframe",
+                enable_odin1_loam_reframe_value,
             ),
             SetLaunchConfiguration("enable_scan_additive", enable_scan_additive_value),
             SetLaunchConfiguration(
@@ -1233,6 +1312,7 @@ def generate_launch_description():
     ld.add_action(declare_sensor_scan_registered_scan_topic_cmd)
     ld.add_action(declare_sensor_scan_lidar_odometry_topic_cmd)
     ld.add_action(declare_point_lio_config_file_cmd)
+    ld.add_action(declare_enable_odin1_loam_reframe_cmd)
     ld.add_action(declare_nav2_tf_warmup_enabled_cmd)
     ld.add_action(declare_nav2_tf_warmup_target_frame_cmd)
     ld.add_action(declare_nav2_tf_warmup_source_frame_cmd)
@@ -1242,6 +1322,7 @@ def generate_launch_description():
     ld.add_action(SetLaunchConfiguration("processed_params_file", params_file))
     ld.add_action(SetLaunchConfiguration("enable_obstacle_scan", "false"))
     ld.add_action(SetLaunchConfiguration("enable_mid360_costmap_additive", "false"))
+    ld.add_action(SetLaunchConfiguration("enable_odin1_loam_reframe", "false"))
     ld.add_action(SetLaunchConfiguration("enable_scan_additive", "false"))
     ld.add_action(SetLaunchConfiguration("obstacle_scan_output_topic", "obstacle_scan"))
     ld.add_action(SetLaunchConfiguration("terrain_registered_scan_topic", ""))

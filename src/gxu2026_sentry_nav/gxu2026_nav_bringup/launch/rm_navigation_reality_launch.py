@@ -64,6 +64,7 @@ def generate_launch_description():
     sensor_scan_registered_scan_topic = LaunchConfiguration("sensor_scan_registered_scan_topic")
     sensor_scan_lidar_odometry_topic = LaunchConfiguration("sensor_scan_lidar_odometry_topic")
     robot_name = LaunchConfiguration("robot_name")
+    resolved_use_mid360_driver = LaunchConfiguration("resolved_use_mid360_driver")
 
     # Declare the launch arguments
     declare_namespace_cmd = DeclareLaunchArgument(
@@ -175,8 +176,11 @@ def generate_launch_description():
 
     declare_use_mid360_driver_cmd = DeclareLaunchArgument(
         "use_mid360_driver",
-        default_value="True",
-        description="Whether to start mid360_driver in reality entry launch",
+        default_value="auto",
+        description=(
+            "Whether to start mid360_driver in reality entry launch. "
+            "Set true/false to force, or auto for source-driven mode"
+        ),
     )
 
     declare_point_lio_config_file_cmd = DeclareLaunchArgument(
@@ -250,6 +254,19 @@ def generate_launch_description():
         allow_substs=True,
     )
 
+    def _optional_bool(raw_value):
+        if isinstance(raw_value, bool):
+            return raw_value
+        if isinstance(raw_value, (int, float)):
+            return bool(raw_value)
+        if isinstance(raw_value, str):
+            normalized = raw_value.strip().lower()
+            if normalized in {"true", "1", "yes", "on"}:
+                return True
+            if normalized in {"false", "0", "no", "off"}:
+                return False
+        return None
+
     def _set_robot_name_from_params(context, *, params_file, namespace, robot_name):
         default_robot_name = "gxu2026_sentry_robot"
         selected_robot_name = (robot_name.perform(context) or "").strip()
@@ -302,6 +319,69 @@ def generate_launch_description():
         },
     )
 
+    def _set_mid360_driver_from_params(
+        context, *, params_file, namespace, use_mid360_driver
+    ):
+        use_mid360_driver_value = (use_mid360_driver.perform(context) or "").strip()
+        selected = _optional_bool(use_mid360_driver_value)
+
+        if selected is None and use_mid360_driver_value.lower() not in {"", "auto", "default"}:
+            selected = False
+
+        if selected is None:
+            params_path = Path(params_file.perform(context)).expanduser()
+            namespace_value = (namespace.perform(context) or "").strip().lstrip("/")
+
+            if params_path.is_file():
+                try:
+                    raw_yaml = yaml.safe_load(params_path.read_text()) or {}
+                except Exception:
+                    raw_yaml = {}
+
+                target_data = raw_yaml
+                if namespace_value:
+                    namespaced_data = raw_yaml.get(namespace_value)
+                    if isinstance(namespaced_data, dict):
+                        target_data = namespaced_data
+
+                def _get_ros_params(container, key):
+                    entry = container.get(key) if isinstance(container, dict) else None
+                    if isinstance(entry, dict):
+                        params = entry.get("ros__parameters")
+                        if isinstance(params, dict):
+                            return params
+                    return {}
+
+                switches = _get_ros_params(target_data, "pb_navigation_switches")
+                if not switches and target_data is not raw_yaml:
+                    switches = _get_ros_params(raw_yaml, "pb_navigation_switches")
+
+                selected = _optional_bool(switches.get("enable_mid360_costmap_additive"))
+
+                if selected is None:
+                    odometry_source = switches.get("odometry_source")
+                    if isinstance(odometry_source, str) and odometry_source.strip().lower() == "odin1":
+                        selected = True
+
+        if selected is None:
+            selected = True
+
+        return [
+            SetLaunchConfiguration(
+                "resolved_use_mid360_driver",
+                "True" if selected else "False",
+            )
+        ]
+
+    set_mid360_driver_cmd = OpaqueFunction(
+        function=_set_mid360_driver_from_params,
+        kwargs={
+            "params_file": params_file,
+            "namespace": namespace,
+            "use_mid360_driver": use_mid360_driver,
+        },
+    )
+
     start_robot_state_publisher_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(launch_dir, "robot_state_publisher_launch.py")
@@ -331,7 +411,7 @@ def generate_launch_description():
         output="screen",
         namespace=namespace,
         parameters=[mid360_config_file, configured_params],
-        condition=IfCondition(use_mid360_driver),
+        condition=IfCondition(resolved_use_mid360_driver),
     )
 
     rviz_cmd = IncludeLaunchDescription(
@@ -392,7 +472,9 @@ def generate_launch_description():
     ld.add_action(declare_sensor_scan_lidar_odometry_topic_cmd)
     ld.add_action(declare_odin_map_mode_cmd)
     ld.add_action(SetLaunchConfiguration("resolved_robot_name", "gxu2026_sentry_robot"))
+    ld.add_action(SetLaunchConfiguration("resolved_use_mid360_driver", "False"))
     ld.add_action(set_robot_name_cmd)
+    ld.add_action(set_mid360_driver_cmd)
 
     # Add the actions to launch all of the navigation nodes
     ld.add_action(start_robot_state_publisher_cmd)
