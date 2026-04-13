@@ -31,7 +31,9 @@ register_keys:
 
 
   
-  send_odom_baselink_tf: 1 # 0: 关闭; 1: 开启
+  # 在 odin1_loam_reframe 模式下，建议关闭这里的 TF 发布，
+  # 由 sensor_scan_generation 统一发布 odom->base_footprint，避免重复 TF 抖动。
+  send_odom_baselink_tf: 0 # 0: 关闭; 1: 开启
   # 里程计和 TF 的 child_frame_id。
   # 与 reality_mid360 框架保持一致：发布 odom→base_footprint，
   # gimbal_yaw 通过 URDF 关节链获取，避免同一 child 帧双父节点冲突。

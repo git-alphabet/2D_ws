@@ -920,15 +920,24 @@ void publishRgb(capture_Image_List_t *stream) {
         
         for(uint32_t i = 0; i < points; i++) {
             int32_t* ptr = xyz_data + 7*i;
+
+            const float raw_x = static_cast<float>(ptr[0]) / 10000.0f;
+            const float raw_y = static_cast<float>(ptr[1]) / 10000.0f;
+            const float raw_z = static_cast<float>(ptr[2]) / 10000.0f;
+
+            // Align slam cloud with vehicle frame convention (x forward, y left, z up).
+            const float corrected_x = -raw_y;
+            const float corrected_y = raw_x;
+            const float corrected_z = raw_z;
             
 #ifdef ROS2
-                *iter_x = static_cast<float>(ptr[0]) / 10000.0f; ++iter_x;
-                *iter_y = static_cast<float>(ptr[1]) / 10000.0f; ++iter_y;
-                *iter_z = static_cast<float>(ptr[2]) / 10000.0f; ++iter_z;
+                *iter_x = corrected_x; ++iter_x;
+                *iter_y = corrected_y; ++iter_y;
+                *iter_z = corrected_z; ++iter_z;
 #else
-                *iter_x = (1.0 * ptr[0]) / 1e4; ++iter_x;
-                *iter_y = (1.0 * ptr[1]) / 1e4; ++iter_y;
-                *iter_z = (1.0 * ptr[2]) / 1e4; ++iter_z;
+                *iter_x = corrected_x; ++iter_x;
+                *iter_y = corrected_y; ++iter_y;
+                *iter_z = corrected_z; ++iter_z;
 #endif
             
             uint8_t r = ptr[3] & 0xff;
@@ -965,9 +974,12 @@ void publishRgb(capture_Image_List_t *stream) {
 
             for (uint32_t i = 0; i < points; ++i) {
                 int32_t* ptr = xyz_data + 7 * i;
-                float fx = static_cast<float>(ptr[0]) / 10000.0f;
-                float fy = static_cast<float>(ptr[1]) / 10000.0f;
-                float fz = static_cast<float>(ptr[2]) / 10000.0f;
+                const float raw_x = static_cast<float>(ptr[0]) / 10000.0f;
+                const float raw_y = static_cast<float>(ptr[1]) / 10000.0f;
+                const float raw_z = static_cast<float>(ptr[2]) / 10000.0f;
+                float fx = -raw_y;
+                float fy = raw_x;
+                float fz = raw_z;
                 uint8_t r = static_cast<uint8_t>(ptr[3] & 0xff);
                 uint8_t g = static_cast<uint8_t>(ptr[4] & 0xff);
                 uint8_t b = static_cast<uint8_t>(ptr[5] & 0xff);

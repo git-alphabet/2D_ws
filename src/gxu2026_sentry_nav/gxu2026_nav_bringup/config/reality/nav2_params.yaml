@@ -16,17 +16,20 @@ pb_navigation_switches:
     controller_plugin: "pb_omni_pid_pursuit_controller"
     odometry_source: "odin1"
     behavior_tree: "none"
-    enable_mid360_costmap_additive: true      # 解耦：mid360补盲供给costmap，不再绑定neupan
+    enable_mid360_costmap_additive: "auto"   # auto: odin1 实车默认启用 mid360 分支，但无 mid360 数据时不会产生有效输出
+    enable_odin1_loam_reframe: true           # 开启后由 loam_interface 把 odin1 里程计重组为 odom/lidar_frame 语义输出（lidar_odometry）
     robot_description_file: "gxu2026_sentry_robot"  # 机器人描述文件基名：对应 gxu2026_robot_description/resource/xmacro/<name>.sdf.xmacro
 
     # 地形分析输入源（这里需要整理）：
     # - 默认走 odin1 的 cloud_slam + odometry_highfreq
+    # - enable_odin1_loam_reframe=true 时，odometry 会被 launch 自动切到 lidar_odometry
     # - 若需改源，可在这里改，或 launch 入参覆盖
     terrain_registered_scan_topic: "odin1/cloud_slam"
     terrain_lidar_odometry_topic: "odin1/odometry_highfreq"
 
     # sensor_scan_generation 输入源（可选参数）：
-    # odin1 主链不经过 loam，直接用 odin1 输出
+    # - 默认用 odin1 输出
+    # - enable_odin1_loam_reframe=true 时，odometry 会被 launch 自动切到 lidar_odometry
     sensor_scan_registered_scan_topic: "odin1/cloud_slam"
     sensor_scan_lidar_odometry_topic: "odin1/odometry_highfreq"
 
@@ -129,23 +132,36 @@ rm_behavior_tree:
 loam_interface:
   ros__parameters:
     use_sim_time: False
-    # Mid360 接入（loam 仅处理 mid360 链路，避免与 odin1 cloud_slam 语义重叠）
+    # 默认用于 mid360；当 enable_odin1_loam_reframe=true 时，会在 launch 中自动改写为 odin1 输入并输出 lidar_odometry
     state_estimation_topic: "aft_mapped_to_init"
     registered_scan_topic: "cloud_registered"
     odom_frame: "odom"
     base_frame: "base_footprint"
     lidar_frame: "front_mid360"
+    # 输入语义：
+    # - lidar_odom_to_lidar: 兼容 point_lio 旧链路
+    # - odom_to_base: odin1 输入是 odom->base_footprint
+    input_odom_semantics: "lidar_odom_to_lidar"
+    # 点云输入语义：
+    # - lidar_odom: 输入点云在 lidar_odom 语义，需要变换到 odom
+    # - odom: 输入点云已是 odom 语义（如 odin1/cloud_slam）
+    input_cloud_semantics: "lidar_odom"
+    # true: 只缓存一次 base->lidar（适合固定安装）
+    # false: 每帧按时间戳更新 base->lidar（适合 front_odin1 挂在 gimbal_yaw 的动态外参）
+    freeze_base_to_lidar_tf: true
+    tf_lookup_timeout_sec: 0.2
 
 # 从点云生成 scan（给 slam_toolbox / obstacle_scan 等使用）
 sensor_scan_generation:
   ros__parameters:
     use_sim_time: False
-    # odin1 主链直连，不经过 loam
+    # 点云默认仍走 odin1/cloud_slam；若开启 odin1 loam 重组，点云/里程计输入都由 launch 自动切到 loam 输出
     lidar_frame: "front_odin1"
     base_frame: "base_footprint"
     robot_base_frame: "gimbal_yaw"
-    # 避免与 odin 驱动重复发布 odom->base_footprint，导致 TF 抖动
-    publish_base_tf: false
+    # 当前配置由 sensor_scan_generation 统一发布 odom->base_footprint。
+    # 注意：请在 odin_ros_driver/config/control_command.yaml 里将 send_odom_baselink_tf 设为 0，避免重复 TF。
+    publish_base_tf: true
 
     # TF 调试：打印 TF lookup 是否成功，以及推导出来的 yaw(chassis->gimbal_yaw)
     debug_tf: false
@@ -444,7 +460,6 @@ local_costmap:
         terrain_map:
           data_type: PointCloud2
           topic: terrain_map
-          sensor_frame: front_odin1
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 5.0
@@ -452,7 +467,6 @@ local_costmap:
         terrain_map_ext_mid360:
           data_type: PointCloud2
           topic: terrain_map_ext_mid360
-          sensor_frame: front_mid360
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 5.0
@@ -503,7 +517,6 @@ global_costmap:
         terrain_map_ext:
           data_type: PointCloud2
           topic: terrain_map_ext
-          sensor_frame: front_odin1
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 10.0
@@ -511,7 +524,6 @@ global_costmap:
         terrain_map_ext_mid360:
           data_type: PointCloud2
           topic: terrain_map_ext_mid360
-          sensor_frame: front_mid360
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 10.0
