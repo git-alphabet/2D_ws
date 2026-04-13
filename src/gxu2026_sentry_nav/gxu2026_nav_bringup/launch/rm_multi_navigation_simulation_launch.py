@@ -14,6 +14,7 @@
 
 
 import os
+from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -22,6 +23,8 @@ from launch.actions import (
     GroupAction,
     IncludeLaunchDescription,
     LogInfo,
+    OpaqueFunction,
+    SetLaunchConfiguration,
 )
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -43,9 +46,6 @@ def generate_launch_description():
     bringup_dir = get_package_share_directory("gxu2026_nav_bringup")
     launch_dir = os.path.join(bringup_dir, "launch")
 
-    # Simulation settings
-    world = LaunchConfiguration("world")
-
     # On this example all robots are launched with the same settings
     map_yaml_file = LaunchConfiguration("map")
     params_file = LaunchConfiguration("params_file")
@@ -58,17 +58,71 @@ def generate_launch_description():
     declare_world_cmd = DeclareLaunchArgument(
         "world",
         default_value="rmul_2024",
-        description="Select world: 'rmul_2024' or 'rmuc_2024' (map file share the same name as the this parameter)",
+        description="Backward-compatible no-op argument",
     )
 
     declare_map_yaml_cmd = DeclareLaunchArgument(
         "map",
-        default_value=[
-            TextSubstitution(text=os.path.join(bringup_dir, "map", "simulation", "")),
-            world,
-            TextSubstitution(text=".yaml"),
-        ],
-        description="Full path to map file to load",
+        default_value="",
+        description=(
+            "Full path to map file to load. Empty means auto-detect exactly one yaml "
+            "under map/simulation"
+        ),
+    )
+
+    def _resolve_single_map_file(context, *, map_arg, map_dir):
+        map_override = (map_arg.perform(context) or "").strip()
+        if map_override:
+            map_path = Path(map_override).expanduser()
+            if not map_path.is_file():
+                raise RuntimeError(
+                    f"Map file does not exist: {map_path}. Navigation launch aborted."
+                )
+            return [
+                SetLaunchConfiguration("map", str(map_path)),
+                LogInfo(
+                    msg=[
+                        "Using map yaml: ",
+                        map_path.name,
+                        " (",
+                        str(map_path),
+                        ")",
+                    ]
+                ),
+            ]
+
+        map_candidates = sorted(
+            path for path in Path(map_dir).expanduser().glob("*.yaml") if path.is_file()
+        )
+        if not map_candidates:
+            raise RuntimeError(
+                f"No map yaml found in {map_dir}. Navigation launch aborted."
+            )
+        if len(map_candidates) > 1:
+            candidates = ", ".join(path.name for path in map_candidates)
+            raise RuntimeError(
+                f"Expected exactly one map yaml in {map_dir}, found {len(map_candidates)}: {candidates}. Navigation launch aborted."
+            )
+        selected_map = map_candidates[0]
+        return [
+            SetLaunchConfiguration("map", str(selected_map)),
+            LogInfo(
+                msg=[
+                    "Using map yaml: ",
+                    selected_map.name,
+                    " (",
+                    str(selected_map),
+                    ")",
+                ]
+            ),
+        ]
+
+    resolve_map_cmd = OpaqueFunction(
+        function=_resolve_single_map_file,
+        kwargs={
+            "map_arg": map_yaml_file,
+            "map_dir": os.path.join(bringup_dir, "map", "simulation"),
+        },
     )
     declare_params_file_cmd = DeclareLaunchArgument(
         "params_file",
@@ -158,6 +212,7 @@ def generate_launch_description():
     ld.add_action(declare_use_rviz_cmd)
     ld.add_action(declare_autostart_cmd)
     ld.add_action(declare_rviz_config_file_cmd)
+    ld.add_action(resolve_map_cmd)
 
     # Add the actions to start gazebo, robots and simulations
     ld.add_action(LogInfo(msg=["number_of_robots=", str(len(robots_list))]))

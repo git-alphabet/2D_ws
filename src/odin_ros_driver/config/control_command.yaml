@@ -90,7 +90,7 @@ register_keys:
 
   # 重定位模式必填：预建地图 .bin 文件的绝对路径（Mode 2 不填则直接报错退出）
   # 建议起始位置在建图轨迹 1m 以内、朝向偏差 ±10° 以内以保证重定位成功率
-  relocalization_map_abs_path: "/ws/src/odin_ros_driver/map/20260307_112954/map_20260307_113119.bin"
+  relocalization_map_abs_path: "/ws/src/odin_ros_driver/map/20260413_212351/map_20260413_212432.bin"
 
   # 建图结果保存路径（留空则自动保存到 {ws}/src/odin_ros_driver/map/{driver_start_time}/）
   # 保存命令：cd src/odin_ros_driver && ./set_param.sh save_map 1

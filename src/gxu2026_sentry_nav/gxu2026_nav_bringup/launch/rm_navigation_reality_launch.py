@@ -23,6 +23,7 @@ from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
+    LogInfo,
     OpaqueFunction,
     SetLaunchConfiguration,
 )
@@ -87,12 +88,11 @@ def generate_launch_description():
 
     declare_map_yaml_cmd = DeclareLaunchArgument(
         "map",
-        default_value=[
-            TextSubstitution(text=os.path.join(bringup_dir, "map", "reality", "")),
-            world,
-            TextSubstitution(text=".yaml"),
-        ],
-        description="Full path to map file to load",
+        default_value="",
+        description=(
+            "Full path to map file to load. Empty means auto-detect exactly one yaml "
+            "under map/reality"
+        ),
     )
 
     declare_prior_pcd_file_cmd = DeclareLaunchArgument(
@@ -252,6 +252,66 @@ def generate_launch_description():
             convert_types=True,
         ),
         allow_substs=True,
+    )
+
+    def _resolve_single_map_file(context, *, map_arg, slam_arg, map_dir):
+        slam_value = (slam_arg.perform(context) or "").strip().lower()
+        if slam_value in {"true", "1", "yes", "on"}:
+            return []
+
+        map_override = (map_arg.perform(context) or "").strip()
+        if map_override:
+            map_path = Path(map_override).expanduser()
+            if not map_path.is_file():
+                raise RuntimeError(
+                    f"Map file does not exist: {map_path}. Navigation launch aborted."
+                )
+            return [
+                SetLaunchConfiguration("map", str(map_path)),
+                LogInfo(
+                    msg=[
+                        "Using map yaml: ",
+                        map_path.name,
+                        " (",
+                        str(map_path),
+                        ")",
+                    ]
+                ),
+            ]
+
+        map_candidates = sorted(
+            path for path in Path(map_dir).expanduser().glob("*.yaml") if path.is_file()
+        )
+        if not map_candidates:
+            raise RuntimeError(
+                f"No map yaml found in {map_dir}. Navigation launch aborted."
+            )
+        if len(map_candidates) > 1:
+            candidates = ", ".join(path.name for path in map_candidates)
+            raise RuntimeError(
+                f"Expected exactly one map yaml in {map_dir}, found {len(map_candidates)}: {candidates}. Navigation launch aborted."
+            )
+        selected_map = map_candidates[0]
+        return [
+            SetLaunchConfiguration("map", str(selected_map)),
+            LogInfo(
+                msg=[
+                    "Using map yaml: ",
+                    selected_map.name,
+                    " (",
+                    str(selected_map),
+                    ")",
+                ]
+            ),
+        ]
+
+    resolve_map_cmd = OpaqueFunction(
+        function=_resolve_single_map_file,
+        kwargs={
+            "map_arg": map_yaml_file,
+            "slam_arg": slam,
+            "map_dir": os.path.join(bringup_dir, "map", "reality"),
+        },
     )
 
     def _optional_bool(raw_value):
@@ -471,6 +531,7 @@ def generate_launch_description():
     ld.add_action(declare_sensor_scan_registered_scan_topic_cmd)
     ld.add_action(declare_sensor_scan_lidar_odometry_topic_cmd)
     ld.add_action(declare_odin_map_mode_cmd)
+    ld.add_action(resolve_map_cmd)
     ld.add_action(SetLaunchConfiguration("resolved_robot_name", "gxu2026_sentry_robot"))
     ld.add_action(SetLaunchConfiguration("resolved_use_mid360_driver", "False"))
     ld.add_action(set_robot_name_cmd)
