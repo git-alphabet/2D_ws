@@ -112,6 +112,14 @@ PYTHON_BIN=python3 ./scripts/setup_neupan_env.sh
 ./scripts/start_navigation.sh
 ```
 
+### 4.3.1 实车：重定位导航（Nav2 侧开启 SLAM Toolbox 建图）
+
+```bash
+./scripts/start_navigation_relocalization.sh
+```
+
+说明：该入口默认使用 `odin_map_mode:=2` 并设置 `slam:=True`，用于 Odin1 重定位场景下由 Nav2 侧同时进行建图。
+
 ### 4.4 实车：建图（SLAM）
 
 ```bash
