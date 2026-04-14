@@ -118,8 +118,8 @@ class RmucTestPublisher(Node):
         msg.team_coins = 800
         msg.base_hp_cur = 5000
         msg.base_hp_max = 5000
-        msg.outpost_alive = True
-        msg.is_detect_enemy = False
+        msg.outpost_alive = not self.args.outpost_dead
+        msg.is_detect_enemy = self.args.detect_enemy
         self.pub_robot.publish(msg)
 
     def _pub_sentry_decision_status(self):
@@ -217,7 +217,7 @@ class RmucTestPublisher(Node):
     def _pub_team_hp(self):
         msg = RMUCTeamHP()
         msg.header = self._header()
-        msg.outpost_hp = 1500
+        msg.outpost_hp = 0 if self.args.outpost_dead else 1500
         msg.base_hp = 5000
         self.pub_team_hp.publish(msg)
 
@@ -230,6 +230,8 @@ def main():
     parser.add_argument("--hp", type=int, default=400, help="当前血量")
     parser.add_argument("--ammo", type=int, default=300, help="允许发弹量")
     parser.add_argument("--dead", action="store_true", help="是否战亡")
+    parser.add_argument("--outpost-dead", action="store_true", help="前哨站被毁")
+    parser.add_argument("--detect-enemy", action="store_true", help="检测到敌人")
     args = parser.parse_args()
 
     rclpy.init()

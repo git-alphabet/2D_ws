@@ -92,8 +92,12 @@ BT::NodeStatus SendGoalAction::tick()
 
   auto now = node_->get_clock()->now();
 
-  // ── 去重：目标不变则跳过发布 ──
-  if (has_last_ && isSameGoal_(goal, last_goal_)) {
+  // ── 全局去重：只要和全局最后一次发布的目标相同就跳过 ──
+  // 所有 SendGoal 实例共享此记录，A→B→A 时第二个 A 会正常发布
+  static geometry_msgs::msg::PoseStamped s_last_global_goal;
+  static bool s_has_global = false;
+
+  if (s_has_global && isSameGoal_(goal, s_last_global_goal)) {
     return BT::NodeStatus::SUCCESS;
   }
 
@@ -118,6 +122,8 @@ BT::NodeStatus SendGoalAction::tick()
     name().c_str(),
     goal.pose.position.x, goal.pose.position.y);
 
+  s_last_global_goal = goal;
+  s_has_global = true;
   last_goal_ = goal;
   last_pub_time_ = now;
   has_last_ = true;
