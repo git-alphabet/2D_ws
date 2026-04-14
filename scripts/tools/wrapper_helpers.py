@@ -31,6 +31,10 @@ PGID_FILES: dict[str, Path] = {
 }
 
 
+def wrapper_log_tag() -> str:
+    return os.environ.get("WRAPPER_ENTRY_NAME", "").strip() or "wrapper_main"
+
+
 def beijing_timestamp() -> str:
     return datetime.now(BEIJING_TZ).strftime("%Y%m%d_%H%M%S")
 
@@ -222,7 +226,7 @@ def current_branch(ws_dir: Path) -> str:
             return override
         if git_branch and override != git_branch:
             print(
-                f"[launch_wrapper.py] Ignore stale BUILD_PROFILE='{override}', use git branch '{git_branch}'.",
+                f"[{wrapper_log_tag()}] Ignore stale BUILD_PROFILE='{override}', use git branch '{git_branch}'.",
                 file=sys.stderr,
             )
         if git_branch:
@@ -251,7 +255,7 @@ def resolve_overlay_setup(ws_dir: Path) -> Path:
         if candidate.exists() and (allow_overlay_override or _matches_branch_profile(candidate)):
             return candidate
         print(
-            f"[launch_wrapper.py] Ignore OVERLAY_SETUP='{env_overlay}' (branch={branch_safe}).",
+            f"[{wrapper_log_tag()}] Ignore OVERLAY_SETUP='{env_overlay}' (branch={branch_safe}).",
             file=sys.stderr,
         )
 
@@ -261,7 +265,7 @@ def resolve_overlay_setup(ws_dir: Path) -> Path:
         if candidate.exists() and (allow_overlay_override or _matches_branch_profile(candidate)):
             return candidate
         print(
-            f"[launch_wrapper.py] Ignore COLCON_INSTALL_BASE='{colcon_install_base}' (branch={branch_safe}).",
+            f"[{wrapper_log_tag()}] Ignore COLCON_INSTALL_BASE='{colcon_install_base}' (branch={branch_safe}).",
             file=sys.stderr,
         )
 

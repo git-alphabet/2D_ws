@@ -18,7 +18,6 @@ from tools.wrapper_helpers import (
     build_base_env,
     current_branch,
     run_shell,
-    slugify,
     pid_gone,
 )
 from tools.wrapper_models import BackgroundGroup, CommonConfig
@@ -43,17 +42,17 @@ def _beijing_timestamp() -> str:
     return datetime.now(BEIJING_TZ).strftime("%Y%m%d_%H%M%S")
 
 
-def _auto_map_prefix(ws_dir: Path, mode: str, branch_safe: str, timestamp: str | None = None) -> Path:
-    maps_dir = ws_dir / AUTO_MAP_DIR_NAME / branch_safe / mode
+def _auto_map_prefix(ws_dir: Path, branch_safe: str, script_name: str, timestamp: str | None = None) -> Path:
+    maps_dir = ws_dir / AUTO_MAP_DIR_NAME / branch_safe
     maps_dir.mkdir(parents=True, exist_ok=True)
     ts = timestamp or _beijing_timestamp()
-    return maps_dir / f"map_{ts}"
+    return maps_dir / f"{Path(script_name).stem}_{ts}"
 
 
 def save_map_now(cfg: CommonConfig, mode: str, timestamp: str, namespace: str | None = None) -> None:
     branch = current_branch(cfg.ws_dir)
     branch_safe = re.sub(r"[^A-Za-z0-9._-]", "_", branch)
-    map_prefix = _auto_map_prefix(cfg.ws_dir, mode, branch_safe, timestamp)
+    map_prefix = _auto_map_prefix(cfg.ws_dir, branch_safe, cfg.script_name, timestamp)
     base_env = build_base_env(cfg)
     cmd = f"{base_env}; ros2 run nav2_map_server map_saver_cli -f {shlex.quote(str(map_prefix))}"
     if namespace:
@@ -170,11 +169,11 @@ def start_watchdog(cfg: CommonConfig, topics: list[tuple[str, float]], bg: Backg
     base_env = build_base_env(cfg)
     branch = current_branch(cfg.ws_dir)
     branch_safe = re.sub(r"[^A-Za-z0-9._-]", "_", branch)
-    log_dir = cfg.ws_dir / "launch_logs" / branch_safe / cfg.log_type
+    log_dir = cfg.ws_dir / "launch_logs" / branch_safe
     log_dir.mkdir(parents=True, exist_ok=True)
     bj_tz = timezone(timedelta(hours=8))
-    ts = datetime.now(bj_tz).strftime("%Y%m%d_%H%M%S")
-    log_file = log_dir / f"{Path(cfg.script_name).stem}_watchdog_{ts}.log"
+    ts = datetime.now(bj_tz).strftime("%Y%m%d_%H%M%S_%f")
+    log_file = log_dir / f"{Path(cfg.script_name).stem}_{ts}.log"
 
     py_script = r"""
 import subprocess, time, sys
@@ -230,11 +229,10 @@ def launch_in_terminal(
 
     branch = current_branch(cfg.ws_dir)
     branch_safe = re.sub(r"[^A-Za-z0-9._-]", "_", branch)
-    log_dir = cfg.ws_dir / "launch_logs" / branch_safe / cfg.log_type
+    log_dir = cfg.ws_dir / "launch_logs" / branch_safe
     bj_tz = timezone(timedelta(hours=8))
-    ts = datetime.now(bj_tz).strftime("%Y%m%d_%H%M%S")
-    slug = slugify(title)
-    log_file_name = f"{Path(cfg.script_name).stem}_{slug}_{ts}.log"
+    ts = datetime.now(bj_tz).strftime("%Y%m%d_%H%M%S_%f")
+    log_file_name = f"{Path(cfg.script_name).stem}_{ts}.log"
 
     if background:
         log_dir.mkdir(parents=True, exist_ok=True)

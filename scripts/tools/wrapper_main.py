@@ -38,10 +38,10 @@ from tools.wrapper_runtime import (
 
 def main(argv: list[str]) -> int:
     if len(argv) < 2:
-        print("usage: launch_wrapper.py <mode> [extra args...]", file=sys.stderr)
+        print("usage: python3 -m tools.wrapper_main <mode> [extra args...]", file=sys.stderr)
         return 1
 
-    script_name = Path(argv[0]).name
+    script_name = os.environ.get("WRAPPER_ENTRY_NAME", "").strip() or Path(argv[0]).name
     mode = argv[1]
     extra_args = argv[2:]
 
@@ -239,3 +239,13 @@ def main(argv: list[str]) -> int:
         pre_shutdown_hook=pre_shutdown_hook,
     )
     return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main(sys.argv))
+    except KeyboardInterrupt:
+        raise SystemExit(130)
+    except Exception as exc:
+        print(f"[{Path(sys.argv[0]).name}] ERROR: {exc}", file=sys.stderr)
+        raise SystemExit(1)

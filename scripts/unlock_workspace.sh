@@ -34,8 +34,8 @@ echo "========================================="
 [ -L "$WS_DIR/maps/reality" ] && rm -f "$WS_DIR/maps/reality"
 [ -L "$WS_DIR/launch_logs" ] && rm -f "$WS_DIR/launch_logs"
 
-mkdir -p "$WS_DIR/maps/$BRANCH_SAFE/sim" "$WS_DIR/maps/$BRANCH_SAFE/reality"
-mkdir -p "$WS_DIR/launch_logs/$BRANCH_SAFE/nav" "$WS_DIR/launch_logs/$BRANCH_SAFE/slam"
+mkdir -p "$WS_DIR/maps/$BRANCH_SAFE"
+mkdir -p "$WS_DIR/launch_logs/$BRANCH_SAFE"
 
 # Safety check 2: Only touch entries owned by root in workspace.
 # Use non-dereference mode for symlinks to avoid broken-link chown failures.

@@ -228,17 +228,18 @@ def generate_launch_description():
     )
 
     # Mode0: 需要我们发 static identity map->odom TF。
-    # 实车建图(slam=True)阶段同样需要兜底发布 static map->odom，
-    # 避免设备在 mode1 初始化阶段尚未提供 map TF 时，Nav2/SLAM 因 map 帧缺失无法正常工作。
-    # 导航阶段(slam=False)仍按 odin_map_mode 决定，避免与重定位/动态 map->odom 冲突。
+    # slam=True 时在 mode1 下仍保留静态兜底，避免设备初始化阶段 map TF 迟到。
+    # mode2(重定位)由 odin 成功匹配后发布 map->odom，禁止静态 map->odom 避免重复发布冲突。
     from launch.substitutions import PythonExpression
     publish_static_map_tf = PythonExpression(
         [
             "'True' if ('",
             LaunchConfiguration("odin_map_mode"),
-            "' == '0' or '",
+            "' == '0') or (('",
             LaunchConfiguration("slam"),
-            "'.lower() in ['true', '1', 'yes', 'on']) else 'False'",
+            "'.lower() in ['true', '1', 'yes', 'on']) and ('",
+            LaunchConfiguration("odin_map_mode"),
+            "' != '2')) else 'False'",
         ]
     )
 
@@ -254,10 +255,12 @@ def generate_launch_description():
         allow_substs=True,
     )
 
-    def _resolve_single_map_file(context, *, map_arg, slam_arg, map_dir):
+    def _resolve_single_map_file(context, *, map_arg, slam_arg, odin_mode_arg, map_dir):
         slam_value = (slam_arg.perform(context) or "").strip().lower()
         if slam_value in {"true", "1", "yes", "on"}:
             return []
+
+        odin_mode_value = (odin_mode_arg.perform(context) or "").strip()
 
         map_override = (map_arg.perform(context) or "").strip()
         if map_override:
@@ -283,6 +286,16 @@ def generate_launch_description():
             path for path in Path(map_dir).expanduser().glob("*.yaml") if path.is_file()
         )
         if not map_candidates:
+            if odin_mode_value == "2":
+                return [
+                    SetLaunchConfiguration("slam", "True"),
+                    LogInfo(
+                        msg=(
+                            "No map yaml found in bringup map dir, but odin_map_mode=2 "
+                            "(relocalization). Fallback to slam:=True for startup compatibility."
+                        )
+                    ),
+                ]
             raise RuntimeError(
                 f"No map yaml found in {map_dir}. Navigation launch aborted."
             )
@@ -310,6 +323,7 @@ def generate_launch_description():
         kwargs={
             "map_arg": map_yaml_file,
             "slam_arg": slam,
+            "odin_mode_arg": LaunchConfiguration("odin_map_mode"),
             "map_dir": os.path.join(bringup_dir, "map", "reality"),
         },
     )

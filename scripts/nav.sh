@@ -16,4 +16,8 @@ NAVIGATION_CMD=${NAVIGATION_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_
 export NAVIGATION_CMD
 export KILL_EXISTING="${KILL_EXISTING:-1}"
 
-exec python3 "$SCRIPT_DIR/launch_wrapper.py" reality_navigation "$@"
+# 透传入口脚本名，让日志按脚本入口命名。
+export WRAPPER_ENTRY_NAME="$(basename "$0")"
+export PYTHONPATH="$SCRIPT_DIR${PYTHONPATH:+:$PYTHONPATH}"
+
+exec python3 -m tools.wrapper_main reality_navigation "$@"
