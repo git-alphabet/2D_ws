@@ -1,4 +1,6 @@
 #include "rm_behavior_tree/plugins/rmuc_2026/condition/is_at_goal.hpp"
+#include <iostream>
+#include <chrono>
 
 namespace rm_behavior_tree
 {
@@ -16,8 +18,21 @@ BT::NodeStatus IsAtGoalCondition::tick()
   getInput("goal_y", gy);
   getInput("arrive_radius", radius);
 
-  return (std::hypot(gx - px, gy - py) < radius)
-    ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
+  double dist = std::hypot(gx - px, gy - py);
+  bool at_goal = dist < radius;
+
+  // 每3秒打印一次（基于wall clock），避免刷屏
+  static auto last_print = std::chrono::steady_clock::now();
+  auto now = std::chrono::steady_clock::now();
+  if (std::chrono::duration_cast<std::chrono::seconds>(now - last_print).count() >= 3) {
+    last_print = now;
+    std::cout << "[IsAtGoal:" << name() << "] pose=(" << px << "," << py
+              << ") goal=(" << gx << "," << gy
+              << ") dist=" << dist << " radius=" << radius
+              << " → " << (at_goal ? "SUCCESS" : "FAILURE") << std::endl;
+  }
+
+  return at_goal ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
 }
 
 }  // namespace rm_behavior_tree

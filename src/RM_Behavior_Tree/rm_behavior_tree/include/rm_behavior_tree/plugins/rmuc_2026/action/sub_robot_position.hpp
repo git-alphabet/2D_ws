@@ -1,17 +1,13 @@
 #ifndef RM_BEHAVIOR_TREE__PLUGINS__RMUC_2026__ACTION__SUB_ROBOT_POSITION_HPP_
 #define RM_BEHAVIOR_TREE__PLUGINS__RMUC_2026__ACTION__SUB_ROBOT_POSITION_HPP_
 
-#include <mutex>
 #include <string>
-#include <memory>
-#include "rclcpp/rclcpp.hpp"
-#include "behaviortree_cpp/action_node.h"
-#include "behaviortree_ros2/ros_node_params.hpp"
+#include "behaviortree_ros2/bt_topic_sub_node.hpp"
 #include "sp_msgs/msg/rmuc_robot_position.hpp"
 
 namespace rm_behavior_tree
 {
-class RmucSubRobotPositionAction : public BT::SyncActionNode
+class RmucSubRobotPositionAction : public BT::RosTopicSubNode<sp_msgs::msg::RMUCRobotPosition>
 {
 public:
   RmucSubRobotPositionAction(
@@ -27,16 +23,8 @@ public:
       BT::OutputPort<bool>("is_at_nav_goal")};
   }
 
-  BT::NodeStatus tick() override;
-
-private:
-  void callback(const sp_msgs::msg::RMUCRobotPosition::SharedPtr msg);
-  rclcpp::Node::SharedPtr node_;
-  rclcpp::Subscription<sp_msgs::msg::RMUCRobotPosition>::SharedPtr sub_;
-  mutable std::mutex mutex_;
-  double pose_x_{0.0}, pose_y_{0.0}, pose_yaw_{0.0};
-  bool is_at_nav_goal_{true};
-  bool has_data_{false};
+  BT::NodeStatus onTick(
+    const std::shared_ptr<sp_msgs::msg::RMUCRobotPosition> & last_msg) override;
 };
 }  // namespace rm_behavior_tree
 

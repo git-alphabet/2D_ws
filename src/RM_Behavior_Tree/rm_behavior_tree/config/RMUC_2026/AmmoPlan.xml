@@ -10,7 +10,7 @@
                 <ReactiveSequence>
                     <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
                               goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
-                              arrive_radius="1.0"/>
+                              arrive_radius="0.2"/>
                     <HoldForSupplyAmmoTick stage_elapsed_time="{game.elapsed_s}"
                                            ammo_allow="{ammo.allow}"
                                            ammo_target="{cfg.ammo_target}"/>
