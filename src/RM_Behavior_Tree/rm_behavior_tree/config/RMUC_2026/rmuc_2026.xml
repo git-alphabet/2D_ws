@@ -33,6 +33,36 @@
                     <!-- 构建并按控制速率发送哨兵自主决策指令 (0x0120) -->
                     <SubTree ID="CommandHub" _autoremap="true"/>
 
+                    <!-- 全局底盘/云台控制：基于条件，与子树无关 -->
+                    <ReactiveFallback name="GlobalRobotControl">
+                        <!-- 死亡 → 停云台，不旋转 -->
+                        <Sequence>
+                            <RmucIsDead message="{robot_status}"/>
+                            <RmucRobotControl stop_gimbal_scan="True"
+                                              chassis_spin="False"/>
+                        </Sequence>
+                        <!-- 在补给区 → 不旋转（安全区域，回血/补弹中） -->
+                        <Sequence>
+                            <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
+                                      goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
+                                      arrive_radius="1.0"/>
+                            <RmucRobotControl stop_gimbal_scan="False"
+                                              chassis_spin="False"/>
+                        </Sequence>
+                        <!-- 检测到敌人 OR Nav2导航完成 → 旋转 -->
+                        <Sequence>
+                            <Fallback>
+                                <RmucIsDetectEnemy message="{robot_status}"/>
+                                <ScriptCondition code="is_at_nav_goal == true"/>
+                            </Fallback>
+                            <RmucRobotControl stop_gimbal_scan="False"
+                                              chassis_spin="True"/>
+                        </Sequence>
+                        <!-- 默认（导航中等） → 不旋转 -->
+                        <RmucRobotControl stop_gimbal_scan="False"
+                                          chassis_spin="False"/>
+                    </ReactiveFallback>
+
                     <!-- 基于优先级的战术 -->
                     <ReactiveFallback>
 

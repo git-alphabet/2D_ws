@@ -9,9 +9,7 @@
             <!-- 检测到敌人 → 终止导航，原地站定 -->
             <RmucNavControlCmd cmd_type="3" emergency_stop="False"/>
 
-            <!-- 开启底盘旋转，保持云台扫描 -->
-            <RmucRobotControl stop_gimbal_scan="False"
-                              chassis_spin="True"/>
+            <!-- 底盘旋转由全局 GlobalRobotControl 控制 -->
 
             <!-- 保持运行，直到上层条件打断 -->
             <KeepRunning/>

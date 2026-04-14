@@ -27,31 +27,17 @@
                              arrive_radius="{cfg.arrive_radius}"
                              goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"/>
 
-            <!-- 导航到当前目标 -->
-            <RateController hz="1">
-                <SendGoal name="{nav.objective}"
-                          goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
-                          frame_id="map" action_name="navigate_to_pose"/>
-            </RateController>
-
-            <ReactiveFallback>
-                <!-- 到达目标 → 开启旋转 -->
-                <ReactiveSequence>
-                    <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
+            <!-- 发送导航目标给 Nav2（RateController 限制重发频率） -->
+            <!-- ForceSuccess: 即使 Nav2 导航失败/中止，ObjectivePlanner 也保持活跃 -->
+            <!-- 底盘旋转由全局 GlobalRobotControl 根据 is_at_nav_goal 控制 -->
+            <ForceSuccess>
+                <RateController hz="1">
+                    <SendGoal name="{nav.objective}"
                               goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
-                              arrive_radius="{cfg.arrive_radius}"/>
-                    <RmucRobotControl stop_gimbal_scan="False"
-                                      chassis_spin="True"/>
-                    <KeepRunning/>
-                </ReactiveSequence>
-
-                <!-- 未到达 → 正常导航，不旋转 -->
-                <ReactiveSequence>
-                    <RmucRobotControl stop_gimbal_scan="False"
-                                      chassis_spin="False"/>
-                    <KeepRunning/>
-                </ReactiveSequence>
-            </ReactiveFallback>
+                              frame_id="map" action_name="navigate_to_pose"/>
+                </RateController>
+            </ForceSuccess>
+            <KeepRunning/>
         </ReactiveSequence>
     </BehaviorTree>
 

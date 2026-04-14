@@ -628,14 +628,7 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
     base_env = _build_base_env(cfg)
     log_dir = _runtime_log_dir(cfg)
     slug = _slugify(title)
-    ts = _beijing_timestamp()
-    log_file = log_dir / f"{Path(cfg.script_name).stem}_{slug}_{ts}.log"
-    latest_link = log_dir / f"{Path(cfg.script_name).stem}_{slug}.log"
-    try:
-        latest_link.unlink(missing_ok=True)
-        latest_link.symlink_to(log_file.name)
-    except OSError:
-        pass
+    log_file = log_dir / f"{Path(cfg.script_name).stem}_{slug}.log"
 
     full_cmd = f"cd {shlex.quote(str(cfg.ws_dir))}; {base_env}"
     if extra_env:

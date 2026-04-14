@@ -265,12 +265,13 @@ geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
   geometry_msgs::msg::Twist aft_tf_vel;
 
   float current_spin = 0.0f;
-  // Always apply cmd_spin value; spin on/off is controlled by NonlinearSpinPublisher
-  // which publishes 0 when chassis_spin=False via BT RobotControl.
-  if (has_received_cmd_spin_) {
-    current_spin = spin_speed_;
-  } else {
-    current_spin = init_spin_speed_;
+  // spin_enabled_ 由 BT RmucRobotControl 的 chassis_spin 控制
+  if (spin_enabled_) {
+    if (has_received_cmd_spin_) {
+      current_spin = spin_speed_;      // NonlinearSpinPublisher 动态值优先
+    } else {
+      current_spin = init_spin_speed_; // 回退到初始自旋速度
+    }
   }
 
   const double linear_speed = std::hypot(twist->linear.x, twist->linear.y);

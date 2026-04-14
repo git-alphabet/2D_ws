@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-robot_position_bridge.py — 仿真环境下的 /robot_position 发布桥接节点
+robot_position_bridge.py — 仿真环境下的 robot_position 发布桥接节点
 
 功能：
   - 从 TF (map → base_footprint) 获取机器人位姿
   - 监听 Nav2 的 navigate_to_pose action 状态判断是否到达目标
-  - 以 50Hz 发布 /robot_position (RMUCRobotPosition)
+  - 以 50Hz 发布 robot_position (RMUCRobotPosition)，跟随 namespace
 
 用法：
   source ~/important_code/ros2_ws/install/setup.bash
@@ -54,8 +54,8 @@ class RobotPositionBridge(Node):
             self._status_cb,
             qos)
 
-        # 发布 /robot_position
-        self.pub = self.create_publisher(RMUCRobotPosition, '/robot_position', qos)
+        # 发布 robot_position (相对话题名，跟随 namespace)
+        self.pub = self.create_publisher(RMUCRobotPosition, 'robot_position', qos)
 
         self.timer = self.create_timer(1.0 / rate, self._timer_cb)
         self.get_logger().info(

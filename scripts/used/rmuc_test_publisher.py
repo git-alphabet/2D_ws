@@ -2,7 +2,9 @@
 """
 RMUC 2026 裁判系统话题模拟器
 =============================
-模拟裁判系统和传感器发布的全部 11 个话题，用于测试 RMUC 行为树。
+模拟裁判系统和传感器发布的 10 个话题，用于测试 RMUC 行为树。
+注意：robot_position 由 robot_position_bridge.py 发布（从 TF + Nav2 状态获取），
+本模拟器不再发布该话题以避免冲突。
 
 使用方式:
   1. 先在一个终端启动仿真:  ./scripts/sim_mapping.sh
@@ -38,7 +40,6 @@ from sp_msgs.msg import (
     RMUCGameStatus,
     RMUCRobotStatus,
     RMUCRFIDStatus,
-    RMUCRobotPosition,
     RMUCSentryDecisionStatus,
     RMUCRobotBuff,
     RMUCProjectileAllowance,
@@ -60,7 +61,7 @@ class RmucTestPublisher(Node):
         self.pub_game = self.create_publisher(RMUCGameStatus, "game_status", 10)
         self.pub_robot = self.create_publisher(RMUCRobotStatus, "robot_status", 10)
         self.pub_rfid = self.create_publisher(RMUCRFIDStatus, "rfid_status", 10)
-        self.pub_position = self.create_publisher(RMUCRobotPosition, "robot_position", 10)
+        # robot_position 由 robot_position_bridge.py 发布（从 TF + Nav2 状态获取），此处不再重复发布
         self.pub_sentry_decision = self.create_publisher(
             RMUCSentryDecisionStatus, "sentry_decision_status", 10
         )
@@ -81,8 +82,6 @@ class RmucTestPublisher(Node):
         self.timer_10hz = self.create_timer(0.1, self.tick_10hz)
         # 1 Hz 话题
         self.timer_1hz = self.create_timer(1.0, self.tick_1hz)
-        # 50 Hz 位置
-        self.timer_50hz = self.create_timer(0.02, self.tick_50hz)
 
         self.get_logger().info(
             f"RMUC 模拟器启动: phase={args.phase}, remain={args.remain}s, "
@@ -221,17 +220,6 @@ class RmucTestPublisher(Node):
         msg.outpost_hp = 1500
         msg.base_hp = 5000
         self.pub_team_hp.publish(msg)
-
-    # ────────── 50 Hz 位置 ──────────
-
-    def tick_50hz(self):
-        msg = RMUCRobotPosition()
-        msg.header = self._header()
-        msg.pose_x = 2.0
-        msg.pose_y = -2.0
-        msg.pose_yaw = 0.0
-        msg.is_at_nav_goal = False
-        self.pub_position.publish(msg)
 
 
 def main():

@@ -28,7 +28,6 @@ bool RmucSentryCmdMuxAction::setMessage(sp_msgs::msg::RMUCSentryCmd & msg)
   msg.cmd_allow_ammo_target = static_cast<uint16_t>(allow_ammo);
   msg.cmd_trigger_remote_ammo = (trig_ammo != 0);
   msg.cmd_trigger_remote_hp = (trig_hp != 0);
-  msg.cmd_enable_big_energy = false;
 
   return true;
 }
