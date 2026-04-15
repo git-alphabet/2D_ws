@@ -12,7 +12,7 @@
     runtime_pos_log_enable: False
 
     common:
-      lid_topic: "livox/lidar"
+      lid_topic: "livox/lidar/pointcloud"
       imu_topic: "livox/imu"
       con_frame: False
       con_frame_num: 1

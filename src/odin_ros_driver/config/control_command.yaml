@@ -83,14 +83,14 @@ register_keys:
   # 1: SLAM 建图模式（有回环检测，跑完后执行 ./set_param.sh save_map 1 保存 .bin）
   # 2: 重定位模式（需预先指定 .bin 地图路径，重定位成功后发布 map→odom TF）
   # 注意：必须与 odin_map_mode launch 参数保持一致！
-  custom_map_mode: 1
+  custom_map_mode: 2
 
   # 初始位姿（暂未使用，保留字段）[x, y, z, qx, qy, qz, qw]
   custom_init_pos: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
 
   # 重定位模式必填：预建地图 .bin 文件的绝对路径（Mode 2 不填则直接报错退出）
   # 建议起始位置在建图轨迹 1m 以内、朝向偏差 ±10° 以内以保证重定位成功率
-  relocalization_map_abs_path: "/ws/src/odin_ros_driver/map/20260413_212351/map_20260413_212432.bin"
+  relocalization_map_abs_path: "/ws/src/odin_ros_driver/map/20260415_224512/map_20260415_224554.bin"
 
   # 建图结果保存路径（留空则自动保存到 {ws}/src/odin_ros_driver/map/{driver_start_time}/）
   # 保存命令：cd src/odin_ros_driver && ./set_param.sh save_map 1
