@@ -11,11 +11,14 @@ export QT_FONT_DPI=192
 export __NV_PRIME_RENDER_OFFLOAD=1
 export __GLX_VENDOR_LIBRARY_NAME=nvidia
 
+# 入口脚本默认覆盖 odin1 驱动模式：1=SLAM 建图。
+export ODIN_MODE_PRESET="${ODIN_MODE_PRESET:-1}"
+
 export START_RVIZ="${START_RVIZ:-0}"
 export KILL_EXISTING="${KILL_EXISTING:-1}"
 
 # 你想加/改 launch 参数，优先改这行（或运行时用环境变量覆盖 MAPPING_CMD）。
-export MAPPING_CMD=${MAPPING_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True"}
+export MAPPING_CMD=${MAPPING_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True nav2_tf_warmup_enabled:=False"}
 export MAPPING_CMD
 
 # 透传入口脚本名，让日志按脚本入口命名。
