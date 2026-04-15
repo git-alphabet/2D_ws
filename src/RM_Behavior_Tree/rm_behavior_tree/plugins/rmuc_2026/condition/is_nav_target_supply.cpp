@@ -1,4 +1,4 @@
-#include "rm_behavior_tree/plugins/rmuc_2026/condition/is_nav_goal_at.hpp"
+#include "rm_behavior_tree/plugins/rmuc_2026/condition/is_nav_target_supply.hpp"
 
 namespace rm_behavior_tree
 {

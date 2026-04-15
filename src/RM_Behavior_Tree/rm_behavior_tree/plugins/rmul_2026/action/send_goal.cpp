@@ -4,6 +4,15 @@
 namespace rm_behavior_tree
 {
 
+// 静态成员初始化
+geometry_msgs::msg::PoseStamped SendGoalAction::s_last_global_goal_;
+bool SendGoalAction::s_has_global_ = false;
+
+void SendGoalAction::clearGoalCache()
+{
+  s_has_global_ = false;
+}
+
 SendGoalAction::SendGoalAction(
   const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
   : BT::SyncActionNode(name, conf), node_(params.nh)
@@ -94,10 +103,9 @@ BT::NodeStatus SendGoalAction::tick()
 
   // ── 全局去重：只要和全局最后一次发布的目标相同就跳过 ──
   // 所有 SendGoal 实例共享此记录，A→B→A 时第二个 A 会正常发布
-  static geometry_msgs::msg::PoseStamped s_last_global_goal;
-  static bool s_has_global = false;
+  // CancelNavGoal 调用 clearGoalCache() 后强制重新发布
 
-  if (s_has_global && isSameGoal_(goal, s_last_global_goal)) {
+  if (s_has_global_ && isSameGoal_(goal, s_last_global_goal_)) {
     return BT::NodeStatus::SUCCESS;
   }
 
@@ -122,8 +130,8 @@ BT::NodeStatus SendGoalAction::tick()
     name().c_str(),
     goal.pose.position.x, goal.pose.position.y);
 
-  s_last_global_goal = goal;
-  s_has_global = true;
+  s_last_global_goal_ = goal;
+  s_has_global_ = true;
   last_goal_ = goal;
   last_pub_time_ = now;
   has_last_ = true;

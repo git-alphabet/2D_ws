@@ -48,6 +48,9 @@ public:
   
   BT::NodeStatus tick() override;
 
+  /// 清除全局目标缓存（CancelNavGoal 后调用，确保下次 SendGoal 重新发布）
+  static void clearGoalCache();
+
 private:
   static bool isFinite_(double v)
   {
@@ -64,6 +67,9 @@ private:
   geometry_msgs::msg::PoseStamped last_goal_;
   rclcpp::Time last_pub_time_{0, 0, RCL_ROS_TIME};
   bool has_last_{false};
+
+  static geometry_msgs::msg::PoseStamped s_last_global_goal_;
+  static bool s_has_global_;
 };
 
 }  // namespace rm_behavior_tree

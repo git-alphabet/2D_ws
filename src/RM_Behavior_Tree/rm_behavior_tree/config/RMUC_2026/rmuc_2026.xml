@@ -45,7 +45,7 @@
                         <Sequence>
                             <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
                                       goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
-                                      arrive_radius="1.0"/>
+                                      arrive_radius="0.2"/>
                             <RmucRobotControl stop_gimbal_scan="False"
                                               chassis_spin="False"/>
                         </Sequence>
