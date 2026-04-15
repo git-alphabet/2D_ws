@@ -170,6 +170,14 @@ ROS_DOMAIN_ID=66 ROS_LOCALHOST_ONLY=0 ./scripts/reality_navigation_oneclick.sh
 ./scripts/serial_driver.sh
 ```
 
+- 诊断 map->odom TF 发布源（自动生成时间戳日志）：
+
+```bash
+./scripts/verify_map_odom_tf.sh
+```
+
+日志输出到：`launch_logs/<branch>/verify_map_odom_tf_YYYYMMDD_HHMMSS.log`
+
 - 发布决策/比赛相关话题（调试用）：
 
 ```bash
