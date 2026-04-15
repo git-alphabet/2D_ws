@@ -459,14 +459,14 @@ local_costmap:
         observation_sources: terrain_map terrain_map_ext_mid360
         terrain_map:
           data_type: PointCloud2
-          topic: terrain_map
+          topic: /terrain_map
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 5.0
           obstacle_min_range: 0.6
         terrain_map_ext_mid360:
           data_type: PointCloud2
-          topic: terrain_map_ext_mid360
+          topic: /terrain_map_ext_mid360
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 5.0
@@ -516,14 +516,14 @@ global_costmap:
         observation_sources: terrain_map_ext terrain_map_ext_mid360
         terrain_map_ext:
           data_type: PointCloud2
-          topic: terrain_map_ext
+          topic: /terrain_map_ext
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 10.0
           obstacle_min_range: 0.6
         terrain_map_ext_mid360:
           data_type: PointCloud2
-          topic: terrain_map_ext_mid360
+          topic: /terrain_map_ext_mid360
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 10.0
