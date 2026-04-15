@@ -1,4 +1,5 @@
 #include "rm_behavior_tree/plugins/rmuc_2026/action/select_objective.hpp"
+#include <cstdio>
 
 namespace rm_behavior_tree
 {
@@ -23,6 +24,13 @@ BT::NodeStatus SelectObjectiveAction::tick()
     objective = "TRAPEZOIDAL_HIGHLAND";
     getInput("ladder_highland_x", gx);
     getInput("ladder_highland_y", gy);
+  }
+
+  static std::string last_obj;
+  if (objective != last_obj) {
+    fprintf(stderr, "[SelectObjective] outpost_alive=%d → %s (%.2f, %.2f)\n",
+            outpost_alive, objective.c_str(), gx, gy);
+    last_obj = objective;
   }
 
   setOutput("goal_x", gx);

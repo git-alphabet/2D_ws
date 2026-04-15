@@ -180,6 +180,9 @@ int main(int argc, char ** argv)
   regRos("clear_recovery_flag",                 params_utility);
   regRos("is_recovery_needed",                  params_utility);
 
+  // ── J2. Nav2 导航目标查询 ──
+  regRos("rmuc_is_nav_goal_at",                 params_utility);
+
   // ── K. SendGoal (PoseStamped，非 RMUC 消息) ──
   regRos("send_goal",                           params_send_goal);
 

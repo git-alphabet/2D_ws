@@ -15,9 +15,9 @@
 # ─────────── 地图坐标 ───────────
 
 # base_buff,-0.0600,-2.4900
-outpost_buff,6.5300,-5.1200
 # fortress_ally,2.7600,-1.9300
 # ladder_highland,-0.7140,3.2070
 # defend_anchor,2.7600,-1.9300
-supply_zone,1.5677,-1.3353
-central_highland,2.7940,-4.1974
+supply_zone,2.4752,-1.0936
+outpost_buff,3.5489,-4.2745
+central_highland,0.0412,-4.0545

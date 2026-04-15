@@ -26,6 +26,19 @@ RMUC 2026 裁判系统话题模拟器
   --hp       当前血量 (默认 400)
   --ammo     允许发弹量 (默认 200)
   --dead     是否战亡 (默认 false)
+  --outpost-dead  前哨站是否被毁 (不加=存活)
+  --detect-enemy  是否检测到敌人 (不加=未检测)
+  --duration      运行时长秒数 (0=持续运行, 默认0)
+
+复合指令示例（按序列模拟多阶段场景，用 --duration 代替 timeout）:
+  # 满血2秒 → 自动切换到低血量
+  python3 /ws/scripts/used/rmuc_test_publisher.py --hp=400 --duration=2 && python3 /ws/scripts/used/rmuc_test_publisher.py --hp=80
+
+  # 满血3秒 → 低血量5秒 → 满血+检测到敌人
+  python3 /ws/scripts/used/rmuc_test_publisher.py --hp=400 --duration=3 && python3 /ws/scripts/used/rmuc_test_publisher.py --hp=80 --duration=5 && python3 /ws/scripts/used/rmuc_test_publisher.py --hp=400 --detect-enemy
+
+  # 满血2秒 → 前哨站被毁（触发目标切换到梯形高地）
+  python3 /ws/scripts/used/rmuc_test_publisher.py --hp=400 --duration=2 && python3 /ws/scripts/used/rmuc_test_publisher.py --hp=400 --outpost-dead
 """
 
 import argparse
@@ -85,7 +98,8 @@ class RmucTestPublisher(Node):
 
         self.get_logger().info(
             f"RMUC 模拟器启动: phase={args.phase}, remain={args.remain}s, "
-            f"hp={args.hp}, ammo={args.ammo}, dead={args.dead}"
+            f"hp={args.hp}, ammo={args.ammo}, dead={args.dead}, "
+            f"outpost_dead={args.outpost_dead}, detect_enemy={args.detect_enemy}"
         )
 
     def _header(self):
@@ -232,6 +246,8 @@ def main():
     parser.add_argument("--dead", action="store_true", help="是否战亡")
     parser.add_argument("--outpost-dead", action="store_true", help="前哨站被毁")
     parser.add_argument("--detect-enemy", action="store_true", help="检测到敌人")
+    parser.add_argument("--duration", type=float, default=0,
+                        help="运行时长(秒), 0=持续运行直到Ctrl+C")
     args = parser.parse_args()
 
     rclpy.init()
@@ -243,13 +259,20 @@ def main():
         node.get_logger().info(
             f"话题命名空间: {args.ns} (话题如 {args.ns}/game_status)"
         )
-        node.get_logger().info("Ctrl+C 停止模拟")
+        if args.duration > 0:
+            node.get_logger().info(f"将在 {args.duration}s 后自动退出")
+            node.create_timer(args.duration, lambda: rclpy.shutdown())
+        else:
+            node.get_logger().info("Ctrl+C 停止模拟")
         rclpy.spin(node)
-    except KeyboardInterrupt:
-        node.get_logger().info("模拟器停止")
+    except (KeyboardInterrupt, rclpy.executors.ExternalShutdownException):
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        try:
+            rclpy.shutdown()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

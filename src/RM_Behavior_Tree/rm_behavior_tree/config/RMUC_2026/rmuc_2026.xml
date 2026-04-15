@@ -63,39 +63,67 @@
                                           chassis_spin="False"/>
                     </ReactiveFallback>
 
-                    <!-- 基于优先级的战术 -->
-                    <ReactiveFallback>
-
-                        <!-- 0) 死亡停车 / 低血量撤退回补给区回血 -->
+                    <!-- ═══ 生存优先：死亡/低血量回补给区（不受敌人检测阻塞） ═══
+                         LowHPRetreat 返回 RUNNING 时阻塞后续所有节点（敌人检测 + 战术）
+                         LowHPRetreat 返回 FAILURE 时（HP 正常）放行 -->
+                    <ReactiveFallback name="SurvivalGuard">
+                        <!-- HP 正常且未死亡 → SUCCESS，放行 -->
+                        <Sequence>
+                            <Inverter>
+                                <RmucIsDead message="{robot_status}"/>
+                            </Inverter>
+                            <Inverter>
+                                <RmucIsHPBelow message="{robot_status}" hp_threshold="{cfg.hp_low}"/>
+                            </Inverter>
+                        </Sequence>
+                        <!-- 死亡或低血量 → LowHPRetreat 接管（返回 RUNNING 阻塞后续） -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="LowHPRetreat"/>
                             <SubTree ID="LowHPRetreat" _autoremap="true"/>
                         </Sequence>
+                    </ReactiveFallback>
 
-                        <!-- 1) 基地/堡垒防御（受威胁时） -->
+                    <!-- ═══ 敌人检测阻塞：检测到敌人 → 取消导航、原地停车，阻塞战术子树 ═══
+                         直到 detect_enemy=false 才放行（ReactiveFallback 每 tick 重新求值）
+                         例外：当前导航目标 = 补给区时无视敌人（回家优先）
+                         注：LowHPRetreat 在上方 SurvivalGuard 中，回家不受此阻塞 -->
+                    <ReactiveFallback name="EnemyDetectionGuard">
+                        <!-- 无敌人 → 放行 -->
+                        <Inverter>
+                            <RmucIsDetectEnemy message="{robot_status}"/>
+                        </Inverter>
+                        <!-- 当前 Nav2 目标 = 补给区 → 放行（无视敌人，继续导航回家） -->
+                        <IsNavTargetSupply goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
+                                     arrive_radius="1.5"/>
+                        <!-- 有敌人 + 目标不是补给区 → 取消导航 + 阻塞 -->
+                        <Sequence>
+                            <SetBlackboard output_key="active_subtree" value="EnemyHold"/>
+                            <CancelNavGoal action_name="navigate_to_pose"/>
+                            <RmucNavControlCmd cmd_type="3" emergency_stop="False"/>
+                            <KeepRunning/>
+                        </Sequence>
+                    </ReactiveFallback>
+
+                    <!-- 基于优先级的战术（仅在生存无忧 + 无敌人时 tick） -->
+                    <ReactiveFallback>
+
+                        <!-- 0) 基地/堡垒防御（受威胁时） -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="BaseDefense"/>
                             <SubTree ID="BaseDefense" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 2) 交战（有有效目标且安全时） -->
-                        <Sequence>
-                            <SetBlackboard output_key="active_subtree" value="EngageCombat"/>
-                            <SubTree ID="EngageCombat" _autoremap="true"/>
-                        </Sequence>
-
-                        <!-- 3) 后勤：补弹（经济感知） -->
+                        <!-- 1) 后勤：补弹（经济感知） -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="SustainAndEconomy"/>
                             <SubTree ID="SustainAndEconomy" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 4) 目标控制：中央高地/梯形高地/堡垒/隧道等 -->
+                        <!-- 2) 目标控制：中央高地/梯形高地/堡垒/隧道等 -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="ObjectivePlanner"/>
                             <SubTree ID="ObjectivePlanner" _autoremap="true"/>
                         </Sequence>
-
 
                     </ReactiveFallback>
 
@@ -126,7 +154,6 @@
     <include path="CommandHub.xml"/>
     <include path="LowHPRetreat.xml"/>
     <include path="BaseDefense.xml"/>
-    <include path="EngageCombat.xml"/>
     <include path="SustainAndEconomy.xml"/>
     <include path="AmmoPlan.xml"/>
     <include path="ObjectivePlanner.xml"/>

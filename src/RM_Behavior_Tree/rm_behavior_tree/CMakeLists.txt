@@ -261,6 +261,10 @@ ament_auto_add_library(rmuc_is_at_goal SHARED
     plugins/rmuc_2026/condition/is_at_goal.cpp)
 add_target_dependencies(rmuc_is_at_goal)
 
+ament_auto_add_library(rmuc_is_nav_goal_at SHARED
+    plugins/rmuc_2026/condition/is_nav_goal_at.cpp)
+add_target_dependencies(rmuc_is_nav_goal_at)
+
 # ── 结束 RMUC 2026 全部插件 ────────────────────────────────────────────────
 
 ament_auto_add_library(is_recovery_needed SHARED 

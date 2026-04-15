@@ -4,12 +4,13 @@
     <BehaviorTree ID="LowHPRetreat">
         <ReactiveFallback>
 
-            <!-- A. 死亡：停车等待复活读条结束 -->
+            <!-- A. 死亡：停车等待复活读条结束（返回 RUNNING 阻塞后续所有子树） -->
             <Sequence name="IfDead_StopAndWait">
                 <RmucIsDead message="{robot_status}"/>
                 <!-- 底盘旋转/云台由全局 GlobalRobotControl 控制 -->
                 <RmucNavControlCmd cmd_type="3"
                                    emergency_stop="False"/>
+                <KeepRunning/>
             </Sequence>
 
             <!-- B. 低血量：导航到补给区回血 -->

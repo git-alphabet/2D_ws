@@ -21,11 +21,12 @@ BT::NodeStatus IsAtGoalCondition::tick()
   double dist = std::hypot(gx - px, gy - py);
   bool at_goal = dist < radius;
 
-  // 每3秒打印一次（基于wall clock），避免刷屏
-  static auto last_print = std::chrono::steady_clock::now();
-  auto now = std::chrono::steady_clock::now();
-  if (std::chrono::duration_cast<std::chrono::seconds>(now - last_print).count() >= 3) {
-    last_print = now;
+  // 仅在状态变化时打印一次
+  static bool last_at_goal = false;
+  static bool first_print = true;
+  if (first_print || at_goal != last_at_goal) {
+    first_print = false;
+    last_at_goal = at_goal;
     std::cout << "[IsAtGoal:" << name() << "] pose=(" << px << "," << py
               << ") goal=(" << gx << "," << gy
               << ") dist=" << dist << " radius=" << radius
