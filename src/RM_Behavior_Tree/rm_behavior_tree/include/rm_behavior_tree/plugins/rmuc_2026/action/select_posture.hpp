@@ -26,7 +26,7 @@ public:
   BT::NodeStatus tick() override;
 
 private:
-  static constexpr int64_t kCooldownMs = 4000;
+  static constexpr int64_t kCooldownMs = 5000;
   int active_posture_{0};
   std::chrono::steady_clock::time_point last_switch_time_{};
   bool initialized_{false};

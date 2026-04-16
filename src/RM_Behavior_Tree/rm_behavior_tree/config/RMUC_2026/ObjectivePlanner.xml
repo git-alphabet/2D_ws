@@ -3,6 +3,19 @@
 
     <BehaviorTree ID="ObjectivePlanner">
         <ReactiveSequence>
+            <!-- 姿态选择：到达目标点→防御(2)，导航中→移动(3) -->
+            <ReactiveFallback>
+                <Sequence>
+                    <ScriptCondition code="is_at_nav_goal == true"/>
+                    <SelectPosture posture_value="2"
+                                   posture_out="{cmd.posture}"
+                                   is_allow_select_posture="{cmd.allow_posture_send}"/>
+                </Sequence>
+                <SelectPosture posture_value="3"
+                               posture_out="{cmd.posture}"
+                               is_allow_select_posture="{cmd.allow_posture_send}"/>
+            </ReactiveFallback>
+
             <!-- 选择战略目标 (中心高地 / 梯形高地) -->
             <SelectObjective pose_x="{pose.x}" pose_y="{pose.y}"
                              stage_elapsed_time="{game.elapsed_s}"

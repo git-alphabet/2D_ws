@@ -193,6 +193,7 @@ int main(int argc, char ** argv)
   regBT("rmuc_load_calibration_csv");
   regBT("rmuc_decide_posture");
   regBT("rmuc_select_posture");
+  regBT("rmuc_posture_degradation_guard");
   regBT("rmuc_decide_economy_cmd");
   regBT("rmuc_decide_respawn_cmd");
   regBT("rmuc_parse_sentry_blackboard");

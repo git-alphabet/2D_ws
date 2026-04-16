@@ -2,6 +2,12 @@
 <root BTCPP_format="4">
 
     <BehaviorTree ID="LowHPRetreat">
+        <ReactiveSequence>
+            <!-- 低血量/死亡 → 移动姿态(3)，加速撤退 -->
+            <SelectPosture posture_value="3"
+                           posture_out="{cmd.posture}"
+                           is_allow_select_posture="{cmd.allow_posture_send}"/>
+
         <ReactiveFallback>
 
             <!-- A. 死亡：停车等待复活读条结束（返回 RUNNING 阻塞后续所有子树） -->
@@ -41,6 +47,7 @@
             </ReactiveSequence>
 
         </ReactiveFallback>
+        </ReactiveSequence>
     </BehaviorTree>
 
 </root>

@@ -54,6 +54,8 @@
                 />
             <InitCmdState cmd_state="{cmd.state}"
                           allow_ammo_target="{cmd.allow_ammo_target}"/>
+            <!-- 姿态默认值：移动姿态(3)，由各战术子树的 SelectPosture 覆盖 -->
+            <SetBlackboard output_key="cmd.posture" value="3"/>
         </Sequence>
     </BehaviorTree>
 

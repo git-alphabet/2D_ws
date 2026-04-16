@@ -6,6 +6,11 @@
             <!-- 判断基地是否受到威胁：base_threat 为 true 或基地当前血量低于最大血量的 50% -->
             <IsBaseThreatened base_threat="{threat.base}"/>
 
+            <!-- 基地防御 → 攻击姿态(1)，3倍伤害保护基地 -->
+            <SelectPosture posture_value="1"
+                           posture_out="{cmd.posture}"
+                           is_allow_select_posture="{cmd.allow_posture_send}"/>
+
             <!-- 导航到防御锚点 -->
             <RateController hz="1">
                 <SendGoal name="DefendAnchor"
