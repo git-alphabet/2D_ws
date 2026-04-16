@@ -192,6 +192,7 @@ int main(int argc, char ** argv)
   regBT("rmuc_init_cmd_state");
   regBT("rmuc_load_calibration_csv");
   regBT("rmuc_decide_posture");
+  regBT("rmuc_select_posture");
   regBT("rmuc_decide_economy_cmd");
   regBT("rmuc_decide_respawn_cmd");
   regBT("rmuc_parse_sentry_blackboard");
@@ -247,7 +248,8 @@ int main(int argc, char ** argv)
       "ramp_jump_x","ramp_jump_y"
     };
     const std::vector<std::pair<std::string, double>> double_keys = {
-      {"arrive_radius", 0.35}, {"enemy_near_base_radius", 2.0}
+      {"arrive_radius", 0.3}, {"enemy_near_base_radius", 2.0},
+      {"base_defense_arrive_radius", 3.5}
     };
     const std::vector<std::pair<std::string, int>> int_keys = {
       {"hp_low", 180}, {"hp_safe", 280},

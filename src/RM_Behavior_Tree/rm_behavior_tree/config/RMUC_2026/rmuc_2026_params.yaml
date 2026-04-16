@@ -53,7 +53,7 @@ rmuc_sentry_config:
   patrol_hold_ms: 5000              # 巡逻到达每个点后停留时间 (毫秒)
 
   # ─────────── 战斗/生存阈值 ───────────
-  hp_low: 180                    # 低血量阈值 (触发 LowHPRetreat 撤退回补给区)
+  hp_low: 120                    # 低血量阈值 (触发 LowHPRetreat 撤退回补给区)
   hp_safe: 280                   # 安全血量阈值 (HoldAndHeal 回血目标)
   heat_high: 210                 # 高热量阈值 (限制开火)
   ammo_low: 80                   # 低弹药阈值 (触发 AmmoPlan) 即低于多少弹药量的时候需要去补给
@@ -62,9 +62,10 @@ rmuc_sentry_config:
   ammo_increase_interval_ms: 1000 # 允许弹量每次累加的最小间隔 (毫秒, 防止瞬间拉满)
 
   # ─────────── 导航参数 ───────────
-  arrive_radius: 0.35            # 到达判定半径 (米)
+  arrive_radius: 0.3             # 通用到达判定半径 (米) — ObjectivePatrol / 补给区到达 / IsNavTargetSupply / LowHPRetreat 统一使用
 
   # ─────────── 基地防御参数 ───────────
+  base_defense_arrive_radius: 3.5 # 基地防御停车对抗判定半径 (米) — BaseDefense 专用
   base_deficit_for_fortress: 500  # 基地血量差值阈值 (判断是否需要堡垒支援)
   enemy_near_base_radius: 4.0    # 敌人距基地威胁半径 (米)
 

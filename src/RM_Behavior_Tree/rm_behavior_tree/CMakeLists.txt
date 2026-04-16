@@ -210,6 +210,10 @@ ament_auto_add_library(rmuc_decide_posture SHARED
     plugins/rmuc_2026/action/decide_posture.cpp)
 add_target_dependencies(rmuc_decide_posture)
 
+ament_auto_add_library(rmuc_select_posture SHARED
+    plugins/rmuc_2026/action/select_posture.cpp)
+add_target_dependencies(rmuc_select_posture)
+
 ament_auto_add_library(rmuc_decide_economy_cmd SHARED
     plugins/rmuc_2026/action/decide_economy_cmd.cpp)
 add_target_dependencies(rmuc_decide_economy_cmd)

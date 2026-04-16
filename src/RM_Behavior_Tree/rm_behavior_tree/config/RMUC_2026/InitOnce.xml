@@ -22,6 +22,7 @@
                 ramp_jump_x="{cfg.ramp_jump_x}" ramp_jump_y="{cfg.ramp_jump_y}"
 
                 arrive_radius="{cfg.arrive_radius}"
+                base_defense_arrive_radius="{cfg.base_defense_arrive_radius}"
                 hp_low="{cfg.hp_low}"
                 hp_safe="{cfg.hp_safe}"
                 heat_high="{cfg.heat_high}"
