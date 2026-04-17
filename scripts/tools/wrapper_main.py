@@ -32,6 +32,7 @@ from tools.wrapper_runtime import (
     launch_in_terminal,
     save_map_now,
     save_odin_bin_now,
+    start_timestamp_monitor,
     start_watchdog,
 )
 
@@ -202,10 +203,13 @@ def main(argv: list[str]) -> int:
 
     ros_cmd = ensure_odin_mode_consistency(cfg, mode, ros_cmd)
 
+    reality_bg = BackgroundGroup(script_name)
+    atexit.register(reality_bg.cleanup)
+
+    start_timestamp_monitor(cfg, reality_bg)
+
     if is_truthy(os.environ.get("ENABLE_WATCHDOG")):
-        wd_bg = BackgroundGroup(script_name)
-        atexit.register(wd_bg.cleanup)
-        start_watchdog(cfg, [("/registered_scan", 5.0), ("/Odometry", 10.0), ("/scan", 5.0)], wd_bg)
+        start_watchdog(cfg, [("/registered_scan", 5.0), ("/Odometry", 10.0), ("/scan", 5.0)], reality_bg)
 
     pre_shutdown_hook = None
     if mode == "reality_mapping":

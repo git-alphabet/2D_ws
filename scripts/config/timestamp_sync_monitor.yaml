@@ -1,0 +1,19 @@
+# 固定监控参数：一般保持默认即可。
+window_sec: 30.0
+report_every_sec: 5.0
+max_pair_dt_sec: 0.20
+qos: sensor_data
+
+pairs:
+  # odin1 里程计(左) vs mid360 point-lio 里程计(右)
+  - name: odom_odin1_vs_mid360_pointlio
+    left_topic: /odin1/odometry_highfreq
+    right_topic: /aft_mapped_to_init
+    msg_type: nav_msgs/msg/Odometry
+    tune_param: common.time_diff_lidar_to_imu
+
+  # odin1 点云(左) vs mid360 point-lio 注册点云(右)
+  - name: cloud_odin1_vs_mid360_pointlio
+    left_topic: /odin1/cloud_slam
+    right_topic: /cloud_registered
+    msg_type: sensor_msgs/msg/PointCloud2

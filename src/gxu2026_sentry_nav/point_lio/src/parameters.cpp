@@ -50,6 +50,8 @@ MeasureGroup Measures;
 
 ofstream fout_out, fout_imu_pbp;
 
+extern double time_lag_IMU_wtr_lidar;
+
 void readParameters(std::shared_ptr<rclcpp::Node> & nh)
 {
   p_pre.reset(new Preprocess());
@@ -108,6 +110,7 @@ void readParameters(std::shared_ptr<rclcpp::Node> & nh)
 
     nh->declare_parameter<double>("common.time_diff_lidar_to_imu", 0.0);
     nh->get_parameter("common.time_diff_lidar_to_imu", time_diff_lidar_to_imu);
+    time_lag_IMU_wtr_lidar = time_diff_lidar_to_imu;
 
     nh->declare_parameter<bool>("prior_pcd.enable", false);
     nh->get_parameter("prior_pcd.enable", enable_prior_pcd);

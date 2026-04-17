@@ -118,6 +118,13 @@ void IntensityVoxelLayer::updateBounds(
 
   // get the marking observations
   bool current = true;
+  std::vector<Observation> clearing_observations;
+  current = getClearingObservations(clearing_observations) && current;
+
+  for (const auto & obs : clearing_observations) {
+    raytraceFreespace(obs, min_x, min_y, max_x, max_y);
+  }
+
   std::vector<Observation> observations;
   current = getMarkingObservations(observations) && current;
 

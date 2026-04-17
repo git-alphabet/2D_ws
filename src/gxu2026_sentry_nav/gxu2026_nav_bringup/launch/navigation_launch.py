@@ -1196,7 +1196,7 @@ def generate_launch_description():
                 if nav2_tf_warmup_source_frame_value == "gimbal_yaw_fake":
                     nav2_tf_warmup_source_frame_value = "gimbal_yaw_fake"
                 if nav2_tf_warmup_timeout_sec_value == "25.0":
-                    nav2_tf_warmup_timeout_sec_value = "0.0"
+                    nav2_tf_warmup_timeout_sec_value = "12.0"
 
             if override_required:
                 with tempfile.NamedTemporaryFile(

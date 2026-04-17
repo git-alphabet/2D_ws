@@ -460,17 +460,25 @@ local_costmap:
         terrain_map:
           data_type: PointCloud2
           topic: /terrain_map
+          marking: true
+          clearing: true
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 5.0
           obstacle_min_range: 0.6
+          raytrace_max_range: 5.0
+          raytrace_min_range: 0.6
         terrain_map_ext_mid360:
           data_type: PointCloud2
           topic: /terrain_map_ext_mid360
+          marking: true
+          clearing: true
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 5.0
           obstacle_min_range: 0.6
+          raytrace_max_range: 5.0
+          raytrace_min_range: 0.6
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
@@ -517,17 +525,25 @@ global_costmap:
         terrain_map_ext:
           data_type: PointCloud2
           topic: /terrain_map_ext
+          marking: true
+          clearing: true
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 10.0
           obstacle_min_range: 0.6
+          raytrace_max_range: 10.0
+          raytrace_min_range: 0.6
         terrain_map_ext_mid360:
           data_type: PointCloud2
           topic: /terrain_map_ext_mid360
+          marking: true
+          clearing: true
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 10.0
           obstacle_min_range: 0.6
+          raytrace_max_range: 10.0
+          raytrace_min_range: 0.6
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True

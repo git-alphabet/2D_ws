@@ -183,6 +183,7 @@ def kill_reality(script_name: str) -> None:
         (r"(^|/)host_sdk_sample(\s|$)", "odin_driver"),
         (r"(^|/)mid360_driver_node(\s|$)", "mid360_driver"),
         (r"(^|/)pointlio_mapping(\s|$)", "pointlio_mapping"),
+        (r"(^|/)(timestamp_sync_monitor\.py|tools\.timestamp_sync_monitor)(\s|$)", "timestamp_monitor"),
         (r"(^|/)joint_state_publisher(\s|$)", "joint_state_publisher"),
         (r"(^|/)robot_state_publisher(\s|$)", "robot_state_publisher"),
         (r"(^|/)auto_aim_yaw_joint_state_bridge(\s|$)", "auto_aim_yaw_bridge"),
