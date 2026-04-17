@@ -17,7 +17,13 @@
 #include <algorithm>
 #include <cmath>
 
+#if __has_include("nav2_core/controller_exceptions.hpp")
 #include "nav2_core/controller_exceptions.hpp"
+using ControllerExceptionType = nav2_core::ControllerException;
+#else
+#include "nav2_core/exceptions.hpp"
+using ControllerExceptionType = nav2_core::PlannerException;
+#endif
 #include "nav2_costmap_2d/costmap_filters/filter_values.hpp"
 #include "nav2_neupan_controller/obstacle_extractor.hpp"
 #include "nav2_neupan_controller/python_bridge.hpp"
@@ -40,7 +46,7 @@ void NeuPANController::configure(
 {
   auto node = parent.lock();
   if (!node) {
-    throw nav2_core::ControllerException("Unable to lock node!");
+    throw ControllerExceptionType("Unable to lock node!");
   }
 
   node_ = parent;
@@ -63,7 +69,7 @@ void NeuPANController::configure(
 
   const auto * p = param_handler_->getParams();
   if (!bridge_->initialize(p->neupan_config_path, p->dune_model_path)) {
-    throw nav2_core::ControllerException("Failed to initialize Python/NeuPAN in configure()");
+    throw ControllerExceptionType("Failed to initialize Python/NeuPAN in configure()");
   }
 }
 
