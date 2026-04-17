@@ -97,22 +97,10 @@ def main(argv: list[str]) -> int:
     if plugin:
         print(f"[{script_name}] controller_plugin='{plugin}'", file=sys.stderr)
     else:
-        print(f"[{script_name}] controller_plugin unset; NeuPAN venv will not be activated.", file=sys.stderr)
+        print(f"[{script_name}] controller_plugin unset.", file=sys.stderr)
 
     try:
-        neupan_env_cmd = neupan_env(
-            plugin,
-            neupan_activate=Path(
-                os.environ.get("NEUPAN_ACTIVATE", str(ws_dir / "neupan_env/bin/activate"))
-            ),
-            neupan_site_packages=Path(
-                os.environ.get(
-                    "NEUPAN_SITE_PACKAGES",
-                    str(ws_dir / "neupan_env/lib/python3.10/site-packages"),
-                )
-            ),
-            script_name=script_name,
-        )
+        neupan_env_cmd = neupan_env(plugin, script_name=script_name)
     except Exception as exc:
         print(f"[{script_name}] {exc}", file=sys.stderr)
         return 1

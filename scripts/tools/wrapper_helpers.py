@@ -293,22 +293,14 @@ def enable_chassis_odometry_gt(params_file: Path) -> bool:
 def neupan_env(
     controller_plugin_name: str,
     *,
-    neupan_activate: Path,
-    neupan_site_packages: Path,
+    neupan_activate: Path | None = None,
+    neupan_site_packages: Path | None = None,
     script_name: str,
 ) -> str:
-    # Only activate for neupan_nav2_controller.
+    # NeuPAN is installed in system Python; no virtualenv activation is needed.
     if controller_plugin_name != "neupan_nav2_controller":
         return ""
-
-    if not neupan_activate.exists():
-        raise RuntimeError(f"NeuPAN virtualenv not found at {neupan_activate}")
-
-    parts = [f"source {shlex.quote(str(neupan_activate))}"]
-    if neupan_site_packages.is_dir():
-        parts.append(f'export PYTHONPATH="$PYTHONPATH:{neupan_site_packages}"')
-
-    return "; ".join(parts)
+    return ""
 
 
 def build_base_env(cfg: CommonConfig) -> str:
