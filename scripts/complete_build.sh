@@ -100,46 +100,10 @@ set +u
 source "/opt/ros/${ROS_DISTRO}/setup.bash"
 set -u
 
-# Build the ROS workspace skipping NeuPAN and neupan_nav2_controller
+# Build the full ROS workspace in one pass.
 colcon --log-base "$LOG_BASE" build \
   --build-base "$BUILD_BASE" \
   --install-base "$INSTALL_BASE" \
   --executor sequential \
-  --packages-skip neupan_nav2_controller \
   --symlink-install \
-  --cmake-args -DCMAKE_BUILD_TYPE=Release
-
-# Activate NeuPAN virtual environment and set PYTHONPATH
-if [[ ! -f "neupan_env/bin/activate" ]]; then
-  echo "[ERROR] missing neupan_env/bin/activate. Please run scripts/setup_neupan_env.sh first." >&2
-  exit 1
-fi
-source neupan_env/bin/activate
-python3 -m pip install -q "numpy<2" || true
-NEUPAN_SITE_PACKAGES="neupan_env/lib/python3.10/site-packages"
-if [[ -n "${PYTHONPATH:-}" ]]; then
-  export PYTHONPATH="${PYTHONPATH}:${NEUPAN_SITE_PACKAGES}"
-else
-  export PYTHONPATH="${NEUPAN_SITE_PACKAGES}"
-fi
-
-# Build only the AI packages
-colcon --log-base "$LOG_BASE" build \
-  --build-base "$BUILD_BASE" \
-  --install-base "$INSTALL_BASE" \
-  --packages-select neupan_nav2_controller \
-  --symlink-install \
-  --cmake-args -DCMAKE_BUILD_TYPE=Release
-
-# Deactivate the environment
-deactivate 2>/dev/null || true
-
-# Clean PYTHONPATH
-if [[ -n "${PYTHONPATH:-}" ]]; then
-  cleaned_pythonpath="$(echo "$PYTHONPATH" | tr ':' '\n' | grep -v "neupan_env" | sed '/^$/d' | paste -sd ':' -)"
-  if [[ -n "$cleaned_pythonpath" ]]; then
-    export PYTHONPATH="$cleaned_pythonpath"
-  else
-    unset PYTHONPATH
-  fi
-fi
+  --cmake-args -DCMAKE_BUILD_TYPE=Release -DPython3_EXECUTABLE=/usr/bin/python3
