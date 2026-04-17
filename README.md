@@ -417,7 +417,7 @@ xhost +local:docker
 说明：
 - 使用 `--network host` 便于 ROS 2 发现与多机通信
 - 映射 X11 用于 RViz
-- 映射 `/dev` 便于后续访问雷达/串口/手柄等设备（按需）
+- 映射 `/dev` 便于后续访问雷达/串口等设备（按需）
 
 ```bash
 docker run -it --rm --name gxu_robotz_nav2026 \
