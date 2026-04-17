@@ -40,6 +40,7 @@ x-base: &base
     ROS_HOME: /tmp/.ros
     ROS_LOG_DIR: /tmp/ros_log
     RCL_LOGGING_DISABLE_FILE_OUTPUT: "1"
+    NEUPAN_SERVICE_URL: ${NEUPAN_SERVICE_URL:-http://127.0.0.1:18080}
   command: bash
   volumes:
     - ./ros_entrypoint.sh:/ros_entrypoint.sh:ro
@@ -61,12 +62,46 @@ x-base: &base
 
 services:
 
+  # ---------- NeuPAN runtime（Python 3.12，独立容器）----------
+  neupan-runtime:
+    image: ${DOCKERHUB_NS:-alphabet2006}/${IMAGE_REPO_NEUPAN:-gxu2026-neupan-runtime}:${IMAGE_TAG:-latest}
+    profiles: ["laptop", "robot"]
+    container_name: gxu2026-neupan-runtime
+    network_mode: host
+    init: true
+    stdin_open: true
+    tty: true
+    environment:
+      HOME: /tmp/home
+      DISPLAY: ${DISPLAY:-:0}
+      XAUTHORITY: /tmp/.docker.xauth
+      QT_X11_NO_MITSHM: "1"
+      PYTHONUNBUFFERED: "1"
+      MPLBACKEND: TkAgg
+    volumes:
+      - ../src:/ws/src
+      - ../maps:/ws/maps
+      - ../launch_logs:/ws/launch_logs
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
+    command: >-
+      python /opt/neupan/service/server.py --host 0.0.0.0 --port 18080
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18080/health', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
   # ---------- 笔记本（有 NVIDIA GPU）----------
   dev-laptop:
     <<: *base
     profiles: ["laptop"]
     container_name: gxu2026-nav-laptop
     shm_size: "1gb"
+    depends_on:
+      neupan-runtime:
+        condition: service_healthy
     environment:
       HOME: /tmp/home
       DISPLAY: ${DISPLAY:-:0}
@@ -93,6 +128,9 @@ services:
     <<: *base
     profiles: ["robot"]
     container_name: gxu2026-nav-robot
+    depends_on:
+      neupan-runtime:
+        condition: service_healthy
     # 实车不需要 GPU，但在你目前的配置下由于需要跑 Rviz，保留了 X11 挂载
     volumes:
       - ./ros_entrypoint.sh:/ros_entrypoint.sh:ro

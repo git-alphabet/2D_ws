@@ -32,7 +32,6 @@
   "runArgs": [
     "--network=host",
     "--privileged",
-    // NVIDIA GPU（仿真 + CUDA）
     "--gpus=all"
   ],
 
@@ -42,7 +41,8 @@
     "TERM": "xterm-256color",
     "QT_X11_NO_MITSHM": "1",
     "NVIDIA_VISIBLE_DEVICES": "all",
-    "NVIDIA_DRIVER_CAPABILITIES": "graphics,compute,display,utility"
+    "NVIDIA_DRIVER_CAPABILITIES": "graphics,compute,display,utility",
+    "__GLX_VENDOR_LIBRARY_NAME": "nvidia"
   },
 
   // ---------- 容器启动后自动执行 ----------
@@ -58,7 +58,7 @@
         // C++ IntelliSense（容器内的编译器/头文件）
         "ms-vscode.cpptools",
         "ms-vscode.cmake-tools",
-        // Python（NeuPAN venv）
+        // Python
         "ms-python.python",
         "ms-python.pylance",
         // 容器工具
@@ -67,8 +67,8 @@
         "xaver.clang-format"
       ],
       "settings": {
-        // 指向 neupan venv（容器内预置，已烘焙进镜像，无需再跑 setup_neupan_env.sh）
-        "python.defaultInterpreterPath": "/ws/neupan_env/bin/python3",
+        // Use ROS container default Python (3.10).
+        "python.defaultInterpreterPath": "/usr/bin/python3",
         // ROS 工作空间
         "ros.distro": "humble",
         // Container Tools：让侧边栏识别构建用 compose 文件

@@ -1,5 +1,5 @@
 <class_libraries>
-    <library path="nav2_neupan_controller">
+    <library path="neupan_nav2_controller">
         <class type="nav2_neupan_controller::NeuPANController" base_class_type="nav2_core::Controller">
             <description>
                 NeuPAN Neural Path Planning Controller Plugin for Navigation2.

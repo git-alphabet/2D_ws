@@ -16,75 +16,65 @@
 #define NAV2_NEUPAN_CONTROLLER__PYTHON_BRIDGE_HPP_
 
 #include <array>
+#include <cstddef>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "Python.h"
 #include "nav2_neupan_controller/neupan_types.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/logger.hpp"
 
+namespace Json
+{
+class Value;
+}
+
 namespace nav2_neupan_controller
 {
 
-// All Python C API interaction is funneled through this class.
-// Every public method acquires the GIL internally; callers need not manage it.
+// 与独立 neupan-runtime 容器通信的桥接层。
 class PythonBridge
 {
 public:
   explicit PythonBridge(const rclcpp::Logger & logger);
-  ~PythonBridge();
+  ~PythonBridge() = default;
 
-  // Initialise Python interpreter and create the NeuPAN instance.
   bool initialize(const std::string & config_path, const std::string & dune_model_path);
   void cleanup();
 
   bool isInitialized() const { return initialized_; }
   const RobotInfo & robotInfo() const { return robot_info_; }
 
-  // Call neupan.forward(state, obstacles, None).
-  // Returns false only on hard failure; stop/arrive flags are inside PlannerOutput.
   bool callForward(
     const std::array<double, 3> & robot_state,
     const std::vector<std::pair<double, double>> & obstacles, const std::string & robot_type,
     PlannerOutput & output);
 
-  // Call neupan.reset() — invoke on every new plan.
   bool callReset();
-
-  // Convert Nav2 path to NeuPAN waypoint list and call set_initial_path().
   bool setInitialPath(const std::vector<NeuPANWaypoint> & path);
-
-  // Call neupan.update_initial_path_from_goal(start, goal) — recover from early arrive.
   bool updatePathFromGoal(const std::array<double, 3> & start, const std::array<double, 3> & goal);
 
 private:
-  // RAII GIL guard — acquire on construction, release on destruction.
-  struct GILGuard
-  {
-    PyGILState_STATE state;
-    GILGuard() { state = PyGILState_Ensure(); }
-    ~GILGuard() { PyGILState_Release(state); }
-  };
-
-  bool initNumpy();
-  bool loadRobotInfo();
+  bool postJson(const std::string & endpoint, const std::string & body, std::string & response);
+  bool parseOkResponse(const std::string & response, Json::Value & root, std::string & error_msg) const;
 
   void decodeAction(
-    PyObject * action, const std::string & robot_type, geometry_msgs::msg::Twist & cmd_vel);
-  void extractVisualizationData(PyObject * info_dict, PlannerOutput & output);
+    const Json::Value & action_json, const std::string & robot_type,
+    geometry_msgs::msg::Twist & cmd_vel);
 
-  // Data extraction helpers — must be called under the GIL.
-  static std::vector<std::array<double, 3>> extractStateList(PyObject * py_list);
-  static std::vector<std::array<double, 3>> extractStateArray(PyObject * py_array);
-  static std::vector<std::pair<double, double>> extractPointCloud(PyObject * py_array);
-  static PyObject * makeStateArray(double x, double y, double theta);
+  static std::vector<std::array<double, 3>> parseStates(const Json::Value & states_json);
+  static std::vector<std::pair<double, double>> parsePoints(const Json::Value & points_json);
+  static std::vector<double> extractNumbers(const Json::Value & value);
+  static std::string trim(const std::string & value);
+
+  static size_t writeCallback(void * contents, size_t size, size_t nmemb, void * userp);
 
   rclcpp::Logger logger_;
-  PyObject * neupan_instance_{nullptr};
   bool initialized_{false};
   RobotInfo robot_info_;
+  std::string service_url_;
+  long timeout_ms_{500};
 };
 
 }  // namespace nav2_neupan_controller

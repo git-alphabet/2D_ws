@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(nav2_neupan_controller)
+project(neupan_nav2_controller)
 
 ## Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -17,13 +17,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 #######################
 
 find_package(ament_cmake_auto REQUIRED)
-find_package(Python3 REQUIRED COMPONENTS Development)
-execute_process(
-  COMMAND ${Python3_EXECUTABLE} -c "import numpy; print(numpy.get_include())"
-  OUTPUT_VARIABLE NumPy_INCLUDE_DIR
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-  ERROR_QUIET
-)
+find_package(CURL REQUIRED)
 ament_auto_find_build_dependencies()
 
 ###########
@@ -34,11 +28,10 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
   DIRECTORY src
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC
-  ${Python3_INCLUDE_DIRS}
-  ${NumPy_INCLUDE_DIR}
+target_link_libraries(${PROJECT_NAME}
+  CURL::libcurl
+  jsoncpp
 )
-target_link_libraries(${PROJECT_NAME} ${Python3_LIBRARIES})
 
 #############
 ## Testing ##
@@ -56,7 +49,7 @@ endif()
 ## Install ##
 #############
 
-pluginlib_export_plugin_description_file(nav2_core nav2_neupan_controller.xml)
+pluginlib_export_plugin_description_file(nav2_core neupan_nav2_controller.xml)
 
 ament_auto_package(
   USE_SCOPED_HEADER_INSTALL_DIR
