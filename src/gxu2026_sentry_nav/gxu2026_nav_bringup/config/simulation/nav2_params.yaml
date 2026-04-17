@@ -112,12 +112,12 @@ pb_controller_profiles:
       use_interpolation: false
       use_rotate_to_heading: false
       use_rotate_to_heading_treshold: 0.1
-      min_approach_linear_velocity: 0.1
+      min_approach_linear_velocity: 0.5
       approach_velocity_scaling_dist: 1.0
-      v_linear_min: -0.3
-      v_linear_max: 0.3
-      v_angular_min: -0.5
-      v_angular_max: 0.5
+      v_linear_min: -2.5
+      v_linear_max: 2.5
+      v_angular_min: -3.0
+      v_angular_max: 3.0
       curvature_min: 0.4
       curvature_max: 0.7
       reduction_ratio_at_high_curvature: 0.5
@@ -886,10 +886,10 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: False
     feedback: "OPEN_LOOP"
-    max_velocity: [0.3, 0.3, 0.5]
-    min_velocity: [-0.3, -0.3, -0.5]
-    max_accel: [0.5, 0.5, 1.0]
-    max_decel: [-0.5, -0.5, -1.0]
+    max_velocity: [2.5, 2.5, 3.0]
+    min_velocity: [-2.5, -2.5, -3.0]
+    max_accel: [4.5, 4.5, 5.0]
+    max_decel: [-4.5, -4.5, -5.0]
     odom_topic: "odometry"
     odom_duration: 0.1
     deadband_velocity: [0.0, 0.0, 0.0]

@@ -21,12 +21,10 @@ BT::NodeStatus IsAtGoalCondition::tick()
   double dist = std::hypot(gx - px, gy - py);
   bool at_goal = dist < radius;
 
-  // 仅在状态变化时打印一次
-  static bool last_at_goal = false;
-  static bool first_print = true;
-  if (first_print || at_goal != last_at_goal) {
-    first_print = false;
-    last_at_goal = at_goal;
+  // 仅在本节点实例的状态变化时打印一次
+  if (first_print_ || at_goal != last_at_goal_) {
+    first_print_ = false;
+    last_at_goal_ = at_goal;
     std::cout << "[IsAtGoal:" << name() << "] pose=(" << px << "," << py
               << ") goal=(" << gx << "," << gy
               << ") dist=" << dist << " radius=" << radius

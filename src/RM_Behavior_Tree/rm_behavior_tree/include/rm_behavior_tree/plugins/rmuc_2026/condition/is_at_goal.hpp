@@ -22,6 +22,10 @@ public:
       BT::InputPort<double>("arrive_radius", "0.35", "arrive_radius")};
   }
   BT::NodeStatus tick() override;
+
+private:
+  bool last_at_goal_{false};
+  bool first_print_{true};
 };
 }  // namespace rm_behavior_tree
 #endif

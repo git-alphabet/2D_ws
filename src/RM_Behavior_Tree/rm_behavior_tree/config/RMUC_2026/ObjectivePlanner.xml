@@ -3,18 +3,8 @@
 
     <BehaviorTree ID="ObjectivePlanner">
         <ReactiveSequence>
-            <!-- 姿态选择：到达目标点→防御(2)，导航中→移动(3) -->
-            <ReactiveFallback>
-                <Sequence>
-                    <ScriptCondition code="is_at_nav_goal == true"/>
-                    <SelectPosture posture_value="2"
-                                   posture_out="{cmd.posture}"
-                                   is_allow_select_posture="{cmd.allow_posture_send}"/>
-                </Sequence>
-                <SelectPosture posture_value="3"
-                               posture_out="{cmd.posture}"
-                               is_allow_select_posture="{cmd.allow_posture_send}"/>
-            </ReactiveFallback>
+            <!-- 姿态由全局 DefaultPosture (rmuc_2026.xml) 统一管理：
+                 到达任意导航目标→防御(2)，导航中→移动(3) -->
 
             <!-- 选择战略目标 (中心高地 / 梯形高地) -->
             <SelectObjective pose_x="{pose.x}" pose_y="{pose.y}"
@@ -37,7 +27,7 @@
                              patrol_enable="{cfg.patrol_enable}"
                              patrol_waypoints="{cfg.patrol_waypoints}"
                              patrol_hold_ms="{cfg.patrol_hold_ms}"
-                             arrive_radius="{cfg.arrive_radius}"
+                             arrive_radius="0.3"
                              goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"/>
 
             <!-- 发送导航目标给 Nav2（RateController 限制重发频率） -->

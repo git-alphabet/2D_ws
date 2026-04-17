@@ -45,7 +45,7 @@
                         <Sequence>
                             <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
                                       goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
-                                      arrive_radius="{cfg.arrive_radius}"/>
+                                      arrive_radius="0.5"/>
                             <RmucRobotControl stop_gimbal_scan="False"
                                               chassis_spin="False"/>
                         </Sequence>
@@ -94,7 +94,7 @@
                         </Inverter>
                         <!-- 当前 Nav2 目标 = 补给区 → 放行（无视敌人，继续导航回家） -->
                         <IsNavTargetSupply goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
-                                     arrive_radius="{cfg.arrive_radius}"/>
+                                     arrive_radius="0.5"/>
                         <!-- 有敌人 + 目标不是补给区 → 切攻击姿态 + 取消导航 + 阻塞 -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="EnemyHold"/>
@@ -105,6 +105,22 @@
                             <RmucNavControlCmd cmd_type="3" emergency_stop="False"/>
                             <KeepRunning/>
                         </Sequence>
+                    </ReactiveFallback>
+
+                    <!-- ═══ 全局默认姿态：Nav2到达目标→防御(2)，导航中→移动(3) ═══
+                         使用 Nav2 官方到达状态 is_at_nav_goal，不受底盘旋转位姿抖动影响
+                         姿态可被下方战术子树覆写（如 BaseDefense→1）
+                         注：EnemyDetectionGuard 已在上方确认无敌人 -->
+                    <ReactiveFallback name="DefaultPosture">
+                        <Sequence>
+                            <ScriptCondition code="is_at_nav_goal == true"/>
+                            <SelectPosture posture_value="2"
+                                           posture_out="{cmd.posture}"
+                                           is_allow_select_posture="{cmd.allow_posture_send}"/>
+                        </Sequence>
+                        <SelectPosture posture_value="3"
+                                       posture_out="{cmd.posture}"
+                                       is_allow_select_posture="{cmd.allow_posture_send}"/>
                     </ReactiveFallback>
 
                     <!-- 基于优先级的战术（仅在生存无忧 + 无敌人时 tick） -->

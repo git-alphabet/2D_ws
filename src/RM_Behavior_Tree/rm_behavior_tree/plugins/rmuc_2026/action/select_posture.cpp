@@ -27,6 +27,7 @@ BT::NodeStatus SelectPostureAction::tick()
     initialized_ = true;
     setOutput("posture_out", active_posture_);
     setOutput("is_allow_select_posture", true);
+    std::cout << "[SelectPosture:" << name() << "] 初始化 → posture=" << active_posture_ << std::endl;
     return BT::NodeStatus::SUCCESS;
   }
 
@@ -47,10 +48,15 @@ BT::NodeStatus SelectPostureAction::tick()
     last_switch_time_ = now;
     setOutput("posture_out", active_posture_);
     setOutput("is_allow_select_posture", true);
+    std::cout << "[SelectPosture:" << name() << "] 切换 → posture=" << active_posture_
+              << " (cooldown " << elapsed_ms << "ms)" << std::endl;
   } else {
     // 冷却中，拒绝切换，保持当前姿态，不允许发送新指令
     setOutput("posture_out", active_posture_);
     setOutput("is_allow_select_posture", false);
+    std::cout << "[SelectPosture:" << name() << "] 冷却中拒绝切换 desired="
+              << desired << " active=" << active_posture_
+              << " remain=" << (kCooldownMs - elapsed_ms) << "ms" << std::endl;
   }
 
   return BT::NodeStatus::SUCCESS;

@@ -51,7 +51,6 @@ BT::NodeStatus InitSentryConfigAction::tick()
     setOutput(key, v);
   };
 
-  setDouble("arrive_radius", 0.3);
   setDouble("base_defense_arrive_radius", 3.5);
   setDouble("enemy_near_base_radius", 2.0);
 

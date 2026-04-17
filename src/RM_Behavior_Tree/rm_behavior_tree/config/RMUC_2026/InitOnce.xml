@@ -21,7 +21,6 @@
                 central_highland_left_x="{cfg.central_highland_left_x}" central_highland_left_y="{cfg.central_highland_left_y}"
                 ramp_jump_x="{cfg.ramp_jump_x}" ramp_jump_y="{cfg.ramp_jump_y}"
 
-                arrive_radius="{cfg.arrive_radius}"
                 base_defense_arrive_radius="{cfg.base_defense_arrive_radius}"
                 hp_low="{cfg.hp_low}"
                 hp_safe="{cfg.hp_safe}"
