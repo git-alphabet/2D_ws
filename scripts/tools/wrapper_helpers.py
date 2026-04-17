@@ -415,6 +415,15 @@ def build_base_env(cfg: CommonConfig) -> str:
     parts.append(f"export ROS_HOME={shlex.quote(str(ros_home))}")
     parts.append('mkdir -p "${ROS_HOME}"')
 
+    wrapper_tz = os.environ.get("WRAPPER_TZ", "").strip() or "Asia/Shanghai"
+    parts.append(f"export TZ={shlex.quote(wrapper_tz)}")
+
+    odin_driver_source_dir = cfg.ws_dir / "src/odin_ros_driver"
+    if odin_driver_source_dir.is_dir():
+        parts.append(
+            f"export ODIN_ROS_DRIVER_SOURCE_DIR={shlex.quote(str(odin_driver_source_dir))}"
+        )
+
     if cfg.rcutils_logging_severity:
         parts.append(f"export RCUTILS_LOGGING_SEVERITY={shlex.quote(cfg.rcutils_logging_severity)}")
 

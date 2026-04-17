@@ -18,6 +18,9 @@ pb_navigation_switches:
     behavior_tree: "none"
     enable_mid360_costmap_additive: "auto"   # auto: odin1 实车默认启用 mid360 分支，但无 mid360 数据时不会产生有效输出
     enable_odin1_loam_reframe: true           # 开启后由 loam_interface 把 odin1 里程计重组为 odom/lidar_frame 语义输出（lidar_odometry）
+    # 驱动外坐标对齐：用于承接原先在 odin_ros_driver 里的 x'=-y, y'=x 对齐逻辑。
+    # auto: 启动时自动检测驱动是否已内置对齐；旧驱动自动开启外部对齐，新驱动自动关闭避免重复旋转。
+    enable_odin1_external_axis_alignment: "auto"
     robot_description_file: "gxu2026_sentry_robot"  # 机器人描述文件基名：对应 gxu2026_robot_description/resource/xmacro/<name>.sdf.xmacro
 
     # 地形分析输入源（这里需要整理）：
@@ -146,6 +149,8 @@ loam_interface:
     # - lidar_odom: 输入点云在 lidar_odom 语义，需要变换到 odom
     # - odom: 输入点云已是 odom 语义（如 odin1/cloud_slam）
     input_cloud_semantics: "lidar_odom"
+    # 驱动外坐标对齐：x'=-y, y'=x, z'=z；四元数按同一基变换处理。
+    align_odin_axes: false
     # true: 只缓存一次 base->lidar（适合固定安装）
     # false: 每帧按时间戳更新 base->lidar（适合 front_odin1 挂在 gimbal_yaw 的动态外参）
     freeze_base_to_lidar_tf: true
@@ -660,40 +665,3 @@ lifecycle_manager_navigation:
   ros__parameters:
     bond_timeout: 8.0
     attempt_respawn_reconnection: true
-
-# 手柄遥控：auto/manual 控制模式切换
-teleop_twist_joy_node:
-  ros__parameters:
-    use_sim_time: False
-    robot_base_frame: gimbal_yaw_fake
-    control_mode: auto_control    # Option: auto_control, manual_control
-
-    require_enable_button: true
-    enable_button: 4              # L1 shoulder button
-    enable_turbo_button: 5        # R1 shoulder button
-
-    axis_chassis:
-      x: 1                        # Left thumb stick vertical
-      y: 0                        # Left thumb stick horizontal
-      yaw: 6                      # button_left and button_right
-    scale_chassis:
-      x: 2.5
-      y: 2.5
-      yaw: 3.0
-    scale_chassis_turbo:
-      x: 4.0
-      y: 4.0
-      yaw: 6.0
-
-    axis_gimbal:
-      roll: -1                    # Disable
-      pitch: 4                    # Right thumb stick vertical
-      yaw: 3                      # Right thumb stick horizontal
-    scale_gimbal:
-      roll: 0.0
-      pitch: -1.0
-      yaw: 2.5
-    scale_gimbal_turbo:
-      roll: 0.0
-      pitch: -1.5
-      yaw: 3.5

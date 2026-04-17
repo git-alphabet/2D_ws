@@ -57,11 +57,13 @@ private:
   std::string base_frame_;
   std::string input_odom_semantics_;
   std::string input_cloud_semantics_;
+  bool align_odin_axes_;
   bool freeze_base_to_lidar_tf_;
   double tf_lookup_timeout_sec_;
 
   bool base_frame_to_lidar_initialized_;
   tf2::Transform tf_base_frame_to_lidar_;
+  tf2::Transform tf_odin_axes_alignment_;
 };
 
 }  // namespace loam_interface

@@ -18,6 +18,7 @@
 #include <cctype>
 
 #include "pcl_ros/transforms.hpp"
+#include "tf2/LinearMath/Quaternion.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 namespace loam_interface
@@ -95,6 +96,7 @@ LoamInterfaceNode::LoamInterfaceNode(const rclcpp::NodeOptions & options)
   this->declare_parameter<std::string>("lidar_frame", "");
   this->declare_parameter<std::string>("input_odom_semantics", "lidar_odom_to_lidar");
   this->declare_parameter<std::string>("input_cloud_semantics", "lidar_odom");
+  this->declare_parameter<bool>("align_odin_axes", false);
   this->declare_parameter<bool>("freeze_base_to_lidar_tf", true);
   this->declare_parameter<double>("tf_lookup_timeout_sec", 0.2);
 
@@ -105,6 +107,7 @@ LoamInterfaceNode::LoamInterfaceNode(const rclcpp::NodeOptions & options)
   this->get_parameter("lidar_frame", lidar_frame_);
   this->get_parameter("input_odom_semantics", input_odom_semantics_);
   this->get_parameter("input_cloud_semantics", input_cloud_semantics_);
+  this->get_parameter("align_odin_axes", align_odin_axes_);
   this->get_parameter("freeze_base_to_lidar_tf", freeze_base_to_lidar_tf_);
   this->get_parameter("tf_lookup_timeout_sec", tf_lookup_timeout_sec_);
 
@@ -128,6 +131,10 @@ LoamInterfaceNode::LoamInterfaceNode(const rclcpp::NodeOptions & options)
   }
 
   base_frame_to_lidar_initialized_ = false;
+  tf_odin_axes_alignment_.setOrigin(tf2::Vector3(0.0, 0.0, 0.0));
+  tf2::Quaternion odin_basis_q;
+  odin_basis_q.setRPY(0.0, 0.0, 1.5707963267948966);
+  tf_odin_axes_alignment_.setRotation(odin_basis_q);
 
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_, this);
@@ -144,9 +151,10 @@ LoamInterfaceNode::LoamInterfaceNode(const rclcpp::NodeOptions & options)
 
   RCLCPP_INFO(
     this->get_logger(),
-    "loam_interface semantics: input_odom_semantics=%s, input_cloud_semantics=%s, freeze_base_to_lidar_tf=%s, tf_lookup_timeout_sec=%.3f",
+    "loam_interface semantics: input_odom_semantics=%s, input_cloud_semantics=%s, align_odin_axes=%s, freeze_base_to_lidar_tf=%s, tf_lookup_timeout_sec=%.3f",
     input_odom_semantics_.c_str(),
     input_cloud_semantics_.c_str(),
+    align_odin_axes_ ? "true" : "false",
     freeze_base_to_lidar_tf_ ? "true" : "false",
     tf_lookup_timeout_sec_);
 }
@@ -156,8 +164,13 @@ void LoamInterfaceNode::pointCloudCallback(const sensor_msgs::msg::PointCloud2::
   auto out = std::make_shared<sensor_msgs::msg::PointCloud2>();
 
   if (input_cloud_semantics_ == "odom") {
-    // odin1 cloud_slam already uses odom frame semantics; keep cloud untouched.
-    *out = *msg;
+    if (align_odin_axes_) {
+      // 外部对齐 Odin 坐标约定：x'=-y, y'=x, z'=z。
+      pcl_ros::transformPointCloud(msg->header.frame_id, tf_odin_axes_alignment_, *msg, *out);
+    } else {
+      // odin1 cloud_slam already uses odom frame semantics; keep cloud untouched.
+      *out = *msg;
+    }
     out->header.frame_id = odom_frame_;
   } else {
     const rclcpp::Time msg_stamp(msg->header.stamp);
@@ -198,6 +211,11 @@ void LoamInterfaceNode::odometryCallback(const nav_msgs::msg::Odometry::ConstSha
 
   tf2::Transform tf_input_odom_to_child;
   tf2::fromMsg(msg->pose.pose, tf_input_odom_to_child);
+
+  if (align_odin_axes_) {
+    tf_input_odom_to_child =
+      tf_odin_axes_alignment_ * tf_input_odom_to_child * tf_odin_axes_alignment_.inverse();
+  }
 
   tf2::Transform tf_odom_to_lidar;
   if (input_odom_semantics_ == "odom_to_base") {
