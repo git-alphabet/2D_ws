@@ -6,8 +6,9 @@ SCRIPT_NAME="$(basename "$0")"
 
 # 默认一键全停；如需改成只停 reality 或 sim，直接改这里。
 TARGET="all"
-CONTAINER_NAME="${DOCKER_CONTAINER:-gxu2026-nav-robot}"
 WS_IN_CONTAINER="${WS_IN_CONTAINER:-/ws}"
+# 容器外执行时自动检测这些容器（可用 DOCKER_CONTAINERS 覆盖，空格或逗号分隔）。
+CONTAINER_CANDIDATES="${DOCKER_CONTAINERS:-gxu2026-nav-laptop gxu2026-nav-robot gxu2026-neupan-runtime}"
 
 SIM_PGID_FILE="/tmp/ros2_nav_sim.pgid"
 REALITY_PGID_FILE="/tmp/ros2_nav_reality.pgid"
@@ -108,6 +109,30 @@ kill_reality() {
   kill_by_pattern 'component_container_isolated.*nav2_container' 'nav2_container'
 }
 
+stop_in_container() {
+  local container_name="$1"
+
+  log "stopping launch in container '$container_name' (target=$TARGET) ..."
+  if ! docker exec "$container_name" bash -lc "
+set -euo pipefail
+
+if [[ -f '$WS_IN_CONTAINER/scripts/stop_launch.sh' ]]; then
+  cd '$WS_IN_CONTAINER'
+  bash ./scripts/stop_launch.sh
+  exit 0
+fi
+
+echo '[stop_launch.sh] stop script not found in container, run fallback kill patterns.' >&2
+if command -v pkill >/dev/null 2>&1; then
+  pkill -f 'rm_navigation_(reality|simulation)_launch\\.py' 2>/dev/null || true
+  pkill -f 'bringup_sim\\.launch\\.py' 2>/dev/null || true
+  pkill -f 'component_container_isolated.*nav2_container' 2>/dev/null || true
+fi
+"; then
+    log "Warning: stop command in container '$container_name' exited non-zero; continue."
+  fi
+}
+
 # 容器内直接执行，容器外自动转发到目标容器。
 if [[ -f "/.dockerenv" ]]; then
   if [[ "$TARGET" == "all" || "$TARGET" == "reality" ]]; then
@@ -129,10 +154,27 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! docker ps --format '{{.Names}}' | grep -Fxq "$CONTAINER_NAME"; then
-  echo "[stop_launch.sh] container '$CONTAINER_NAME' is not running." >&2
+running_containers="$(docker ps --format '{{.Names}}' 2>/dev/null || true)"
+if [[ -z "$running_containers" ]]; then
+  echo "[stop_launch.sh] no running containers." >&2
   exit 1
 fi
 
-echo "[stop_launch.sh] stopping launch in container '$CONTAINER_NAME' (target=$TARGET) ..." >&2
-exec docker exec "$CONTAINER_NAME" bash -lc "cd '$WS_IN_CONTAINER' && ./scripts/stop_launch.sh"
+matched_containers=()
+for container_name in ${CONTAINER_CANDIDATES//,/ }; do
+  [[ -n "$container_name" ]] || continue
+  if grep -Fxq "$container_name" <<< "$running_containers"; then
+    matched_containers+=("$container_name")
+  fi
+done
+
+if [[ ${#matched_containers[@]} -eq 0 ]]; then
+  echo "[stop_launch.sh] none of target containers are running: ${CONTAINER_CANDIDATES}" >&2
+  exit 1
+fi
+
+for container_name in "${matched_containers[@]}"; do
+  stop_in_container "$container_name"
+done
+
+log "stop request finished in ${#matched_containers[@]} container(s)."
