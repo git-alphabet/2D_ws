@@ -31,7 +31,7 @@ BT::NodeStatus RmucIsZoneCardDetectedCondition::tick()
   } else if (zone == "TRAPEZOIDAL_HIGHLAND") {
     detected = rfid->rfid_ladder_highland;
   } else if (zone == "ENEMY_FORTRESS") {
-    detected = rfid->rfid_fortress_enemy;
+    detected = rfid->rfid_fortress_ally;
   }
 
   return detected ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;

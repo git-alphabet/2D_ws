@@ -201,13 +201,13 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
     const bool fired = (rd.shooter_heat > last_shooter_heat_);
     const bool took_damage = (rd.current_hp < last_current_hp_ && last_current_hp_ > 0);
 
-    if (fired || took_damage || rd.is_dead) {
+    if (fired || took_damage || rd.current_hp <= 0) {
       last_activity_ms_ = now_ms;
     }
     last_shooter_heat_ = rd.shooter_heat;
     last_current_hp_ = rd.current_hp;
 
-    const bool is_disengaged = (!rd.is_dead && now_ms > 0 &&
+    const bool is_disengaged = (rd.current_hp > 0 && now_ms > 0 &&
       (now_ms - last_activity_ms_) >= 6000);
     setOutput("is_disengaged", is_disengaged);
   } else {

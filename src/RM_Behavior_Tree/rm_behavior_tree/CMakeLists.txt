@@ -172,10 +172,6 @@ ament_auto_add_library(rmuc_sub_enemy_mark SHARED
     plugins/rmuc_2026/action/sub_enemy_mark.cpp)
 add_target_dependencies(rmuc_sub_enemy_mark)
 
-ament_auto_add_library(rmuc_sub_team_positions SHARED
-    plugins/rmuc_2026/action/sub_team_positions.cpp)
-add_target_dependencies(rmuc_sub_team_positions)
-
 ament_auto_add_library(rmuc_sub_team_hp SHARED
     plugins/rmuc_2026/action/sub_team_hp.cpp)
 add_target_dependencies(rmuc_sub_team_hp)

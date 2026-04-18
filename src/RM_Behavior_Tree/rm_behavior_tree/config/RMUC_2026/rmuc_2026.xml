@@ -49,11 +49,13 @@
                             <RmucRobotControl stop_gimbal_scan="False"
                                               chassis_spin="False"/>
                         </Sequence>
-                        <!-- 检测到敌人 OR Nav2导航完成 → 旋转 -->
+                        <!-- 检测到敌人 OR 到达当前导航目标 → 旋转 -->
                         <Sequence>
                             <Fallback>
                                 <RmucIsDetectEnemy message="{robot_status}"/>
-                                <ScriptCondition code="is_at_nav_goal == true"/>
+                                <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
+                                          goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                                          arrive_radius="{cfg.patrol_arrive_radius}"/>
                             </Fallback>
                             <RmucRobotControl stop_gimbal_scan="False"
                                               chassis_spin="True"/>
@@ -107,13 +109,15 @@
                         </Sequence>
                     </ReactiveFallback>
 
-                    <!-- ═══ 全局默认姿态：Nav2到达目标→防御(2)，导航中→移动(3) ═══
-                         使用 Nav2 官方到达状态 is_at_nav_goal，不受底盘旋转位姿抖动影响
+                    <!-- ═══ 全局默认姿态：到达当前导航目标→防御(2)，导航中→移动(3) ═══
+                         使用 IsAtGoal 几何距离判断，不依赖 Nav2 action 状态
                          姿态可被下方战术子树覆写（如 BaseDefense→1）
                          注：EnemyDetectionGuard 已在上方确认无敌人 -->
                     <ReactiveFallback name="DefaultPosture">
                         <Sequence>
-                            <ScriptCondition code="is_at_nav_goal == true"/>
+                            <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
+                                      goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                                      arrive_radius="{cfg.patrol_arrive_radius}"/>
                             <SelectPosture posture_value="2"
                                            posture_out="{cmd.posture}"
                                            is_allow_select_posture="{cmd.allow_posture_send}"/>

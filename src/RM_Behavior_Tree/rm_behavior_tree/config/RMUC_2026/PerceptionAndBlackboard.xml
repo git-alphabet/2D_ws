@@ -13,8 +13,7 @@
             <RmucSubRobotPosition topic_name="robot_position"
                                   pose_x="{pose.x}"
                                   pose_y="{pose.y}"
-                                  pose_yaw="{pose.yaw}"
-                                  is_at_nav_goal="{is_at_nav_goal}"/>
+                                  pose_yaw="{pose.yaw}"/>
             <SubRadarTracks topic_name="radar/enemy_tracks"
                             radar_tracks="{radar_tracks}"/>
 
@@ -29,10 +28,6 @@
                                 field_status="{field_status}"/>
             <RmucSubEnemyMark topic_name="enemy_mark"
                               enemy_mark="{enemy_mark}"/>
-            <!-- [幽灵端口] team_positions 黑板键从未被任何 BT 节点消费，暂时禁用
-            <RmucSubTeamPositions topic_name="team_positions"
-                                  team_positions="{team_positions}"/>
-            -->
             <RmucSubTeamHP topic_name="team_hp"
                            team_hp="{team_hp}"/>
 

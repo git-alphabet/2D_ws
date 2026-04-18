@@ -107,10 +107,6 @@ int main(int argc, char ** argv)
   params_enemy_mark.nh = std::make_shared<rclcpp::Node>("rmuc_enemy_mark_io");
   params_enemy_mark.default_port_value = "enemy_mark";
 
-  BT::RosNodeParams params_team_positions;
-  params_team_positions.nh = std::make_shared<rclcpp::Node>("rmuc_team_positions_io");
-  params_team_positions.default_port_value = "team_positions";
-
   BT::RosNodeParams params_team_hp;
   params_team_hp.nh = std::make_shared<rclcpp::Node>("rmuc_team_hp_io");
   params_team_hp.default_port_value = "team_hp";
@@ -163,7 +159,6 @@ int main(int argc, char ** argv)
   regRos("rmuc_sub_projectile_allowance",       params_projectile_allowance);
   regRos("rmuc_sub_field_status",               params_field_status);
   regRos("rmuc_sub_enemy_mark",                 params_enemy_mark);
-  regRos("rmuc_sub_team_positions",             params_team_positions);
   regRos("rmuc_sub_team_hp",                    params_team_hp);
 
   // ── F. 发布者：sentry_cmd (/sentry_cmd → RMUCSentryCmd) ──
@@ -186,6 +181,12 @@ int main(int argc, char ** argv)
   // ── K. SendGoal (PoseStamped，非 RMUC 消息) ──
   regRos("send_goal",                           params_send_goal);
 
+  // ── K2. IsAtGoal (需要订阅 global_costmap/costmap 做视线检查) ──
+  BT::RosNodeParams params_costmap;
+  params_costmap.nh = std::make_shared<rclcpp::Node>("is_at_goal_costmap_io");
+  params_costmap.default_port_value = "global_costmap/costmap";
+  regRos("rmuc_is_at_goal",                     params_costmap);
+
   // ── L. RMUC 纯 BT 插件（无需 ROS 参数，通过黑板获取数据） ──
   // 动作
   regBT("rmuc_init_sentry_config");
@@ -207,7 +208,7 @@ int main(int argc, char ** argv)
   regBT("rmuc_is_dead");
   regBT("rmuc_is_game_time");
   regBT("rmuc_is_hp_below");
-  regBT("rmuc_is_at_goal");
+  // rmuc_is_at_goal 已移至 K2（需要 costmap 订阅）
   regBT("rmuc_is_zone_card_detected");
   regBT("rmuc_is_base_threatened");
   regBT("rmuc_is_combat_allowed");

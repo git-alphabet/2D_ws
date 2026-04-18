@@ -56,15 +56,15 @@ rmuc_sentry_config:
   hp_low: 120                    # 低血量阈值 (触发 LowHPRetreat 撤退回补给区)
   hp_safe: 280                   # 安全血量阈值 (HoldAndHeal 回血目标)
   heat_high: 210                 # 高热量阈值 (限制开火)
-  ammo_low: 80                   # 低弹药阈值 (触发 AmmoPlan) 即低于多少弹药量的时候需要去补给
+  ammo_low: 40                   # 低弹药阈值 (触发 AmmoPlan) 即低于多少弹药量的时候需要去补给
   ammo_target: 300               # 目标弹药量 (AmmoPlan 补给目标) 即在增益点补充到多少才停
   allow_ammo_max: 400            # 允许发弹量上限 (防止无限累加)
   ammo_increase_interval_ms: 1000 # 允许弹量每次累加的最小间隔 (毫秒, 防止瞬间拉满)
 
   # ─────────── 导航参数 ───────────
-  # 姿态到达判定使用 Nav2 官方 is_at_nav_goal，以下为空间范围判定参数
+  # 所有到达判定使用 IsAtGoal 几何距离判断
   supply_zone_radius: 0.5        # 补给区空间判定半径 (米) — GlobalRobotControl / LowHPRetreat / IsNavTargetSupply / AmmoPlan 共用
-  patrol_arrive_radius: 0.3      # 巡逻点切换判定半径 (米) — ObjectivePatrol 专用
+  patrol_arrive_radius: 0.3      # 巡逻/默认姿态到达判定半径 (米) — ObjectivePatrol / DefaultPosture / GlobalRobotControl 共用
 
   # ─────────── 基地防御参数 ───────────
   base_defense_arrive_radius: 3.5 # 基地防御停车对抗判定半径 (米) — BaseDefense 专用

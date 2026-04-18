@@ -23,7 +23,6 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from tf2_ros import Buffer, TransformListener
-from action_msgs.msg import GoalStatusArray, GoalStatus
 from sp_msgs.msg import RMUCRobotPosition
 
 
@@ -34,43 +33,22 @@ class RobotPositionBridge(Node):
         self.declare_parameter('publish_rate', 50.0)
         self.declare_parameter('map_frame', 'map')
         self.declare_parameter('base_frame', 'base_footprint')
-        self.declare_parameter('nav_action', 'navigate_to_pose')
 
         rate = self.get_parameter('publish_rate').value
         self.map_frame = self.get_parameter('map_frame').value
         self.base_frame = self.get_parameter('base_frame').value
-        nav_action = self.get_parameter('nav_action').value
 
         # TF
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
-        # Nav2 action status → 判断 is_at_nav_goal
-        self.is_at_nav_goal = True
-        qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE)
-        self.status_sub = self.create_subscription(
-            GoalStatusArray,
-            f'{nav_action}/_action/status',
-            self._status_cb,
-            qos)
-
         # 发布 robot_position (相对话题名，跟随 namespace)
+        qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE)
         self.pub = self.create_publisher(RMUCRobotPosition, 'robot_position', qos)
 
         self.timer = self.create_timer(1.0 / rate, self._timer_cb)
         self.get_logger().info(
-            f'[Bridge] TF: {self.map_frame} → {self.base_frame} | '
-            f'Nav2: {nav_action} | rate: {rate} Hz')
-
-    def _status_cb(self, msg: GoalStatusArray):
-        if not msg.status_list:
-            self.is_at_nav_goal = True
-            return
-        latest = msg.status_list[-1]
-        if latest.status in (GoalStatus.STATUS_EXECUTING, GoalStatus.STATUS_ACCEPTED):
-            self.is_at_nav_goal = False
-        else:
-            self.is_at_nav_goal = True
+            f'[Bridge] TF: {self.map_frame} → {self.base_frame} | rate: {rate} Hz')
 
     def _timer_cb(self):
         try:
@@ -90,7 +68,6 @@ class RobotPositionBridge(Node):
         msg.pose_x = float(t.transform.translation.x)
         msg.pose_y = float(t.transform.translation.y)
         msg.pose_yaw = float(yaw)
-        msg.is_at_nav_goal = self.is_at_nav_goal
         self.pub.publish(msg)
 
 

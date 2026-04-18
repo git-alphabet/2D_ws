@@ -27,7 +27,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/RMUC/RMUCSentryCmd.msg"
   "msg/RMUC/RMUCSentryDecisionStatus.msg"
   "msg/RMUC/RMUCTeamHP.msg"
-  "msg/RMUC/RMUCTeamPositions.msg"
   DEPENDENCIES std_msgs
 )
 

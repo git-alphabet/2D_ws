@@ -19,8 +19,8 @@ uint16 shooter_heat          # 当前枪口热量
 uint16 ammo_allow            # 剩余允许发弹量
 uint16 ammo_left             # 物理剩余弹丸数
 
-# ── 机器人状态标志 ──
-bool    is_dead              # 是否战亡
+# ── 状态说明 ──
+# 注意: is_dead 不是裁判系统协议字段，由 BT (ParseSentryBlackboard) 根据 current_hp <= 0 计算。
 # 注意: 脱战状态(is_disengaged)不是裁判系统协议字段，
 # 由 ParseSentryBlackboard 根据 shooter_heat 和 current_hp 变化自行计算。
 # 规则: 存活状态下连续 6 秒未发射弹丸且未被扣血 = 脱战。

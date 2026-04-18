@@ -23,9 +23,8 @@ RMUC 2026 裁判系统话题模拟器
   --ns       命名空间 (默认为空，裁判系统话题不带ns)
   --phase    比赛阶段 (0-5, 默认 4=比赛中)
   --remain   赛阶段剩余时间，秒 (默认 300)
-  --hp       当前血量 (默认 400)
+  --hp       当前血量 (默认 400，设为 0 模拟战亡)
   --ammo     允许发弹量 (默认 200)
-  --dead     是否战亡 (默认 false)
   --outpost-dead  前哨站是否被毁 (不加=存活)
   --detect-enemy  云台是否检测到敌人 (不加=未检测，用于基地威胁解除判定)
   --base-hp       基地当前血量 (默认 5000)
@@ -62,7 +61,6 @@ from sp_msgs.msg import (
     RMUCFieldStatus,
     RMUCEnemyMark,
     RMUCEnemyTracks,
-    RMUCTeamPositions,
     RMUCTeamHP,
     RMUCSentryCmd,
 )
@@ -89,7 +87,6 @@ class RmucTestPublisher(Node):
         )
         self.pub_field = self.create_publisher(RMUCFieldStatus, "field_status", 10)
         self.pub_enemy_mark = self.create_publisher(RMUCEnemyMark, "enemy_mark", 10)
-        self.pub_team_pos = self.create_publisher(RMUCTeamPositions, "team_positions", 10)
         self.pub_team_hp = self.create_publisher(RMUCTeamHP, "team_hp", 10)
 
         # ── 雷达敌方跟踪 (用于模拟基地威胁进入条件) ──
@@ -116,7 +113,7 @@ class RmucTestPublisher(Node):
 
         self.get_logger().info(
             f"RMUC 模拟器启动: phase={args.phase}, remain={args.remain}s, "
-            f"hp={args.hp}, ammo={args.ammo}, dead={args.dead}, "
+            f"hp={args.hp}, ammo={args.ammo}, "
             f"outpost_dead={args.outpost_dead}, detect_enemy={args.detect_enemy}, "
             f"base_hp={args.base_hp}, base_hp_drain={args.base_hp_drain}/s, "
             f"enemy_near_base={args.enemy_near_base}"
@@ -156,7 +153,6 @@ class RmucTestPublisher(Node):
         msg.shooter_heat = 30
         msg.ammo_allow = self.args.ammo
         msg.ammo_left = 300
-        msg.is_dead = self.args.dead
         msg.can_remote_heal = True
         msg.can_remote_ammo = True
         msg.team_coins = 800
@@ -224,7 +220,6 @@ class RmucTestPublisher(Node):
         self._pub_game_status()
         self._pub_rfid_status()
         self._pub_field_status()
-        self._pub_team_positions()
         self._pub_team_hp()
 
         # 倒计时 (模拟比赛中)
@@ -263,15 +258,6 @@ class RmucTestPublisher(Node):
         msg.base_buff = False
         self.pub_field.publish(msg)
 
-    def _pub_team_positions(self):
-        msg = RMUCTeamPositions()
-        msg.header = self._header()
-        msg.hero_x = 1.0
-        msg.hero_y = -1.0
-        msg.infantry3_x = 3.0
-        msg.infantry3_y = -2.0
-        self.pub_team_pos.publish(msg)
-
     def _pub_team_hp(self):
         msg = RMUCTeamHP()
         msg.header = self._header()
@@ -287,7 +273,6 @@ def main():
     parser.add_argument("--remain", type=int, default=420, help="阶段剩余时间 (秒)")
     parser.add_argument("--hp", type=int, default=400, help="当前血量")
     parser.add_argument("--ammo", type=int, default=300, help="允许发弹量")
-    parser.add_argument("--dead", action="store_true", help="是否战亡")
     parser.add_argument("--outpost-dead", action="store_true", help="前哨站被毁")
     parser.add_argument("--detect-enemy", action="store_true", help="检测到敌人")
     parser.add_argument("--base-hp", type=int, default=5000, help="基地当前血量 (默认5000)")
