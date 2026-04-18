@@ -15,22 +15,13 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
-      BT::InputPort<int>("hp_cur"),
-      BT::InputPort<int>("hp_max"),
       BT::InputPort<int>("ammo_allow"),
       BT::InputPort<int>("ammo_target"),
-      BT::InputPort<int>("ammo_low"),
-      BT::InputPort<bool>("is_disengaged", "false", "is_disengaged"),
-      BT::InputPort<bool>("can_remote_heal"),
-      BT::InputPort<bool>("can_remote_ammo"),
       BT::InputPort<int>("team_coins"),
-      BT::InputPort<int>("stage_remain_time"),
       BT::InputPort<int>("allow_ammo_max", 400, "允许发弹量上限"),
       BT::InputPort<int>("ammo_increase_interval_ms", 1000, "允许弹量累加最小间隔(ms)"),
       BT::InputPort<int>("allow_ammo_target_in"),
-      BT::OutputPort<int>("allow_ammo_target_out"),
-      BT::OutputPort<int>("trigger_remote_ammo"),
-      BT::OutputPort<int>("trigger_remote_hp")};
+      BT::OutputPort<int>("allow_ammo_target_out")};
   }
   BT::NodeStatus tick() override;
 

@@ -23,17 +23,10 @@ public:
       BT::InputPort<int>("confirm_respawn", "0", "confirm_respawn"),
       BT::InputPort<int>("confirm_instant_respawn", "0", "confirm_instant_respawn"),
       BT::InputPort<int>("allow_ammo_target", "0", "allow_ammo_target"),
-      BT::InputPort<int>("trigger_remote_ammo", "0", "trigger_remote_ammo"),
-      BT::InputPort<int>("trigger_remote_hp", "0", "trigger_remote_hp"),
       BT::BidirectionalPort<std::string>("cmd_state", "", "内部状态跟踪")};
   }
 
 private:
-  // 远程兑换计数器（单调递增，每次+1，4位上限 15）
-  uint8_t remote_ammo_count_ = 0;
-  uint8_t remote_hp_count_ = 0;
-  bool last_trig_ammo_ = false;
-  bool last_trig_hp_ = false;
 };
 }  // namespace rm_behavior_tree
 

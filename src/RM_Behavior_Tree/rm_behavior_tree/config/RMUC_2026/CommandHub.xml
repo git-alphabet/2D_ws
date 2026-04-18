@@ -7,22 +7,13 @@
                  SentryCmdMux 仅负责读取并发布 -->
 
             <!-- Decide remote exchange & allow-ammo target (monotonic target is maintained inside node) -->
-            <DecideEconomyCmd hp_cur="{hp.cur}"
-                              hp_max="{hp.max}"
-                              ammo_allow="{ammo.allow}"
+            <DecideEconomyCmd ammo_allow="{ammo.allow}"
                               ammo_target="{cfg.ammo_target}"
-                              ammo_low="{cfg.ammo_low}"
-                              is_disengaged="{state.disengaged}"
                               allow_ammo_max="{cfg.allow_ammo_max}"
                               ammo_increase_interval_ms="{cfg.ammo_increase_interval_ms}"
-                              can_remote_heal="{economy.can_remote_heal}"
-                              can_remote_ammo="{economy.can_remote_ammo}"
                               team_coins="{economy.remaining_coins}"
-                              stage_remain_time="{game.remain_s}"
                               allow_ammo_target_in="{cmd.allow_ammo_target}"
-                              allow_ammo_target_out="{cmd.allow_ammo_target}"
-                              trigger_remote_ammo="{cmd.trig_remote_ammo}"
-                              trigger_remote_hp="{cmd.trig_remote_hp}"/>
+                              allow_ammo_target_out="{cmd.allow_ammo_target}"/>
 
             <!-- Decide respawn confirm / instant respawn request (sends 0 when alive) -->
             <DecideRespawnCmd is_dead="{state.is_dead}"
@@ -46,8 +37,6 @@
                               confirm_respawn="{cmd.confirm_respawn}"
                               confirm_instant_respawn="{cmd.confirm_instant_respawn}"
                               allow_ammo_target="{cmd.allow_ammo_target}"
-                              trigger_remote_ammo="{cmd.trig_remote_ammo}"
-                              trigger_remote_hp="{cmd.trig_remote_hp}"
                               cmd_state="{cmd.state}"/>
             </RateController>
         </Sequence>
@@ -68,21 +57,13 @@
             <output_port name="final_posture" default="{cmd.final_posture}"/>
         </Action>
         <Action ID="DecideEconomyCmd" editable="true">
-            <input_port name="hp_cur" default="{hp.cur}"/>
-            <input_port name="hp_max" default="{hp.max}"/>
             <input_port name="ammo_allow" default="{ammo.allow}"/>
             <input_port name="ammo_target" default="{cfg.ammo_target}"/>
-            <input_port name="ammo_low" default="{cfg.ammo_low}"/>
             <input_port name="allow_ammo_max" default="{cfg.allow_ammo_max}"/>
             <input_port name="ammo_increase_interval_ms" default="{cfg.ammo_increase_interval_ms}"/>
-            <input_port name="can_remote_heal" default="{economy.can_remote_heal}"/>
-            <input_port name="can_remote_ammo" default="{economy.can_remote_ammo}"/>
             <input_port name="team_coins" default="{economy.remaining_coins}"/>
-            <input_port name="stage_remain_time" default="{game.remain_s}"/>
             <input_port name="allow_ammo_target_in" default="{cmd.allow_ammo_target}"/>
             <output_port name="allow_ammo_target_out" default="{cmd.allow_ammo_target}"/>
-            <output_port name="trigger_remote_ammo" default="{cmd.trig_remote_ammo}"/>
-            <output_port name="trigger_remote_hp" default="{cmd.trig_remote_hp}"/>
         </Action>
         <Action ID="DecideRespawnCmd" editable="true">
             <input_port name="is_dead" default="{state.is_dead}"/>
@@ -99,8 +80,6 @@
             <input_port name="confirm_respawn" default="0"/>
             <input_port name="confirm_instant_respawn" default="0"/>
             <input_port name="allow_ammo_target" default="{cmd.allow_ammo_target}"/>
-            <input_port name="trigger_remote_ammo" default="0"/>
-            <input_port name="trigger_remote_hp" default="0"/>
             <inout_port name="cmd_state" default="{cmd.state}"/>
         </Action>
         <Decorator ID="RateController" editable="true">

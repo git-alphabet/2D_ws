@@ -45,16 +45,12 @@ public:
 
       // ── outputs: RobotStatus 派生 ──
       BT::OutputPort<int>("hp_cur"),
-      BT::OutputPort<int>("hp_max"),
       BT::OutputPort<int>("heat_cur"),
       BT::OutputPort<int>("ammo_allow"),
-      BT::OutputPort<int>("ammo_left"),
       BT::OutputPort<int>("base_hp_cur"),
       BT::OutputPort<int>("base_hp_max"),
       BT::OutputPort<bool>("outpost_alive"),
       BT::OutputPort<bool>("is_dead"),
-      BT::OutputPort<bool>("can_remote_heal"),
-      BT::OutputPort<bool>("can_remote_ammo"),
       BT::OutputPort<bool>("has_target"),
 
       // ── outputs: SentryDecisionStatus 派生 ──

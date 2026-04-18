@@ -30,16 +30,12 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
   if (robot_ptr) {
     const auto & r = **robot_ptr;
     setOutput("hp_cur", static_cast<int>(r.current_hp));
-    setOutput("hp_max", static_cast<int>(r.max_hp));
     setOutput("heat_cur", static_cast<int>(r.shooter_heat));
     setOutput("ammo_allow", static_cast<int>(r.ammo_allow));
-    setOutput("ammo_left", static_cast<int>(r.ammo_left));
     setOutput("base_hp_cur", static_cast<int>(r.base_hp_cur));
     setOutput("base_hp_max", static_cast<int>(r.base_hp_max));
     setOutput("outpost_alive", r.outpost_alive);
     setOutput("is_dead", r.current_hp <= 0);
-    setOutput("can_remote_heal", r.can_remote_heal);
-    setOutput("can_remote_ammo", r.can_remote_ammo);
     setOutput("has_target", r.is_detect_enemy);
   }
 

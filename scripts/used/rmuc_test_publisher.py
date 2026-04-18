@@ -153,8 +153,6 @@ class RmucTestPublisher(Node):
         msg.shooter_heat = 30
         msg.ammo_allow = self.args.ammo
         msg.ammo_left = 300
-        msg.can_remote_heal = True
-        msg.can_remote_ammo = True
         msg.base_hp_cur = int(self.base_hp)
         msg.base_hp_max = 5000
         msg.outpost_alive = not self.args.outpost_dead
