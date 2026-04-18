@@ -188,6 +188,7 @@ class RmucTestPublisher(Node):
         msg = RMUCProjectileAllowance()
         msg.header = self._header()
         msg.fortress_ammo = 0
+        msg.remaining_coins = 800
         self.pub_projectile.publish(msg)
 
     def _pub_enemy_mark(self):

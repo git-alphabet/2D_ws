@@ -36,7 +36,7 @@ BT::NodeStatus DecidePostureAction::tick()
 {
   int hp = 400, hp_max = 400, heat = 0, heat_high = 210, elapsed = 0;
   bool has_target = false, base_threat = false;
-  int current_posture = 3, buff_cool = 0, buff_defense = 0, buff_vuln = 0, ammo = 300;
+  int current_posture = 3, buff_vuln = 0, ammo = 300;
   std::uint64_t now_ms = 0;
 
   getInput("hp_cur", hp);
@@ -48,8 +48,6 @@ BT::NodeStatus DecidePostureAction::tick()
   getInput("stage_elapsed_time", elapsed);
   getInput("now_ms", now_ms);
   getInput("current_posture", current_posture);
-  getInput("buff_cool_value", buff_cool);
-  getInput("buff_defense_pct", buff_defense);
   getInput("buff_vulnerability_pct", buff_vuln);
   getInput("ammo_allow", ammo);
 
@@ -63,8 +61,6 @@ BT::NodeStatus DecidePostureAction::tick()
   if (has_target)          score_attack += 35;           // 有目标
   if (hp_ratio > 0.5)      score_attack += 20;           // 血量健康
   else if (hp_ratio > 0.3) score_attack += 8;            // 血量尚可
-  if (buff_defense > 0)    score_attack += 15;           // 防御增益护体
-  if (buff_cool > 0)       score_attack += 12;           // 冷却增益增加DPS
   if (elapsed > 180)       score_attack += 18;           // 后半场争取发弹配额
   if (ammo <= 0)           score_attack = 0;             // 无弹药强制归零
 

@@ -68,16 +68,14 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
   auto buff = getInput<sp_msgs::msg::RMUCRobotBuff>("robot_buff");
   if (buff) {
     setOutput("buff_heal_rate", static_cast<int>(buff->heal_rate));
-    setOutput("buff_cool_value", static_cast<int>(buff->cool_value));
-    setOutput("buff_defense_pct", static_cast<int>(buff->defense_pct));
     setOutput("buff_vulnerability_pct", static_cast<int>(buff->vulnerability_pct));
-    setOutput("buff_attack_pct", static_cast<int>(buff->attack_pct));
   }
 
   // ── 弹丸配额 (ProjectileAllowance) ──
   auto pa = getInput<sp_msgs::msg::RMUCProjectileAllowance>("projectile_allowance");
   if (pa) {
     setOutput("fortress_ammo", static_cast<int>(pa->fortress_ammo));
+    setOutput("remaining_coins", static_cast<int>(pa->remaining_coins));
   }
 
   // ── 场地状态 (FieldStatus) ──

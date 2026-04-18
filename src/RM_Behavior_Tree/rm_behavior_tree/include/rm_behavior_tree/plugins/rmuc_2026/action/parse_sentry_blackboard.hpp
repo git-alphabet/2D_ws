@@ -73,13 +73,11 @@ public:
 
       // ── outputs: RobotBuff 派生 ──
       BT::OutputPort<int>("buff_heal_rate"),
-      BT::OutputPort<int>("buff_cool_value"),
-      BT::OutputPort<int>("buff_defense_pct"),
       BT::OutputPort<int>("buff_vulnerability_pct"),
-      BT::OutputPort<int>("buff_attack_pct"),
 
       // ── outputs: ProjectileAllowance 派生 ──
       BT::OutputPort<int>("fortress_ammo"),
+      BT::OutputPort<int>("remaining_coins"),
 
       // ── outputs: FieldStatus 派生 ──
       BT::OutputPort<int>("field_central_highland"),

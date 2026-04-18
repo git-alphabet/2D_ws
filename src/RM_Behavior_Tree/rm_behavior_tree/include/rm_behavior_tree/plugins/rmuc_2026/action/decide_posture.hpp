@@ -23,8 +23,6 @@ public:
       BT::InputPort<int>("stage_elapsed_time"),
       BT::InputPort<std::uint64_t>("now_ms"),
       BT::InputPort<int>("current_posture"),
-      BT::InputPort<int>("buff_cool_value"),
-      BT::InputPort<int>("buff_defense_pct"),
       BT::InputPort<int>("buff_vulnerability_pct"),
       BT::InputPort<int>("ammo_allow"),
       BT::OutputPort<int>("posture_out")};
