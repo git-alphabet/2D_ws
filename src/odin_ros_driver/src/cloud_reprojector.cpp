@@ -3,7 +3,7 @@ Copyright 2025 Manifold Tech Ltd.(www.manifoldtech.com.co)
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-   http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -90,16 +90,31 @@ cv::Mat CloudReprojector::projectCloudToImage(const pcl::PointCloud<pcl::PointXY
     cv::Mat img = cv::Mat::zeros(camera_params_.image_height, camera_params_.image_width, CV_8UC3);
     img.setTo(cv::Scalar(255, 255, 255));
 
+    const double fx = camera_model_->fx();
+    const double fy = camera_model_->fy();
+    const double cx = camera_model_->cx();
+    const double cy = camera_model_->cy();
+
     for (const auto& pt : cloud_in_cam)
     {
         if (pt.z <= 0.01)
             continue;
 
-        Eigen::Vector3d pt_cam(pt.x, pt.y, pt.z);
-        Eigen::Vector2d uv = camera_model_->world2cam(pt_cam);
-
-        int u_int = static_cast<int>(std::round(uv[0]));
-        int v_int = static_cast<int>(std::round(uv[1]));
+        int u_int, v_int;
+        if (1)
+        {
+            // Pinhole projection (undistorted image)
+            u_int = static_cast<int>(std::round(fx * pt.x / pt.z + cx));
+            v_int = static_cast<int>(std::round(fy * pt.y / pt.z + cy));
+        }
+        else
+        {
+            // Distorted projection (original image)
+            Eigen::Vector3d pt_cam(pt.x, pt.y, pt.z);
+            Eigen::Vector2d uv = camera_model_->world2cam(pt_cam);
+            u_int = static_cast<int>(std::round(uv[0]));
+            v_int = static_cast<int>(std::round(uv[1]));
+        }
 
         if (u_int >= 0 && u_int < camera_params_.image_width &&
             v_int >= 0 && v_int < camera_params_.image_height)

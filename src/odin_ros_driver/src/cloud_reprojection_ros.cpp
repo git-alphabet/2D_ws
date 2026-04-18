@@ -63,14 +63,16 @@ CloudReprojectionRosNode::CloudReprojectionRosNode(const rclcpp::NodeOptions& op
     RCLCPP_INFO_STREAM(this->get_logger(), 
         "\n  cloud_slam_topic: " << cloud_slam_topic_
         << "\n  odometry_topic: " << odometry_topic_
+        << "\n  wiwc_topic: " << wiwc_topic_
         << "\n  reprojected_image_topic: " << reprojected_image_topic_);
 
     cloud_sub_.subscribe(this, cloud_slam_topic_);
     odom_sub_.subscribe(this, odometry_topic_);
+    wiwc_sub_.subscribe(this, wiwc_topic_);
 
-    sync_ = std::make_shared<Sync>(MySyncPolicy(10), cloud_sub_, odom_sub_);
+    sync_ = std::make_shared<Sync>(MySyncPolicy(10), cloud_sub_, odom_sub_, wiwc_sub_);
     sync_->registerCallback(std::bind(&CloudReprojectionRosNode::syncCallback, this, 
-                                       std::placeholders::_1, std::placeholders::_2));
+                                       std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
     reprojected_image_pub_ = image_transport::create_publisher(this, reprojected_image_topic_);
 
@@ -82,10 +84,12 @@ void CloudReprojectionRosNode::loadParameters()
     // Declare and get parameters
     this->declare_parameter<std::string>("cloud_slam_topic", "/odin1/cloud_slam");
     this->declare_parameter<std::string>("odometry_topic", "/odin1/odometry");
+    this->declare_parameter<std::string>("wiwc_topic", "/odin1/wiwc");
     this->declare_parameter<std::string>("reprojected_image_topic", "/odin1/reprojected_image");
 
     cloud_slam_topic_ = this->get_parameter("cloud_slam_topic").as_string();
     odometry_topic_ = this->get_parameter("odometry_topic").as_string();
+    wiwc_topic_ = this->get_parameter("wiwc_topic").as_string();
     reprojected_image_topic_ = this->get_parameter("reprojected_image_topic").as_string();
 
     // Load camera parameters from calib.yaml file directly
@@ -167,8 +171,13 @@ void CloudReprojectionRosNode::loadParameters()
 
 void CloudReprojectionRosNode::syncCallback(
     const PointCloud2::ConstSharedPtr& cloud_msg,
-    const Odometry::ConstSharedPtr& odom_msg)
+    const Odometry::ConstSharedPtr& odom_msg,
+    const Odometry::ConstSharedPtr& wiwc_msg)
 {
+    // Debug: print that syncCallback is called
+    static int sync_count = 0;
+    // RCLCPP_INFO(this->get_logger(), "=== syncCallback called, count: %d ===", ++sync_count);
+    
     pcl::PointCloud<pcl::PointXYZRGB> cloud_odom;
     pcl::fromROSMsg(*cloud_msg, cloud_odom);
 
@@ -176,6 +185,45 @@ void CloudReprojectionRosNode::syncCallback(
     {
         RCLCPP_WARN(this->get_logger(), "Empty cloud_slam received");
         return;
+    }
+
+    // Extract real-time extrinsics from WIWC message covariance fields
+    // pose.covariance contains T_CL (first 16 values), twist.covariance contains T_IL (first 16 values)
+    Eigen::Matrix4d T_CL = Eigen::Matrix4d::Identity();
+    Eigen::Matrix4d T_IL = Eigen::Matrix4d::Identity();
+    for (int i = 0; i < 16; ++i) {
+        T_CL(i / 4, i % 4) = wiwc_msg->pose.covariance[i];
+        T_IL(i / 4, i % 4) = wiwc_msg->twist.covariance[i];
+    }
+    
+    // Update extrinsics if valid (not identity matrix)
+    bool T_CL_valid = (T_CL - Eigen::Matrix4d::Identity()).norm() > 1e-6;
+    bool T_IL_valid = (T_IL - Eigen::Matrix4d::Identity()).norm() > 1e-6;
+    
+    // // Debug print to compare with host_sdk_sample values
+    // static int print_count = 0;
+    // if (print_count++) {
+    //     // Extract rotation (3x3) and translation (3x1) from T_CL
+    //     Eigen::Matrix3d RCL = T_CL.block<3,3>(0,0);
+    //     Eigen::Vector3d TCL = T_CL.block<3,1>(0,3);
+    //     RCLCPP_INFO_STREAM(this->get_logger(), "=== cloud_reprojection RCL (3x3 rotation from T_CL) ===\n" << RCL);
+    //     RCLCPP_INFO_STREAM(this->get_logger(), "=== cloud_reprojection TCL (3x1 translation from T_CL) ===\n" << TCL.transpose());
+        
+    //     // Extract rotation (3x3) and translation (3x1) from T_IL
+    //     Eigen::Matrix3d RIL = T_IL.block<3,3>(0,0);
+    //     Eigen::Vector3d TIL = T_IL.block<3,1>(0,3);
+    //     RCLCPP_INFO_STREAM(this->get_logger(), "=== cloud_reprojection RIL (3x3 rotation from T_IL) ===\n" << RIL);
+    //     RCLCPP_INFO_STREAM(this->get_logger(), "=== cloud_reprojection TIL (3x1 translation from T_IL) ===\n" << TIL.transpose());
+        
+    //     RCLCPP_INFO(this->get_logger(), "T_CL_valid: %d, T_IL_valid: %d", T_CL_valid, T_IL_valid);
+    //     if (T_CL_valid && T_IL_valid) {
+    //         Eigen::Matrix4d Tic = CloudReprojector::calculateTic(T_CL, T_IL);
+    //         RCLCPP_INFO_STREAM(this->get_logger(), "=== cloud_reprojection calculated Tic ===\n" << Tic);
+    //     }
+    // }
+    
+    if (T_CL_valid && T_IL_valid) {
+        reprojector_->updateExtrinsics(T_CL, T_IL);
     }
 
     CloudReprojector::OdomPose odom_pose;
@@ -276,13 +324,15 @@ CloudReprojectionRosNode::CloudReprojectionRosNode(ros::NodeHandle& nh, ros::Nod
 
     ROS_INFO_STREAM("\n  cloud_slam_topic: " << cloud_slam_topic_
                 << "\n  odometry_topic: " << odometry_topic_
+                << "\n  wiwc_topic: " << wiwc_topic_
                 << "\n  reprojected_image_topic: " << reprojected_image_topic_);
 
     cloud_sub_.subscribe(nh_, cloud_slam_topic_, 1);
     odom_sub_.subscribe(nh_, odometry_topic_, 1);
+    wiwc_sub_.subscribe(nh_, wiwc_topic_, 1);
 
-    sync_ = std::make_shared<Sync>(MySyncPolicy(10), cloud_sub_, odom_sub_);
-    sync_->registerCallback(boost::bind(&CloudReprojectionRosNode::syncCallback, this, _1, _2));
+    sync_ = std::make_shared<Sync>(MySyncPolicy(10), cloud_sub_, odom_sub_, wiwc_sub_);
+    sync_->registerCallback(boost::bind(&CloudReprojectionRosNode::syncCallback, this, _1, _2, _3));
 
     reprojected_image_pub_ = nh_.advertise<sensor_msgs::Image>(reprojected_image_topic_, 1);
 
@@ -293,6 +343,7 @@ void CloudReprojectionRosNode::loadParameters()
 {
     pnh_.param<std::string>("cloud_slam_topic", cloud_slam_topic_, std::string("/odin1/cloud_slam"));
     pnh_.param<std::string>("odometry_topic", odometry_topic_, std::string("/odin1/odometry"));
+    pnh_.param<std::string>("wiwc_topic", wiwc_topic_, std::string("/odin1/wiwc"));
     pnh_.param<std::string>("reprojected_image_topic", reprojected_image_topic_, std::string("/odin1/reprojected_image"));
 
     // Load camera parameters
@@ -349,7 +400,8 @@ void CloudReprojectionRosNode::loadParameters()
 
 void CloudReprojectionRosNode::syncCallback(
     const sensor_msgs::PointCloud2ConstPtr& cloud_msg,
-    const nav_msgs::OdometryConstPtr& odom_msg)
+    const nav_msgs::OdometryConstPtr& odom_msg,
+    const nav_msgs::OdometryConstPtr& wiwc_msg)
 {
     pcl::PointCloud<pcl::PointXYZRGB> cloud_odom;
     pcl::fromROSMsg(*cloud_msg, cloud_odom);
@@ -358,6 +410,22 @@ void CloudReprojectionRosNode::syncCallback(
     {
         ROS_WARN("Empty cloud_slam received");
         return;
+    }
+
+    // Extract real-time extrinsics from WIWC message covariance fields
+    // pose.covariance contains T_CL (first 16 values), twist.covariance contains T_IL (first 16 values)
+    Eigen::Matrix4d T_CL = Eigen::Matrix4d::Identity();
+    Eigen::Matrix4d T_IL = Eigen::Matrix4d::Identity();
+    for (int i = 0; i < 16; ++i) {
+        T_CL(i / 4, i % 4) = wiwc_msg->pose.covariance[i];
+        T_IL(i / 4, i % 4) = wiwc_msg->twist.covariance[i];
+    }
+    
+    // Update extrinsics if valid (not identity matrix)
+    bool T_CL_valid = (T_CL - Eigen::Matrix4d::Identity()).norm() > 1e-6;
+    bool T_IL_valid = (T_IL - Eigen::Matrix4d::Identity()).norm() > 1e-6;
+    if (T_CL_valid && T_IL_valid) {
+        reprojector_->updateExtrinsics(T_CL, T_IL);
     }
 
     CloudReprojector::OdomPose odom_pose;

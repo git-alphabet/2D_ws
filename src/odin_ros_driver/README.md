@@ -162,6 +162,8 @@ The operation mode can be configured via the `custom_map_mode` parameter in conf
 
 Set `custom_map_mode = 0` to enable odometry mode. In this mode, the map frame and odom frame share the same pose.
 
+If the odom data is found to drift, the script command "./set_param.sh algo_reset 1" can be used to dynamically reset the algorithm.
+
 #### SLAM mode
 
 Set `custom_map_mode = 1` to enable slam mode. This mode provides a complete SLAM system that builds upon the Odometry Mode by adding **loop closure detection** and **map saving** capabilities.
@@ -348,11 +350,11 @@ ld: cannot find -llydHostApi or symbol lookup errors
 ROS1 
 ```shell
 rm -rf devel/ build/  
-``` 
+```
 ROS2
 ```shell
 rm -rf devel/ install/ log/ 
-``` 
+```
 2. Re-run script installation
 
 ### 5.3 Docker GUI passthrough failure
@@ -363,7 +365,7 @@ Unable to open X display or No protocol specified
 **Resolution** 
 ```shell
 xhost + #This command enables graphical passthrough to Docker containers
-``` 
+```
 
 ### 5.4 ROS driver exit with get version failed error
 
@@ -486,11 +488,11 @@ You can contact our support through support@manifoldtech.cn
 
 To help diagnose the issue, please provide the following details to our FAE engineer:
 
-1. ​Current firmware version​​ 
+1. Current firmware version​​ 
 ```shell
 [device_version_capture]: ros_driver_version: [Version Number]
-``` 
-2. ​Photos of power adapter and converter cable​​ in use.
+```
+2. Photos of power adapter and converter cable​​ in use.
 
 3. Does the issue happen occasionally or consistently?
 

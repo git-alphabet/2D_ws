@@ -63,6 +63,13 @@ public:
     const CameraParams& getCameraParams() const { return camera_params_; }
     const ExtrinsicParams& getExtrinsicParams() const { return extrinsic_params_; }
 
+    // Update extrinsic parameters at runtime with real-time values from module
+    void updateExtrinsics(const Eigen::Matrix4d& Tcl, const Eigen::Matrix4d& Til) {
+        extrinsic_params_.Tcl = Tcl;
+        extrinsic_params_.Til = Til;
+        extrinsic_params_.Tic = calculateTic(Tcl, Til);
+    }
+
     static Eigen::Matrix4d calculateTic(const Eigen::Matrix4d& Tcl, const Eigen::Matrix4d& Til);
 
 private:

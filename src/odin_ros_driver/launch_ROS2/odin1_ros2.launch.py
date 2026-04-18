@@ -65,6 +65,18 @@ def generate_launch_description():
         parameters=[reprojection_params]
     )
 
+    # Image overlay node - overlays reprojected points on camera image
+    overlay_config_path = os.path.join(package_dir, 'config', 'control_command.yaml')
+    with open(overlay_config_path, 'r') as f:
+        overlay_params = yaml.safe_load(f)
+    image_overlay_node = Node(
+        package='odin_ros_driver',
+        executable='image_overlay_node',  
+        name='image_overlay_node',
+        output='screen',
+        parameters=[overlay_params]
+    )
+
     # Create RViz2 node - loads specified configuration file
     rviz_node = Node(
         package='rviz2',
@@ -81,6 +93,7 @@ def generate_launch_description():
     ld.add_action(host_sdk_node)
     ld.add_action(pcd2depth_node)
     ld.add_action(cloud_reprojection_node)
+    ld.add_action(image_overlay_node)
     ld.add_action(rviz_node)  # Add RViz node
     
     return ld

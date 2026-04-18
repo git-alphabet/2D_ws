@@ -71,8 +71,6 @@ enum class OdometryType {
 extern int g_log_level;
 extern int g_sendcloudrender;
 extern int g_use_host_ros_time;
-extern std::string g_robot_base_frame_id;  // child_frame_id for odom/TF (default: odin1)
-extern int g_align_odin_axes_in_driver;
 double get_ptp_smoothed_delay();
 double get_ptp_smoothed_offset();
 #ifdef ROS2
@@ -182,47 +180,6 @@ inline uint64_t ros_time_to_ns(const ros::Time &t) {
     #endif
 }
 
-inline Eigen::Vector3d align_odin_vector_to_vehicle(
-    const double raw_x,
-    const double raw_y,
-    const double raw_z)
-{
-    if (!g_align_odin_axes_in_driver) {
-        return Eigen::Vector3d(raw_x, raw_y, raw_z);
-    }
-
-    // 与点云保持一致：x'=-y, y'=x, z'=z。
-    return Eigen::Vector3d(-raw_y, raw_x, raw_z);
-}
-
-inline Eigen::Vector3d align_odin_imu_vector_to_vehicle(
-    const double raw_x,
-    const double raw_y,
-    const double raw_z)
-{
-    if (!g_align_odin_axes_in_driver) {
-        return Eigen::Vector3d(raw_x, raw_y, raw_z);
-    }
-
-    // IMU 原始轴约定与点云不同，沿用历史映射：x'=y, y'=-x, z'=z。
-    return Eigen::Vector3d(raw_y, -raw_x, raw_z);
-}
-
-inline tf2::Quaternion align_odin_quaternion_to_vehicle(const tf2::Quaternion & raw_q)
-{
-    if (!g_align_odin_axes_in_driver) {
-        tf2::Quaternion q = raw_q;
-        q.normalize();
-        return q;
-    }
-
-    // 坐标系基变换：绕 Z 轴 +90°，把 Odin 原始平面轴约定对齐到车体约定。
-    static const tf2::Quaternion q_basis(0.0, 0.0, 0.7071067811865476, 0.7071067811865476);
-    tf2::Quaternion corrected_q = q_basis * raw_q * q_basis.inverse();
-    corrected_q.normalize();
-    return corrected_q;
-}
-
 inline ros::Time make_aligned_stamp(uint64_t sensor_timestamp_ns
 #ifdef ROS2
                                     , const rclcpp::Node::SharedPtr& node
@@ -319,21 +276,13 @@ public:
         #endif
         imu_msg.header.frame_id = "imu_link";
 
-        const auto corrected_accel = align_odin_imu_vector_to_vehicle(
-            static_cast<double>(stream->accel_x),
-            static_cast<double>(stream->accel_y),
-            static_cast<double>(stream->accel_z));
-        imu_msg.linear_acceleration.x = corrected_accel.x();
-        imu_msg.linear_acceleration.y = corrected_accel.y();
-        imu_msg.linear_acceleration.z = corrected_accel.z();
+        imu_msg.linear_acceleration.y = -1 * stream->accel_x;
+        imu_msg.linear_acceleration.x = stream->accel_y;
+        imu_msg.linear_acceleration.z = stream->accel_z;
 
-        const auto corrected_gyro = align_odin_imu_vector_to_vehicle(
-            static_cast<double>(stream->gyro_x),
-            static_cast<double>(stream->gyro_y),
-            static_cast<double>(stream->gyro_z));
-        imu_msg.angular_velocity.x = corrected_gyro.x();
-        imu_msg.angular_velocity.y = corrected_gyro.y();
-        imu_msg.angular_velocity.z = corrected_gyro.z();
+        imu_msg.angular_velocity.y = -1 * stream->gyro_x;
+        imu_msg.angular_velocity.x = stream->gyro_y;
+        imu_msg.angular_velocity.z = stream->gyro_z;
 
         imu_msg.orientation.x = 0.0;
         imu_msg.orientation.y = 0.0;
@@ -580,7 +529,7 @@ void process_pair(const ImageConstPtr &rgb_msg, const PointCloud2ConstPtr &pcd_m
          
         // Create and publish RGB point cloud
         PointCloud2Msg output_msg;
-        output_msg.header.frame_id = "front_odin1";
+        output_msg.header.frame_id = "odin1_base_link";
         output_msg.header.stamp = rgb_msg->header.stamp; // Use original image timestamp
         output_msg.height = 1;
         output_msg.width = valid_point_num;
@@ -649,7 +598,7 @@ void publishIntensityCloud(capture_Image_List_t* stream, int idx)
     #endif
 
     // Set message header
-    msg->header.frame_id = "front_odin1";
+    msg->header.frame_id = "odin1_base_link";
     #ifdef ROS2
         msg->header.stamp = make_aligned_stamp(cloud.timestamp, node_);
     #else
@@ -970,27 +919,15 @@ void publishRgb(capture_Image_List_t *stream) {
         
         for(uint32_t i = 0; i < points; i++) {
             int32_t* ptr = xyz_data + 7*i;
-
-            const float raw_x = static_cast<float>(ptr[0]) / 10000.0f;
-            const float raw_y = static_cast<float>(ptr[1]) / 10000.0f;
-            const float raw_z = static_cast<float>(ptr[2]) / 10000.0f;
-
-            const auto corrected_xyz = align_odin_vector_to_vehicle(
-                static_cast<double>(raw_x),
-                static_cast<double>(raw_y),
-                static_cast<double>(raw_z));
-            const float corrected_x = static_cast<float>(corrected_xyz.x());
-            const float corrected_y = static_cast<float>(corrected_xyz.y());
-            const float corrected_z = static_cast<float>(corrected_xyz.z());
             
 #ifdef ROS2
-                *iter_x = corrected_x; ++iter_x;
-                *iter_y = corrected_y; ++iter_y;
-                *iter_z = corrected_z; ++iter_z;
+                *iter_x = static_cast<float>(ptr[0]) / 10000.0f; ++iter_x;
+                *iter_y = static_cast<float>(ptr[1]) / 10000.0f; ++iter_y;
+                *iter_z = static_cast<float>(ptr[2]) / 10000.0f; ++iter_z;
 #else
-                *iter_x = corrected_x; ++iter_x;
-                *iter_y = corrected_y; ++iter_y;
-                *iter_z = corrected_z; ++iter_z;
+                *iter_x = (1.0 * ptr[0]) / 1e4; ++iter_x;
+                *iter_y = (1.0 * ptr[1]) / 1e4; ++iter_y;
+                *iter_z = (1.0 * ptr[2]) / 1e4; ++iter_z;
 #endif
             
             uint8_t r = ptr[3] & 0xff;
@@ -1027,16 +964,9 @@ void publishRgb(capture_Image_List_t *stream) {
 
             for (uint32_t i = 0; i < points; ++i) {
                 int32_t* ptr = xyz_data + 7 * i;
-                const float raw_x = static_cast<float>(ptr[0]) / 10000.0f;
-                const float raw_y = static_cast<float>(ptr[1]) / 10000.0f;
-                const float raw_z = static_cast<float>(ptr[2]) / 10000.0f;
-                const auto corrected_xyz = align_odin_vector_to_vehicle(
-                    static_cast<double>(raw_x),
-                    static_cast<double>(raw_y),
-                    static_cast<double>(raw_z));
-                const float fx = static_cast<float>(corrected_xyz.x());
-                const float fy = static_cast<float>(corrected_xyz.y());
-                const float fz = static_cast<float>(corrected_xyz.z());
+                float fx = static_cast<float>(ptr[0]) / 10000.0f;
+                float fy = static_cast<float>(ptr[1]) / 10000.0f;
+                float fz = static_cast<float>(ptr[2]) / 10000.0f;
                 uint8_t r = static_cast<uint8_t>(ptr[3] & 0xff);
                 uint8_t g = static_cast<uint8_t>(ptr[4] & 0xff);
                 uint8_t b = static_cast<uint8_t>(ptr[5] & 0xff);
@@ -1089,12 +1019,25 @@ void publishRgb(capture_Image_List_t *stream) {
                 for (int idx = 0; idx < 16; ++idx) {
                     T_CL(idx / 4, idx % 4) = static_cast<double>(odom_data->pose_cov[idx]);
                 }
+                // Force last row to be [0, 0, 0, 1] for valid transformation matrix
+                T_CL(3, 0) = 0.0; T_CL(3, 1) = 0.0; T_CL(3, 2) = 0.0; T_CL(3, 3) = 1.0;
                 
                 // Build TIL matrix (4x4) from twist_cov
                 Eigen::Matrix4d T_IL = Eigen::Matrix4d::Identity();
                 for (int idx = 0; idx < 16; ++idx) {
                     T_IL(idx / 4, idx % 4) = static_cast<double>(odom_data->twist_cov[idx]);
                 }
+                // Force last row to be [0, 0, 0, 1] for valid transformation matrix
+                T_IL(3, 0) = 0.0; T_IL(3, 1) = 0.0; T_IL(3, 2) = 0.0; T_IL(3, 3) = 1.0;
+                
+                // Debug print to compare with cloud_reprojection values
+                // static int host_print_count = 0;
+                // if (host_print_count++) {
+                //     std::cout << "=== host_sdk_sample T_CL from odom_data->pose_cov ===" << std::endl;
+                //     std::cout << T_CL << std::endl;
+                //     std::cout << "=== host_sdk_sample T_IL from odom_data->twist_cov ===" << std::endl;
+                //     std::cout << T_IL << std::endl;
+                // }
                 
                 // Extract rotation and translation from T_CL
                 Eigen::Matrix3d RCL = T_CL.block<3, 3>(0, 0);
@@ -1103,7 +1046,20 @@ void publishRgb(capture_Image_List_t *stream) {
                 // Extract rotation and translation from T_IL
                 Eigen::Matrix3d RIL = T_IL.block<3, 3>(0, 0);
                 Eigen::Vector3d TIL = T_IL.block<3, 1>(0, 3);
-                    
+
+                // Debug print extracted RCL and TCL
+                // static int rcl_print_count = 0;
+                // if (rcl_print_count++ ) {
+                //     std::cout << "=== host_sdk_sample RCL (3x3 rotation from T_CL) ===" << std::endl;
+                //     std::cout << RCL << std::endl;
+                //     std::cout << "=== host_sdk_sample TCL (3x1 translation from T_CL) ===" << std::endl;
+                //     std::cout << TCL.transpose() << std::endl;
+                //     std::cout << "=== host_sdk_sample RIL (3x3 rotation from T_IL) ===" << std::endl;
+                //     std::cout << RIL << std::endl;
+                //     std::cout << "=== host_sdk_sample TIL (3x1 translation from T_IL) ===" << std::endl;
+                //     std::cout << TIL.transpose() << std::endl;
+                // }
+                
                 // Save RIL, TIL, RCL, TCL to YAML file
                 static int save_count = 0;
                 static int index_count = 0;
@@ -1166,6 +1122,59 @@ void publishRgb(capture_Image_List_t *stream) {
 
     }
 
+    // Publish WIWC data (T_CL and T_IL extrinsics) as a separate topic
+    void publishWiwc(capture_Image_List_t* stream) {
+        uint32_t data_len = stream->imageList[0].length;
+        if (data_len != sizeof(ros_odom_convert_complete_t)) {
+            return;
+        }
+        
+        ros_odom_convert_complete_t* odom_data = (ros_odom_convert_complete_t*)stream->imageList[0].pAddr;
+        
+#ifdef ROS2
+        auto msg = nav_msgs::msg::Odometry();
+        msg.header.stamp = make_aligned_stamp(odom_data->timestamp_ns, node_);
+        msg.header.frame_id = "odom";
+#else
+        nav_msgs::Odometry msg;
+        msg.header.stamp = make_aligned_stamp(odom_data->timestamp_ns);
+        msg.header.frame_id = "odom";
+#endif
+        
+        // Store T_CL in pose.covariance (first 16 elements)
+        // Force last row to be [0, 0, 0, 1] for valid transformation matrix
+        for (int i = 0; i < 16; ++i) {
+            msg.pose.covariance[i] = odom_data->pose_cov[i];
+        }
+        msg.pose.covariance[12] = 0.0;
+        msg.pose.covariance[13] = 0.0;
+        msg.pose.covariance[14] = 0.0;
+        msg.pose.covariance[15] = 1.0;
+        // Fill remaining with zeros
+        for (int i = 16; i < 36; ++i) {
+            msg.pose.covariance[i] = 0.0;
+        }
+        
+        // Store T_IL in twist.covariance (first 16 elements)
+        // Force last row to be [0, 0, 0, 1] for valid transformation matrix
+        for (int i = 0; i < 16; ++i) {
+            msg.twist.covariance[i] = odom_data->twist_cov[i];
+        }
+        msg.twist.covariance[12] = 0.0;
+        msg.twist.covariance[13] = 0.0;
+        msg.twist.covariance[14] = 0.0;
+        msg.twist.covariance[15] = 1.0;
+        // Fill remaining with zeros
+        for (int i = 16; i < 36; ++i) {
+            msg.twist.covariance[i] = 0.0;
+        }
+        
+#ifdef ROS2
+        wiwc_publisher_->publish(msg);
+#else
+        wiwc_publisher_.publish(msg);
+#endif
+    }
 
     void publishOdometry(capture_Image_List_t* stream, OdometryType odom_type, bool show_path, bool show_camerapose) {
         
@@ -1176,7 +1185,7 @@ void publishRgb(capture_Image_List_t *stream) {
 #endif
         
             msg.header.frame_id = "odom";
-            msg.child_frame_id = g_robot_base_frame_id;
+            msg.child_frame_id = "odin1_base_link";
 
             //RCLCPP_INFO(rclcpp::get_logger("device_cb"), "odom %ld",odom_data->timestamp_ns);
 
@@ -1190,24 +1199,14 @@ void publishRgb(capture_Image_List_t *stream) {
                     msg.header.stamp = make_aligned_stamp(odom_data->timestamp_ns);
                 #endif
 
-                const auto corrected_pos = align_odin_vector_to_vehicle(
-                    static_cast<double>(odom_data->pos[0]) / 1e6,
-                    static_cast<double>(odom_data->pos[1]) / 1e6,
-                    static_cast<double>(odom_data->pos[2]) / 1e6);
-                msg.pose.pose.position.x = corrected_pos.x();
-                msg.pose.pose.position.y = corrected_pos.y();
-                msg.pose.pose.position.z = corrected_pos.z();
+                msg.pose.pose.position.x = static_cast<double>(odom_data->pos[0]) / 1e6;
+                msg.pose.pose.position.y = static_cast<double>(odom_data->pos[1]) / 1e6;
+                msg.pose.pose.position.z = static_cast<double>(odom_data->pos[2]) / 1e6;
 
-                tf2::Quaternion raw_q(
-                    static_cast<double>(odom_data->orient[0]) / 1e6,
-                    static_cast<double>(odom_data->orient[1]) / 1e6,
-                    static_cast<double>(odom_data->orient[2]) / 1e6,
-                    static_cast<double>(odom_data->orient[3]) / 1e6);
-                const tf2::Quaternion corrected_q = align_odin_quaternion_to_vehicle(raw_q);
-                msg.pose.pose.orientation.x = corrected_q.x();
-                msg.pose.pose.orientation.y = corrected_q.y();
-                msg.pose.pose.orientation.z = corrected_q.z();
-                msg.pose.pose.orientation.w = corrected_q.w();
+                msg.pose.pose.orientation.x = static_cast<double>(odom_data->orient[0]) / 1e6;
+                msg.pose.pose.orientation.y = static_cast<double>(odom_data->orient[1]) / 1e6;
+                msg.pose.pose.orientation.z = static_cast<double>(odom_data->orient[2]) / 1e6;
+                msg.pose.pose.orientation.w = static_cast<double>(odom_data->orient[3]) / 1e6;
 
                 // Enqueue binary logging for pose
                 if ((odom_type == OdometryType::STANDARD) && data_logger_) {
@@ -1233,22 +1232,15 @@ void publishRgb(capture_Image_List_t *stream) {
                     data_logger_->enqueuePoseFrame(std::move(blob));
                 }
         
-                const auto corrected_linear_vel = align_odin_vector_to_vehicle(
-                    static_cast<double>(odom_data->linear_velocity[0]) / 1e6,
-                    static_cast<double>(odom_data->linear_velocity[1]) / 1e6,
-                    static_cast<double>(odom_data->linear_velocity[2]) / 1e6);
-                msg.twist.twist.linear.x = corrected_linear_vel.x();
-                msg.twist.twist.linear.y = corrected_linear_vel.y();
-                msg.twist.twist.linear.z = corrected_linear_vel.z();
+                msg.twist.twist.linear.x = static_cast<double>(odom_data->linear_velocity[0]) / 1e6;
+                msg.twist.twist.linear.y = static_cast<double>(odom_data->linear_velocity[1]) / 1e6;
+                msg.twist.twist.linear.z = static_cast<double>(odom_data->linear_velocity[2]) / 1e6;
 
-                const auto corrected_angular_vel = align_odin_vector_to_vehicle(
-                    static_cast<double>(odom_data->angular_velocity[0]) / 1e6,
-                    static_cast<double>(odom_data->angular_velocity[1]) / 1e6,
-                    static_cast<double>(odom_data->angular_velocity[2]) / 1e6);
-                msg.twist.twist.angular.x = corrected_angular_vel.x();
-                msg.twist.twist.angular.y = corrected_angular_vel.y();
-                msg.twist.twist.angular.z = corrected_angular_vel.z();
+                msg.twist.twist.angular.x = static_cast<double>(odom_data->angular_velocity[0]) / 1e6;
+                msg.twist.twist.angular.y = static_cast<double>(odom_data->angular_velocity[1]) / 1e6;
+                msg.twist.twist.angular.z = static_cast<double>(odom_data->angular_velocity[2]) / 1e6;
 
+                // Copy original covariance data
                 for (int i = 0; i < 36; ++i) {
                     msg.pose.covariance[i] = odom_data->pose_cov[i];
                 }
@@ -1266,24 +1258,14 @@ void publishRgb(capture_Image_List_t *stream) {
                     msg.header.stamp = make_aligned_stamp(odom_data->timestamp_ns);
                 #endif
 
-                const auto corrected_pos = align_odin_vector_to_vehicle(
-                    static_cast<double>(odom_data->pos[0]) / 1e6,
-                    static_cast<double>(odom_data->pos[1]) / 1e6,
-                    static_cast<double>(odom_data->pos[2]) / 1e6);
-                msg.pose.pose.position.x = corrected_pos.x();
-                msg.pose.pose.position.y = corrected_pos.y();
-                msg.pose.pose.position.z = corrected_pos.z();
+                msg.pose.pose.position.x = static_cast<double>(odom_data->pos[0]) / 1e6;
+                msg.pose.pose.position.y = static_cast<double>(odom_data->pos[1]) / 1e6;
+                msg.pose.pose.position.z = static_cast<double>(odom_data->pos[2]) / 1e6;
 
-                tf2::Quaternion raw_q(
-                    static_cast<double>(odom_data->orient[0]) / 1e6,
-                    static_cast<double>(odom_data->orient[1]) / 1e6,
-                    static_cast<double>(odom_data->orient[2]) / 1e6,
-                    static_cast<double>(odom_data->orient[3]) / 1e6);
-                const tf2::Quaternion corrected_q = align_odin_quaternion_to_vehicle(raw_q);
-                msg.pose.pose.orientation.x = corrected_q.x();
-                msg.pose.pose.orientation.y = corrected_q.y();
-                msg.pose.pose.orientation.z = corrected_q.z();
-                msg.pose.pose.orientation.w = corrected_q.w();
+                msg.pose.pose.orientation.x = static_cast<double>(odom_data->orient[0]) / 1e6;
+                msg.pose.pose.orientation.y = static_cast<double>(odom_data->orient[1]) / 1e6;
+                msg.pose.pose.orientation.z = static_cast<double>(odom_data->orient[2]) / 1e6;
+                msg.pose.pose.orientation.w = static_cast<double>(odom_data->orient[3]) / 1e6;
             }
 
 #ifdef ROS2
@@ -1294,7 +1276,7 @@ void publishRgb(capture_Image_List_t *stream) {
                         geometry_msgs::msg::TransformStamped transformStamped;
                         transformStamped.header.stamp = msg.header.stamp;
                         transformStamped.header.frame_id = "odom";
-                        transformStamped.child_frame_id = g_robot_base_frame_id;
+                        transformStamped.child_frame_id = "odin1_base_link";
                         transformStamped.transform.translation.x = msg.pose.pose.position.x;
                         transformStamped.transform.translation.y = msg.pose.pose.position.y;
                         transformStamped.transform.translation.z = msg.pose.pose.position.z;
@@ -1390,7 +1372,7 @@ void publishRgb(capture_Image_List_t *stream) {
                         geometry_msgs::TransformStamped transformStamped;
                         transformStamped.header.stamp = msg.header.stamp;
                         transformStamped.header.frame_id = "odom";
-                        transformStamped.child_frame_id = g_robot_base_frame_id;
+                        transformStamped.child_frame_id = "odin1_base_link";
                         transformStamped.transform.translation.x = msg.pose.pose.position.x;
                         transformStamped.transform.translation.y = msg.pose.pose.position.y;
                         transformStamped.transform.translation.z = msg.pose.pose.position.z;
@@ -1704,6 +1686,7 @@ private:
             compressed_rgb_pub_ = node_->create_publisher<sensor_msgs::msg::CompressedImage>("odin1/image/compressed", qos_small);
             undistort_rgb_pub_ = node_->create_publisher<sensor_msgs::msg::Image>("odin1/image/undistorted", qos_sensor);
             intensity_gray_pub_ = node_->create_publisher<sensor_msgs::msg::Image>("odin1/image/intensity_gray", qos_sensor);
+            wiwc_publisher_ = node_->create_publisher<ros::Odometry>("odin1/wiwc", qos_small);
             tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(node_);
         #endif
     }
@@ -1721,6 +1704,7 @@ private:
             compressed_rgb_pub_ = nh.advertise<sensor_msgs::CompressedImage>("odin1/image/compressed", 100);
             undistort_rgb_pub_ = nh.advertise<sensor_msgs::Image>("odin1/image/undistorted", 100);
             intensity_gray_pub_ = nh.advertise<sensor_msgs::Image>("odin1/image/intensity_gray", 100);
+            wiwc_publisher_ = nh.advertise<ros::Odometry>("odin1/wiwc", 100);
             tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>();
         }
     #endif
@@ -1741,6 +1725,7 @@ private:
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr undistort_rgb_pub_;
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr intensity_gray_pub_;
         rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr pub_camera_pose_visual_;
+        rclcpp::Publisher<ros::Odometry>::SharedPtr wiwc_publisher_;
         camera_pose_visualization cameraposevisual_;
         std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster;
     #else
@@ -1759,6 +1744,7 @@ private:
         ros::Publisher compressed_rgb_pub_; // New compressed image publisher
         ros::Publisher undistort_rgb_pub_;
         ros::Publisher intensity_gray_pub_;
+        ros::Publisher wiwc_publisher_;
         std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster;
     #endif
 };

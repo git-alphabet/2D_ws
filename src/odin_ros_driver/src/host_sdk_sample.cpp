@@ -23,8 +23,11 @@ limitations under the License.
 #include <memory>
 #include <opencv2/opencv.hpp>
 #include <deque> 
+#include <queue>
 #include <unistd.h> 
 #include <cstdlib>
+#include <sched.h>
+#include <pthread.h>
 #include <cstring>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -46,7 +49,7 @@ limitations under the License.
     #include <ros/package.h>
     #include <ros/ros.h> 
 #endif
-#define ros_driver_version "0.9.0"
+#define ros_driver_version "0.10.0"
 #define required_firmware_version_major 0
 #define required_firmware_version_minor 10
 #define required_firmware_version_patch 0
@@ -85,12 +88,20 @@ static std::shared_ptr<rawCloudRender> g_renderer = nullptr;
 std::string calib_file_ = "";
 static std::shared_ptr<odin_ros_driver::YamlParser> g_parser = nullptr;
 
-static constexpr size_t PTP_SMOOTH_WINDOW_SIZE = 30;
+static constexpr size_t PTP_SMOOTH_WINDOW_SIZE = 300;
 static std::mutex g_ptp_mutex;
 static std::deque<double> g_ptp_delay_buf;
 static std::deque<double> g_ptp_offset_buf;
 static std::atomic<double> g_ptp_delay_smooth{0.0};
 static std::atomic<double> g_ptp_offset_smooth{0.0};
+
+// IMU dedicated processing thread
+static std::atomic<bool> g_imu_thread_running(false);
+static std::thread g_imu_thread;
+static std::queue<imu_convert_data_t> g_imu_queue;
+static std::mutex g_imu_queue_mutex;
+static std::condition_variable g_imu_queue_cv;
+static const size_t IMU_QUEUE_MAX_SIZE = 200;
 
 double get_ptp_smoothed_delay() {
     return g_ptp_delay_smooth.load(std::memory_order_relaxed);
@@ -109,6 +120,10 @@ int g_sendimu = 1;
 int g_senddtof = 1;
 int g_sendodom = 1;
 int g_send_odom_baselink_tf = 0;
+
+// SDK IMU smooth sending configuration
+int g_enable_imu_smooth = 0;
+int g_imu_smooth_frequency = 400;
 int g_sendcloudslam = 0;
 int g_sendcloudrender = 0;
 int g_sendrgb_compressed = 0;
@@ -120,7 +135,6 @@ int g_show_path = 0;
 int g_show_camerapose = 0;
 int g_strict_usb3_0_check = 0;
 int g_use_host_ros_time = 0;
-int g_align_odin_axes_in_driver = 1;
 int g_save_log = 0;
 int g_cloud_raw_confidence_threshold = 35;
 int g_dtof_fps = 145;  // DTOF sensor frame rate: 100 (10fps) or 145 (14.5fps)
@@ -132,7 +146,11 @@ bool g_relocalization_success_msg_printed = false;
 std::string g_relocalization_map_abs_path = "";
 std::string g_mapping_result_dest_dir = "";
 std::string g_mapping_result_file_name = "";
-std::string g_robot_base_frame_id = "odin1";  // configurable via robot_base_frame_id in yaml
+
+int g_send_image_mask = 0;
+std::string g_image_mask_abs_path = "";
+
+int g_reset_algo = 0;
 
 const char* DEV_STATUS_CSV_FILE = "dev_status.csv";
 FILE* dev_status_csv_file = nullptr;
@@ -140,69 +158,6 @@ FILE* dev_status_csv_file = nullptr;
 std::filesystem::path map_root_dir_;
 
 char driver_start_time[32];
-
-static std::filesystem::path resolve_odin_driver_root_dir() {
-    std::error_code ec;
-
-    const char* env_src_dir = std::getenv("ODIN_ROS_DRIVER_SOURCE_DIR");
-    if (env_src_dir && std::strlen(env_src_dir) > 0) {
-        std::filesystem::path candidate(env_src_dir);
-        if (std::filesystem::exists(candidate / "config", ec)) {
-            return candidate;
-        }
-    }
-
-    std::filesystem::path candidate_from_file =
-        std::filesystem::path(__FILE__).parent_path().parent_path();
-    if (std::filesystem::exists(candidate_from_file / "config", ec)) {
-        return candidate_from_file;
-    }
-
-    const std::filesystem::path fixed_workspace_path("/ws/src/odin_ros_driver");
-    if (std::filesystem::exists(fixed_workspace_path / "config", ec)) {
-        return fixed_workspace_path;
-    }
-
-#ifdef ROS2
-    char* ros_workspace = std::getenv("COLCON_PREFIX_PATH");
-    if (ros_workspace) {
-        std::string workspace_path(ros_workspace);
-        size_t pos = workspace_path.find("/install");
-        if (pos != std::string::npos) {
-            std::filesystem::path from_colcon =
-                std::filesystem::path(workspace_path.substr(0, pos)) /
-                "src/odin_ros_driver";
-            if (std::filesystem::exists(from_colcon / "config", ec)) {
-                return from_colcon;
-            }
-        }
-    }
-
-    return std::filesystem::path(
-        ament_index_cpp::get_package_share_directory("odin_ros_driver"));
-#else
-    return std::filesystem::path(ros::package::getPath("odin_ros_driver"));
-#endif
-}
-
-static std::tm to_beijing_time_tm(std::time_t t_utc) {
-    constexpr std::time_t kBeijingOffsetSeconds = 8 * 60 * 60;
-    std::time_t t_beijing = t_utc + kBeijingOffsetSeconds;
-    std::tm tm{};
-#ifdef _WIN32
-    gmtime_s(&tm, &t_beijing);
-#else
-    gmtime_r(&t_beijing, &tm);
-#endif
-    return tm;
-}
-
-static void format_now_beijing(char* out, size_t out_size) {
-    auto now = std::chrono::system_clock::now();
-    std::time_t t = std::chrono::system_clock::to_time_t(now);
-    std::tm tm = to_beijing_time_tm(t);
-    std::strftime(out, out_size, "%Y%m%d_%H%M%S", &tm);
-}
 
 typedef struct  {
     struct timespec start = {0, 0};
@@ -432,8 +387,16 @@ static void custom_parameter_monitor() {
                     // #endif
 
                     if (last_save_map_val == 1 && value == 0) {
+                        auto now = std::chrono::system_clock::now();
+                        std::time_t t = std::chrono::system_clock::to_time_t(now);
+                        std::tm tm{};
+                        #ifdef _WIN32
+                            localtime_s(&tm, &t);
+                        #else
+                            localtime_r(&t, &tm);
+                        #endif
                         char map_save_time[32];
-                        format_now_beijing(map_save_time, sizeof(map_save_time));
+                        std::strftime(map_save_time, sizeof(map_save_time), "%Y%m%d_%H%M%S", &tm);
 
                         std::string map_dir = g_mapping_result_dest_dir != "" ? g_mapping_result_dest_dir : map_root_dir_.string();
                         std::string map_name = g_mapping_result_file_name != "" ? g_mapping_result_file_name : "map_" + std::string(map_save_time) + ".bin";
@@ -821,6 +784,105 @@ void clear_all_queues() {
     g_latest_bgr.reset();
     g_latest_rgb_timestamp = 0;
     g_has_rgb = false;
+    
+    // Clear IMU queue
+    {
+        std::lock_guard<std::mutex> lock(g_imu_queue_mutex);
+        while (!g_imu_queue.empty()) {
+            g_imu_queue.pop();
+        }
+    }
+}
+
+// IMU dedicated processing thread routine
+static void imu_thread_routine()
+{
+    // Try to set higher thread priority for IMU processing
+    pthread_t this_thread = pthread_self();
+    struct sched_param param;
+    param.sched_priority = 70;
+    
+    int ret = pthread_setschedparam(this_thread, SCHED_FIFO, &param);
+    if (ret != 0) {
+        ret = pthread_setschedparam(this_thread, SCHED_RR, &param);
+    }
+    
+    #ifdef ROS2
+        RCLCPP_INFO(rclcpp::get_logger("imu_thread"), "IMU dedicated thread started (priority: %d)", param.sched_priority);
+    #else
+        ROS_INFO("IMU dedicated thread started (priority: %d)", param.sched_priority);
+    #endif
+    
+    while (g_imu_thread_running) {
+        std::unique_lock<std::mutex> lock(g_imu_queue_mutex);
+        
+        // Wait for IMU data
+        g_imu_queue_cv.wait(lock, []() {
+            return !g_imu_queue.empty() || !g_imu_thread_running;
+        });
+        
+        if (!g_imu_thread_running) {
+            break;
+        }
+        
+        // Process all pending IMU data
+        while (!g_imu_queue.empty() && g_imu_thread_running) {
+            imu_convert_data_t imu_data = g_imu_queue.front();
+            g_imu_queue.pop();
+            lock.unlock();
+            
+            // Publish IMU data
+            if (g_ros_object && g_sendimu) {
+                g_ros_object->publishImu(&imu_data);
+            }
+            
+            lock.lock();
+        }
+    }
+    
+    #ifdef ROS2
+        RCLCPP_INFO(rclcpp::get_logger("imu_thread"), "IMU dedicated thread exiting");
+    #else
+        ROS_INFO("IMU dedicated thread exiting");
+    #endif
+}
+
+// Start IMU dedicated thread
+static void start_imu_thread()
+{
+    if (!g_imu_thread_running) {
+        g_imu_thread_running = true;
+        g_imu_thread = std::thread(imu_thread_routine);
+        #ifdef ROS2
+            RCLCPP_INFO(rclcpp::get_logger("imu_thread"), "IMU dedicated thread created");
+        #else
+            ROS_INFO("IMU dedicated thread created");
+        #endif
+    }
+}
+
+// Stop IMU dedicated thread
+static void stop_imu_thread()
+{
+    if (g_imu_thread_running) {
+        g_imu_thread_running = false;
+        g_imu_queue_cv.notify_all();
+        if (g_imu_thread.joinable()) {
+            g_imu_thread.join();
+        }
+        
+        // Clear queue
+        std::lock_guard<std::mutex> lock(g_imu_queue_mutex);
+        while (!g_imu_queue.empty()) {
+            g_imu_queue.pop();
+        }
+        
+        #ifdef ROS2
+            RCLCPP_INFO(rclcpp::get_logger("imu_thread"), "IMU dedicated thread stopped");
+        #else
+            ROS_INFO("IMU dedicated thread stopped");
+        #endif
+    }
 }
 
 // Lidar data callback
@@ -857,7 +919,15 @@ static void lidar_data_callback(const lidar_data_t *data, void *user_data)
         case LIDAR_DT_RAW_IMU:
             if (g_sendimu) {
                 imudata = (imu_convert_data_t *)data->stream.imageList[0].pAddr;
-                g_ros_object->publishImu(imudata);
+                // Enqueue IMU data for dedicated thread processing
+                {
+                    std::lock_guard<std::mutex> lock(g_imu_queue_mutex);
+                    if (g_imu_queue.size() >= IMU_QUEUE_MAX_SIZE) {
+                        g_imu_queue.pop();  // Drop oldest if full
+                    }
+                    g_imu_queue.push(*imudata);
+                }
+                g_imu_queue_cv.notify_one();
             }
             update_count(&imu_rx_fps);
             break;
@@ -1056,6 +1126,9 @@ static void lidar_data_callback(const lidar_data_t *data, void *user_data)
             break;
             case LIDAR_DT_SLAM_WIWC:
             {
+                // Always publish WIWC data for real-time extrinsics
+                g_ros_object->publishWiwc((capture_Image_List_t *)&data->stream);
+                
                 if(g_record_data ) {
                     g_ros_object->recordrotate((capture_Image_List_t *)&data->stream);
                 }
@@ -1148,10 +1221,25 @@ static void lidar_device_callback(const lidar_device_info_t* device, bool attach
             #endif
             return;
         }
-        const std::filesystem::path odin_driver_root_dir =
-            resolve_odin_driver_root_dir();
-        std::string config_dir = (odin_driver_root_dir / "config").string();
-        std::cout << "config_dir" << config_dir << std::endl;
+	const std::string package_name = "odin_ros_driver";
+	std::string config_dir = "";
+	#ifdef ROS2
+	    char* ros_workspace = std::getenv("COLCON_PREFIX_PATH");
+	    if (ros_workspace) {
+		std::string workspace_path(ros_workspace);
+		size_t pos = workspace_path.find("/install");
+		if (pos != std::string::npos) {
+		    config_dir = workspace_path.substr(0, pos) + "/src/odin_ros_driver/config";
+		} else {
+		    config_dir = ament_index_cpp::get_package_share_directory(package_name) + "/config";
+		}
+	    } else {
+		config_dir = ament_index_cpp::get_package_share_directory(package_name) + "/config";
+	    }
+	#else
+	    config_dir = ros::package::getPath(package_name) + "/config";
+	#endif
+   		 std::cout << "config_dir"<< config_dir <<std::endl;
         #ifdef ROS2
             RCLCPP_INFO(rclcpp::get_logger("device_cb"), "Calibration files will be saved to: %s", config_dir.c_str());
         #else
@@ -1160,8 +1248,16 @@ static void lidar_device_callback(const lidar_device_info_t* device, bool attach
 
         std::filesystem::path per_con_log_root_dir;
         {
+            auto connection_time = std::chrono::system_clock::now();
+            std::time_t t = std::chrono::system_clock::to_time_t(connection_time);
+            std::tm tm{};
+            #ifdef _WIN32
+                localtime_s(&tm, &t);
+            #else
+                localtime_r(&t, &tm);
+            #endif
             char buf[32];
-            format_now_beijing(buf, sizeof(buf));
+            std::strftime(buf, sizeof(buf), "%Y%m%d_%H%M%S", &tm);
             std::string folder_name = std::string("Conn_") + std::string(buf);
             std::filesystem::path base_log_dir = log_root_dir_.empty()
                 ? std::filesystem::path(config_dir)
@@ -1485,6 +1581,51 @@ static void lidar_device_callback(const lidar_device_info_t* device, bool attach
                 return;
             }
         }
+
+        // Transfer image mask if enabled
+        if (g_send_image_mask == 1) {
+            if (g_image_mask_abs_path != "" && std::filesystem::exists(g_image_mask_abs_path)) {
+                int ret = lidar_set_image_mask(odinDevice, g_image_mask_abs_path.c_str());
+                if (ret == 0) {
+                    #ifdef ROS2
+                        RCLCPP_INFO(rclcpp::get_logger("device_cb"), "Image mask set successfully: %s", g_image_mask_abs_path.c_str());
+                    #else
+                        ROS_INFO("Image mask set successfully: %s", g_image_mask_abs_path.c_str());
+                    #endif
+                } else {
+                    #ifdef ROS2
+                        RCLCPP_ERROR(rclcpp::get_logger("device_cb"), "Failed to set image mask: %s, error: %d", g_image_mask_abs_path.c_str(), ret);
+                    #else
+                        ROS_ERROR("Failed to set image mask: %s, error: %d", g_image_mask_abs_path.c_str(), ret);
+                    #endif
+                }
+            } else {
+                #ifdef ROS2
+                    RCLCPP_WARN(rclcpp::get_logger("device_cb"), "Image mask path not set or file not found: %s", g_image_mask_abs_path.c_str());
+                #else
+                    ROS_WARN("Image mask path not set or file not found: %s", g_image_mask_abs_path.c_str());
+                #endif
+            }
+        }
+
+        // Send algo_reset command if enabled
+        if (g_reset_algo == 1) {
+            int reset_value = 1;
+            int ret = lidar_set_custom_parameter(odinDevice, "algo_reset", &reset_value, sizeof(int));
+            if (ret == 0) {
+                #ifdef ROS2
+                    RCLCPP_INFO(rclcpp::get_logger("device_cb"), "Algo reset command sent successfully");
+                #else
+                    ROS_INFO("Algo reset command sent successfully");
+                #endif
+            } else {
+                #ifdef ROS2
+                    RCLCPP_ERROR(rclcpp::get_logger("device_cb"), "Failed to send algo reset command, error: %d", ret);
+                #else
+                    ROS_ERROR("Failed to send algo reset command, error: %d", ret);
+                #endif
+            }
+        }
  
         lidar_data_callback_info_t data_callback_info;
         data_callback_info.data_callback = lidar_data_callback;
@@ -1566,6 +1707,9 @@ static void lidar_device_callback(const lidar_device_info_t* device, bool attach
         deviceConnected = true;
         deviceDisconnected = false;
         
+        // Start IMU dedicated thread
+        start_imu_thread();
+        
         // Start custom parameter monitoring thread
         g_param_monitor_running = true;
         g_param_monitor_thread = std::thread(custom_parameter_monitor);
@@ -1600,6 +1744,9 @@ static void lidar_device_callback(const lidar_device_info_t* device, bool attach
 
         deviceConnected = false;
         deviceDisconnected = true;
+        
+        // Stop IMU dedicated thread
+        stop_imu_thread();
         
         // Stop custom parameter monitoring thread
         g_param_monitor_running = false;
@@ -1681,6 +1828,10 @@ int main(int argc, char *argv[])
         g_sendrgb       = get_key_value("sendrgb", 1);
         g_sendimu       = get_key_value("sendimu", 1);
         g_senddtof      = get_key_value("senddtof", 1);
+        
+        // SDK IMU smooth sending configuration
+        g_enable_imu_smooth = get_key_value("enable_imu_smooth", 0);
+        g_imu_smooth_frequency = get_key_value("imu_smooth_frequency", 400);
         g_cloud_raw_confidence_threshold = get_key_value("cloud_raw_confidence_threshold", 35);
         g_rosNodeControlImpl.setCloudRawConfidenceThreshold(g_cloud_raw_confidence_threshold);
         g_dtof_fps      = get_key_value("dtof_fps", 145);  // Read DTOF frame rate from config (100=10fps, 145=14.5fps)
@@ -1699,19 +1850,7 @@ int main(int argc, char *argv[])
         g_log_level = get_key_value("log_devel", LOG_LEVEL_INFO);
         g_strict_usb3_0_check = get_key_value("strict_usb3.0_check", 1);
         g_use_host_ros_time = get_key_value("use_host_ros_time", 0);
-        g_align_odin_axes_in_driver = get_key_value("align_odin_axes_in_driver", 1);
         g_save_log = get_key_value("save_log", 0);
-
-    #ifdef ROS2
-        RCLCPP_INFO(
-            node->get_logger(),
-            "Loaded key: align_odin_axes_in_driver = %d",
-            g_align_odin_axes_in_driver);
-    #else
-        ROS_INFO(
-            "Loaded key: align_odin_axes_in_driver = %d",
-            g_align_odin_axes_in_driver);
-    #endif
 
         if (g_send_odom_baselink_tf) {
             g_rosNodeControlImpl.setSendOdomBaseLinkTF(true);
@@ -1725,23 +1864,56 @@ int main(int argc, char *argv[])
         g_relocalization_map_abs_path = get_key_str_value("relocalization_map_abs_path", "");
         g_mapping_result_dest_dir = get_key_str_value("mapping_result_dest_dir", "");
         g_mapping_result_file_name = get_key_str_value("mapping_result_file_name", "");
-        g_robot_base_frame_id = get_key_str_value("robot_base_frame_id", "odin1");
+        g_image_mask_abs_path = get_key_str_value("image_mask_abs_path", "");
 
+        g_send_image_mask = get_key_value("sendimagemask", 0);
+        g_reset_algo = get_key_value("resetalgo", 0);
         g_custom_map_mode = g_parser->getCustomMapMode(2);
 
         lidar_log_set_level(LIDAR_LOG_INFO);
 
-        const std::filesystem::path odin_driver_root_dir =
-            resolve_odin_driver_root_dir();
-        std::string data_dir = (odin_driver_root_dir / "recorddata").string();
-        std::string log_dir = (odin_driver_root_dir / "log").string();
-        std::string map_dir = (odin_driver_root_dir / "map").string();
+        const std::string package_name = "odin_ros_driver";
+        std::string data_dir = "";
+        std::string log_dir = "";
+        std::string map_dir = "";
+        #ifdef ROS2
+            char* ros_workspace = std::getenv("COLCON_PREFIX_PATH");
+            if (ros_workspace) {
+                std::string workspace_path(ros_workspace);
+                size_t pos = workspace_path.find("/install");
+                if (pos != std::string::npos) {
+                    data_dir = workspace_path.substr(0, pos) + "/src/odin_ros_driver/recorddata";
+                    log_dir = workspace_path.substr(0, pos) + "/src/odin_ros_driver/log";
+                    map_dir = workspace_path.substr(0, pos) + "/src/odin_ros_driver/map";
+                } else {
+                    data_dir = ament_index_cpp::get_package_share_directory(package_name) + "/recorddata";
+                    log_dir = ament_index_cpp::get_package_share_directory(package_name) + "/log";
+                    map_dir = ament_index_cpp::get_package_share_directory(package_name) + "/map";
+                }
+            } else {
+                data_dir = ament_index_cpp::get_package_share_directory(package_name) + "/recorddata";
+                log_dir = ament_index_cpp::get_package_share_directory(package_name) + "/log";
+                map_dir = ament_index_cpp::get_package_share_directory(package_name) + "/map";
+            }
+        #else
+            data_dir = ros::package::getPath(package_name) + "/recorddata";
+            log_dir = ros::package::getPath(package_name) + "/log";
+            map_dir = ros::package::getPath(package_name) + "/map";
+        #endif
 
         if (g_record_data) {
             g_ros_object->initialize_data_logger(data_dir);
         }
 
-        format_now_beijing(driver_start_time, sizeof(driver_start_time));
+        auto now = std::chrono::system_clock::now();
+        std::time_t t = std::chrono::system_clock::to_time_t(now);
+        std::tm tm{};
+        #ifdef _WIN32
+            localtime_s(&tm, &t);
+        #else
+            localtime_r(&t, &tm);
+        #endif
+        std::strftime(driver_start_time, sizeof(driver_start_time), "%Y%m%d_%H%M%S", &tm);
 
         if (g_devstatus_log) {
             std::string folder_name = std::string("Driver_") + std::string(driver_start_time);
@@ -1761,6 +1933,24 @@ int main(int argc, char *argv[])
                 ROS_ERROR("Lidar system init failed");
             #endif
             return -1;
+        }
+        
+        // Configure SDK IMU smooth sending AFTER lidar_system_init
+        // SDK now defaults to disabled, only enable if configured
+        if (g_enable_imu_smooth) {
+            lidar_enable_imu_smooth_sending(1);
+            lidar_set_imu_smooth_frequency(g_imu_smooth_frequency);
+            #ifdef ROS2
+                RCLCPP_INFO(node->get_logger(), "Enabling SDK IMU smooth sending at %d Hz", g_imu_smooth_frequency);
+            #else
+                ROS_INFO("Enabling SDK IMU smooth sending at %d Hz", g_imu_smooth_frequency);
+            #endif
+        } else {
+            #ifdef ROS2
+                RCLCPP_INFO(node->get_logger(), "SDK IMU smooth sending disabled");
+            #else
+                ROS_INFO("SDK IMU smooth sending disabled");
+            #endif
         }
         
 
