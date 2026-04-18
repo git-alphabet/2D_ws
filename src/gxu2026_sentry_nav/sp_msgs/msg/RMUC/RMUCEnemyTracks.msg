@@ -9,9 +9,9 @@
 
 std_msgs/Header header
 
-uint8     enemy_count        # 当前有效跟踪目标数量 (0~7)
-float32[] enemy_x            # 敌方位置 x (meter, map 坐标系)
-float32[] enemy_y            # 敌方位置 y (meter, map 坐标系)
+uint8     enemy_count        # [1B] 当前有效跟踪目标数量 (0~7)
+float32[] enemy_x            # [4B×N] 敌方位置 x (meter, map 坐标系)
+float32[] enemy_y            # [4B×N] 敌方位置 y (meter, map 坐标系)
 
 # # ── 以下字段暂未启用 ──
 # uint8[]   enemy_robot_id     # 敌方机器人 ID

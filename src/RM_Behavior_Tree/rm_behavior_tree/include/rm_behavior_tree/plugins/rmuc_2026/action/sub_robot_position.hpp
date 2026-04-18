@@ -18,8 +18,7 @@ public:
     return {
       BT::InputPort<std::string>("topic_name", "robot_position", "订阅的话题名"),
       BT::OutputPort<double>("pose_x"),
-      BT::OutputPort<double>("pose_y"),
-      BT::OutputPort<double>("pose_yaw")};
+      BT::OutputPort<double>("pose_y")};
   }
 
   BT::NodeStatus onTick(

@@ -10,8 +10,8 @@
 std_msgs/Header header
 
 # ── 己方建筑  ──
-uint16 outpost_hp              # offset 12: 前哨站血量 (0=被击毁)
-uint16 base_hp                 # offset 14: 基地血量
+uint16 outpost_hp              # [2B] offset 12: 前哨站血量 (0=被击毁)
+uint16 base_hp                 # [2B] offset 14: 基地血量
 
 # # ── 以下字段暂未启用 ──
 # uint16 hero_hp                 # offset 0: 英雄血量

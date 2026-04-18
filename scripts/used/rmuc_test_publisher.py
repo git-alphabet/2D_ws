@@ -155,7 +155,6 @@ class RmucTestPublisher(Node):
         msg.ammo_left = 300
         msg.can_remote_heal = True
         msg.can_remote_ammo = True
-        msg.team_coins = 800
         msg.base_hp_cur = int(self.base_hp)
         msg.base_hp_max = 5000
         msg.outpost_alive = not self.args.outpost_dead
@@ -165,7 +164,6 @@ class RmucTestPublisher(Node):
     def _pub_sentry_decision_status(self):
         msg = RMUCSentryDecisionStatus()
         msg.header = self._header()
-        msg.can_free_respawn = False
         msg.can_instant_respawn = True
         msg.instant_respawn_cost = 100
         msg.current_posture = self.current_posture  # 镜像 BT 的 sentry_cmd.cmd_posture

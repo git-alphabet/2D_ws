@@ -14,8 +14,8 @@ BT::NodeStatus RmucSubSentryDecisionStatusAction::onTick(
 {
   if (last_msg) {
     RCLCPP_DEBUG(
-      logger(), "[%s] sentry_decision: posture=%d, can_free_respawn=%d",
-      name().c_str(), last_msg->current_posture, last_msg->can_free_respawn);
+      logger(), "[%s] sentry_decision: posture=%d",
+      name().c_str(), last_msg->current_posture);
     setOutput("sentry_decision_status", *last_msg);
   }
   return BT::NodeStatus::SUCCESS;

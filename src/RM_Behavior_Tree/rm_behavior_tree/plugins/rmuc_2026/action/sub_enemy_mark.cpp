@@ -13,9 +13,7 @@ BT::NodeStatus RmucSubEnemyMarkAction::onTick(
   const std::shared_ptr<sp_msgs::msg::RMUCEnemyMark> & last_msg)
 {
   if (last_msg) {
-    RCLCPP_DEBUG(
-      logger(), "[%s] enemy_mark: hero=%d, sentry=%d",
-      name().c_str(), last_msg->enemy_hero_vuln, last_msg->enemy_sentry_vuln);
+    RCLCPP_DEBUG(logger(), "[%s] enemy_mark received", name().c_str());
     setOutput("enemy_mark", *last_msg);
   }
   return BT::NodeStatus::SUCCESS;

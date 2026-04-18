@@ -8,5 +8,5 @@
 
 std_msgs/Header header
 
-bool   stop_gimbal_scan      # 停止云台扫描
-bool   chassis_spin          # 底盘小陀螺旋转
+bool   stop_gimbal_scan      # [1B] 停止云台扫描
+bool   chassis_spin          # [1B] 底盘小陀螺旋转

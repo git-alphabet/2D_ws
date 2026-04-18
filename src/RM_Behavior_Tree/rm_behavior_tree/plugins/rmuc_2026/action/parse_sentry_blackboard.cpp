@@ -40,7 +40,6 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
     setOutput("is_dead", r.current_hp <= 0);
     setOutput("can_remote_heal", r.can_remote_heal);
     setOutput("can_remote_ammo", r.can_remote_ammo);
-    setOutput("team_coins", static_cast<int>(r.team_coins));
     setOutput("has_target", r.is_detect_enemy);
   }
 
@@ -55,49 +54,22 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
   // ── 哨兵决策状态 (SentryDecisionStatus 0x020D) ──
   auto sds = getInput<sp_msgs::msg::RMUCSentryDecisionStatus>("sentry_decision_status");
   if (sds) {
-    setOutput("can_free_respawn", sds->can_free_respawn);
     setOutput("can_instant_respawn", sds->can_instant_respawn);
     setOutput("instant_respawn_cost", static_cast<int>(sds->instant_respawn_cost));
     setOutput("current_posture", static_cast<int>(sds->current_posture));
-    setOutput("remote_ammo_count", static_cast<int>(sds->remote_ammo_count));
-    setOutput("remote_heal_count", static_cast<int>(sds->remote_heal_count));
     setOutput("exchanged_ammo_total", static_cast<int>(sds->exchanged_ammo_total));
   }
 
   // ── 增益状态 (RobotBuff) ──
   auto buff = getInput<sp_msgs::msg::RMUCRobotBuff>("robot_buff");
   if (buff) {
-    setOutput("buff_heal_rate", static_cast<int>(buff->heal_rate));
     setOutput("buff_vulnerability_pct", static_cast<int>(buff->vulnerability_pct));
   }
 
   // ── 弹丸配额 (ProjectileAllowance) ──
   auto pa = getInput<sp_msgs::msg::RMUCProjectileAllowance>("projectile_allowance");
   if (pa) {
-    setOutput("fortress_ammo", static_cast<int>(pa->fortress_ammo));
     setOutput("remaining_coins", static_cast<int>(pa->remaining_coins));
-  }
-
-  // ── 场地状态 (FieldStatus) ──
-  auto fs = getInput<sp_msgs::msg::RMUCFieldStatus>("field_status");
-  if (fs) {
-    setOutput("field_central_highland", static_cast<int>(fs->central_highland));
-    setOutput("field_ladder_highland", static_cast<int>(fs->ladder_highland));
-    setOutput("field_fortress", static_cast<int>(fs->fortress));
-    setOutput("field_outpost_buff", static_cast<int>(fs->outpost_buff));
-    setOutput("field_base_buff", fs->base_buff);
-    setOutput("field_small_energy", static_cast<int>(fs->small_energy_status));
-    setOutput("field_big_energy", static_cast<int>(fs->big_energy_status));
-  }
-
-  // ── 敌方易伤标记 (EnemyMark) ──
-  auto em = getInput<sp_msgs::msg::RMUCEnemyMark>("enemy_mark");
-  if (em) {
-    setOutput("enemy_hero_vuln", em->enemy_hero_vuln);
-    setOutput("enemy_engi_vuln", em->enemy_engi_vuln);
-    setOutput("enemy_infantry3_vuln", em->enemy_infantry3_vuln);
-    setOutput("enemy_infantry4_vuln", em->enemy_infantry4_vuln);
-    setOutput("enemy_sentry_vuln", em->enemy_sentry_vuln);
   }
 
   // ── 队伍血量 (TeamHP) ──

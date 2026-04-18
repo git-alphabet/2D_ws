@@ -14,9 +14,7 @@ BT::NodeStatus RmucSubRFIDStatusAction::onTick(
   const std::shared_ptr<sp_msgs::msg::RMUCRFIDStatus> & last_msg)
 {
   if (last_msg) {
-    RCLCPP_DEBUG(
-      logger(), "[%s] new RMUC msg, rfid_supply: %s", name().c_str(),
-      (last_msg->rfid_supply ? "true" : "false"));
+    RCLCPP_DEBUG(logger(), "[%s] rfid_status received", name().c_str());
     setOutput("rfid_status", *last_msg);
   }
   return BT::NodeStatus::SUCCESS;

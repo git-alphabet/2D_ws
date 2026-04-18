@@ -11,11 +11,11 @@ std_msgs/Header header
 
 # ── 对方机器人易伤状态  ──
 # 标记进度>=100时为true (1), <100时为false (0)
-bool   enemy_hero_vuln         # bit0: 对方英雄易伤
-bool   enemy_engi_vuln         # bit1: 对方工程易伤
-bool   enemy_infantry3_vuln    # bit2: 对方3号步兵易伤
-bool   enemy_infantry4_vuln    # bit3: 对方4号步兵易伤
-bool   enemy_sentry_vuln       # bit4: 对方哨兵易伤
+# bool   enemy_hero_vuln         # bit0: 对方英雄易伤
+# bool   enemy_engi_vuln         # bit1: 对方工程易伤
+# bool   enemy_infantry3_vuln    # bit2: 对方3号步兵易伤
+# bool   enemy_infantry4_vuln    # bit3: 对方4号步兵易伤
+# bool   enemy_sentry_vuln       # bit4: 对方哨兵易伤
 
 # ── 己方机器人特殊标识 (暂未启用) ──
 # 标记进度>=50时为true (1), <50时为false (0)

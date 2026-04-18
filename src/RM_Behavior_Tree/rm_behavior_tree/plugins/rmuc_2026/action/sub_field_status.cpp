@@ -13,10 +13,7 @@ BT::NodeStatus RmucSubFieldStatusAction::onTick(
   const std::shared_ptr<sp_msgs::msg::RMUCFieldStatus> & last_msg)
 {
   if (last_msg) {
-    RCLCPP_DEBUG(
-      logger(), "[%s] field_status: central=%d, ladder=%d, fortress=%d",
-      name().c_str(), last_msg->central_highland, last_msg->ladder_highland,
-      last_msg->fortress);
+    RCLCPP_DEBUG(logger(), "[%s] field_status received", name().c_str());
     setOutput("field_status", *last_msg);
   }
   return BT::NodeStatus::SUCCESS;

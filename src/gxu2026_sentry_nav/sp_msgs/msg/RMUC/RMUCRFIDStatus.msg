@@ -8,14 +8,14 @@
 #       MicroSearchSupplyCard
 # =============================================================================
 
-std_msgs/Header header
+# std_msgs/Header header
 
-bool   rfid_supply           # 补给区增益点 RFID 触发
-bool   rfid_base_buff        # 基地增益点 RFID 触发
-bool   rfid_outpost_buff     # 前哨站增益点 RFID 触发
-bool   rfid_central_highland # 中央高地 RFID 触发
-bool   rfid_ladder_highland  # 梯形高地 RFID 触发
-bool   rfid_fortress_ally    # 己方堡垒 RFID 触发
+# bool   rfid_supply           # 补给区增益点 RFID 触发
+# bool   rfid_base_buff        # 基地增益点 RFID 触发
+# bool   rfid_outpost_buff     # 前哨站增益点 RFID 触发
+# bool   rfid_central_highland # 中央高地 RFID 触发
+# bool   rfid_ladder_highland  # 梯形高地 RFID 触发
+# bool   rfid_fortress_ally    # 己方堡垒 RFID 触发
 
 # # ── 以下字段暂未启用 ──
 # bool   rfid_fortress_enemy   # 敌方堡垒 RFID 触发

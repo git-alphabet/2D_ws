@@ -14,8 +14,8 @@ BT::NodeStatus RmucSubRobotBuffAction::onTick(
 {
   if (last_msg) {
     RCLCPP_DEBUG(
-      logger(), "[%s] robot_buff: heal=%d, cool=%d, def=%d",
-      name().c_str(), last_msg->heal_rate, last_msg->cool_value, last_msg->defense_pct);
+      logger(), "[%s] robot_buff: vuln=%d",
+      name().c_str(), last_msg->vulnerability_pct);
     setOutput("robot_buff", *last_msg);
   }
   return BT::NodeStatus::SUCCESS;

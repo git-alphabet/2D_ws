@@ -17,7 +17,7 @@
                               ammo_increase_interval_ms="{cfg.ammo_increase_interval_ms}"
                               can_remote_heal="{economy.can_remote_heal}"
                               can_remote_ammo="{economy.can_remote_ammo}"
-                              team_coins="{economy.coins}"
+                              team_coins="{economy.remaining_coins}"
                               stage_remain_time="{game.remain_s}"
                               allow_ammo_target_in="{cmd.allow_ammo_target}"
                               allow_ammo_target_out="{cmd.allow_ammo_target}"
@@ -26,7 +26,7 @@
 
             <!-- Decide respawn confirm / instant respawn request (sends 0 when alive) -->
             <DecideRespawnCmd is_dead="{state.is_dead}"
-                              team_coins="{economy.coins}"
+                              team_coins="{economy.remaining_coins}"
                               stage_remain_time="{game.remain_s}"
                               base_hp_cur="{base.hp.cur}"
                               base_hp_max="{base.hp.max}"
@@ -77,7 +77,7 @@
             <input_port name="ammo_increase_interval_ms" default="{cfg.ammo_increase_interval_ms}"/>
             <input_port name="can_remote_heal" default="{economy.can_remote_heal}"/>
             <input_port name="can_remote_ammo" default="{economy.can_remote_ammo}"/>
-            <input_port name="team_coins" default="{economy.coins}"/>
+            <input_port name="team_coins" default="{economy.remaining_coins}"/>
             <input_port name="stage_remain_time" default="{game.remain_s}"/>
             <input_port name="allow_ammo_target_in" default="{cmd.allow_ammo_target}"/>
             <output_port name="allow_ammo_target_out" default="{cmd.allow_ammo_target}"/>
@@ -86,7 +86,7 @@
         </Action>
         <Action ID="DecideRespawnCmd" editable="true">
             <input_port name="is_dead" default="{state.is_dead}"/>
-            <input_port name="team_coins" default="{economy.coins}"/>
+            <input_port name="team_coins" default="{economy.remaining_coins}"/>
             <input_port name="stage_remain_time" default="{game.remain_s}"/>
             <input_port name="base_hp_cur" default="{base.hp.cur}"/>
             <input_port name="base_hp_max" default="{base.hp.max}"/>

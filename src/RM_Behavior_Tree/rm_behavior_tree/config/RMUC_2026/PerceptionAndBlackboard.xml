@@ -8,12 +8,9 @@
                                now_ms="{time.now_ms}"/>
             <RmucSubRobotStatus topic_name="robot_status"
                                 robot_status="{robot_status}"/>
-            <RmucSubRFIDStatus topic_name="rfid_status"
-                               rfid_status="{rfid.status}"/>
             <RmucSubRobotPosition topic_name="robot_position"
                                   pose_x="{pose.x}"
-                                  pose_y="{pose.y}"
-                                  pose_yaw="{pose.yaw}"/>
+                                  pose_y="{pose.y}"/>
             <SubRadarTracks topic_name="radar/enemy_tracks"
                             radar_tracks="{radar_tracks}"/>
 
@@ -24,10 +21,6 @@
                               robot_buff="{robot_buff}"/>
             <RmucSubProjectileAllowance topic_name="projectile_allowance"
                                          projectile_allowance="{projectile_allowance}"/>
-            <RmucSubFieldStatus topic_name="field_status"
-                                field_status="{field_status}"/>
-            <RmucSubEnemyMark topic_name="enemy_mark"
-                              enemy_mark="{enemy_mark}"/>
             <RmucSubTeamHP topic_name="team_hp"
                            team_hp="{team_hp}"/>
 
@@ -43,8 +36,6 @@
                                    robot_buff="{robot_buff}"
                                    projectile_allowance="{projectile_allowance}"
                                    radar_tracks="{radar_tracks}"
-                                   field_status="{field_status}"
-                                   enemy_mark="{enemy_mark}"
                                    team_hp="{team_hp}"
                                    stage_remain_time="{game.remain_s}"
                                    stage_elapsed_time="{game.elapsed_s}"
@@ -59,33 +50,15 @@
                                    is_dead="{state.is_dead}"
                                    can_remote_heal="{economy.can_remote_heal}"
                                    can_remote_ammo="{economy.can_remote_ammo}"
-                                   team_coins="{economy.coins}"
                                    has_target="{combat.has_target}"
                                    base_threat="{threat.base}"
                                    fortress_threat="{threat.fortress}"
-                                   can_free_respawn="{sentry.can_free_respawn}"
                                    can_instant_respawn="{sentry.can_instant_respawn}"
                                    instant_respawn_cost="{sentry.instant_respawn_cost}"
                                    current_posture="{sentry.current_posture}"
-                                   remote_ammo_count="{sentry.remote_ammo_count}"
-                                   remote_heal_count="{sentry.remote_heal_count}"
                                    exchanged_ammo_total="{sentry.exchanged_ammo_total}"
-                                   buff_heal_rate="{buff.heal_rate}"
                                    buff_vulnerability_pct="{buff.vulnerability_pct}"
-                                   fortress_ammo="{economy.fortress_ammo}"
                                    remaining_coins="{economy.remaining_coins}"
-                                   field_central_highland="{field.central_highland}"
-                                   field_ladder_highland="{field.ladder_highland}"
-                                   field_fortress="{field.fortress}"
-                                   field_outpost_buff="{field.outpost_buff}"
-                                   field_base_buff="{field.base_buff}"
-                                   field_small_energy="{field.small_energy}"
-                                   field_big_energy="{field.big_energy}"
-                                   enemy_hero_vuln="{enemy.hero_vuln}"
-                                   enemy_engi_vuln="{enemy.engi_vuln}"
-                                   enemy_infantry3_vuln="{enemy.infantry3_vuln}"
-                                   enemy_infantry4_vuln="{enemy.infantry4_vuln}"
-                                   enemy_sentry_vuln="{enemy.sentry_vuln}"
                                    team_outpost_hp="{team.outpost_hp}"
                                    team_base_hp="{team.base_hp}"
                                    is_disengaged="{state.disengaged}"
