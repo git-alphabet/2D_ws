@@ -195,6 +195,19 @@ inline Eigen::Vector3d align_odin_vector_to_vehicle(
     return Eigen::Vector3d(-raw_y, raw_x, raw_z);
 }
 
+inline Eigen::Vector3d align_odin_imu_vector_to_vehicle(
+    const double raw_x,
+    const double raw_y,
+    const double raw_z)
+{
+    if (!g_align_odin_axes_in_driver) {
+        return Eigen::Vector3d(raw_x, raw_y, raw_z);
+    }
+
+    // IMU 原始轴约定与点云不同，沿用历史映射：x'=y, y'=-x, z'=z。
+    return Eigen::Vector3d(raw_y, -raw_x, raw_z);
+}
+
 inline tf2::Quaternion align_odin_quaternion_to_vehicle(const tf2::Quaternion & raw_q)
 {
     if (!g_align_odin_axes_in_driver) {
@@ -306,13 +319,21 @@ public:
         #endif
         imu_msg.header.frame_id = "imu_link";
 
-        imu_msg.linear_acceleration.y = -1 * stream->accel_x;
-        imu_msg.linear_acceleration.x = stream->accel_y;
-        imu_msg.linear_acceleration.z = stream->accel_z;
+        const auto corrected_accel = align_odin_imu_vector_to_vehicle(
+            static_cast<double>(stream->accel_x),
+            static_cast<double>(stream->accel_y),
+            static_cast<double>(stream->accel_z));
+        imu_msg.linear_acceleration.x = corrected_accel.x();
+        imu_msg.linear_acceleration.y = corrected_accel.y();
+        imu_msg.linear_acceleration.z = corrected_accel.z();
 
-        imu_msg.angular_velocity.y = -1 * stream->gyro_x;
-        imu_msg.angular_velocity.x = stream->gyro_y;
-        imu_msg.angular_velocity.z = stream->gyro_z;
+        const auto corrected_gyro = align_odin_imu_vector_to_vehicle(
+            static_cast<double>(stream->gyro_x),
+            static_cast<double>(stream->gyro_y),
+            static_cast<double>(stream->gyro_z));
+        imu_msg.angular_velocity.x = corrected_gyro.x();
+        imu_msg.angular_velocity.y = corrected_gyro.y();
+        imu_msg.angular_velocity.z = corrected_gyro.z();
 
         imu_msg.orientation.x = 0.0;
         imu_msg.orientation.y = 0.0;
@@ -1009,9 +1030,13 @@ void publishRgb(capture_Image_List_t *stream) {
                 const float raw_x = static_cast<float>(ptr[0]) / 10000.0f;
                 const float raw_y = static_cast<float>(ptr[1]) / 10000.0f;
                 const float raw_z = static_cast<float>(ptr[2]) / 10000.0f;
-                float fx = -raw_y;
-                float fy = raw_x;
-                float fz = raw_z;
+                const auto corrected_xyz = align_odin_vector_to_vehicle(
+                    static_cast<double>(raw_x),
+                    static_cast<double>(raw_y),
+                    static_cast<double>(raw_z));
+                const float fx = static_cast<float>(corrected_xyz.x());
+                const float fy = static_cast<float>(corrected_xyz.y());
+                const float fz = static_cast<float>(corrected_xyz.z());
                 uint8_t r = static_cast<uint8_t>(ptr[3] & 0xff);
                 uint8_t g = static_cast<uint8_t>(ptr[4] & 0xff);
                 uint8_t b = static_cast<uint8_t>(ptr[5] & 0xff);
