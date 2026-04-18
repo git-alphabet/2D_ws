@@ -180,6 +180,24 @@ inline uint64_t ros_time_to_ns(const ros::Time &t) {
     #endif
 }
 
+inline Eigen::Vector3d align_odin_vector_to_vehicle(
+    const double raw_x,
+    const double raw_y,
+    const double raw_z)
+{
+    // 与点云保持一致：x'=-y, y'=x, z'=z。
+    return Eigen::Vector3d(-raw_y, raw_x, raw_z);
+}
+
+inline tf2::Quaternion align_odin_quaternion_to_vehicle(const tf2::Quaternion & raw_q)
+{
+    // 坐标系基变换：绕 Z 轴 +90°，把 Odin 原始平面轴约定对齐到车体约定。
+    static const tf2::Quaternion q_basis(0.0, 0.0, 0.7071067811865476, 0.7071067811865476);
+    tf2::Quaternion corrected_q = q_basis * raw_q * q_basis.inverse();
+    corrected_q.normalize();
+    return corrected_q;
+}
+
 inline ros::Time make_aligned_stamp(uint64_t sensor_timestamp_ns
 #ifdef ROS2
                                     , const rclcpp::Node::SharedPtr& node
@@ -919,15 +937,23 @@ void publishRgb(capture_Image_List_t *stream) {
         
         for(uint32_t i = 0; i < points; i++) {
             int32_t* ptr = xyz_data + 7*i;
+
+            const float raw_x = static_cast<float>(ptr[0]) / 10000.0f;
+            const float raw_y = static_cast<float>(ptr[1]) / 10000.0f;
+            const float raw_z = static_cast<float>(ptr[2]) / 10000.0f;
+
+            const float corrected_x = -raw_y;
+            const float corrected_y = raw_x;
+            const float corrected_z = raw_z;
             
 #ifdef ROS2
-                *iter_x = static_cast<float>(ptr[0]) / 10000.0f; ++iter_x;
-                *iter_y = static_cast<float>(ptr[1]) / 10000.0f; ++iter_y;
-                *iter_z = static_cast<float>(ptr[2]) / 10000.0f; ++iter_z;
+                *iter_x = corrected_x; ++iter_x;
+                *iter_y = corrected_y; ++iter_y;
+                *iter_z = corrected_z; ++iter_z;
 #else
-                *iter_x = (1.0 * ptr[0]) / 1e4; ++iter_x;
-                *iter_y = (1.0 * ptr[1]) / 1e4; ++iter_y;
-                *iter_z = (1.0 * ptr[2]) / 1e4; ++iter_z;
+                *iter_x = corrected_x; ++iter_x;
+                *iter_y = corrected_y; ++iter_y;
+                *iter_z = corrected_z; ++iter_z;
 #endif
             
             uint8_t r = ptr[3] & 0xff;
@@ -964,9 +990,12 @@ void publishRgb(capture_Image_List_t *stream) {
 
             for (uint32_t i = 0; i < points; ++i) {
                 int32_t* ptr = xyz_data + 7 * i;
-                float fx = static_cast<float>(ptr[0]) / 10000.0f;
-                float fy = static_cast<float>(ptr[1]) / 10000.0f;
-                float fz = static_cast<float>(ptr[2]) / 10000.0f;
+                const float raw_x = static_cast<float>(ptr[0]) / 10000.0f;
+                const float raw_y = static_cast<float>(ptr[1]) / 10000.0f;
+                const float raw_z = static_cast<float>(ptr[2]) / 10000.0f;
+                float fx = -raw_y;
+                float fy = raw_x;
+                float fz = raw_z;
                 uint8_t r = static_cast<uint8_t>(ptr[3] & 0xff);
                 uint8_t g = static_cast<uint8_t>(ptr[4] & 0xff);
                 uint8_t b = static_cast<uint8_t>(ptr[5] & 0xff);
@@ -1199,14 +1228,24 @@ void publishRgb(capture_Image_List_t *stream) {
                     msg.header.stamp = make_aligned_stamp(odom_data->timestamp_ns);
                 #endif
 
-                msg.pose.pose.position.x = static_cast<double>(odom_data->pos[0]) / 1e6;
-                msg.pose.pose.position.y = static_cast<double>(odom_data->pos[1]) / 1e6;
-                msg.pose.pose.position.z = static_cast<double>(odom_data->pos[2]) / 1e6;
+                const auto corrected_pos = align_odin_vector_to_vehicle(
+                    static_cast<double>(odom_data->pos[0]) / 1e6,
+                    static_cast<double>(odom_data->pos[1]) / 1e6,
+                    static_cast<double>(odom_data->pos[2]) / 1e6);
+                msg.pose.pose.position.x = corrected_pos.x();
+                msg.pose.pose.position.y = corrected_pos.y();
+                msg.pose.pose.position.z = corrected_pos.z();
 
-                msg.pose.pose.orientation.x = static_cast<double>(odom_data->orient[0]) / 1e6;
-                msg.pose.pose.orientation.y = static_cast<double>(odom_data->orient[1]) / 1e6;
-                msg.pose.pose.orientation.z = static_cast<double>(odom_data->orient[2]) / 1e6;
-                msg.pose.pose.orientation.w = static_cast<double>(odom_data->orient[3]) / 1e6;
+                tf2::Quaternion raw_q(
+                    static_cast<double>(odom_data->orient[0]) / 1e6,
+                    static_cast<double>(odom_data->orient[1]) / 1e6,
+                    static_cast<double>(odom_data->orient[2]) / 1e6,
+                    static_cast<double>(odom_data->orient[3]) / 1e6);
+                const tf2::Quaternion corrected_q = align_odin_quaternion_to_vehicle(raw_q);
+                msg.pose.pose.orientation.x = corrected_q.x();
+                msg.pose.pose.orientation.y = corrected_q.y();
+                msg.pose.pose.orientation.z = corrected_q.z();
+                msg.pose.pose.orientation.w = corrected_q.w();
 
                 // Enqueue binary logging for pose
                 if ((odom_type == OdometryType::STANDARD) && data_logger_) {
@@ -1232,13 +1271,21 @@ void publishRgb(capture_Image_List_t *stream) {
                     data_logger_->enqueuePoseFrame(std::move(blob));
                 }
         
-                msg.twist.twist.linear.x = static_cast<double>(odom_data->linear_velocity[0]) / 1e6;
-                msg.twist.twist.linear.y = static_cast<double>(odom_data->linear_velocity[1]) / 1e6;
-                msg.twist.twist.linear.z = static_cast<double>(odom_data->linear_velocity[2]) / 1e6;
+                const auto corrected_linear_vel = align_odin_vector_to_vehicle(
+                    static_cast<double>(odom_data->linear_velocity[0]) / 1e6,
+                    static_cast<double>(odom_data->linear_velocity[1]) / 1e6,
+                    static_cast<double>(odom_data->linear_velocity[2]) / 1e6);
+                msg.twist.twist.linear.x = corrected_linear_vel.x();
+                msg.twist.twist.linear.y = corrected_linear_vel.y();
+                msg.twist.twist.linear.z = corrected_linear_vel.z();
 
-                msg.twist.twist.angular.x = static_cast<double>(odom_data->angular_velocity[0]) / 1e6;
-                msg.twist.twist.angular.y = static_cast<double>(odom_data->angular_velocity[1]) / 1e6;
-                msg.twist.twist.angular.z = static_cast<double>(odom_data->angular_velocity[2]) / 1e6;
+                const auto corrected_angular_vel = align_odin_vector_to_vehicle(
+                    static_cast<double>(odom_data->angular_velocity[0]) / 1e6,
+                    static_cast<double>(odom_data->angular_velocity[1]) / 1e6,
+                    static_cast<double>(odom_data->angular_velocity[2]) / 1e6);
+                msg.twist.twist.angular.x = corrected_angular_vel.x();
+                msg.twist.twist.angular.y = corrected_angular_vel.y();
+                msg.twist.twist.angular.z = corrected_angular_vel.z();
 
                 // Copy original covariance data
                 for (int i = 0; i < 36; ++i) {
@@ -1258,14 +1305,24 @@ void publishRgb(capture_Image_List_t *stream) {
                     msg.header.stamp = make_aligned_stamp(odom_data->timestamp_ns);
                 #endif
 
-                msg.pose.pose.position.x = static_cast<double>(odom_data->pos[0]) / 1e6;
-                msg.pose.pose.position.y = static_cast<double>(odom_data->pos[1]) / 1e6;
-                msg.pose.pose.position.z = static_cast<double>(odom_data->pos[2]) / 1e6;
+                const auto corrected_pos = align_odin_vector_to_vehicle(
+                    static_cast<double>(odom_data->pos[0]) / 1e6,
+                    static_cast<double>(odom_data->pos[1]) / 1e6,
+                    static_cast<double>(odom_data->pos[2]) / 1e6);
+                msg.pose.pose.position.x = corrected_pos.x();
+                msg.pose.pose.position.y = corrected_pos.y();
+                msg.pose.pose.position.z = corrected_pos.z();
 
-                msg.pose.pose.orientation.x = static_cast<double>(odom_data->orient[0]) / 1e6;
-                msg.pose.pose.orientation.y = static_cast<double>(odom_data->orient[1]) / 1e6;
-                msg.pose.pose.orientation.z = static_cast<double>(odom_data->orient[2]) / 1e6;
-                msg.pose.pose.orientation.w = static_cast<double>(odom_data->orient[3]) / 1e6;
+                tf2::Quaternion raw_q(
+                    static_cast<double>(odom_data->orient[0]) / 1e6,
+                    static_cast<double>(odom_data->orient[1]) / 1e6,
+                    static_cast<double>(odom_data->orient[2]) / 1e6,
+                    static_cast<double>(odom_data->orient[3]) / 1e6);
+                const tf2::Quaternion corrected_q = align_odin_quaternion_to_vehicle(raw_q);
+                msg.pose.pose.orientation.x = corrected_q.x();
+                msg.pose.pose.orientation.y = corrected_q.y();
+                msg.pose.pose.orientation.z = corrected_q.z();
+                msg.pose.pose.orientation.w = corrected_q.w();
             }
 
 #ifdef ROS2
