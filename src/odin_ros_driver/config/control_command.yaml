@@ -39,6 +39,11 @@ register_keys:
   # gimbal_yaw 通过 URDF 关节链获取，避免同一 child 帧双父节点冲突。
   robot_base_frame_id: base_footprint
 
+  # 驱动内坐标轴对齐开关：
+  # 1: 在驱动内执行 x'=-y, y'=x, z'=z 轴对齐（默认）
+  # 0: 关闭驱动内对齐，交给 loam_interface 外部对齐链路验证
+  align_odin_axes_in_driver: 0
+
   # 原始 dToF 点云（/odin1/cloud_raw，含 x/y/z/intensity/confidence/offset_time 字段）
   senddtof: 1             # 0: 关闭; 1: 开启
   # 点云置信度过滤阈值（0~1300，典型场景推荐 30~35，值越高点越可靠，滤掉噪声越多）
@@ -83,7 +88,7 @@ register_keys:
   # 1: SLAM 建图模式（有回环检测，跑完后执行 ./set_param.sh save_map 1 保存 .bin）
   # 2: 重定位模式（需预先指定 .bin 地图路径，重定位成功后发布 map→odom TF）
   # 注意：必须与 odin_map_mode launch 参数保持一致！
-  custom_map_mode: 2
+  custom_map_mode: 1
 
   # 初始位姿（暂未使用，保留字段）[x, y, z, qx, qy, qz, qw]
   custom_init_pos: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]

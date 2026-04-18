@@ -72,6 +72,7 @@ extern int g_log_level;
 extern int g_sendcloudrender;
 extern int g_use_host_ros_time;
 extern std::string g_robot_base_frame_id;  // child_frame_id for odom/TF (default: odin1)
+extern int g_align_odin_axes_in_driver;
 double get_ptp_smoothed_delay();
 double get_ptp_smoothed_offset();
 #ifdef ROS2
@@ -186,12 +187,22 @@ inline Eigen::Vector3d align_odin_vector_to_vehicle(
     const double raw_y,
     const double raw_z)
 {
+    if (!g_align_odin_axes_in_driver) {
+        return Eigen::Vector3d(raw_x, raw_y, raw_z);
+    }
+
     // 与点云保持一致：x'=-y, y'=x, z'=z。
     return Eigen::Vector3d(-raw_y, raw_x, raw_z);
 }
 
 inline tf2::Quaternion align_odin_quaternion_to_vehicle(const tf2::Quaternion & raw_q)
 {
+    if (!g_align_odin_axes_in_driver) {
+        tf2::Quaternion q = raw_q;
+        q.normalize();
+        return q;
+    }
+
     // 坐标系基变换：绕 Z 轴 +90°，把 Odin 原始平面轴约定对齐到车体约定。
     static const tf2::Quaternion q_basis(0.0, 0.0, 0.7071067811865476, 0.7071067811865476);
     tf2::Quaternion corrected_q = q_basis * raw_q * q_basis.inverse();
@@ -943,10 +954,13 @@ void publishRgb(capture_Image_List_t *stream) {
             const float raw_y = static_cast<float>(ptr[1]) / 10000.0f;
             const float raw_z = static_cast<float>(ptr[2]) / 10000.0f;
 
-            // Align slam cloud with vehicle frame convention (x forward, y left, z up).
-            const float corrected_x = -raw_y;
-            const float corrected_y = raw_x;
-            const float corrected_z = raw_z;
+            const auto corrected_xyz = align_odin_vector_to_vehicle(
+                static_cast<double>(raw_x),
+                static_cast<double>(raw_y),
+                static_cast<double>(raw_z));
+            const float corrected_x = static_cast<float>(corrected_xyz.x());
+            const float corrected_y = static_cast<float>(corrected_xyz.y());
+            const float corrected_z = static_cast<float>(corrected_xyz.z());
             
 #ifdef ROS2
                 *iter_x = corrected_x; ++iter_x;

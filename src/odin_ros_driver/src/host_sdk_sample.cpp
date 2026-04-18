@@ -120,6 +120,7 @@ int g_show_path = 0;
 int g_show_camerapose = 0;
 int g_strict_usb3_0_check = 0;
 int g_use_host_ros_time = 0;
+int g_align_odin_axes_in_driver = 1;
 int g_save_log = 0;
 int g_cloud_raw_confidence_threshold = 35;
 int g_dtof_fps = 145;  // DTOF sensor frame rate: 100 (10fps) or 145 (14.5fps)
@@ -1698,7 +1699,19 @@ int main(int argc, char *argv[])
         g_log_level = get_key_value("log_devel", LOG_LEVEL_INFO);
         g_strict_usb3_0_check = get_key_value("strict_usb3.0_check", 1);
         g_use_host_ros_time = get_key_value("use_host_ros_time", 0);
+        g_align_odin_axes_in_driver = get_key_value("align_odin_axes_in_driver", 1);
         g_save_log = get_key_value("save_log", 0);
+
+    #ifdef ROS2
+        RCLCPP_INFO(
+            node->get_logger(),
+            "Loaded key: align_odin_axes_in_driver = %d",
+            g_align_odin_axes_in_driver);
+    #else
+        ROS_INFO(
+            "Loaded key: align_odin_axes_in_driver = %d",
+            g_align_odin_axes_in_driver);
+    #endif
 
         if (g_send_odom_baselink_tf) {
             g_rosNodeControlImpl.setSendOdomBaseLinkTF(true);
