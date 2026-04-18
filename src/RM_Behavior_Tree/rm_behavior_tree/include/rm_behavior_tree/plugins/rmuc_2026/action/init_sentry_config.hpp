@@ -30,6 +30,8 @@ public:
       BT::BidirectionalPort<double>("defend_anchor_x"), BT::BidirectionalPort<double>("defend_anchor_y"),
       BT::BidirectionalPort<double>("central_highland_left_x"), BT::BidirectionalPort<double>("central_highland_left_y"),
       BT::BidirectionalPort<double>("ramp_jump_x"), BT::BidirectionalPort<double>("ramp_jump_y"),
+      BT::BidirectionalPort<double>("supply_zone_radius"),
+      BT::BidirectionalPort<double>("patrol_arrive_radius"),
       BT::BidirectionalPort<double>("base_defense_arrive_radius"),
       BT::BidirectionalPort<int>("hp_low"),
       BT::BidirectionalPort<int>("hp_safe"),

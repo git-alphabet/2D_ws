@@ -45,7 +45,7 @@
                         <Sequence>
                             <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
                                       goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
-                                      arrive_radius="0.5"/>
+                                      arrive_radius="{cfg.supply_zone_radius}"/>
                             <RmucRobotControl stop_gimbal_scan="False"
                                               chassis_spin="False"/>
                         </Sequence>
@@ -94,7 +94,7 @@
                         </Inverter>
                         <!-- 当前 Nav2 目标 = 补给区 → 放行（无视敌人，继续导航回家） -->
                         <IsNavTargetSupply goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
-                                     arrive_radius="0.5"/>
+                                     arrive_radius="{cfg.supply_zone_radius}"/>
                         <!-- 有敌人 + 目标不是补给区 → 切攻击姿态 + 取消导航 + 阻塞 -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="EnemyHold"/>

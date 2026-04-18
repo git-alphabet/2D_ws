@@ -1,4 +1,5 @@
 #include "rm_behavior_tree/plugins/rmuc_2026/action/parse_sentry_blackboard.hpp"
+#include <iostream>
 
 namespace rm_behavior_tree
 {
@@ -6,7 +7,7 @@ namespace rm_behavior_tree
 namespace
 {
 constexpr double kBaseThreatEnterDistance = 5.0;
-constexpr double kBaseThreatExitDistance = 12.0;
+constexpr int64_t kBaseThreatCalmTimeoutMs = 30000;  // 30秒无威胁自动解除
 }
 
 ParseSentryBlackboardAction::ParseSentryBlackboardAction(
@@ -108,48 +109,74 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
     setOutput("team_base_hp", static_cast<int>(th->base_hp));
   }
 
-  // 基地危机锁存：进入条件是基地 HP 下降且敌人进入 5m；
-  // 退出条件是雷达确认所有敌人都被赶到 12m 之外。
+  // 基地危机锁存：
+  // 进入条件：雷达扫描到敌人在 defend_anchor 5m 内 + 基地 HP 下降
+  // 退出条件：云台没有扫描到敌人 + 基地不掉血，持续 30 秒自动解除
   bool base_threat = base_threat_latched_;
   double defend_anchor_x = 0.0;
   double defend_anchor_y = 0.0;
   getInput("defend_anchor_x", defend_anchor_x);
   getInput("defend_anchor_y", defend_anchor_y);
 
+  // 雷达距离计算（用于进入条件）
   bool any_enemy_near = false;
-  bool has_enemy_tracks = false;
-  bool all_enemies_far = false;
-
   if (radar_tracks &&
     radar_tracks->enemy_x.size() == radar_tracks->enemy_y.size() &&
     !radar_tracks->enemy_x.empty())
   {
-    has_enemy_tracks = true;
-    all_enemies_far = true;
     for (size_t index = 0; index < radar_tracks->enemy_x.size(); ++index) {
       const double dx = static_cast<double>(radar_tracks->enemy_x[index]) - defend_anchor_x;
       const double dy = static_cast<double>(radar_tracks->enemy_y[index]) - defend_anchor_y;
       const double distance = std::hypot(dx, dy);
       if (distance < kBaseThreatEnterDistance) {
         any_enemy_near = true;
-      }
-      if (distance <= kBaseThreatExitDistance) {
-        all_enemies_far = false;
+        break;
       }
     }
   }
 
+  // 进入条件：雷达扫到敌人在基地附近 + 基地掉血
+  bool base_hp_is_dropping = false;
   if (robot_ptr) {
     const auto & r = **robot_ptr;
-    const bool base_hp_is_dropping = (last_base_hp_ >= 0 && r.base_hp_cur < last_base_hp_);
+    base_hp_is_dropping = (last_base_hp_ >= 0 && r.base_hp_cur < last_base_hp_);
     if (base_hp_is_dropping && any_enemy_near) {
       base_threat = true;
+      std::cout << "[ParseSentryBlackboard] 基地威胁触发：雷达扫到敌人在基地 5m 内且基地掉血"
+                << std::endl;
     }
     last_base_hp_ = r.base_hp_cur;
   }
 
-  if (base_threat && has_enemy_tracks && all_enemies_far) {
-    base_threat = false;
+  // 退出条件：云台没扫到敌人 + 基地不掉血，持续 30 秒自动解除
+  bool gimbal_detects_enemy = false;
+  if (robot_ptr) {
+    gimbal_detects_enemy = (**robot_ptr).is_detect_enemy;
+  }
+
+  if (base_threat) {
+    bool is_calm = !gimbal_detects_enemy && !base_hp_is_dropping;
+    auto now = std::chrono::steady_clock::now();
+    if (is_calm) {
+      if (!base_threat_calm_tracking_) {
+        base_threat_calm_tracking_ = true;
+        base_threat_calm_start_ = now;
+      } else {
+        auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+          now - base_threat_calm_start_).count();
+        if (elapsed_ms >= kBaseThreatCalmTimeoutMs) {
+          base_threat = false;
+          base_threat_calm_tracking_ = false;
+          std::cout << "[ParseSentryBlackboard] 基地威胁解除：连续 30s 云台未检测到敌人且基地不掉血"
+                    << std::endl;
+        }
+      }
+    } else {
+      // 云台检测到敌人或基地在掉血 → 重置平静计时器
+      base_threat_calm_tracking_ = false;
+    }
+  } else {
+    base_threat_calm_tracking_ = false;
   }
 
   base_threat_latched_ = base_threat;

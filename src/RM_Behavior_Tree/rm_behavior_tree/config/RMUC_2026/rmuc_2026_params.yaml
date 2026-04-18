@@ -62,7 +62,9 @@ rmuc_sentry_config:
   ammo_increase_interval_ms: 1000 # 允许弹量每次累加的最小间隔 (毫秒, 防止瞬间拉满)
 
   # ─────────── 导航参数 ───────────
-  # 到达判定统一使用 Nav2 官方 xy_goal_tolerance，不再自定义 arrive_radius
+  # 姿态到达判定使用 Nav2 官方 is_at_nav_goal，以下为空间范围判定参数
+  supply_zone_radius: 0.5        # 补给区空间判定半径 (米) — GlobalRobotControl / LowHPRetreat / IsNavTargetSupply / AmmoPlan 共用
+  patrol_arrive_radius: 0.3      # 巡逻点切换判定半径 (米) — ObjectivePatrol 专用
 
   # ─────────── 基地防御参数 ───────────
   base_defense_arrive_radius: 3.5 # 基地防御停车对抗判定半径 (米) — BaseDefense 专用

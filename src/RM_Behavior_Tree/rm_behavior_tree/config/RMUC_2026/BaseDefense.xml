@@ -3,7 +3,7 @@
 
     <BehaviorTree ID="BaseDefense">
         <ReactiveSequence>
-            <!-- 判断基地是否受到威胁：base_threat 为 true 或基地当前血量低于最大血量的 50% -->
+            <!-- 基地威胁锁存判定：基地掉血+敌人进入5m→触发，所有敌人撤出12m→解除 -->
             <IsBaseThreatened base_threat="{threat.base}"/>
 
             <!-- 基地防御 → 攻击姿态(1)，3倍伤害保护基地 -->

@@ -21,6 +21,8 @@
                 central_highland_left_x="{cfg.central_highland_left_x}" central_highland_left_y="{cfg.central_highland_left_y}"
                 ramp_jump_x="{cfg.ramp_jump_x}" ramp_jump_y="{cfg.ramp_jump_y}"
 
+                supply_zone_radius="{cfg.supply_zone_radius}"
+                patrol_arrive_radius="{cfg.patrol_arrive_radius}"
                 base_defense_arrive_radius="{cfg.base_defense_arrive_radius}"
                 hp_low="{cfg.hp_low}"
                 hp_safe="{cfg.hp_safe}"
@@ -53,8 +55,9 @@
                 />
             <InitCmdState cmd_state="{cmd.state}"
                           allow_ammo_target="{cmd.allow_ammo_target}"/>
-            <!-- 姿态默认值：移动姿态(3)，由各战术子树的 SelectPosture 覆盖 -->
-            <SetBlackboard output_key="cmd.posture" value="3"/>
+            <!-- 姿态由 DefaultPosture (rmuc_2026.xml) 在每 tick 中动态设置：
+                 到达目标→防御(2)，导航中→移动(3)
+                 PostureDegradationGuard 的第一 tick 默认值 = 3 -->
         </Sequence>
     </BehaviorTree>
 

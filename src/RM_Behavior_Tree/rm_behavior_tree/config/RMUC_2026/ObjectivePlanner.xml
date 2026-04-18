@@ -27,7 +27,7 @@
                              patrol_enable="{cfg.patrol_enable}"
                              patrol_waypoints="{cfg.patrol_waypoints}"
                              patrol_hold_ms="{cfg.patrol_hold_ms}"
-                             arrive_radius="0.3"
+                             arrive_radius="{cfg.patrol_arrive_radius}"
                              goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"/>
 
             <!-- 发送导航目标给 Nav2（RateController 限制重发频率） -->

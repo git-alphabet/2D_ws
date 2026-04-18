@@ -34,10 +34,11 @@
                               confirm_respawn="{cmd.confirm_respawn}"
                               confirm_instant_respawn="{cmd.confirm_instant_respawn}"/>
 
-            <!-- 姿态降级守卫：累计超过3分钟 → 强制防御5秒 → 重置计时器 -->
+            <!-- 姿态降级守卫：累计超过3分钟 → 攻击/移动→强制防御5s, 防御→强制移动10s -->
             <PostureDegradationGuard desired_posture="{cmd.posture}"
                                      degradation_threshold_s="180"
                                      forced_defense_s="5"
+                                     forced_movement_s="5"
                                      final_posture="{cmd.final_posture}"/>
 
             <RateController hz="5">
@@ -63,6 +64,7 @@
             <input_port name="desired_posture" default="{cmd.posture}"/>
             <input_port name="degradation_threshold_s" default="180"/>
             <input_port name="forced_defense_s" default="5"/>
+            <input_port name="forced_movement_s" default="5"/>
             <output_port name="final_posture" default="{cmd.final_posture}"/>
         </Action>
         <Action ID="DecideEconomyCmd" editable="true">

@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <cmath>
+#include <chrono>
 #include "behaviortree_cpp/action_node.h"
 #include "sp_msgs/msg/rmuc_game_status.hpp"
 #include "sp_msgs/msg/rmuc_robot_status.hpp"
@@ -113,6 +114,10 @@ public:
 private:
   bool base_threat_latched_{false};
   int last_base_hp_{-1};
+
+  // 基地威胁自动解除：危机模式下连续无敌人+基地不掉血超过30s→自动解除
+  std::chrono::steady_clock::time_point base_threat_calm_start_{};
+  bool base_threat_calm_tracking_{false};
 
   // 脱战检测
   uint16_t last_shooter_heat_{0};

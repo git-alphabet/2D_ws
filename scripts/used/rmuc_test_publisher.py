@@ -27,7 +27,10 @@ RMUC 2026 裁判系统话题模拟器
   --ammo     允许发弹量 (默认 200)
   --dead     是否战亡 (默认 false)
   --outpost-dead  前哨站是否被毁 (不加=存活)
-  --detect-enemy  是否检测到敌人 (不加=未检测)
+  --detect-enemy  云台是否检测到敌人 (不加=未检测，用于基地威胁解除判定)
+  --base-hp       基地当前血量 (默认 5000)
+  --base-hp-drain 每秒基地血量下降速度 (默认 0)
+  --enemy-near-base 雷达模拟敌人在基地附近 (配合 --base-hp-drain 触发基地威胁)
   --duration      运行时长秒数 (0=持续运行, 默认0)
 
 复合指令示例（按序列模拟多阶段场景，用 --duration 代替 timeout）:
@@ -58,8 +61,10 @@ from sp_msgs.msg import (
     RMUCProjectileAllowance,
     RMUCFieldStatus,
     RMUCEnemyMark,
+    RMUCEnemyTracks,
     RMUCTeamPositions,
     RMUCTeamHP,
+    RMUCSentryCmd,
 )
 
 
@@ -87,9 +92,22 @@ class RmucTestPublisher(Node):
         self.pub_team_pos = self.create_publisher(RMUCTeamPositions, "team_positions", 10)
         self.pub_team_hp = self.create_publisher(RMUCTeamHP, "team_hp", 10)
 
+        # ── 雷达敌方跟踪 (用于模拟基地威胁进入条件) ──
+        self.pub_radar_tracks = self.create_publisher(RMUCEnemyTracks, "radar/enemy_tracks", 10)
+
+        # ── 订阅 BT 的 sentry_cmd，镜像 cmd_posture 到 sentry_decision_status ──
+        self.current_posture = 3  # 默认移动姿态
+        self.sub_sentry_cmd = self.create_subscription(
+            RMUCSentryCmd, "sentry_cmd", self._sentry_cmd_cb, 10
+        )
+
         # 倒计时状态
         self.remain_time = args.remain
         self.tick_count = 0
+
+        # 基地血量状态 (用于模拟基地掉血)
+        self.base_hp = float(args.base_hp)
+        self.base_hp_drain = args.base_hp_drain  # 每秒下降量
 
         # 定时器: 主循环 10 Hz
         self.timer_10hz = self.create_timer(0.1, self.tick_10hz)
@@ -99,8 +117,14 @@ class RmucTestPublisher(Node):
         self.get_logger().info(
             f"RMUC 模拟器启动: phase={args.phase}, remain={args.remain}s, "
             f"hp={args.hp}, ammo={args.ammo}, dead={args.dead}, "
-            f"outpost_dead={args.outpost_dead}, detect_enemy={args.detect_enemy}"
+            f"outpost_dead={args.outpost_dead}, detect_enemy={args.detect_enemy}, "
+            f"base_hp={args.base_hp}, base_hp_drain={args.base_hp_drain}/s, "
+            f"enemy_near_base={args.enemy_near_base}"
         )
+
+    def _sentry_cmd_cb(self, msg: RMUCSentryCmd):
+        if msg.cmd_posture in (1, 2, 3):
+            self.current_posture = msg.cmd_posture
 
     def _header(self):
         h = Header()
@@ -112,11 +136,17 @@ class RmucTestPublisher(Node):
 
     def tick_10hz(self):
         self.tick_count += 1
+
+        # 基地血量逐 tick 下降 (drain_per_tick = drain_per_sec / 10Hz)
+        if self.base_hp_drain > 0 and self.base_hp > 0:
+            self.base_hp = max(0.0, self.base_hp - self.base_hp_drain / 10.0)
+
         self._pub_robot_status()
         self._pub_sentry_decision_status()
         self._pub_robot_buff()
         self._pub_projectile_allowance()
         self._pub_enemy_mark()
+        self._pub_radar_tracks()
 
     def _pub_robot_status(self):
         msg = RMUCRobotStatus()
@@ -130,7 +160,7 @@ class RmucTestPublisher(Node):
         msg.can_remote_heal = True
         msg.can_remote_ammo = True
         msg.team_coins = 800
-        msg.base_hp_cur = 5000
+        msg.base_hp_cur = int(self.base_hp)
         msg.base_hp_max = 5000
         msg.outpost_alive = not self.args.outpost_dead
         msg.is_detect_enemy = self.args.detect_enemy
@@ -142,7 +172,7 @@ class RmucTestPublisher(Node):
         msg.can_free_respawn = False
         msg.can_instant_respawn = True
         msg.instant_respawn_cost = 100
-        msg.current_posture = 3  # 移动姿态
+        msg.current_posture = self.current_posture  # 镜像 BT 的 sentry_cmd.cmd_posture
         msg.remote_ammo_count = 0
         msg.remote_heal_count = 0
         msg.exchanged_ammo_total = 0
@@ -173,6 +203,20 @@ class RmucTestPublisher(Node):
         msg.enemy_infantry4_vuln = False
         msg.enemy_sentry_vuln = False
         self.pub_enemy_mark.publish(msg)
+
+    def _pub_radar_tracks(self):
+        msg = RMUCEnemyTracks()
+        msg.header = self._header()
+        if self.args.enemy_near_base:
+            # 模拟一个敌人在 defend_anchor (2.76, -1.93) 附近 3m 处
+            msg.enemy_count = 1
+            msg.enemy_x = [2.76 + 2.0]  # ~2m 偏移，在 5m 阈值内
+            msg.enemy_y = [-1.93 + 1.0]
+        else:
+            msg.enemy_count = 0
+            msg.enemy_x = []
+            msg.enemy_y = []
+        self.pub_radar_tracks.publish(msg)
 
     # ────────── 1 Hz 话题 ──────────
 
@@ -232,7 +276,7 @@ class RmucTestPublisher(Node):
         msg = RMUCTeamHP()
         msg.header = self._header()
         msg.outpost_hp = 0 if self.args.outpost_dead else 1500
-        msg.base_hp = 5000
+        msg.base_hp = int(self.base_hp)
         self.pub_team_hp.publish(msg)
 
 
@@ -246,6 +290,11 @@ def main():
     parser.add_argument("--dead", action="store_true", help="是否战亡")
     parser.add_argument("--outpost-dead", action="store_true", help="前哨站被毁")
     parser.add_argument("--detect-enemy", action="store_true", help="检测到敌人")
+    parser.add_argument("--base-hp", type=int, default=5000, help="基地当前血量 (默认5000)")
+    parser.add_argument("--base-hp-drain", type=float, default=0,
+                        help="每秒基地血量下降速度 (默认0)")
+    parser.add_argument("--enemy-near-base", action="store_true",
+                        help="雷达模拟敌人在基地附近 (配合 --base-hp-drain 触发基地威胁)")
     parser.add_argument("--duration", type=float, default=0,
                         help="运行时长(秒), 0=持续运行直到Ctrl+C")
     args = parser.parse_args()
