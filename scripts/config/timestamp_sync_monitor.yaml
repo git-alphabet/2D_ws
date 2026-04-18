@@ -2,17 +2,28 @@
 window_sec: 30.0
 report_every_sec: 5.0
 max_pair_dt_sec: 0.20
+source_detect_sec: 8.0
 qos: sensor_data
 
 pairs:
-  # odin1 里程计(左) vs mid360 point-lio 里程计(右)
+  # 1) 优先评估 odin1 单链：驱动输出 vs loam_interface 输出
+  - name: odom_odin1_vs_loam_reframe
+    left_topic: /odin1/odometry_highfreq
+    right_topic: /lidar_odometry
+    msg_type: nav_msgs/msg/Odometry
+
+  - name: cloud_odin1_vs_loam_reframe
+    left_topic: /odin1/cloud_slam
+    right_topic: /registered_scan
+    msg_type: sensor_msgs/msg/PointCloud2
+
+  # 2) 跨源评估：odin1 vs mid360(point_lio)
   - name: odom_odin1_vs_mid360_pointlio
     left_topic: /odin1/odometry_highfreq
     right_topic: /aft_mapped_to_init
     msg_type: nav_msgs/msg/Odometry
     tune_param: common.time_diff_lidar_to_imu
 
-  # odin1 点云(左) vs mid360 point-lio 注册点云(右)
   - name: cloud_odin1_vs_mid360_pointlio
     left_topic: /odin1/cloud_slam
     right_topic: /cloud_registered

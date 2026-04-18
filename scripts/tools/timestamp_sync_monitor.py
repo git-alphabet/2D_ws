@@ -63,15 +63,21 @@ class PairState:
     left_times: deque[float] = field(default_factory=deque)
     right_times: deque[float] = field(default_factory=deque)
     samples: deque[tuple[float, float]] = field(default_factory=deque)
+    left_rx_count: int = 0
+    right_rx_count: int = 0
+    left_last_rx_mono: float | None = None
+    right_last_rx_mono: float | None = None
 
 
 class SyncMonitor(Node):
     def __init__(self, config: dict[str, Any]):
         super().__init__("timestamp_sync_monitor")
 
+        self.start_mono = time.monotonic()
         self.window_sec = float(config.get("window_sec", 30.0))
         self.report_every_sec = float(config.get("report_every_sec", 5.0))
         self.max_pair_dt_sec = float(config.get("max_pair_dt_sec", 0.2))
+        self.source_detect_sec = float(config.get("source_detect_sec", 8.0))
         qos_mode = str(config.get("qos", "sensor_data")).strip().lower()
         if qos_mode == "sensor_data":
             qos = QoSPresetProfiles.SENSOR_DATA.value
@@ -79,7 +85,9 @@ class SyncMonitor(Node):
             qos = QoSPresetProfiles.SYSTEM_DEFAULT.value
 
         self.pairs: list[PairState] = []
-        self.subscriptions = []
+        # Keep strong references to subscriptions to prevent garbage collection.
+        # Avoid Node.reserved property names (e.g. 'subscriptions').
+        self._subs = []
 
         raw_pairs = config.get("pairs", [])
         if not isinstance(raw_pairs, list) or not raw_pairs:
@@ -98,7 +106,7 @@ class SyncMonitor(Node):
             self.pairs.append(pair)
 
             msg_cls = _load_msg_class(pair.msg_type)
-            self.subscriptions.append(
+            self._subs.append(
                 self.create_subscription(
                     msg_cls,
                     pair.left_topic,
@@ -106,7 +114,7 @@ class SyncMonitor(Node):
                     qos,
                 )
             )
-            self.subscriptions.append(
+            self._subs.append(
                 self.create_subscription(
                     msg_cls,
                     pair.right_topic,
@@ -131,6 +139,13 @@ class SyncMonitor(Node):
             if not math.isfinite(ts):
                 return
             now = time.monotonic()
+
+            if side == "left":
+                pair.left_rx_count += 1
+                pair.left_last_rx_mono = now
+            else:
+                pair.right_rx_count += 1
+                pair.right_last_rx_mono = now
 
             current = pair.left_times if side == "left" else pair.right_times
             other = pair.right_times if side == "left" else pair.left_times
@@ -163,9 +178,39 @@ class SyncMonitor(Node):
         return _cb
 
     def _report(self) -> None:
+        now = time.monotonic()
         for pair in self.pairs:
             if not pair.samples:
-                self.get_logger().warn(f"[{pair.name}] no matched samples in last {self.window_sec:.1f}s")
+                left_live = bool(pair.left_last_rx_mono) and (now - pair.left_last_rx_mono <= self.window_sec)
+                right_live = bool(pair.right_last_rx_mono) and (now - pair.right_last_rx_mono <= self.window_sec)
+
+                if now - self.start_mono < self.source_detect_sec:
+                    self.get_logger().info(
+                        f"[{pair.name}] waiting source detection... left={pair.left_rx_count} right={pair.right_rx_count}"
+                    )
+                    continue
+
+                if not left_live and not right_live:
+                    self.get_logger().info(
+                        f"[{pair.name}] skipped: both sources inactive, left={pair.left_topic} right={pair.right_topic}"
+                    )
+                    continue
+
+                if left_live and not right_live:
+                    self.get_logger().info(
+                        f"[{pair.name}] skipped: right source inactive ({pair.right_topic}), evaluate left-source-only chain first"
+                    )
+                    continue
+
+                if right_live and not left_live:
+                    self.get_logger().info(
+                        f"[{pair.name}] skipped: left source inactive ({pair.left_topic})"
+                    )
+                    continue
+
+                self.get_logger().warn(
+                    f"[{pair.name}] both sources active but no matched samples within max_pair_dt={self.max_pair_dt_sec:.3f}s"
+                )
                 continue
 
             signed_vals = [v for _, v in pair.samples]
