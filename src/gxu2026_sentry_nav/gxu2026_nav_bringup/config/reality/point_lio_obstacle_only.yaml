@@ -18,7 +18,7 @@
       con_frame_num: 1
       cut_frame: False
       cut_frame_time_interval: 0.1
-      time_diff_lidar_to_imu: 0.0
+      time_diff_lidar_to_imu: -0.0173605390625
 
     prior_pcd:
       enable: False
