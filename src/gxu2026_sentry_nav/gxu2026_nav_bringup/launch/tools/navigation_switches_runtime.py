@@ -163,6 +163,51 @@ def _set_navigation_switches(
             if isinstance(current, dict):
                 current[key_path[-1]] = value
 
+        def _set_mid360_local_expected_update_rate(rate_value):
+            def _resolve_local_params(container):
+                if not isinstance(container, dict):
+                    return None
+
+                # 兼容两种结构：
+                # 1) local_costmap.ros__parameters
+                # 2) local_costmap.local_costmap.ros__parameters（当前 nav2_params 结构）
+                candidates = [
+                    ["local_costmap", "ros__parameters"],
+                    ["local_costmap", "local_costmap", "ros__parameters"],
+                ]
+                for path in candidates:
+                    current = container
+                    valid = True
+                    for key in path:
+                        if not isinstance(current, dict):
+                            valid = False
+                            break
+                        current = current.get(key)
+                    if valid and isinstance(current, dict):
+                        return current
+                return None
+
+            local_params = _resolve_local_params(target_data)
+            if local_params is None and target_data is not raw_yaml:
+                local_params = _resolve_local_params(raw_yaml)
+            if local_params is None:
+                return False
+
+            voxel_layer = local_params.get("intensity_voxel_layer")
+            if not isinstance(voxel_layer, dict):
+                return False
+
+            mid360_source = voxel_layer.get("terrain_map_mid360")
+            if not isinstance(mid360_source, dict):
+                return False
+
+            current_value = mid360_source.get("expected_update_rate")
+            if current_value == rate_value:
+                return False
+
+            mid360_source["expected_update_rate"] = rate_value
+            return True
+
         def _normalize_costmap_size_types(container):
             """兼容配置文件里 width/height 写成 20 或 20.0 的情况。"""
             changed = False
@@ -360,14 +405,33 @@ def _set_navigation_switches(
                 switches.get("enable_mid360_costmap_additive"),
             )
         )
-        if mid360_costmap_switch is not None:
-            enable_mid360_costmap_additive_value = (
-                "true" if mid360_costmap_switch else "false"
-            )
-        elif odometry_source == "odin1" and not sim_enabled:
-            # Auto mode in odin1 reality: keep additive chain enabled,
-            # and rely on actual mid360 source availability for outputs.
-            enable_mid360_costmap_additive_value = "true"
+        mid360_costmap_in_slam_switch = _optional_bool(
+            mid360_runtime.get("enable_costmap_additive_in_slam")
+        )
+        mid360_costmap_in_nav_switch = _optional_bool(
+            mid360_runtime.get("enable_costmap_additive_in_nav")
+        )
+        if slam_enabled:
+            # 建图阶段默认不引入 mid360，避免双源装配误差叠加。
+            if mid360_costmap_in_slam_switch is not None:
+                enable_mid360_costmap_additive_value = (
+                    "true" if mid360_costmap_in_slam_switch else "false"
+                )
+            else:
+                enable_mid360_costmap_additive_value = "false"
+        else:
+            if mid360_costmap_in_nav_switch is not None:
+                enable_mid360_costmap_additive_value = (
+                    "true" if mid360_costmap_in_nav_switch else "false"
+                )
+            elif mid360_costmap_switch is not None:
+                enable_mid360_costmap_additive_value = (
+                    "true" if mid360_costmap_switch else "false"
+                )
+            elif odometry_source == "odin1" and not sim_enabled:
+                # Auto mode in odin1 reality: keep additive chain enabled,
+                # and rely on actual mid360 source availability for outputs.
+                enable_mid360_costmap_additive_value = "true"
 
         obstacle_scan_switch = _optional_bool(
             obstacle_scan_runtime.get("enabled", switches.get("enable_obstacle_scan"))
@@ -378,8 +442,26 @@ def _set_navigation_switches(
         scan_additive_switch = _optional_bool(
             scan_additive_runtime.get("enabled", switches.get("enable_scan_additive"))
         )
-        if scan_additive_switch is not None:
-            enable_scan_additive_value = "true" if scan_additive_switch else "false"
+        scan_additive_in_slam_switch = _optional_bool(
+            scan_additive_runtime.get("enabled_in_slam")
+        )
+        scan_additive_in_nav_switch = _optional_bool(
+            scan_additive_runtime.get("enabled_in_nav")
+        )
+        if slam_enabled:
+            if scan_additive_in_slam_switch is not None:
+                enable_scan_additive_value = (
+                    "true" if scan_additive_in_slam_switch else "false"
+                )
+            else:
+                enable_scan_additive_value = "false"
+        else:
+            if scan_additive_in_nav_switch is not None:
+                enable_scan_additive_value = (
+                    "true" if scan_additive_in_nav_switch else "false"
+                )
+            elif scan_additive_switch is not None:
+                enable_scan_additive_value = "true" if scan_additive_switch else "false"
 
         obstacle_scan_output_topic_switch = obstacle_scan_runtime.get(
             "output_scan_topic", switches.get("obstacle_scan_output_topic")
@@ -651,6 +733,15 @@ def _set_navigation_switches(
             # 若仍输出到 obstacle_scan，会与 scan_additive_adapter 输出重名冲突。
             if obstacle_scan_output_topic_value == "obstacle_scan":
                 obstacle_scan_output_topic_value = "scan_odin1"
+        elif slam_enabled:
+            # SLAM 单源建图时，必须把主 scan 直接发布到 obstacle_scan 给 slam_toolbox。
+            obstacle_scan_output_topic_value = "obstacle_scan"
+
+        # mid360 costmap 开关关闭时抑制 stale 告警；开启时恢复告警能力。
+        mid360_expected_rate = 0.30 if enable_mid360_costmap_additive_value == "true" else 0.0
+        if _set_mid360_local_expected_update_rate(mid360_expected_rate):
+            switch_override_required = True
+            override_required = True
 
         # odin1 实车导航（非 slam）需要等待 map 链路就绪，
         # 否则会在重定位成功前提前激活 Nav2，导致持续报 map 帧不存在。
@@ -659,8 +750,6 @@ def _set_navigation_switches(
                 nav2_tf_warmup_target_frame_value = "map"
             if nav2_tf_warmup_source_frame_value == "gimbal_yaw_fake":
                 nav2_tf_warmup_source_frame_value = "gimbal_yaw_fake"
-            if nav2_tf_warmup_timeout_sec_value == "25.0":
-                nav2_tf_warmup_timeout_sec_value = "12.0"
 
         if override_required:
             with tempfile.NamedTemporaryFile(

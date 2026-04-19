@@ -224,7 +224,7 @@ def build_navigation_runtime_actions(
         parameters=[configured_params],
         arguments=["--ros-args", "--log-level", log_level],
         remappings=[
-            ("cloud_in", "terrain_map_ext_mid360"),
+            ("cloud_in", "terrain_map_mid360"),
             ("scan", "scan_mid360"),
         ],
         condition=scan_additive_condition,
