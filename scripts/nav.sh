@@ -14,8 +14,9 @@ export __GLX_VENDOR_LIBRARY_NAME=nvidia
 # 入口脚本默认覆盖 odin1 驱动模式：2=重定位。
 export ODIN_MODE_PRESET="${ODIN_MODE_PRESET:-2}"
 export NAV2_TF_WARMUP_ENABLED="${NAV2_TF_WARMUP_ENABLED:-True}"
-export NAV2_TF_WARMUP_TIMEOUT_SEC="${NAV2_TF_WARMUP_TIMEOUT_SEC:-12.0}"
-export ENABLE_TIMESTAMP_MONITOR="${ENABLE_TIMESTAMP_MONITOR:-1}"
+# 重定位阶段 map->odom 可能需要较长收敛时间；默认放宽 warmup 超时，避免 Nav2 过早激活。
+export NAV2_TF_WARMUP_TIMEOUT_SEC="${NAV2_TF_WARMUP_TIMEOUT_SEC:-30.0}"
+export ENABLE_TIMESTAMP_MONITOR="0"
 export TIMESTAMP_SYNC_MONITOR_CONFIG="${TIMESTAMP_SYNC_MONITOR_CONFIG:-$SCRIPT_DIR/config/timestamp_sync_monitor.yaml}"
 
 # 你想加/改 launch 参数，优先改这行（或运行时用环境变量覆盖 NAVIGATION_CMD）。

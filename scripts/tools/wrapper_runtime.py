@@ -281,10 +281,10 @@ while True:
 
 
 def start_timestamp_monitor(cfg: CommonConfig, bg: BackgroundGroup) -> None:
-    """启动时间戳同步监控。默认开启，可通过 ENABLE_TIMESTAMP_MONITOR=0 关闭。"""
+    """启动时间戳同步监控。默认关闭，可通过 ENABLE_TIMESTAMP_MONITOR=1 开启。"""
     from tools.wrapper_helpers import is_truthy
 
-    if not is_truthy(os.environ.get("ENABLE_TIMESTAMP_MONITOR", "1")):
+    if not is_truthy(os.environ.get("ENABLE_TIMESTAMP_MONITOR", "0")):
         return
 
     config_env = os.environ.get("TIMESTAMP_SYNC_MONITOR_CONFIG", "").strip()
