@@ -149,6 +149,22 @@ loam_interface:
     freeze_base_to_lidar_tf: true
     tf_lookup_timeout_sec: 0.2
 
+# mid360 补盲专用 loam 接口：仅服务 mid360 地形链路，不影响 odin1 主导航重组。
+loam_interface_mid360:
+  ros__parameters:
+    use_sim_time: False
+    state_estimation_topic: "mid360/point_lio_odometry"
+    registered_scan_topic: "mid360/cloud_registered"
+    odom_frame: "odom"
+    # mid360 当前安装在 gimbal_yaw，下游按 front_mid360 语义消费。
+    base_frame: "gimbal_yaw"
+    lidar_frame: "front_mid360"
+    input_odom_semantics: "lidar_odom_to_lidar"
+    input_cloud_semantics: "lidar_odom"
+    align_odin_axes: false
+    freeze_base_to_lidar_tf: true
+    tf_lookup_timeout_sec: 0.2
+
 # loam 重组开关：把 odin1 里程计整理为 odom/lidar_frame 语义输出。
 loam_interface_runtime:
   ros__parameters:
