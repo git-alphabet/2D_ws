@@ -148,7 +148,8 @@ def generate_launch_description():
         default_value="",
         description=(
             "Robot xmacro basename override. Empty means reading "
-            "pb_navigation_switches.robot_description_file from params_file."
+            "robot_description_runtime.robot_description_file (fallback: "
+            "pb_navigation_switches.robot_description_file) from params_file."
         ),
     )
 
@@ -369,11 +370,21 @@ def generate_launch_description():
                             return params
                     return {}
 
-                switches = _get_ros_params(target_data, "pb_navigation_switches")
-                if not switches and target_data is not raw_yaml:
-                    switches = _get_ros_params(raw_yaml, "pb_navigation_switches")
+                def _get_ros_params_with_fallback(key):
+                    params = _get_ros_params(target_data, key)
+                    if not params and target_data is not raw_yaml:
+                        params = _get_ros_params(raw_yaml, key)
+                    return params
 
-                candidate_robot_name = switches.get("robot_description_file")
+                switches = _get_ros_params_with_fallback("pb_navigation_switches")
+                robot_description_runtime = _get_ros_params_with_fallback(
+                    "robot_description_runtime"
+                )
+
+                candidate_robot_name = robot_description_runtime.get(
+                    "robot_description_file",
+                    switches.get("robot_description_file"),
+                )
                 if isinstance(candidate_robot_name, str):
                     candidate_robot_name = candidate_robot_name.strip()
                     if candidate_robot_name:
@@ -426,11 +437,21 @@ def generate_launch_description():
                             return params
                     return {}
 
-                switches = _get_ros_params(target_data, "pb_navigation_switches")
-                if not switches and target_data is not raw_yaml:
-                    switches = _get_ros_params(raw_yaml, "pb_navigation_switches")
+                def _get_ros_params_with_fallback(key):
+                    params = _get_ros_params(target_data, key)
+                    if not params and target_data is not raw_yaml:
+                        params = _get_ros_params(raw_yaml, key)
+                    return params
 
-                selected = _optional_bool(switches.get("enable_mid360_costmap_additive"))
+                switches = _get_ros_params_with_fallback("pb_navigation_switches")
+                mid360_runtime = _get_ros_params_with_fallback("mid360_runtime")
+
+                selected = _optional_bool(
+                    mid360_runtime.get(
+                        "enable_costmap_additive",
+                        switches.get("enable_mid360_costmap_additive"),
+                    )
+                )
 
                 if selected is None:
                     odometry_source = switches.get("odometry_source")

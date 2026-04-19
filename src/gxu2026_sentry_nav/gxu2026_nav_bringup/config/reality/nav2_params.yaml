@@ -10,34 +10,22 @@ mid360_driver:
     host_ip: 0.0.0.0
     is_topic_name_with_lidar_ip: false
 
+# mid360 补盲链路开关：auto 表示 odin1 实车默认启用。
+mid360_runtime:
+  ros__parameters:
+    enable_costmap_additive: "auto"
+
 
 pb_navigation_switches:
   ros__parameters:
     controller_plugin: "pb_omni_pid_pursuit_controller"
     odometry_source: "odin1"
     behavior_tree: "none"
-    enable_mid360_costmap_additive: "auto"   # auto: odin1 实车默认启用 mid360 分支，但无 mid360 数据时不会产生有效输出
-    enable_odin1_loam_reframe: true           # 开启后由 loam_interface 把 odin1 里程计重组为 odom/lidar_frame 语义输出（lidar_odometry）
-    # 驱动外坐标对齐：用于承接原先在 odin_ros_driver 里的 x'=-y, y'=x 对齐逻辑。
-    # auto: 启动时自动检测驱动是否已内置对齐；旧驱动自动开启外部对齐，新驱动自动关闭避免重复旋转。
-    enable_odin1_external_axis_alignment: "auto"
-    robot_description_file: "gxu2026_sentry_robot"  # 机器人描述文件基名：对应 gxu2026_robot_description/resource/xmacro/<name>.sdf.xmacro
 
-    # 地形分析输入源（这里需要整理）：
-    # - 默认走 odin1 的 cloud_slam + odometry_highfreq
-    # - enable_odin1_loam_reframe=true 时，odometry 会被 launch 自动切到 lidar_odometry
-    # - 若需改源，可在这里改，或 launch 入参覆盖
-    terrain_registered_scan_topic: "odin1/cloud_slam"
-    terrain_lidar_odometry_topic: "odin1/odometry_highfreq"
-
-    # sensor_scan_generation 输入源（可选参数）：
-    # - 默认用 odin1 输出
-    # - enable_odin1_loam_reframe=true 时，odometry 会被 launch 自动切到 lidar_odometry
-    sensor_scan_registered_scan_topic: "odin1/cloud_slam"
-    sensor_scan_lidar_odometry_topic: "odin1/odometry_highfreq"
-
-
-    enable_gimbal_yaw_bridge: true             # 与 reality_mid360 框架一致：补齐 gimbal_yaw 关节态链路
+# 机器人描述文件基名：对应 gxu2026_robot_description/resource/xmacro/<name>.sdf.xmacro
+robot_description_runtime:
+  ros__parameters:
+    robot_description_file: "gxu2026_sentry_robot"
 
 
 # /auto_aim_yaw -> serial/gimbal_joint_state
@@ -62,6 +50,11 @@ auto_aim_yaw_joint_state_bridge:
     # 可以避免 TF 因时间戳过旧而在 tf2 buffer 中失效。
     publish_rate_hz: 100.0
     stamp_offset_sec: 0.0
+
+# 与 reality_mid360 框架一致：补齐 gimbal_yaw 关节态链路。
+gimbal_yaw_bridge_runtime:
+  ros__parameters:
+    enabled: true
 
 
 # NeuPAN 插件参数已迁移到 neupan_nav2_controller/config/reality/neupan.yaml 维护。
@@ -156,6 +149,14 @@ loam_interface:
     freeze_base_to_lidar_tf: true
     tf_lookup_timeout_sec: 0.2
 
+# loam 重组开关：把 odin1 里程计整理为 odom/lidar_frame 语义输出。
+loam_interface_runtime:
+  ros__parameters:
+    enable_odin1_loam_reframe: true
+    # 驱动外坐标对齐：用于承接原先在 odin_ros_driver 里的 x'=-y, y'=x 对齐逻辑。
+    # auto: 启动时自动检测驱动是否已内置对齐；旧驱动自动开启外部对齐，新驱动自动关闭避免重复旋转。
+    enable_odin1_external_axis_alignment: "auto"
+
 # 从点云生成 scan（给 slam_toolbox / obstacle_scan 等使用）
 sensor_scan_generation:
   ros__parameters:
@@ -172,11 +173,19 @@ sensor_scan_generation:
     debug_tf: false
     debug_tf_throttle_ms: 1000
 
+# sensor_scan_generation 输入源：
+# - 默认用 odin1 输出
+# - enable_odin1_loam_reframe=true 时，odometry 会被 launch 自动切到 lidar_odometry
+sensor_scan_generation_runtime:
+  ros__parameters:
+    registered_scan_topic: "odin1/cloud_slam"
+    lidar_odometry_topic: "odin1/odometry_highfreq"
+
 # 地形分析：输出 terrain_map（用于代价地图的点云观测源）
 terrain_analysis:
   ros__parameters:
     scanVoxelSize: 0.05                 # 点云下采样
-    decayTime: 0.3                      # 点云时间差阈值 大于则不会被处理
+    decayTime: 0.2                      # 点云时间差阈值 大于则不会被处理
     noDecayDis: 0.0                     # 点云距离阈值 小于该阈值不考虑时间差
     clearingDis: 0.0                    # 该距离外的点会被清除
     useSorting: True                    # 这个参数开起来就能上坡了；如果 use_sorting,那么就以周围点中的分位点作为地面点，否则以最低点作为地面点；周围其余点相对于地面点的高度作为通过代价，所以对于坡面，有的点的代价是正，有的是负，就相互抵消了；不要与 consider_drop 同时开启，计算上会有冲突
@@ -196,14 +205,43 @@ terrain_analysis:
     noDataBlockSkipNum: 0
     minBlockPointNum: 10
     vehicleHeight: 0.5                  # 小于车辆高度的点才会进行处理
-    voxelPointUpdateThre: 100
-    voxelTimeUpdateThre: 1.0
+    voxelPointUpdateThre: 40
+    voxelTimeUpdateThre: 0.2
     minRelZ: -1.5                       # min_rel_z 以及 max_rel_z 限制了有效点云点的Z值范围，用于对天花板和地板进行处理
     maxRelZ: 0.5
     disRatioZ: 0.2                      # Z 值的最大最小范围由这两个值决定，但是并不等于这两个值，是有一个比例关系的，距离机器人越远，限定范围就越大，这其中考虑了坡度
 
+# 地形分析输入源：
+# - 默认走 odin1 的 cloud_slam + odometry_highfreq
+# - enable_odin1_loam_reframe=true 时，odometry 会被 launch 自动切到 lidar_odometry
+# - 若需改源，可在这里改，或 launch 入参覆盖
+terrain_analysis_runtime:
+  ros__parameters:
+    registered_scan_topic: "odin1/cloud_slam"
+    lidar_odometry_topic: "odin1/odometry_highfreq"
+
 # 地形分析（扩展版）：输出 terrain_map_ext（全局代价地图常用）
 terrain_analysis_ext:
+  ros__parameters:
+    scanVoxelSize: 0.1
+    decayTime: 0.2
+    noDecayDis: 0.0
+    clearingDis: 20.0
+    useSorting: true
+    quantileZ: 0.2
+    vehicleHeight: 1.0
+    voxelPointUpdateThre: 100
+    voxelTimeUpdateThre: 2.0
+    lowerBoundZ: -1.5
+    upperBoundZ: 0.5
+    disRatioZ: 0.2
+    checkTerrainConn: False
+    terrainUnderVehicle: -0.75
+    terrainConnThre: 0.5
+    ceilingFilteringThre: 2.0
+    localTerrainMapRadius: 4.0
+
+terrain_analysis_ext_mid360:
   ros__parameters:
     scanVoxelSize: 0.1
     decayTime: 0.2
@@ -280,17 +318,58 @@ pointcloud_to_laserscan:
   ros__parameters:
     use_sim_time: False
     target_frame: base_footprint
+    transform_tolerance: 0.1
     min_height: -0.5
     max_height: 6.0
-    min_intensity: 0.1
-    max_intensity: 2.0
+    min_intensity: 0.0
+    max_intensity: 255.0
     angle_min: -3.1415926                   # -M_PI/2
     angle_max: 3.1415926                    # M_PI/2
     angle_increment: 0.00872665             # M_PI/360.0
     scan_time: 0.05
-    range_min: 0.6
+    range_min: 0.3
     range_max: 10.0
     use_inf: true
+
+# mid360 的 PointCloud2 -> LaserScan 参数必须与主链路保持一致，
+# 否则 scan_additive_adapter 会因角度/分辨率不兼容回退到仅 primary(odin1)。
+pointcloud_to_laserscan_mid360:
+  ros__parameters:
+    use_sim_time: False
+    target_frame: base_footprint
+    transform_tolerance: 0.1
+    min_height: -0.5
+    max_height: 6.0
+    min_intensity: 0.0
+    max_intensity: 255.0
+    angle_min: -3.1415926
+    angle_max: 3.1415926
+    angle_increment: 0.00872665
+    scan_time: 0.05
+    range_min: 0.05
+    range_max: 10.0
+    use_inf: true
+
+# obstacle_scan 主链路开关（pointcloud_to_laserscan：terrain_map_ext -> scan）。
+obstacle_scan_runtime:
+  ros__parameters:
+    enabled: true
+    output_scan_topic: "scan_odin1"
+
+# scan 融合开关：scan_odin1 + scan_mid360 -> obstacle_scan。
+scan_additive_runtime:
+  ros__parameters:
+    enabled: true
+
+# scan 融合节点参数：可在配置文件调节，不依赖 launch 硬编码。
+scan_additive_adapter:
+  ros__parameters:
+    primary_scan_topic: scan_odin1
+    secondary_scan_topic: scan_mid360
+    output_scan_topic: obstacle_scan
+    # mid360 频率低于 odin1 时，适当放宽超时可避免 secondary 被频繁判定 stale。
+    secondary_timeout_sec: 1.0
+    publish_secondary_when_primary_missing: true
 
 # SLAM Toolbox：mapping 模式时发布 map/odom 等；scan_topic 要与上游生成一致
 slam_toolbox:
@@ -434,15 +513,15 @@ local_costmap:
   local_costmap:
     ros__parameters:
       use_sim_time: False
-      update_frequency: 10.0
-      publish_frequency: 5.0
+      update_frequency: 15.0
+      publish_frequency: 8.0
       global_frame: odom
       robot_base_frame: gimbal_yaw_fake
       rolling_window: true
       width: 5
       height: 5
       resolution: 0.05
-      robot_radius: 0.2
+      robot_radius: 0.3
       plugins: ["static_layer", "intensity_voxel_layer", "inflation_layer"]
       intensity_voxel_layer:
         plugin: pb_nav2_costmap_2d::IntensityVoxelLayer
@@ -451,7 +530,8 @@ local_costmap:
         footprint_clearing_enabled: true
         publish_voxel_map: false
         combination_method: 1
-        mark_threshold: 0
+        # 提高到 1，抑制高速运动时单点噪声闪烁
+        mark_threshold: 1
         origin_z: 0.0
         unknown_threshold: 5
         z_resolution: 0.05
@@ -461,31 +541,37 @@ local_costmap:
         min_obstacle_intensity: 0.1
         max_obstacle_intensity: 2.0
         # 使用 odin1 + mid360 的地形点云共同作为观测源，mid360 用于补盲
-        observation_sources: terrain_map terrain_map_ext_mid360
+        observation_sources: terrain_map terrain_map_mid360
         terrain_map:
           data_type: PointCloud2
           topic: /terrain_map
           marking: true
           clearing: true
+          # 仅使用最新观测，配合 terrain_analysis 的 decayTime 实现时间清除
+          observation_persistence: 0.0
+          expected_update_rate: 0.20
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 5.0
-          obstacle_min_range: 0.6
+          obstacle_min_range: 0.05
           raytrace_max_range: 5.0
-          raytrace_min_range: 0.6
-        terrain_map_ext_mid360:
+          raytrace_min_range: 0.05
+        terrain_map_mid360:
           data_type: PointCloud2
-          topic: /terrain_map_ext_mid360
+          topic: /terrain_map_mid360
           marking: true
           clearing: true
+          observation_persistence: 0.0
+          expected_update_rate: 0.30
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 5.0
-          obstacle_min_range: 0.6
+          obstacle_min_range: 0.50
           raytrace_max_range: 5.0
-          raytrace_min_range: 0.6
+          raytrace_min_range: 0.50
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
+        enabled: False
         map_subscribe_transient_local: True
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
@@ -505,7 +591,7 @@ global_costmap:
       rolling_window: true
       width: 20
       height: 20
-      robot_radius: 0.2
+      robot_radius: 0.3
       resolution: 0.05
       track_unknown_space: true
       plugins: ["static_layer", "intensity_voxel_layer", "inflation_layer"]
@@ -546,9 +632,9 @@ global_costmap:
           min_obstacle_height: 0.0
           max_obstacle_height: 2.0
           obstacle_max_range: 10.0
-          obstacle_min_range: 0.6
+          obstacle_min_range: 0.50
           raytrace_max_range: 10.0
-          raytrace_min_range: 0.6
+          raytrace_min_range: 0.50
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
