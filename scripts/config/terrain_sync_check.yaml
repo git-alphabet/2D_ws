@@ -1,0 +1,18 @@
+duration_sec: 12.0
+match_window_sec: 0.08
+threshold_sec: 0.05
+qos: sensor_data
+
+topics:
+  - /terrain_map
+  - /terrain_map_mid360
+  - /terrain_map_ext
+  - /terrain_map_ext_mid360
+
+pairs:
+  - name: local
+    left_topic: /terrain_map
+    right_topic: /terrain_map_mid360
+  - name: global
+    left_topic: /terrain_map_ext
+    right_topic: /terrain_map_ext_mid360

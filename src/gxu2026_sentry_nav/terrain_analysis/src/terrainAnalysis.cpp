@@ -55,6 +55,15 @@ double voxelTimeUpdateThre = 2.0;
 double minRelZ = -1.5;
 double maxRelZ = 0.2;
 double disRatioZ = 0.2;
+double publishStampOffsetSec = 0.0;
+std::string publishStampReferenceTopic = "";
+double publishStampReferenceAgeAlpha = 0.2;
+double publishStampReferenceAgeClampMinSec = 0.0;
+double publishStampReferenceAgeClampMaxSec = 1.0;
+double publishStampReferenceStampSec = 0.0;
+bool publishStampReferenceStampReady = false;
+
+rclcpp::Node::SharedPtr gNode;
 
 // terrain voxel parameters
 float terrainVoxelSize = 1.0;
@@ -271,9 +280,41 @@ void clearingHandler(const std_msgs::msg::Float32::ConstSharedPtr dis) {
   clearingCloud = true;
 }
 
+void referenceCloudHandler(
+    const sensor_msgs::msg::PointCloud2::ConstSharedPtr referenceCloud) {
+  if (!gNode) {
+    return;
+  }
+
+  const double nowSec = gNode->get_clock()->now().seconds();
+  const double refStampSec = rclcpp::Time(referenceCloud->header.stamp).seconds();
+  const double ageSec = nowSec - refStampSec;
+
+  if (ageSec < publishStampReferenceAgeClampMinSec ||
+      ageSec > publishStampReferenceAgeClampMaxSec) {
+    return;
+  }
+
+  double alpha = publishStampReferenceAgeAlpha;
+  if (alpha < 0.0) {
+    alpha = 0.0;
+  } else if (alpha > 1.0) {
+    alpha = 1.0;
+  }
+
+  if (!publishStampReferenceStampReady) {
+    publishStampReferenceStampSec = refStampSec;
+    publishStampReferenceStampReady = true;
+  } else {
+    publishStampReferenceStampSec =
+        (1.0 - alpha) * publishStampReferenceStampSec + alpha * refStampSec;
+  }
+}
+
 int main(int argc, char **argv) {
   rclcpp::init(argc, argv);
   auto nh = rclcpp::Node::make_shared("terrainAnalysis");
+  gNode = nh;
 
   nh->declare_parameter<double>("scanVoxelSize", scanVoxelSize);
   nh->declare_parameter<double>("decayTime", decayTime);
@@ -301,6 +342,11 @@ int main(int argc, char **argv) {
   nh->declare_parameter<double>("minRelZ", minRelZ);
   nh->declare_parameter<double>("maxRelZ", maxRelZ);
   nh->declare_parameter<double>("disRatioZ", disRatioZ);
+  nh->declare_parameter<double>("publishStampOffsetSec", publishStampOffsetSec);
+  nh->declare_parameter<std::string>("publishStampReferenceTopic", publishStampReferenceTopic);
+  nh->declare_parameter<double>("publishStampReferenceAgeAlpha", publishStampReferenceAgeAlpha);
+  nh->declare_parameter<double>("publishStampReferenceAgeClampMinSec", publishStampReferenceAgeClampMinSec);
+  nh->declare_parameter<double>("publishStampReferenceAgeClampMaxSec", publishStampReferenceAgeClampMaxSec);
 
   nh->get_parameter("scanVoxelSize", scanVoxelSize);
   nh->get_parameter("decayTime", decayTime);
@@ -328,15 +374,28 @@ int main(int argc, char **argv) {
   nh->get_parameter("minRelZ", minRelZ);
   nh->get_parameter("maxRelZ", maxRelZ);
   nh->get_parameter("disRatioZ", disRatioZ);
+  nh->get_parameter("publishStampOffsetSec", publishStampOffsetSec);
+  nh->get_parameter("publishStampReferenceTopic", publishStampReferenceTopic);
+  nh->get_parameter("publishStampReferenceAgeAlpha", publishStampReferenceAgeAlpha);
+  nh->get_parameter("publishStampReferenceAgeClampMinSec", publishStampReferenceAgeClampMinSec);
+  nh->get_parameter("publishStampReferenceAgeClampMaxSec", publishStampReferenceAgeClampMaxSec);
+
+    auto sensor_qos = rclcpp::SensorDataQoS().keep_last(1);
 
   auto subOdometry = nh->create_subscription<nav_msgs::msg::Odometry>(
-      "lidar_odometry", 5, odometryHandler);
+      "lidar_odometry", sensor_qos, odometryHandler);
 
   auto subLaserCloud = nh->create_subscription<sensor_msgs::msg::PointCloud2>(
-      "registered_scan", 5, laserCloudHandler);
+      "registered_scan", sensor_qos, laserCloudHandler);
 
   auto subClearing = nh->create_subscription<std_msgs::msg::Float32>(
       "map_clearing", 5, clearingHandler);
+
+  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr subReferenceCloud;
+  if (!publishStampReferenceTopic.empty()) {
+    subReferenceCloud = nh->create_subscription<sensor_msgs::msg::PointCloud2>(
+      publishStampReferenceTopic, sensor_qos, referenceCloudHandler);
+  }
 
   auto pubLaserCloud =
       nh->create_publisher<sensor_msgs::msg::PointCloud2>("terrain_map", 2);
@@ -756,8 +815,20 @@ int main(int argc, char **argv) {
       // publish points with elevation
       sensor_msgs::msg::PointCloud2 terrainCloud2;
       pcl::toROSMsg(*terrainCloudElev, terrainCloud2);
+      // 可配置时间戳偏移：用于对齐多源链路在 costmap 的时间窗口。
+      double publishStampSec = std::max(0.0, laserCloudTime + publishStampOffsetSec);
+      if (publishStampReferenceStampReady) {
+        const double nowSec = nh->get_clock()->now().seconds();
+        const double refAgeSec = nowSec - publishStampReferenceStampSec;
+        if (refAgeSec >= publishStampReferenceAgeClampMinSec &&
+            refAgeSec <= publishStampReferenceAgeClampMaxSec &&
+            publishStampReferenceStampSec > 0.0) {
+          publishStampSec = publishStampReferenceStampSec;
+        }
+      }
+      publishStampSec = std::max(0.0, publishStampSec + publishStampOffsetSec);
       terrainCloud2.header.stamp =
-          rclcpp::Time(static_cast<uint64_t>(laserCloudTime * 1e9));
+          rclcpp::Time(static_cast<uint64_t>(publishStampSec * 1e9));
       terrainCloud2.header.frame_id = "odom";
       pubLaserCloud->publish(terrainCloud2);
     }
