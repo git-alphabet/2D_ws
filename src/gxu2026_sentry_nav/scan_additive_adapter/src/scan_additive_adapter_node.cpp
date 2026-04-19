@@ -83,7 +83,7 @@ private:
     const sensor_msgs::msg::LaserScan & a,
     const sensor_msgs::msg::LaserScan & b) const
   {
-    constexpr float kTol = 1e-5f;
+    constexpr float kTol = 1e-4f;
 
     if (a.ranges.size() != b.ranges.size()) {
       return false;
@@ -130,12 +130,44 @@ private:
 
     sensor_msgs::msg::LaserScan merged = *latest_primary_;
 
-    if (!latest_secondary_ || !isSecondaryFresh(now)) {
+    if (!latest_secondary_) {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(),
+        *this->get_clock(),
+        2000,
+        "scan_additive_adapter fallback to primary only: secondary scan not received yet.");
+      output_pub_->publish(merged);
+      return;
+    }
+
+    if (!isSecondaryFresh(now)) {
+      const auto secondary_stamp = rclcpp::Time(latest_secondary_->header.stamp);
+      const double age = (now - secondary_stamp).seconds();
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(),
+        *this->get_clock(),
+        2000,
+        "scan_additive_adapter fallback to primary only: secondary scan stale age=%.3fs timeout=%.3fs.",
+        age,
+        secondary_timeout_sec_);
       output_pub_->publish(merged);
       return;
     }
 
     if (!areScansCompatible(*latest_primary_, *latest_secondary_)) {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(),
+        *this->get_clock(),
+        2000,
+        "scan_additive_adapter fallback to primary only: incompatible scans (primary size=%zu angle_min=%.6f angle_max=%.6f inc=%.6f, secondary size=%zu angle_min=%.6f angle_max=%.6f inc=%.6f).",
+        latest_primary_->ranges.size(),
+        latest_primary_->angle_min,
+        latest_primary_->angle_max,
+        latest_primary_->angle_increment,
+        latest_secondary_->ranges.size(),
+        latest_secondary_->angle_min,
+        latest_secondary_->angle_max,
+        latest_secondary_->angle_increment);
       output_pub_->publish(merged);
       return;
     }

@@ -146,6 +146,12 @@ def _set_navigation_switches(
                     return params
             return {}
 
+        def _get_ros_params_with_fallback(key):
+            params = _get_ros_params(target_data, key)
+            if not params and target_data is not raw_yaml:
+                params = _get_ros_params(raw_yaml, key)
+            return params
+
         def _set_nested_value(container, key_path, value):
             current = container
             for key in key_path[:-1]:
@@ -200,50 +206,51 @@ def _set_navigation_switches(
         params_normalized = _normalize_costmap_size_types(target_data)
         switch_override_required = False
 
-        switches = _get_ros_params(target_data, "pb_navigation_switches")
-        if not switches and target_data is not raw_yaml:
-            switches = _get_ros_params(raw_yaml, "pb_navigation_switches")
+        switches = _get_ros_params_with_fallback("pb_navigation_switches")
+        mid360_runtime = _get_ros_params_with_fallback("mid360_runtime")
+        obstacle_scan_runtime = _get_ros_params_with_fallback("obstacle_scan_runtime")
+        scan_additive_runtime = _get_ros_params_with_fallback("scan_additive_runtime")
+        loam_interface_runtime = _get_ros_params_with_fallback("loam_interface_runtime")
+        terrain_analysis_runtime = _get_ros_params_with_fallback("terrain_analysis_runtime")
+        sensor_scan_generation_runtime = _get_ros_params_with_fallback(
+            "sensor_scan_generation_runtime"
+        )
+        gimbal_yaw_bridge_runtime = _get_ros_params_with_fallback(
+            "gimbal_yaw_bridge_runtime"
+        )
+
+        def _read_topic_name(runtime_params, runtime_key, legacy_switch_key):
+            raw_value = runtime_params.get(runtime_key)
+            if raw_value is None:
+                raw_value = switches.get(legacy_switch_key)
+            if isinstance(raw_value, str):
+                topic_name = raw_value.strip()
+                if topic_name:
+                    return topic_name
+            return ""
+
         enable_rm_bt = bool(switches.get("enable_rm_behavior_tree", enable_rm_bt))
 
-        switches_terrain_registered_scan_topic = switches.get(
-            "terrain_registered_scan_topic"
+        switches_terrain_registered_scan_topic = _read_topic_name(
+            terrain_analysis_runtime,
+            "registered_scan_topic",
+            "terrain_registered_scan_topic",
         )
-        if isinstance(switches_terrain_registered_scan_topic, str):
-            switches_terrain_registered_scan_topic = (
-                switches_terrain_registered_scan_topic.strip()
-            )
-        else:
-            switches_terrain_registered_scan_topic = ""
-
-        switches_terrain_lidar_odometry_topic = switches.get(
-            "terrain_lidar_odometry_topic"
+        switches_terrain_lidar_odometry_topic = _read_topic_name(
+            terrain_analysis_runtime,
+            "lidar_odometry_topic",
+            "terrain_lidar_odometry_topic",
         )
-        if isinstance(switches_terrain_lidar_odometry_topic, str):
-            switches_terrain_lidar_odometry_topic = (
-                switches_terrain_lidar_odometry_topic.strip()
-            )
-        else:
-            switches_terrain_lidar_odometry_topic = ""
-
-        switches_sensor_scan_registered_scan_topic = switches.get(
-            "sensor_scan_registered_scan_topic"
+        switches_sensor_scan_registered_scan_topic = _read_topic_name(
+            sensor_scan_generation_runtime,
+            "registered_scan_topic",
+            "sensor_scan_registered_scan_topic",
         )
-        if isinstance(switches_sensor_scan_registered_scan_topic, str):
-            switches_sensor_scan_registered_scan_topic = (
-                switches_sensor_scan_registered_scan_topic.strip()
-            )
-        else:
-            switches_sensor_scan_registered_scan_topic = ""
-
-        switches_sensor_scan_lidar_odometry_topic = switches.get(
-            "sensor_scan_lidar_odometry_topic"
+        switches_sensor_scan_lidar_odometry_topic = _read_topic_name(
+            sensor_scan_generation_runtime,
+            "lidar_odometry_topic",
+            "sensor_scan_lidar_odometry_topic",
         )
-        if isinstance(switches_sensor_scan_lidar_odometry_topic, str):
-            switches_sensor_scan_lidar_odometry_topic = (
-                switches_sensor_scan_lidar_odometry_topic.strip()
-            )
-        else:
-            switches_sensor_scan_lidar_odometry_topic = ""
 
         odometry_source = switches.get("odometry_source")
         if isinstance(odometry_source, str):
@@ -348,7 +355,10 @@ def _set_navigation_switches(
             return False
 
         mid360_costmap_switch = _optional_bool(
-            switches.get("enable_mid360_costmap_additive")
+            mid360_runtime.get(
+                "enable_costmap_additive",
+                switches.get("enable_mid360_costmap_additive"),
+            )
         )
         if mid360_costmap_switch is not None:
             enable_mid360_costmap_additive_value = (
@@ -359,8 +369,31 @@ def _set_navigation_switches(
             # and rely on actual mid360 source availability for outputs.
             enable_mid360_costmap_additive_value = "true"
 
+        obstacle_scan_switch = _optional_bool(
+            obstacle_scan_runtime.get("enabled", switches.get("enable_obstacle_scan"))
+        )
+        if obstacle_scan_switch is not None:
+            enable_obstacle_scan_value = "true" if obstacle_scan_switch else "false"
+
+        scan_additive_switch = _optional_bool(
+            scan_additive_runtime.get("enabled", switches.get("enable_scan_additive"))
+        )
+        if scan_additive_switch is not None:
+            enable_scan_additive_value = "true" if scan_additive_switch else "false"
+
+        obstacle_scan_output_topic_switch = obstacle_scan_runtime.get(
+            "output_scan_topic", switches.get("obstacle_scan_output_topic")
+        )
+        if isinstance(obstacle_scan_output_topic_switch, str):
+            obstacle_scan_output_topic_switch = obstacle_scan_output_topic_switch.strip()
+            if obstacle_scan_output_topic_switch:
+                obstacle_scan_output_topic_value = obstacle_scan_output_topic_switch
+
         odin1_loam_reframe_switch = _optional_bool(
-            switches.get("enable_odin1_loam_reframe")
+            loam_interface_runtime.get(
+                "enable_odin1_loam_reframe",
+                switches.get("enable_odin1_loam_reframe"),
+            )
         )
         if odin1_loam_reframe_switch is not None:
             enable_odin1_loam_reframe_value = (
@@ -368,10 +401,14 @@ def _set_navigation_switches(
             )
 
         odin1_external_axis_alignment_switch = _optional_bool(
-            switches.get("enable_odin1_external_axis_alignment")
+            loam_interface_runtime.get(
+                "enable_odin1_external_axis_alignment",
+                switches.get("enable_odin1_external_axis_alignment"),
+            )
         )
-        odin1_external_axis_alignment_raw = switches.get(
-            "enable_odin1_external_axis_alignment"
+        odin1_external_axis_alignment_raw = loam_interface_runtime.get(
+            "enable_odin1_external_axis_alignment",
+            switches.get("enable_odin1_external_axis_alignment"),
         )
         odin1_external_axis_alignment_enabled = False
         if odin1_external_axis_alignment_switch is not None:
@@ -455,7 +492,15 @@ def _set_navigation_switches(
 
         # 收敛接口：只暴露一个开关 enable_gimbal_yaw_bridge。
         # 兼容旧配置：enable_auto_aim_yaw_bridge / enable_auto_aim_yaw_sim_pub。
-        if "enable_gimbal_yaw_bridge" in switches:
+        gimbal_yaw_bridge_raw = gimbal_yaw_bridge_runtime.get("enabled")
+        if gimbal_yaw_bridge_raw is None:
+            gimbal_yaw_bridge_raw = gimbal_yaw_bridge_runtime.get(
+                "enable_gimbal_yaw_bridge"
+            )
+        if gimbal_yaw_bridge_raw is not None:
+            parsed_gimbal_bridge = _optional_bool(gimbal_yaw_bridge_raw)
+            enable_gimbal_yaw_bridge_value = bool(parsed_gimbal_bridge)
+        elif "enable_gimbal_yaw_bridge" in switches:
             enable_gimbal_yaw_bridge_value = bool(switches.get("enable_gimbal_yaw_bridge"))
         else:
             legacy_bridge = bool(switches.get("enable_auto_aim_yaw_bridge", False))
@@ -601,6 +646,11 @@ def _set_navigation_switches(
         # scan_additive 依赖 mid360 costmap 链路，若开启 scan_additive 则强制开启 costmap additive。
         if enable_scan_additive_value == "true":
             enable_mid360_costmap_additive_value = "true"
+            # scan_additive 需要 odin 原始 scan 输入，确保 pointcloud_to_laserscan 主链路开启。
+            enable_obstacle_scan_value = "true"
+            # 若仍输出到 obstacle_scan，会与 scan_additive_adapter 输出重名冲突。
+            if obstacle_scan_output_topic_value == "obstacle_scan":
+                obstacle_scan_output_topic_value = "scan_odin1"
 
         # odin1 实车导航（非 slam）需要等待 map 链路就绪，
         # 否则会在重定位成功前提前激活 Nav2，导致持续报 map 帧不存在。

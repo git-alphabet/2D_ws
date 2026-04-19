@@ -173,6 +173,25 @@ def build_navigation_runtime_actions(
         condition=IfCondition(enable_mid360_costmap_additive),
     )
 
+    start_terrain_analysis_mid360_cmd = Node(
+        package="terrain_analysis",
+        executable="terrainAnalysis",
+        name="terrain_analysis_mid360",
+        output="screen",
+        respawn=use_respawn,
+        respawn_delay=2.0,
+        arguments=["--ros-args", "--log-level", log_level],
+        parameters=[configured_params],
+        remappings=[
+            ("registered_scan", "cloud_registered"),
+            ("/registered_scan", "cloud_registered"),
+            ("lidar_odometry", "aft_mapped_to_init"),
+            ("/lidar_odometry", "aft_mapped_to_init"),
+            ("terrain_map", "terrain_map_mid360"),
+        ],
+        condition=IfCondition(enable_mid360_costmap_additive),
+    )
+
     start_pointcloud_to_laserscan_mid360_cmd = Node(
         package="pointcloud_to_laserscan",
         executable="pointcloud_to_laserscan_node",
@@ -196,15 +215,7 @@ def build_navigation_runtime_actions(
         output="screen",
         respawn=use_respawn,
         respawn_delay=2.0,
-        parameters=[
-            {
-                "primary_scan_topic": "scan_odin1",
-                "secondary_scan_topic": "scan_mid360",
-                "output_scan_topic": "obstacle_scan",
-                "secondary_timeout_sec": 0.3,
-                "publish_secondary_when_primary_missing": True,
-            }
-        ],
+        parameters=[configured_params],
         arguments=["--ros-args", "--log-level", log_level],
         condition=scan_additive_condition,
     )
@@ -528,6 +539,7 @@ def build_navigation_runtime_actions(
     return [
         start_auto_aim_yaw_joint_state_bridge_cmd,
         start_terrain_analysis_cmd,
+        start_terrain_analysis_mid360_cmd,
         start_terrain_analysis_ext_cmd,
         start_point_lio_cmd,
         start_terrain_analysis_ext_mid360_cmd,
