@@ -26,7 +26,6 @@
                 base_defense_arrive_radius="{cfg.base_defense_arrive_radius}"
                 hp_low="{cfg.hp_low}"
                 hp_safe="{cfg.hp_safe}"
-                heat_high="{cfg.heat_high}"
                 ammo_low="{cfg.ammo_low}"
                 ammo_target="{cfg.ammo_target}"
                 allow_ammo_max="{cfg.allow_ammo_max}"

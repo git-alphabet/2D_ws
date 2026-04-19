@@ -45,10 +45,8 @@ public:
 
       // ── outputs: RobotStatus 派生 ──
       BT::OutputPort<int>("hp_cur"),
-      BT::OutputPort<int>("heat_cur"),
       BT::OutputPort<int>("ammo_allow"),
       BT::OutputPort<int>("base_hp_cur"),
-      BT::OutputPort<int>("base_hp_max"),
       BT::OutputPort<bool>("outpost_alive"),
       BT::OutputPort<bool>("is_dead"),
       BT::OutputPort<bool>("has_target"),

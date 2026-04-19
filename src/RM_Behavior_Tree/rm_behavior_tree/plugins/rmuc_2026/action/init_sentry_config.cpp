@@ -58,7 +58,6 @@ BT::NodeStatus InitSentryConfigAction::tick()
 
   setInt("hp_low", 180);
   setInt("hp_safe", 280);
-  setInt("heat_high", 210);
   setInt("ammo_low", 80);
   setInt("ammo_target", 300);
   setInt("allow_ammo_max", 400);

@@ -35,7 +35,6 @@ public:
       BT::BidirectionalPort<double>("base_defense_arrive_radius"),
       BT::BidirectionalPort<int>("hp_low"),
       BT::BidirectionalPort<int>("hp_safe"),
-      BT::BidirectionalPort<int>("heat_high"),
       BT::BidirectionalPort<int>("ammo_low"),
       BT::BidirectionalPort<int>("ammo_target"),
       BT::BidirectionalPort<int>("allow_ammo_max"),
