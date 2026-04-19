@@ -205,6 +205,7 @@ def generate_launch_description():
                     "use_respawn": use_respawn,
                     "params_file": params_file,
                     "publish_static_map_tf": LaunchConfiguration("publish_static_map_tf"),
+                    "enable_internal_obstacle_scan": "False",
                 }.items(),
             ),
             IncludeLaunchDescription(

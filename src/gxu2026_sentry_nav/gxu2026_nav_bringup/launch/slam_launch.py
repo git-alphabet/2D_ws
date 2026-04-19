@@ -36,6 +36,7 @@ def generate_launch_description():
     autostart = LaunchConfiguration("autostart")
     use_respawn = LaunchConfiguration("use_respawn")
     log_level = LaunchConfiguration("log_level")
+    enable_internal_obstacle_scan = LaunchConfiguration("enable_internal_obstacle_scan")
     # odin Mode1 自己发布 map->odom TF，此时必须关闭 static TF 避免冲突
     # odin Mode0 或纯 slam_toolbox 模式：需要 static identity TF
     publish_static_map_tf = LaunchConfiguration("publish_static_map_tf")
@@ -97,6 +98,12 @@ def generate_launch_description():
         ),
     )
 
+    declare_enable_internal_obstacle_scan_cmd = DeclareLaunchArgument(
+        "enable_internal_obstacle_scan",
+        default_value="True",
+        description="Whether slam_launch should publish obstacle_scan directly.",
+    )
+
     start_map_saver_server_cmd = Node(
         package="nav2_map_server",
         executable="map_saver_server",
@@ -125,6 +132,7 @@ def generate_launch_description():
         executable="pointcloud_to_laserscan_node",
         name="pointcloud_to_laserscan",
         output="screen",
+        condition=IfCondition(enable_internal_obstacle_scan),
         respawn=use_respawn,
         respawn_delay=2.0,
         parameters=[configured_params],
@@ -187,6 +195,7 @@ def generate_launch_description():
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_log_level_cmd)
     ld.add_action(declare_publish_static_map_tf_cmd)
+    ld.add_action(declare_enable_internal_obstacle_scan_cmd)
 
     # Running Map Saver Server
     ld.add_action(start_map_saver_server_cmd)
