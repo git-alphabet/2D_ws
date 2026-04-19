@@ -21,5 +21,5 @@ pairs:
 
   - name: cloud_odin1_vs_mid360_pointlio
     left_topic: /odin1/cloud_slam
-    right_topic: /cloud_registered
+    right_topic: /mid360/cloud_registered
     msg_type: sensor_msgs/msg/PointCloud2
