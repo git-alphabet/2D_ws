@@ -188,6 +188,8 @@ def build_navigation_runtime_actions(
             ("/registered_scan", "mid360/registered_scan"),
             ("lidar_odometry", "mid360/lidar_odometry"),
             ("/lidar_odometry", "mid360/lidar_odometry"),
+            ("terrain_map", "terrain_map_mid360"),
+            ("/terrain_map", "terrain_map_mid360"),
             ("terrain_map_ext", "terrain_map_ext_mid360"),
         ],
         condition=IfCondition(enable_mid360_costmap_additive),
