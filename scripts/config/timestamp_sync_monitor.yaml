@@ -18,11 +18,6 @@ pairs:
     msg_type: sensor_msgs/msg/PointCloud2
 
   # 2) 跨源评估：odin1 vs mid360(point_lio)
-  - name: odom_odin1_vs_mid360_pointlio
-    left_topic: /odin1/odometry_highfreq
-    right_topic: /aft_mapped_to_init
-    msg_type: nav_msgs/msg/Odometry
-    tune_param: common.time_diff_lidar_to_imu
 
   - name: cloud_odin1_vs_mid360_pointlio
     left_topic: /odin1/cloud_slam
