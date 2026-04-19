@@ -14,6 +14,9 @@ mid360_driver:
 mid360_runtime:
   ros__parameters:
     enable_costmap_additive: "auto"
+    # 建图阶段建议单源（odin1）避免装配/时序误差叠加；导航阶段再启用双源补盲。
+    enable_costmap_additive_in_slam: false
+    enable_costmap_additive_in_nav: true
 
 
 pb_navigation_switches:
@@ -334,7 +337,8 @@ pointcloud_to_laserscan:
   ros__parameters:
     use_sim_time: False
     target_frame: base_footprint
-    transform_tolerance: 0.1
+    # 导航阶段点云链路存在约 0.25~0.30s 滞后，适当放宽 TF 容忍窗口。
+    transform_tolerance: 0.4
     min_height: -0.5
     max_height: 6.0
     min_intensity: 0.0
@@ -353,7 +357,7 @@ pointcloud_to_laserscan_mid360:
   ros__parameters:
     use_sim_time: False
     target_frame: base_footprint
-    transform_tolerance: 0.1
+    transform_tolerance: 0.4
     min_height: -0.5
     max_height: 6.0
     min_intensity: 0.0
@@ -376,6 +380,9 @@ obstacle_scan_runtime:
 scan_additive_runtime:
   ros__parameters:
     enabled: true
+    # 建图阶段默认关闭，导航阶段默认开启。
+    enabled_in_slam: true
+    enabled_in_nav: true
 
 # scan 融合节点参数：可在配置文件调节，不依赖 launch 硬编码。
 scan_additive_adapter:
@@ -533,6 +540,8 @@ local_costmap:
       publish_frequency: 8.0
       global_frame: odom
       robot_base_frame: gimbal_yaw_fake
+      # 代价地图查询 TF 的容忍窗口，覆盖链路延迟峰值。
+      transform_tolerance: 0.6
       rolling_window: true
       width: 5
       height: 5
@@ -544,6 +553,8 @@ local_costmap:
         enabled: true
         track_unknown_space: true
         footprint_clearing_enabled: true
+        # 观测点云链路存在约 0.3s 处理延迟，放宽 TF 过滤容忍窗口以减少 MessageFilter 丢帧。
+        tf_filter_tolerance: 0.40
         publish_voxel_map: false
         combination_method: 1
         # 提高到 1，抑制高速运动时单点噪声闪烁
@@ -604,6 +615,8 @@ global_costmap:
       publish_frequency: 2.0
       global_frame: map
       robot_base_frame: gimbal_yaw_fake
+      # 导航重定位场景下 map->odom 切换与点云延迟叠加，需更宽容忍窗口。
+      transform_tolerance: 0.6
       rolling_window: true
       width: 20
       height: 20
@@ -616,6 +629,8 @@ global_costmap:
         enabled: true
         track_unknown_space: true
         footprint_clearing_enabled: true
+        # 全局层同样放宽 TF 过滤容忍窗口，避免 terrain_map_ext 链路因时间戳滞后被丢弃。
+        tf_filter_tolerance: 0.40
         publish_voxel_map: false
         combination_method: 1
         mark_threshold: 0
