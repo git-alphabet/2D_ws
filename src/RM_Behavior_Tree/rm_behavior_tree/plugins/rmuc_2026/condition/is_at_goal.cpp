@@ -95,12 +95,17 @@ bool IsAtGoalCondition::hasLineOfSight(double x1, double y1, double x2, double y
   constexpr int8_t kLethalThreshold = 90;
 
   int cx = gx1, cy = gy1;
+  bool first = true;
   while (true) {
-    if (cx >= 0 && cx < w && cy >= 0 && cy < h) {
+    // 跳过起点和终点：全局 costmap 不清除机器人足迹，
+    // 在障碍物附近停车时端点可能被膨胀覆盖导致误判
+    bool is_endpoint = first || (cx == gx2 && cy == gy2);
+    if (!is_endpoint && cx >= 0 && cx < w && cy >= 0 && cy < h) {
       if (grid[cy * w + cx] >= kLethalThreshold) {
         return false;  // 连线上有障碍物
       }
     }
+    first = false;
     if (cx == gx2 && cy == gy2) break;
     int e2 = 2 * err;
     if (e2 > -dy) { err -= dy; cx += sx; }

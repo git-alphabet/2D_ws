@@ -67,7 +67,6 @@ class RobotPositionBridge(Node):
         msg.header.frame_id = self.map_frame
         msg.pose_x = float(t.transform.translation.x)
         msg.pose_y = float(t.transform.translation.y)
-        msg.pose_yaw = float(yaw)
         self.pub.publish(msg)
 
 

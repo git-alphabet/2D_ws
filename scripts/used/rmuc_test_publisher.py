@@ -170,12 +170,9 @@ class RmucTestPublisher(Node):
         msg = RMUCRobotStatus()
         msg.header = self._header()
         msg.current_hp = self.args.hp
-        msg.max_hp = 600
         msg.shooter_heat = 30
         msg.ammo_allow = self.current_ammo
-        msg.ammo_left = 300
         msg.base_hp_cur = int(self.base_hp)
-        msg.base_hp_max = 5000
         msg.outpost_alive = not self.args.outpost_dead
         msg.is_detect_enemy = self.args.detect_enemy
         self.pub_robot.publish(msg)
@@ -186,36 +183,24 @@ class RmucTestPublisher(Node):
         msg.can_instant_respawn = True
         msg.instant_respawn_cost = 100
         msg.current_posture = self.current_posture  # 镜像 BT 的 sentry_cmd.cmd_posture
-        msg.remote_ammo_count = 0
-        msg.remote_heal_count = 0
         msg.exchanged_ammo_total = 0
         self.pub_sentry_decision.publish(msg)
 
     def _pub_robot_buff(self):
         msg = RMUCRobotBuff()
         msg.header = self._header()
-        msg.heal_rate = 0
-        msg.cool_value = 0
-        msg.defense_pct = 0
         msg.vulnerability_pct = 0
-        msg.attack_pct = 0
         self.pub_robot_buff.publish(msg)
 
     def _pub_projectile_allowance(self):
         msg = RMUCProjectileAllowance()
         msg.header = self._header()
-        msg.fortress_ammo = 0
         msg.remaining_coins = self.args.coins
         self.pub_projectile.publish(msg)
 
     def _pub_enemy_mark(self):
         msg = RMUCEnemyMark()
         msg.header = self._header()
-        msg.enemy_hero_vuln = False
-        msg.enemy_engi_vuln = False
-        msg.enemy_infantry3_vuln = False
-        msg.enemy_infantry4_vuln = False
-        msg.enemy_sentry_vuln = False
         self.pub_enemy_mark.publish(msg)
 
     def _pub_radar_tracks(self):
@@ -275,25 +260,12 @@ class RmucTestPublisher(Node):
 
     def _pub_rfid_status(self):
         msg = RMUCRFIDStatus()
-        msg.header = self._header()
-        msg.rfid_supply = False
-        msg.rfid_base_buff = False
-        msg.rfid_outpost_buff = False
-        msg.rfid_fortress_enemy = False
-        msg.rfid_central_highland = False
-        msg.rfid_ladder_highland = False
+        # 所有字段已注释，发布空消息
         self.pub_rfid.publish(msg)
 
     def _pub_field_status(self):
         msg = RMUCFieldStatus()
         msg.header = self._header()
-        msg.small_energy_status = 0
-        msg.big_energy_status = 0
-        msg.central_highland = 0  # 未占领
-        msg.ladder_highland = 0
-        msg.fortress = 0
-        msg.outpost_buff = 0
-        msg.base_buff = False
         self.pub_field.publish(msg)
 
     def _pub_team_hp(self):

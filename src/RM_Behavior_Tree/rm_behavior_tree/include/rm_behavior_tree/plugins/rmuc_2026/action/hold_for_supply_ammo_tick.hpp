@@ -31,6 +31,7 @@ public:
 private:
   int initial_ammo_{0};
   std::chrono::steady_clock::time_point start_time_;
+  std::chrono::steady_clock::time_point last_log_time_;
 };
 }  // namespace rm_behavior_tree
 #endif

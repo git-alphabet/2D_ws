@@ -7,10 +7,13 @@ namespace rm_behavior_tree
 // 静态成员初始化
 geometry_msgs::msg::PoseStamped SendGoalAction::s_last_global_goal_;
 bool SendGoalAction::s_has_global_ = false;
+bool SendGoalAction::s_subs_confirmed_ = false;
+rclcpp::Time SendGoalAction::s_last_global_pub_time_{0, 0, RCL_ROS_TIME};
 
 void SendGoalAction::clearGoalCache()
 {
   s_has_global_ = false;
+  s_subs_confirmed_ = false;
 }
 
 SendGoalAction::SendGoalAction(
@@ -104,9 +107,18 @@ BT::NodeStatus SendGoalAction::tick()
   // ── 全局去重：只要和全局最后一次发布的目标相同就跳过 ──
   // 所有 SendGoal 实例共享此记录，A→B→A 时第二个 A 会正常发布
   // CancelNavGoal 调用 clearGoalCache() 后强制重新发布
+  // 注意：仅在确认 publisher 已有 subscriber 匹配后才激活去重，
+  //       避免 publisher 刚创建时首条消息因 DDS 发现延迟丢失
+  // TTL：目标缓存有效期 5 秒，超时后重新发布（处理机器人超调后需要重新导航的情况）
 
-  if (s_has_global_ && isSameGoal_(goal, s_last_global_goal_)) {
-    return BT::NodeStatus::SUCCESS;
+  constexpr int64_t kGoalTtlNs = 5LL * 1000000000LL;  // 5 seconds
+  const bool is_same_goal = s_has_global_ && isSameGoal_(goal, s_last_global_goal_);
+  if (is_same_goal && s_subs_confirmed_) {
+    const int64_t elapsed_ns = (now - s_last_global_pub_time_).nanoseconds();
+    if (elapsed_ns < kGoalTtlNs) {
+      return BT::NodeStatus::SUCCESS;
+    }
+    // TTL expired → re-publish (e.g., robot overshot and needs another navigation attempt)
   }
 
   geometry_msgs::msg::PoseStamped msg;
@@ -124,19 +136,36 @@ BT::NodeStatus SendGoalAction::tick()
   msg.pose.orientation.z = 0.0;
   msg.pose.orientation.w = 1.0;
 
-  RCLCPP_INFO(
-    node_->get_logger(),
-    "[%s] New goal: [ %.3f, %.3f ]",
-    name().c_str(),
-    goal.pose.position.x, goal.pose.position.y);
+  if (!is_same_goal) {
+    RCLCPP_INFO(
+      node_->get_logger(),
+      "[%s] New goal: [ %.3f, %.3f ]",
+      name().c_str(),
+      goal.pose.position.x, goal.pose.position.y);
+  } else {
+    RCLCPP_WARN_THROTTLE(
+      node_->get_logger(), *node_->get_clock(), 1000,
+      "[%s] Re-publishing goal (awaiting subscriber match, subs=%zu)",
+      name().c_str(), publisher_->get_subscription_count());
+  }
 
   s_last_global_goal_ = goal;
   s_has_global_ = true;
+  s_last_global_pub_time_ = now;
   last_goal_ = goal;
   last_pub_time_ = now;
   has_last_ = true;
 
   publisher_->publish(msg);
+
+  if (!s_subs_confirmed_ && publisher_->get_subscription_count() > 0) {
+    s_subs_confirmed_ = true;
+    RCLCPP_INFO(
+      node_->get_logger(),
+      "[%s] Publisher-subscriber match confirmed (subs=%zu)",
+      name().c_str(), publisher_->get_subscription_count());
+  }
+
   return BT::NodeStatus::SUCCESS;
 }
 

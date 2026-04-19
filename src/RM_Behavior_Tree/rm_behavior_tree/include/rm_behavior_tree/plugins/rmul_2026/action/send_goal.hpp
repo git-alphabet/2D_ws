@@ -70,6 +70,8 @@ private:
 
   static geometry_msgs::msg::PoseStamped s_last_global_goal_;
   static bool s_has_global_;
+  static bool s_subs_confirmed_;   // true once publisher has matched subscribers
+  static rclcpp::Time s_last_global_pub_time_;  // timestamp of last global goal publish
 };
 
 }  // namespace rm_behavior_tree
