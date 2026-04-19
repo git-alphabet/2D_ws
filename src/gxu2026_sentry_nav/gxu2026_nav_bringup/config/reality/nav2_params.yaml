@@ -262,6 +262,12 @@ terrain_analysis_ext:
 
 terrain_analysis_ext_mid360:
   ros__parameters:
+    # 自动跟随 odin1 全局地形图的消息年龄，减少每次重连后手动调偏移。
+    publishStampReferenceTopic: reference_terrain_map_ext
+    publishStampReferenceAgeAlpha: 1.0
+    publishStampReferenceAgeClampMinSec: 0.0
+    publishStampReferenceAgeClampMaxSec: 1.0
+    publishStampOffsetSec: 0.03
     scanVoxelSize: 0.1
     decayTime: 0.2
     noDecayDis: 0.0
@@ -279,6 +285,15 @@ terrain_analysis_ext_mid360:
     terrainConnThre: 0.5
     ceilingFilteringThre: 2.0
     localTerrainMapRadius: 4.0
+
+# mid360 局部地形图同样做时间戳对齐，避免 local costmap 双源时序错层。
+terrain_analysis_mid360:
+  ros__parameters:
+    publishStampReferenceTopic: reference_terrain_map
+    publishStampReferenceAgeAlpha: 1.0
+    publishStampReferenceAgeClampMinSec: 0.0
+    publishStampReferenceAgeClampMaxSec: 1.0
+    publishStampOffsetSec: 0.03
 
 # 假速度/坐标变换：把 Nav2 内部期望的底盘速度/局部路径做一层适配
 fake_vel_transform:

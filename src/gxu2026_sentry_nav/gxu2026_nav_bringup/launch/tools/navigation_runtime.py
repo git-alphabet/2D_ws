@@ -191,6 +191,9 @@ def build_navigation_runtime_actions(
             ("terrain_map", "terrain_map_mid360"),
             ("/terrain_map", "terrain_map_mid360"),
             ("terrain_map_ext", "terrain_map_ext_mid360"),
+            ("reference_terrain_map_ext", "/terrain_map_ext"),
+            # Keep the reference topic absolute path untouched for auto stamp sync.
+            ("/terrain_map_ext", "/terrain_map_ext"),
         ],
         condition=IfCondition(enable_mid360_costmap_additive),
     )
@@ -210,6 +213,9 @@ def build_navigation_runtime_actions(
             ("lidar_odometry", "mid360/lidar_odometry"),
             ("/lidar_odometry", "mid360/lidar_odometry"),
             ("terrain_map", "terrain_map_mid360"),
+            ("reference_terrain_map", "/terrain_map"),
+            # Keep the reference topic absolute path untouched for auto stamp sync.
+            ("/terrain_map", "/terrain_map"),
         ],
         condition=IfCondition(enable_mid360_costmap_additive),
     )
