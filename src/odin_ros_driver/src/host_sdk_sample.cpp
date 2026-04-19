@@ -769,6 +769,50 @@ std::string get_package_source_directory() {
     return path.string();
 }
 
+std::string resolve_config_directory() {
+#ifdef ROS2
+    std::vector<std::string> candidates;
+
+    try {
+        candidates.push_back(get_package_source_directory() + "/config");
+    } catch (...) {
+    }
+
+    if (const char* ros_workspace = std::getenv("COLCON_PREFIX_PATH")) {
+        std::string workspace_path(ros_workspace);
+        size_t sep_pos = workspace_path.find(':');
+        if (sep_pos != std::string::npos) {
+            workspace_path = workspace_path.substr(0, sep_pos);
+        }
+        size_t install_pos = workspace_path.find("/install");
+        if (install_pos != std::string::npos) {
+            candidates.push_back(workspace_path.substr(0, install_pos) + "/src/odin_ros_driver/config");
+        }
+    }
+
+    try {
+        candidates.push_back(ament_index_cpp::get_package_share_directory("odin_ros_driver") + "/config");
+    } catch (...) {
+    }
+
+    candidates.push_back((std::filesystem::current_path() / "src/odin_ros_driver/config").string());
+
+    for (const auto& dir : candidates) {
+        std::error_code ec;
+        if (std::filesystem::exists(dir, ec) && !ec) {
+            return dir;
+        }
+    }
+
+    if (!candidates.empty()) {
+        return candidates.front();
+    }
+    return std::string();
+#else
+    return ros::package::getPath("odin_ros_driver") + "/config";
+#endif
+}
+
 
 std::string get_package_path(const std::string& package_name) {
     #ifdef ROS2
@@ -1221,24 +1265,21 @@ static void lidar_device_callback(const lidar_device_info_t* device, bool attach
             #endif
             return;
         }
-	const std::string package_name = "odin_ros_driver";
-	std::string config_dir = "";
-	#ifdef ROS2
-	    char* ros_workspace = std::getenv("COLCON_PREFIX_PATH");
-	    if (ros_workspace) {
-		std::string workspace_path(ros_workspace);
-		size_t pos = workspace_path.find("/install");
-		if (pos != std::string::npos) {
-		    config_dir = workspace_path.substr(0, pos) + "/src/odin_ros_driver/config";
-		} else {
-		    config_dir = ament_index_cpp::get_package_share_directory(package_name) + "/config";
-		}
-	    } else {
-		config_dir = ament_index_cpp::get_package_share_directory(package_name) + "/config";
-	    }
-	#else
-	    config_dir = ros::package::getPath(package_name) + "/config";
-	#endif
+    std::string config_dir = resolve_config_directory();
+    if (config_dir.empty()) {
+        config_dir = "/tmp/odin_ros_driver_config";
+    }
+
+    std::error_code config_dir_ec;
+    std::filesystem::create_directories(config_dir, config_dir_ec);
+    if (config_dir_ec || access(config_dir.c_str(), W_OK) != 0) {
+        std::string fallback_dir = "/tmp/odin_ros_driver_config";
+        std::error_code fallback_ec;
+        std::filesystem::create_directories(fallback_dir, fallback_ec);
+        if (!fallback_ec) {
+        config_dir = fallback_dir;
+        }
+    }
    		 std::cout << "config_dir"<< config_dir <<std::endl;
         #ifdef ROS2
             RCLCPP_INFO(rclcpp::get_logger("device_cb"), "Calibration files will be saved to: %s", config_dir.c_str());
@@ -1789,12 +1830,12 @@ int main(int argc, char *argv[])
 
     try {
     #ifdef ROS2
-        std::string package_path = get_package_source_directory();
-        std::cout << "package_path: " << package_path << std::endl;
+        std::string config_dir = resolve_config_directory();
+        std::cout << "config_dir: " << config_dir << std::endl;
     #else
     	std::string package_path = get_package_share_path("odin_ros_driver");
-    #endif
         std::string config_dir = package_path + "/config";
+    #endif
         std::string config_file = config_dir + "/control_command.yaml";
 
         // Initialize command file path to /tmp/odin_command.txt
