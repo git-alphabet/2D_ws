@@ -7,7 +7,7 @@
 
 namespace rm_behavior_tree
 {
-/// 决定经济指令：远程回血/远程补弹/允许弹丸配额
+/// 决定经济指令：补给点兑换(bit2-12, 10金币/10发)
 class DecideEconomyCmdAction : public BT::SyncActionNode
 {
 public:
@@ -18,15 +18,17 @@ public:
       BT::InputPort<int>("ammo_allow"),
       BT::InputPort<int>("ammo_target"),
       BT::InputPort<int>("team_coins"),
-      BT::InputPort<int>("allow_ammo_max", 400, "允许发弹量上限"),
-      BT::InputPort<int>("ammo_increase_interval_ms", 1000, "允许弹量累加最小间隔(ms)"),
+      BT::InputPort<int>("allow_ammo_max", 400, "补给点兑换上限(bit2-12)"),
+      BT::InputPort<int>("exchange_unit", 10, "补给点最小兑换单位(10发)"),
+      BT::InputPort<int>("exchange_cost", 10, "补给点兑换代价(10金币/10发)"),
+      BT::InputPort<int>("ammo_increase_interval_ms", 1000, "兑换最小间隔(ms)"),
       BT::InputPort<int>("allow_ammo_target_in"),
       BT::OutputPort<int>("allow_ammo_target_out")};
   }
   BT::NodeStatus tick() override;
 
 private:
-  std::chrono::steady_clock::time_point last_ammo_increase_time_{};
+  std::chrono::steady_clock::time_point last_exchange_time_{};
 };
 }  // namespace rm_behavior_tree
 #endif

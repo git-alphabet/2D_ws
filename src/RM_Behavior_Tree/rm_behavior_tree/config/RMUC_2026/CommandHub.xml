@@ -6,15 +6,6 @@
             <!-- 姿态由各战术子树中的 SelectPosture 设置到 {cmd.posture}，
                  SentryCmdMux 仅负责读取并发布 -->
 
-            <!-- Decide remote exchange & allow-ammo target (monotonic target is maintained inside node) -->
-            <DecideEconomyCmd ammo_allow="{ammo.allow}"
-                              ammo_target="{cfg.ammo_target}"
-                              allow_ammo_max="{cfg.allow_ammo_max}"
-                              ammo_increase_interval_ms="{cfg.ammo_increase_interval_ms}"
-                              team_coins="{economy.remaining_coins}"
-                              allow_ammo_target_in="{cmd.allow_ammo_target}"
-                              allow_ammo_target_out="{cmd.allow_ammo_target}"/>
-
             <!-- Decide respawn confirm / instant respawn request (sends 0 when alive) -->
             <DecideRespawnCmd is_dead="{state.is_dead}"
                               team_coins="{economy.remaining_coins}"
@@ -35,7 +26,6 @@
                 <SentryCmdMux posture="{cmd.final_posture}"
                               confirm_respawn="{cmd.confirm_respawn}"
                               confirm_instant_respawn="{cmd.confirm_instant_respawn}"
-                              allow_ammo_target="{cmd.allow_ammo_target}"
                               cmd_state="{cmd.state}"/>
             </RateController>
         </Sequence>
@@ -55,15 +45,6 @@
             <input_port name="forced_movement_s" default="5"/>
             <output_port name="final_posture" default="{cmd.final_posture}"/>
         </Action>
-        <Action ID="DecideEconomyCmd" editable="true">
-            <input_port name="ammo_allow" default="{ammo.allow}"/>
-            <input_port name="ammo_target" default="{cfg.ammo_target}"/>
-            <input_port name="allow_ammo_max" default="{cfg.allow_ammo_max}"/>
-            <input_port name="ammo_increase_interval_ms" default="{cfg.ammo_increase_interval_ms}"/>
-            <input_port name="team_coins" default="{economy.remaining_coins}"/>
-            <input_port name="allow_ammo_target_in" default="{cmd.allow_ammo_target}"/>
-            <output_port name="allow_ammo_target_out" default="{cmd.allow_ammo_target}"/>
-        </Action>
         <Action ID="DecideRespawnCmd" editable="true">
             <input_port name="is_dead" default="{state.is_dead}"/>
             <input_port name="team_coins" default="{economy.remaining_coins}"/>
@@ -77,7 +58,6 @@
             <input_port name="posture" default="3"/>
             <input_port name="confirm_respawn" default="0"/>
             <input_port name="confirm_instant_respawn" default="0"/>
-            <input_port name="allow_ammo_target" default="{cmd.allow_ammo_target}"/>
             <inout_port name="cmd_state" default="{cmd.state}"/>
         </Action>
         <Decorator ID="RateController" editable="true">

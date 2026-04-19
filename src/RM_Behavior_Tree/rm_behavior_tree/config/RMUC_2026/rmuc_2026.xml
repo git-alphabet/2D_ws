@@ -160,9 +160,6 @@
                         <SentryCmdMux posture="3"
                                       confirm_respawn="0"
                                       confirm_instant_respawn="0"
-                                      allow_ammo_target="{cmd.allow_ammo_target}"
-                                      trigger_remote_ammo="0"
-                                      trigger_remote_hp="0"
                                       cmd_state="{cmd.state}"/>
                     </RateController>
                 </ReactiveSequence>

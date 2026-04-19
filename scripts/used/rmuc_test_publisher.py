@@ -24,12 +24,16 @@ RMUC 2026 裁判系统话题模拟器
   --phase    比赛阶段 (0-5, 默认 4=比赛中)
   --remain   赛阶段剩余时间，秒 (默认 300)
   --hp       当前血量 (默认 400，设为 0 模拟战亡)
-  --ammo     允许发弹量 (默认 200)
+  --ammo     允许发弹量 (默认 300)
   --outpost-dead  前哨站是否被毁 (不加=存活)
   --detect-enemy  云台是否检测到敌人 (不加=未检测，用于基地威胁解除判定)
   --base-hp       基地当前血量 (默认 5000)
   --base-hp-drain 每秒基地血量下降速度 (默认 0)
   --enemy-near-base 雷达模拟敌人在基地附近 (配合 --base-hp-drain 触发基地威胁)
+  --coins         剩余金币 (默认 800)
+  --supply-delay  N秒后模拟补给区发放弹药 (0=不发放, 用于测试超时)
+  --supply-amount 每次发放弹药量 (默认 100)
+  --supply-repeat 是否每隔 supply-delay 秒重复发放 (不加=仅一次)
   --duration      运行时长秒数 (0=持续运行, 默认0)
 
 复合指令示例（按序列模拟多阶段场景，用 --duration 代替 timeout）:
@@ -41,6 +45,15 @@ RMUC 2026 裁判系统话题模拟器
 
   # 满血2秒 → 前哨站被毁（触发目标切换到梯形高地）
   python3 /ws/scripts/used/rmuc_test_publisher.py --hp=400 --duration=2 && python3 /ws/scripts/used/rmuc_test_publisher.py --hp=400 --outpost-dead
+
+  # 低弹药+10秒后补给到账（测试补给成功路径）
+  python3 /ws/scripts/used/rmuc_test_publisher.py --ammo=50 --supply-delay=10 --supply-amount=100
+
+  # 低弹药+永不补给（测试30秒超时降级）
+  python3 /ws/scripts/used/rmuc_test_publisher.py --ammo=50 --supply-delay=0
+
+  # 低弹药+每60秒补给100发（模拟真实免费补给节奏）
+  python3 /ws/scripts/used/rmuc_test_publisher.py --ammo=50 --supply-delay=60 --supply-amount=100 --supply-repeat
 """
 
 import argparse
@@ -106,6 +119,11 @@ class RmucTestPublisher(Node):
         self.base_hp = float(args.base_hp)
         self.base_hp_drain = args.base_hp_drain  # 每秒下降量
 
+        # 弹药补给模拟
+        self.current_ammo = args.ammo  # 可动态变化
+        self.supply_delivered = False  # 是否已发放（非repeat模式）
+        self.supply_elapsed = 0.0  # 累计秒数
+
         # 定时器: 主循环 10 Hz
         self.timer_10hz = self.create_timer(0.1, self.tick_10hz)
         # 1 Hz 话题
@@ -116,7 +134,10 @@ class RmucTestPublisher(Node):
             f"hp={args.hp}, ammo={args.ammo}, "
             f"outpost_dead={args.outpost_dead}, detect_enemy={args.detect_enemy}, "
             f"base_hp={args.base_hp}, base_hp_drain={args.base_hp_drain}/s, "
-            f"enemy_near_base={args.enemy_near_base}"
+            f"enemy_near_base={args.enemy_near_base}, "
+            f"coins={args.coins}, "
+            f"supply_delay={args.supply_delay}s, supply_amount={args.supply_amount}, "
+            f"supply_repeat={args.supply_repeat}"
         )
 
     def _sentry_cmd_cb(self, msg: RMUCSentryCmd):
@@ -151,7 +172,7 @@ class RmucTestPublisher(Node):
         msg.current_hp = self.args.hp
         msg.max_hp = 600
         msg.shooter_heat = 30
-        msg.ammo_allow = self.args.ammo
+        msg.ammo_allow = self.current_ammo
         msg.ammo_left = 300
         msg.base_hp_cur = int(self.base_hp)
         msg.base_hp_max = 5000
@@ -184,7 +205,7 @@ class RmucTestPublisher(Node):
         msg = RMUCProjectileAllowance()
         msg.header = self._header()
         msg.fortress_ammo = 0
-        msg.remaining_coins = 800
+        msg.remaining_coins = self.args.coins
         self.pub_projectile.publish(msg)
 
     def _pub_enemy_mark(self):
@@ -218,6 +239,26 @@ class RmucTestPublisher(Node):
         self._pub_rfid_status()
         self._pub_field_status()
         self._pub_team_hp()
+
+        # 弹药补给模拟
+        if self.args.supply_delay > 0:
+            self.supply_elapsed += 1.0
+            if self.args.supply_repeat:
+                # 每隔 supply_delay 秒发放一次
+                if self.supply_elapsed >= self.args.supply_delay:
+                    self.supply_elapsed = 0.0
+                    self.current_ammo += self.args.supply_amount
+                    self.get_logger().info(
+                        f"🔄 补给发放: +{self.args.supply_amount} → ammo={self.current_ammo}"
+                    )
+            else:
+                # 仅发放一次
+                if not self.supply_delivered and self.supply_elapsed >= self.args.supply_delay:
+                    self.supply_delivered = True
+                    self.current_ammo += self.args.supply_amount
+                    self.get_logger().info(
+                        f"📦 补给到账: +{self.args.supply_amount} → ammo={self.current_ammo}"
+                    )
 
         # 倒计时 (模拟比赛中)
         if self.args.phase == 4 and self.remain_time > 0:
@@ -277,6 +318,14 @@ def main():
                         help="每秒基地血量下降速度 (默认0)")
     parser.add_argument("--enemy-near-base", action="store_true",
                         help="雷达模拟敌人在基地附近 (配合 --base-hp-drain 触发基地威胁)")
+    parser.add_argument("--coins", type=int, default=800,
+                        help="剩余金币 (默认800)")
+    parser.add_argument("--supply-delay", type=float, default=0,
+                        help="N秒后模拟补给区发放弹药 (0=不发放，用于测试30s超时)")
+    parser.add_argument("--supply-amount", type=int, default=100,
+                        help="每次发放弹药量 (默认100)")
+    parser.add_argument("--supply-repeat", action="store_true",
+                        help="每隔 supply-delay 秒重复发放 (不加=仅发放一次)")
     parser.add_argument("--duration", type=float, default=0,
                         help="运行时长(秒), 0=持续运行直到Ctrl+C")
     args = parser.parse_args()

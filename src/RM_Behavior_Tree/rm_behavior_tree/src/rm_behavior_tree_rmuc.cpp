@@ -195,7 +195,6 @@ int main(int argc, char ** argv)
   regBT("rmuc_decide_posture");
   regBT("rmuc_select_posture");
   regBT("rmuc_posture_degradation_guard");
-  regBT("rmuc_decide_economy_cmd");
   regBT("rmuc_decide_respawn_cmd");
   regBT("rmuc_parse_sentry_blackboard");
   regBT("rmuc_hold_and_heal");
@@ -211,7 +210,6 @@ int main(int argc, char ** argv)
   // rmuc_is_at_goal 已移至 K2（需要 costmap 订阅）
   regBT("rmuc_is_zone_card_detected");
   regBT("rmuc_is_base_threatened");
-  regBT("rmuc_is_combat_allowed");
   regBT("rmuc_is_detect_enemy");
   regBT("rmuc_is_ammo_below");
 

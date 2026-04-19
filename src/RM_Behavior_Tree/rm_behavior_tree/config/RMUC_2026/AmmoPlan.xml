@@ -3,30 +3,26 @@
 
     <BehaviorTree ID="AmmoPlan">
         <ReactiveSequence>
-            <IsAmmoBelow ammo_allow="{ammo.allow}" ammo_low="{cfg.ammo_low}"/>
+            <!-- 动态阈值：初始80，失败后降级为 x/2 → 1(=0发) → -1(放弃) -->
+            <IsAmmoBelow ammo_allow="{ammo.allow}" ammo_low="{supply.next_threshold}"/>
 
             <ReactiveFallback>
-                <!-- If at supply: claim free ticks and optionally stay for next minute -->
+                <!-- If at supply: wait for ammo (30s timeout, retry degradation) -->
                 <ReactiveSequence>
                     <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
                               goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
                               arrive_radius="{cfg.supply_zone_radius}"/>
-                    <HoldForSupplyAmmoTick stage_elapsed_time="{game.elapsed_s}"
-                                           ammo_allow="{ammo.allow}"
-                                           ammo_target="{cfg.ammo_target}"/>
+                    <HoldForSupplyAmmoTick ammo_allow="{ammo.allow}"
+                                           timeout_s="30"
+                                           default_threshold="{cfg.ammo_low}"
+                                           supply_fail_count="{supply.fail_count}"
+                                           supply_next_threshold="{supply.next_threshold}"/>
                 </ReactiveSequence>
 
-                <!-- Else: go to nearest station (supply/base/outpost) -->
+                <!-- Else: go to supply zone for free ammo -->
                 <ReactiveSequence>
-                    <SelectNearestResupplyStation pose_x="{pose.x}" pose_y="{pose.y}"
-                                                  supply_zone_x="{cfg.supply_zone_x}" supply_zone_y="{cfg.supply_zone_y}"
-                                                  base_buff_x="{cfg.base_buff_x}" base_buff_y="{cfg.base_buff_y}"
-                                                  outpost_buff_x="{cfg.outpost_buff_x}" outpost_buff_y="{cfg.outpost_buff_y}"
-                                                  outpost_alive="{outpost.alive}"
-                                                  goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"/>
-                    <!-- SendGoal 内置全局去重：目标不变不重复发布 -->
-                    <SendGoal name="GoResupplyStation"
-                              goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                    <SendGoal name="GoSupplyZone"
+                              goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
                               frame_id="map" action_name="navigate_to_pose"/>
                     <!-- 底盘旋转由全局 GlobalRobotControl 控制 -->
                     <KeepRunning/>

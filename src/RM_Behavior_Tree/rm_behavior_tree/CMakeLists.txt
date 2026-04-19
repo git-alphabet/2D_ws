@@ -214,10 +214,6 @@ ament_auto_add_library(rmuc_posture_degradation_guard SHARED
     plugins/rmuc_2026/action/posture_degradation_guard.cpp)
 add_target_dependencies(rmuc_posture_degradation_guard)
 
-ament_auto_add_library(rmuc_decide_economy_cmd SHARED
-    plugins/rmuc_2026/action/decide_economy_cmd.cpp)
-add_target_dependencies(rmuc_decide_economy_cmd)
-
 ament_auto_add_library(rmuc_load_calibration_csv SHARED
     plugins/rmuc_2026/action/load_calibration_csv.cpp)
 add_target_dependencies(rmuc_load_calibration_csv)
@@ -256,10 +252,6 @@ add_target_dependencies(rmuc_is_ammo_below)
 ament_auto_add_library(rmuc_is_base_threatened SHARED
     plugins/rmuc_2026/condition/is_base_threatened.cpp)
 add_target_dependencies(rmuc_is_base_threatened)
-
-ament_auto_add_library(rmuc_is_combat_allowed SHARED
-    plugins/rmuc_2026/condition/is_combat_allowed.cpp)
-add_target_dependencies(rmuc_is_combat_allowed)
 
 ament_auto_add_library(rmuc_is_at_goal SHARED
     plugins/rmuc_2026/condition/is_at_goal.cpp)

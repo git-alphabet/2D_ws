@@ -52,8 +52,10 @@
                 ramp_jump_x="{cfg.ramp_jump_x}" ramp_jump_y="{cfg.ramp_jump_y}"
                 patrol_waypoints="{cfg.patrol_waypoints}"
                 />
-            <InitCmdState cmd_state="{cmd.state}"
-                          allow_ammo_target="{cmd.allow_ammo_target}"/>
+            <InitCmdState cmd_state="{cmd.state}"/>
+            <!-- 补弹重试状态初始化 -->
+            <SetBlackboard output_key="supply.fail_count" value="0"/>
+            <SetBlackboard output_key="supply.next_threshold" value="80"/>
             <!-- 姿态由 DefaultPosture (rmuc_2026.xml) 在每 tick 中动态设置：
                  到达目标→防御(2)，导航中→移动(3)
                  PostureDegradationGuard 的第一 tick 默认值 = 3 -->
