@@ -49,7 +49,6 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
   auto sds = getInput<sp_msgs::msg::RMUCSentryDecisionStatus>("sentry_decision_status");
   if (sds) {
     setOutput("current_posture", static_cast<int>(sds->current_posture));
-    setOutput("exchanged_ammo_total", static_cast<int>(sds->exchanged_ammo_total));
   }
 
   // ── 增益状态 (RobotBuff) ──

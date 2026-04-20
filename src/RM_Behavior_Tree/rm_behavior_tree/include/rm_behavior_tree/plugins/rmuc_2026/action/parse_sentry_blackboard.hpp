@@ -53,7 +53,6 @@ public:
 
       // ── outputs: SentryDecisionStatus 派生 ──
       BT::OutputPort<int>("current_posture"),
-      BT::OutputPort<int>("exchanged_ammo_total"),
 
       // ── outputs: RobotBuff 派生 ──
       BT::OutputPort<int>("buff_vulnerability_pct"),
