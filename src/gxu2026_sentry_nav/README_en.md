@@ -67,11 +67,13 @@ This project is based on the [NAV2 Navigation Framework](https://github.com/ros-
 
 - [Docker](https://docs.docker.com/engine/install/)
 
-- Allow Docker Container to access the host's X11 display
+- Allow Docker Container to access the host's X11 display (recommended: user-level systemd auto-grant)
 
     ```bash
-    xhost +local:docker
+    systemctl --user enable --now docker-x11-access.service
     ```
+
+    Note: avoid putting `xhost` or `export DISPLAY=:0` in `~/.xprofile` / `~/.bashrc`, which can break GDM login.
 
 #### 2.1.2 Create Container
 

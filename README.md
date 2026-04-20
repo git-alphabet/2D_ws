@@ -406,11 +406,22 @@ docker push ${DOCKERHUB_NS}/${IMAGE_REPO}:latest
 
 容器默认进入 bash，并已自动 source：`/opt/ros/$ROS_DISTRO/setup.bash` 与 `/ws/install/setup.bash`。
 
-#### 8.2.1（有桌面/需要 RViz）允许容器访问宿主机 X11
+#### 8.2.1（有桌面/需要 RViz）自动授权容器访问宿主机 X11（推荐）
+
+首次配置一次即可，后续每次图形化登录会自动生效：
 
 ```bash
-xhost +local:docker
+systemctl --user daemon-reload
+systemctl --user enable --now docker-x11-access.service
 ```
+
+可选检查：
+
+```bash
+systemctl --user --no-pager status docker-x11-access.service
+```
+
+如果该服务尚未安装，请先按 9.2.3 创建脚本与 service。
 
 #### 8.2.2 创建并进入容器
 
@@ -475,12 +486,70 @@ sudo systemctl restart docker
 touch "${HOME}/.Xauthority"
 chmod 600 "${HOME}/.Xauthority" || true
 
-# 3. 允许容器访问 X11（每次登录执行一次，或写入 ~/.bashrc）
-xhost +local:docker
+# 3. 配置 X11 自动授权服务（一次性）
+mkdir -p ~/.local/bin ~/.config/systemd/user
+cat > ~/.local/bin/docker-x11-access <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v xhost >/dev/null 2>&1; then
+  exit 0
+fi
+
+display="${DISPLAY:-}"
+if [[ -z "$display" ]] && command -v loginctl >/dev/null 2>&1 && [[ -n "${XDG_SESSION_ID:-}" ]]; then
+  detected_display="$(loginctl show-session "${XDG_SESSION_ID}" -p Display --value 2>/dev/null || true)"
+  [[ -n "$detected_display" ]] && display="$detected_display"
+fi
+[[ -z "$display" ]] && display=":0"
+
+xauth="${XAUTHORITY:-}"
+if [[ -z "$xauth" || ! -r "$xauth" ]]; then
+  for candidate in "/run/user/${UID}/gdm/Xauthority" "${HOME}/.Xauthority"; do
+    if [[ -r "$candidate" ]]; then
+      xauth="$candidate"
+      break
+    fi
+  done
+fi
+
+[[ -z "$xauth" || ! -r "$xauth" ]] && exit 0
+
+export DISPLAY="$display"
+export XAUTHORITY="$xauth"
+xhost +SI:localuser:root >/dev/null 2>&1 || true
+xhost +local:docker >/dev/null 2>&1 || true
+EOF
+
+chmod +x ~/.local/bin/docker-x11-access
+
+cat > ~/.config/systemd/user/docker-x11-access.service <<'EOF'
+[Unit]
+Description=Grant local Docker access to X11 after graphical login
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/docker-x11-access
+RemainAfterExit=yes
+
+[Install]
+WantedBy=graphical-session.target
+WantedBy=default.target
+EOF
+
+systemctl --user daemon-reload
+systemctl --user enable --now docker-x11-access.service
+systemctl --user --no-pager status docker-x11-access.service
 ```
 
 > `compose.dev.yml` 已改为 `${HOME}/.Xauthority:/tmp/.docker.xauth:ro`。
 > 不要再使用 `/tmp/.docker.xauth` 作为宿主机源路径，避免该路径被误创建为目录后触发 mount file/dir 类型冲突。
+>
+> 规范：
+> - 不要在 `~/.xprofile`、`~/.profile`、`~/.bashrc` 中写 `xhost` 或 `export DISPLAY=:0`。
+> - 图形授权统一放在 user-level systemd 服务，避免污染 GDM 登录链路。
 
 ### 9.3 构建环境镜像
 

@@ -67,11 +67,13 @@ https://github.com/user-attachments/assets/ae4c19a0-4c73-46a0-95bd-909734da2a42
 
 - [Docker](https://docs.docker.com/engine/install/)
 
-- 允许 Docker Container 访问宿主机 X11 显示
+- 允许 Docker Container 访问宿主机 X11 显示（推荐使用 user-level systemd 自动授权）
 
     ```bash
-    xhost +local:docker
+    systemctl --user enable --now docker-x11-access.service
     ```
+
+    说明：避免在 `~/.xprofile` 或 `~/.bashrc` 里写 `xhost` / `export DISPLAY=:0`，以免触发 GDM 登录失败。
 
 #### 2.1.2 Create Container
 
