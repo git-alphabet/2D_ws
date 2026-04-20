@@ -471,9 +471,16 @@ sudo apt-get install -y nvidia-container-toolkit
 sudo nvidia-ctk runtime configure --runtime=docker
 sudo systemctl restart docker
 
-# 2. 允许容器访问 X11（每次登录执行一次，或写入 ~/.bashrc）
+# 2. 确保宿主机 Xauthority 文件存在（compose 会挂载 ${HOME}/.Xauthority）
+touch "${HOME}/.Xauthority"
+chmod 600 "${HOME}/.Xauthority" || true
+
+# 3. 允许容器访问 X11（每次登录执行一次，或写入 ~/.bashrc）
 xhost +local:docker
 ```
+
+> `compose.dev.yml` 已改为 `${HOME}/.Xauthority:/tmp/.docker.xauth:ro`。
+> 不要再使用 `/tmp/.docker.xauth` 作为宿主机源路径，避免该路径被误创建为目录后触发 mount file/dir 类型冲突。
 
 ### 9.3 构建环境镜像
 

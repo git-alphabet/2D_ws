@@ -47,7 +47,7 @@ x-base: &base
     - ../.git:/ws/.git:ro
     - ../.buildcache:/ws/.buildcache
     - /tmp/.X11-unix:/tmp/.X11-unix:rw
-    - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
+    - ${HOME}/.Xauthority:/tmp/.docker.xauth:ro
     - ../src:/ws/src                        # 代码挂载（改代码立刻生效）
     - ../scripts:/ws/scripts
     - ../build:/ws/build                    # bind mount：宿主机可直接 rm -rf 清除
@@ -83,7 +83,7 @@ services:
       - ../maps:/ws/maps
       - ../launch_logs:/ws/launch_logs
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
+      - ${HOME}/.Xauthority:/tmp/.docker.xauth:ro
     command: >-
       python /opt/neupan/service/server.py --host 0.0.0.0 --port 18080
     healthcheck:
@@ -137,7 +137,7 @@ services:
       - ../.git:/ws/.git:ro
       - ../.buildcache:/ws/.buildcache
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
+      - ${HOME}/.Xauthority:/tmp/.docker.xauth:ro
       - ../src:/ws/src
       - ../scripts:/ws/scripts
       - ../build:/ws/build
