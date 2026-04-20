@@ -8,7 +8,6 @@ namespace rm_behavior_tree
 geometry_msgs::msg::PoseStamped SendGoalAction::s_last_global_goal_;
 bool SendGoalAction::s_has_global_ = false;
 bool SendGoalAction::s_subs_confirmed_ = false;
-rclcpp::Time SendGoalAction::s_last_global_pub_time_{0, 0, RCL_ROS_TIME};
 
 void SendGoalAction::clearGoalCache()
 {
@@ -109,16 +108,12 @@ BT::NodeStatus SendGoalAction::tick()
   // CancelNavGoal 调用 clearGoalCache() 后强制重新发布
   // 注意：仅在确认 publisher 已有 subscriber 匹配后才激活去重，
   //       避免 publisher 刚创建时首条消息因 DDS 发现延迟丢失
-  // TTL：目标缓存有效期 5 秒，超时后重新发布（处理机器人超调后需要重新导航的情况）
+  // 一旦 subscriber 匹配确认，相同目标永久去重（不使用 TTL），
+  // 避免已到达目标的无意义重复发送。目标变更或 CancelNavGoal 自动重置缓存。
 
-  constexpr int64_t kGoalTtlNs = 5LL * 1000000000LL;  // 5 seconds
   const bool is_same_goal = s_has_global_ && isSameGoal_(goal, s_last_global_goal_);
   if (is_same_goal && s_subs_confirmed_) {
-    const int64_t elapsed_ns = (now - s_last_global_pub_time_).nanoseconds();
-    if (elapsed_ns < kGoalTtlNs) {
-      return BT::NodeStatus::SUCCESS;
-    }
-    // TTL expired → re-publish (e.g., robot overshot and needs another navigation attempt)
+    return BT::NodeStatus::SUCCESS;
   }
 
   geometry_msgs::msg::PoseStamped msg;
@@ -151,7 +146,6 @@ BT::NodeStatus SendGoalAction::tick()
 
   s_last_global_goal_ = goal;
   s_has_global_ = true;
-  s_last_global_pub_time_ = now;
   last_goal_ = goal;
   last_pub_time_ = now;
   has_last_ = true;

@@ -6,14 +6,9 @@
             <!-- 姿态由各战术子树中的 SelectPosture 设置到 {cmd.posture}，
                  SentryCmdMux 仅负责读取并发布 -->
 
-            <!-- Decide respawn confirm / instant respawn request (sends 0 when alive) -->
+            <!-- Decide respawn confirm (sends 0 when alive, always free respawn) -->
             <DecideRespawnCmd is_dead="{state.is_dead}"
-                              team_coins="{economy.remaining_coins}"
-                              stage_remain_time="{game.remain_s}"
-                              base_hp_cur="{base.hp.cur}"
-                              instant_respawn_cost="{sentry.instant_respawn_cost}"
-                              confirm_respawn="{cmd.confirm_respawn}"
-                              confirm_instant_respawn="{cmd.confirm_instant_respawn}"/>
+                              confirm_respawn="{cmd.confirm_respawn}"/>
 
             <!-- 姿态降级守卫：累计超过3分钟 → 攻击/移动→强制防御5s, 防御→强制移动10s -->
             <PostureDegradationGuard desired_posture="{cmd.posture}"
@@ -25,7 +20,6 @@
             <RateController hz="5">
                 <SentryCmdMux posture="{cmd.final_posture}"
                               confirm_respawn="{cmd.confirm_respawn}"
-                              confirm_instant_respawn="{cmd.confirm_instant_respawn}"
                               cmd_state="{cmd.state}"/>
             </RateController>
         </Sequence>
@@ -47,17 +41,11 @@
         </Action>
         <Action ID="DecideRespawnCmd" editable="true">
             <input_port name="is_dead" default="{state.is_dead}"/>
-            <input_port name="team_coins" default="{economy.remaining_coins}"/>
-            <input_port name="stage_remain_time" default="{game.remain_s}"/>
-            <input_port name="base_hp_cur" default="{base.hp.cur}"/>
-            <input_port name="instant_respawn_cost" default="{sentry.instant_respawn_cost}"/>
             <output_port name="confirm_respawn" default="{cmd.confirm_respawn}"/>
-            <output_port name="confirm_instant_respawn" default="{cmd.confirm_instant_respawn}"/>
         </Action>
         <Action ID="SentryCmdMux" editable="true">
             <input_port name="posture" default="3"/>
             <input_port name="confirm_respawn" default="0"/>
-            <input_port name="confirm_instant_respawn" default="0"/>
             <inout_port name="cmd_state" default="{cmd.state}"/>
         </Action>
         <Decorator ID="RateController" editable="true">

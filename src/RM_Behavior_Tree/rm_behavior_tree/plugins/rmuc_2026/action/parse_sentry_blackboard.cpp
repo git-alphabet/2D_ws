@@ -48,8 +48,6 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
   // ── 哨兵决策状态 (SentryDecisionStatus 0x020D) ──
   auto sds = getInput<sp_msgs::msg::RMUCSentryDecisionStatus>("sentry_decision_status");
   if (sds) {
-    setOutput("can_instant_respawn", sds->can_instant_respawn);
-    setOutput("instant_respawn_cost", static_cast<int>(sds->instant_respawn_cost));
     setOutput("current_posture", static_cast<int>(sds->current_posture));
     setOutput("exchanged_ammo_total", static_cast<int>(sds->exchanged_ammo_total));
   }
@@ -145,7 +143,6 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
 
   base_threat_latched_ = base_threat;
   setOutput("base_threat", base_threat);
-  setOutput("fortress_threat", false);
 
   // ── 脱战检测 ──
   // 规则: 存活状态下连续 6 秒未发射弹丸且未被扣血 = 脱战。

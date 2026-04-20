@@ -12,16 +12,14 @@ RmucSentryCmdMuxAction::RmucSentryCmdMuxAction(
 bool RmucSentryCmdMuxAction::setMessage(sp_msgs::msg::RMUCSentryCmd & msg)
 {
   int posture = 3;
-  int confirm_respawn = 0, confirm_instant = 0;
+  int confirm_respawn = 0;
 
   getInput("posture", posture);
   getInput("confirm_respawn", confirm_respawn);
-  getInput("confirm_instant_respawn", confirm_instant);
 
   msg.cmd_posture = static_cast<uint8_t>(posture);
   msg.cmd_confirm_respawn = (confirm_respawn != 0);
-  msg.cmd_confirm_instant_respawn = (confirm_instant != 0);
-  // cmd_allow_ammo_target 保持默认 0 — 不再花金币兑换弹丸
+  msg.cmd_confirm_instant_respawn = false;  // 不买活
 
   return true;
 }

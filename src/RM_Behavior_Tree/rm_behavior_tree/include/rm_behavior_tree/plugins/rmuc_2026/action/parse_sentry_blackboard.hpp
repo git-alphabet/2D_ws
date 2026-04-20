@@ -52,8 +52,6 @@ public:
       BT::OutputPort<bool>("has_target"),
 
       // ── outputs: SentryDecisionStatus 派生 ──
-      BT::OutputPort<bool>("can_instant_respawn"),
-      BT::OutputPort<int>("instant_respawn_cost"),
       BT::OutputPort<int>("current_posture"),
       BT::OutputPort<int>("exchanged_ammo_total"),
 
@@ -69,7 +67,6 @@ public:
 
       // ── outputs: 占位/兼容 ──
       BT::OutputPort<bool>("base_threat"),
-      BT::OutputPort<bool>("fortress_threat"),
 
       // ── outputs: 脱战派生 ──
       BT::OutputPort<bool>("is_disengaged")};
