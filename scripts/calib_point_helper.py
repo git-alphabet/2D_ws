@@ -41,8 +41,12 @@ CALIB_POINTS: list[tuple[str, str, tuple[float, float, float, float]]] = [
     # ("base_buff",              "3-基地增益 BaseBuff",        (1.0, 0.8, 0.0, 1.0)),
     # ("fortress_ally",          "4-堡垒区 Fortress",          (1.0, 0.0, 0.0, 1.0)),
     ("central_highland",       "5-中央高地 CentralHL",       (1.0, 1.0, 0.0, 1.0)),
-    # ("ladder_highland",        "6-梯形高地 LadderHL",        (0.0, 1.0, 1.0, 1.0)),
-    ("defend_anchor",          "7-防御锚点 Defend",          (1.0, 0.4, 0.4, 1.0)),
+    ("ladder_highland",        "6-梯形高地 LadderHL",        (0.0, 1.0, 1.0, 1.0)),
+    # ("defend_anchor",          "7-防御锚点 Defend",          (1.0, 0.4, 0.4, 1.0)),
+    # ── 巡逻点（前哨站被毁后，在梯形高地附近巡逻的路点）──
+    ("patrol_1",               "P1-巡逻点1 Patrol1",        (0.4, 1.0, 0.4, 1.0)),
+    ("patrol_2",               "P2-巡逻点2 Patrol2",        (0.4, 1.0, 0.6, 1.0)),
+    ("patrol_3",               "P3-巡逻点3 Patrol3",        (0.4, 1.0, 0.8, 1.0)),
 ]
 
 # ── rmuc_calibration.csv 默认路径 ──

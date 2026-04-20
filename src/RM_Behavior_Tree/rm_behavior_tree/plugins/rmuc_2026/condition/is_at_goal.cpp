@@ -129,7 +129,10 @@ BT::NodeStatus IsAtGoalCondition::tick()
   getInput("arrive_radius", radius);
 
   double dist = std::hypot(gx - px, gy - py);
-  bool in_range = dist < radius;
+
+  // 滞回: 已到达时用 2× 半径作为退出阈值，防止底盘自转漂移导致振荡
+  double effective_radius = last_at_goal_ ? radius * 2.0 : radius;
+  bool in_range = dist < effective_radius;
   bool los = in_range ? hasLineOfSight(px, py, gx, gy) : false;
   bool at_goal = in_range && los;
 
@@ -141,6 +144,7 @@ BT::NodeStatus IsAtGoalCondition::tick()
     std::cout << "[IsAtGoal:" << name() << "] pose=(" << px << "," << py
               << ") goal=(" << gx << "," << gy
               << ") dist=" << dist << " radius=" << radius
+              << "(eff=" << effective_radius << ")"
               << " costmap=" << (has_costmap ? "yes" : "NO");
     if (in_range && !los) {
       std::cout << " BLOCKED_BY_WALL";

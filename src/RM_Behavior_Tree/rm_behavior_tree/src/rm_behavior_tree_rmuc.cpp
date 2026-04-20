@@ -249,7 +249,8 @@ int main(int argc, char ** argv)
     };
     const std::vector<std::pair<std::string, double>> double_keys = {
       {"arrive_radius", 0.3}, {"enemy_near_base_radius", 2.0},
-      {"base_defense_arrive_radius", 3.5}
+      {"base_defense_arrive_radius", 3.5},
+      {"supply_zone_radius", 0.5}, {"patrol_arrive_radius", 0.3}
     };
     const std::vector<std::pair<std::string, int>> int_keys = {
       {"hp_low", 180}, {"hp_safe", 280},

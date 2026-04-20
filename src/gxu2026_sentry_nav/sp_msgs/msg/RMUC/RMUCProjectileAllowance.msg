@@ -10,7 +10,7 @@
 std_msgs/Header header
 
 # ── 堡垒储备弹  ──
-uint16 remaining_coins         # [2B] offset 4: 剩余金币数量
+# uint16 remaining_coins         # [2B] offset 4: 剩余金币数量
 
 # # ── 以下字段暂未启用 ──
 # uint16 ammo_17mm               # offset 0: 机器人自身 17mm 允许发弹量（幽灵端口：仅日志引用，BT 未消费）

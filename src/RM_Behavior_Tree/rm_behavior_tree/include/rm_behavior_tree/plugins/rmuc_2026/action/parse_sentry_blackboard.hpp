@@ -58,9 +58,6 @@ public:
       // ── outputs: RobotBuff 派生 ──
       BT::OutputPort<int>("buff_vulnerability_pct"),
 
-      // ── outputs: ProjectileAllowance 派生 ──
-      BT::OutputPort<int>("remaining_coins"),
-
       // ── outputs: TeamHP 派生 ──
       BT::OutputPort<int>("team_outpost_hp"),
       BT::OutputPort<int>("team_base_hp"),

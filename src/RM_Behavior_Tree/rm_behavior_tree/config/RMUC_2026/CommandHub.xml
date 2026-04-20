@@ -24,32 +24,4 @@
             </RateController>
         </Sequence>
     </BehaviorTree>
-
-    <!-- ===== 临时 TreeNodesModel：仅用于 Groot2 独立加载，不影响运行时 ===== -->
-    <TreeNodesModel>
-        <Action ID="SelectPosture" editable="true">
-            <input_port name="posture_value" default="3"/>
-            <output_port name="posture_out" default="{cmd.posture}"/>
-            <output_port name="is_allow_select_posture"/>
-        </Action>
-        <Action ID="PostureDegradationGuard" editable="true">
-            <input_port name="desired_posture" default="{cmd.posture}"/>
-            <input_port name="degradation_threshold_s" default="180"/>
-            <input_port name="forced_defense_s" default="5"/>
-            <input_port name="forced_movement_s" default="5"/>
-            <output_port name="final_posture" default="{cmd.final_posture}"/>
-        </Action>
-        <Action ID="DecideRespawnCmd" editable="true">
-            <input_port name="is_dead" default="{state.is_dead}"/>
-            <output_port name="confirm_respawn" default="{cmd.confirm_respawn}"/>
-        </Action>
-        <Action ID="SentryCmdMux" editable="true">
-            <input_port name="posture" default="3"/>
-            <input_port name="confirm_respawn" default="0"/>
-            <inout_port name="cmd_state" default="{cmd.state}"/>
-        </Action>
-        <Decorator ID="RateController" editable="true">
-            <input_port name="hz" default="1.0"/>
-        </Decorator>
-    </TreeNodesModel>
 </root>

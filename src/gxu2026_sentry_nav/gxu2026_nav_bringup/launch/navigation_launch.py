@@ -222,6 +222,30 @@ def generate_launch_description():
         parameters=[configured_params],
     )
 
+    # Load rmuc_2026_params.yaml as additional BT sentry config (single source of truth)
+    try:
+        rm_bt_share_dir = get_package_share_directory("rm_behavior_tree")
+        rmuc_bt_params_file = os.path.join(
+            rm_bt_share_dir, "config", "RMUC_2026", "rmuc_2026_params.yaml"
+        )
+    except PackageNotFoundError:
+        rmuc_bt_params_file = None
+
+    rmuc_bt_params = ParameterFile(
+        RewrittenYaml(
+            source_file=rmuc_bt_params_file,
+            root_key=normalized_root_key,
+            param_rewrites=param_substitutions,
+            convert_types=True,
+        ),
+        allow_substs=True,
+    ) if rmuc_bt_params_file else None
+
+    _bt_parameters = [configured_params]
+    if rmuc_bt_params is not None:
+        _bt_parameters.append(rmuc_bt_params)
+    _bt_parameters.append({"style": rm_behavior_tree_style_path})
+
     start_rm_behavior_tree_cmd = Node(
         package="rm_behavior_tree",
         executable=rm_behavior_tree_executable,
@@ -229,7 +253,7 @@ def generate_launch_description():
         output="screen",
         respawn=use_respawn,
         respawn_delay=2.0,
-        parameters=[configured_params, {"style": rm_behavior_tree_style_path}],
+        parameters=_bt_parameters,
         arguments=["--ros-args", "--log-level", log_level],
         condition=IfCondition(enable_rm_behavior_tree),
     )

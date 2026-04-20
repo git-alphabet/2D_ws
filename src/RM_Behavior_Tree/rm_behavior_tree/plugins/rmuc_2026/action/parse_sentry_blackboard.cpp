@@ -58,12 +58,6 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
     setOutput("buff_vulnerability_pct", static_cast<int>(buff->vulnerability_pct));
   }
 
-  // ── 弹丸配额 (ProjectileAllowance) ──
-  auto pa = getInput<sp_msgs::msg::RMUCProjectileAllowance>("projectile_allowance");
-  if (pa) {
-    setOutput("remaining_coins", static_cast<int>(pa->remaining_coins));
-  }
-
   // ── 队伍血量 (TeamHP) ──
   auto th = getInput<sp_msgs::msg::RMUCTeamHP>("team_hp");
   if (th) {

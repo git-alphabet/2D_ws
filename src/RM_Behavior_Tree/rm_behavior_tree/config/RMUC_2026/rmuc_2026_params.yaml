@@ -1,74 +1,62 @@
 # RMUC 2026 哨兵行为树参数配置文件
-
-# 使用方式：在 launch 文件中通过 parameters 加载本文件
-# 所有参数前缀：rmuc_sentry_config.*
+#
+# 使用方式：由 navigation_launch.py 自动加载，和 nav2_params.yaml 合并
+# 本文件作为 rmuc_sentry_config.* 参数的唯一真相来源
 # 坐标单位：米 (map 坐标系)
 
-rmuc_sentry_config:
+rm_behavior_tree:
+  ros__parameters:
+    rmuc_sentry_config:
 
-  # 地图坐标
-  # 请根据实际比赛场地填写 (单位: 米, map 坐标系)
+      # ─────────── 地图坐标 ───────────
+      home_x: 0.0
+      home_y: 0.0
+      supply_zone_x: -2.35
+      supply_zone_y: -6.89
+      base_buff_x: -0.06
+      base_buff_y: -2.49
+      outpost_buff_x: 6.53
+      outpost_buff_y: -5.12
+      fortress_ally_x: 2.76
+      fortress_ally_y: -1.93
+      fortress_enemy_x: 0.0
+      fortress_enemy_y: 0.0
+      central_highland_x: 6.70
+      central_highland_y: -1.95
+      ladder_highland_x: -0.714
+      ladder_highland_y: 3.207
+      defend_anchor_x: 2.76
+      defend_anchor_y: -1.93
+      central_highland_left_x: 9.00
+      central_highland_left_y: 2.30
+      ramp_jump_x: 7.8
+      ramp_jump_y: 5.0
 
-  home_x: 0.0                    # 己方出生点/复活点 x
-  home_y: 0.0                    # 己方出生点/复活点 y
+      # ─────────── 标定覆盖 ───────────
+      calibration_csv_path: "/ws/src/RM_Behavior_Tree/rm_behavior_tree/config/RMUC_2026/rmuc_calibration.csv"
 
-  supply_zone_x: -2.35             # 补给区坐标 x (RFID刷卡 + 导航 + 选点 统一使用)
-  supply_zone_y: -6.89             # 补给区坐标 y
+      # ─────────── 巡逻配置 ───────────
+      patrol_enable: true
+      patrol_waypoints: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      patrol_hold_ms: 5000
 
-  base_buff_x: -0.06               # 己方基地增益区中心 x
-  base_buff_y: -2.49               # 己方基地增益区中心 y
+      # ─────────── 战斗/生存阈值 ───────────
+      hp_low: 180
+      hp_safe: 280
+      heat_high: 210
+      ammo_low: 80
+      ammo_target: 300
+      allow_ammo_max: 400
+      ammo_increase_interval_ms: 1000
 
-  outpost_buff_x: 6.53            # 己方前哨站增益区中心 x
-  outpost_buff_y: -5.12            # 己方前哨站增益区中心 y
+      # ─────────── 导航参数 ───────────
+      supply_zone_radius: 0.5
+      patrol_arrive_radius: 1.0
+      arrive_radius: 0.35
+      enemy_near_base_radius: 4.0
 
-  fortress_ally_x: 2.76           # 己方堡垒区中心 x
-  fortress_ally_y: -1.93           # 己方堡垒区中心 y
+      # ─────────── 基地防御参数 ───────────
+      base_defense_arrive_radius: 3.5
 
-  central_highland_x: 6.70        # 中央高地中线偏家 x
-  central_highland_y: -1.95        # 中央高地中线偏家 y
-
-
-  ladder_highland_x: -0.714         # 梯形高地 x
-  ladder_highland_y: 3.207         # 梯形高地 y
-
-  defend_anchor_x: 2.76           # 防御锚点 (基地前守卫位置) x 直接写基地位置即可
-  defend_anchor_y: -1.93           # 防御锚点 y
-
-  # 可能有用的预设点（目前没用上，先放这儿）
-  central_highland_left_x: 9.00
-  central_highland_left_y: 2.30    # 中央高地左侧点坐标 暂时还没用上，目前决策是中央高地只在中线偏家位置
-  
-  ramp_jump_x: 7.8
-  ramp_jump_y: 5.0               # 梯形高地飞坡坐标 (即敌方飞坡过来我们这边的增益区，打算让哨兵堵在这不让他们过来)
-
-  # ─────────── 标定覆盖 ───────────
-  # CSV 文件路径，为空则不启用标定覆盖（使用上面的 YAML 默认值）
-  # 填写绝对路径，如 /ws/src/RM_Behavior_Tree/rm_behavior_tree/config/RMUC_2026/rmuc_calibration.csv
-  calibration_csv_path: "/ws/src/RM_Behavior_Tree/rm_behavior_tree/config/RMUC_2026/rmuc_calibration.csv"
-
-  # ─────────── 巡逻航点 ───────────
-  # ── 巡逻配置 ──
-  patrol_enable: false              # 是否启用巡逻 (仅前哨站被毁时生效)
-  patrol_waypoints: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # 巡逻点数组 [x1,y1,x2,y2,...] 填几组就巡几个点
-  patrol_hold_ms: 5000              # 巡逻到达每个点后停留时间 (毫秒)
-
-  # ─────────── 战斗/生存阈值 ───────────
-  hp_low: 120                    # 低血量阈值 (触发 LowHPRetreat 撤退回补给区)
-  hp_safe: 280                   # 安全血量阈值 (HoldAndHeal 回血目标)
-  ammo_low: 40                   # 低弹药阈值 (触发 AmmoPlan) 即低于多少弹药量的时候需要去补给
-  ammo_target: 300               # 目标弹药量 (AmmoPlan 补给目标) 即在增益点补充到多少才停
-  allow_ammo_max: 400            # 允许发弹量上限 (防止无限累加)
-  ammo_increase_interval_ms: 1000 # 允许弹量每次累加的最小间隔 (毫秒, 防止瞬间拉满)
-
-  # ─────────── 导航参数 ───────────
-  # 所有到达判定使用 IsAtGoal 几何距离判断
-  supply_zone_radius: 0.5        # 补给区空间判定半径 (米) — GlobalRobotControl / LowHPRetreat / IsNavTargetSupply / AmmoPlan 共用
-  patrol_arrive_radius: 0.3      # 巡逻/默认姿态到达判定半径 (米) — ObjectivePatrol / DefaultPosture / GlobalRobotControl 共用
-
-  # ─────────── 基地防御参数 ───────────
-  base_defense_arrive_radius: 3.5 # 基地防御停车对抗判定半径 (米) — BaseDefense 专用
-  base_deficit_for_fortress: 500  # 基地血量差值阈值 (判断是否需要堡垒支援)
-  enemy_near_base_radius: 4.0    # 敌人距基地威胁半径 (米)
-
-  # ─────────── 目标控制参数 ───────────
-  objective_hold_ms: 12000       # 目标点占据等待时间 (毫秒)
+      # ─────────── 目标控制参数 ───────────
+      objective_hold_ms: 12000

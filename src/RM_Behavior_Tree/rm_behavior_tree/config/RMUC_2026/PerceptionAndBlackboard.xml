@@ -49,7 +49,6 @@
                                    current_posture="{sentry.current_posture}"
                                    exchanged_ammo_total="{sentry.exchanged_ammo_total}"
                                    buff_vulnerability_pct="{buff.vulnerability_pct}"
-                                   remaining_coins="{economy.remaining_coins}"
                                    team_outpost_hp="{team.outpost_hp}"
                                    team_base_hp="{team.base_hp}"
                                    is_disengaged="{state.disengaged}"
