@@ -17,7 +17,6 @@ public:
     return {
       BT::OutputPort<std::string>("topic_game_status", "game status topic"),
       BT::OutputPort<std::string>("topic_robot_status", "robot status topic"),
-      BT::OutputPort<std::string>("topic_rfid_status", "rfid status topic"),
       BT::OutputPort<std::string>("topic_robot_pose", "robot pose topic"),
       BT::BidirectionalPort<double>("home_x"), BT::BidirectionalPort<double>("home_y"),
       BT::BidirectionalPort<double>("supply_zone_x"), BT::BidirectionalPort<double>("supply_zone_y"),

@@ -6,7 +6,6 @@
             <InitSentryConfig
                 topic_game_status="{cfg.topic_game_status}"
                 topic_robot_status="{cfg.topic_robot_status}"
-                topic_rfid_status="{cfg.topic_rfid_status}"
                 topic_robot_pose="{cfg.topic_robot_pose}"
 
                 home_x="{cfg.home_x}" home_y="{cfg.home_y}"

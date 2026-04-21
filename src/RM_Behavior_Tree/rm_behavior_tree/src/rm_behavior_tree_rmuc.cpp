@@ -9,7 +9,6 @@
  * 话题约定 (输入 — 订阅):
  *   /game_status       — RMUCGameStatus      (1 Hz)
  *   /robot_status      — RMUCRobotStatus     (10 Hz)
- *   /rfid_status       — RMUCRFIDStatus      (事件驱动)
  *   /robot_position    — RMUCRobotPosition   (50 Hz)
  *
  * 话题约定 (输出 — 发布):
@@ -56,10 +55,6 @@ int main(int argc, char ** argv)
   params_robot_status.nh = std::make_shared<rclcpp::Node>("rmuc_robot_status_io");
   params_robot_status.default_port_value = "robot_status";
 
-  BT::RosNodeParams params_rfid_status;
-  params_rfid_status.nh = std::make_shared<rclcpp::Node>("rmuc_rfid_status_io");
-  params_rfid_status.default_port_value = "rfid_status";
-
   BT::RosNodeParams params_robot_position;
   params_robot_position.nh = std::make_shared<rclcpp::Node>("rmuc_robot_position_io");
   params_robot_position.default_port_value = "robot_position";
@@ -86,27 +81,7 @@ int main(int argc, char ** argv)
   params_utility.nh = std::make_shared<rclcpp::Node>("rmuc_utility");
   params_utility.default_port_value = "";
 
-  // ── P0 新增: 7 个裁判系统话题对应的 RosNodeParams ──
-  BT::RosNodeParams params_sentry_decision;
-  params_sentry_decision.nh = std::make_shared<rclcpp::Node>("rmuc_sentry_decision_io");
-  params_sentry_decision.default_port_value = "sentry_decision_status";
-
-  BT::RosNodeParams params_robot_buff;
-  params_robot_buff.nh = std::make_shared<rclcpp::Node>("rmuc_robot_buff_io");
-  params_robot_buff.default_port_value = "robot_buff";
-
-  BT::RosNodeParams params_projectile_allowance;
-  params_projectile_allowance.nh = std::make_shared<rclcpp::Node>("rmuc_projectile_allowance_io");
-  params_projectile_allowance.default_port_value = "projectile_allowance";
-
-  BT::RosNodeParams params_field_status;
-  params_field_status.nh = std::make_shared<rclcpp::Node>("rmuc_field_status_io");
-  params_field_status.default_port_value = "field_status";
-
-  BT::RosNodeParams params_enemy_mark;
-  params_enemy_mark.nh = std::make_shared<rclcpp::Node>("rmuc_enemy_mark_io");
-  params_enemy_mark.default_port_value = "enemy_mark";
-
+  // ── 裁判系统话题对应的 RosNodeParams ──
   BT::RosNodeParams params_team_hp;
   params_team_hp.nh = std::make_shared<rclcpp::Node>("rmuc_team_hp_io");
   params_team_hp.default_port_value = "team_hp";
@@ -144,21 +119,13 @@ int main(int argc, char ** argv)
   // ── B. 订阅者：robot_status (/robot_status → RMUCRobotStatus) ──
   regRos("rmuc_sub_robot_status",               params_robot_status);
 
-  // ── C. 订阅者：rfid_status (/rfid_status → RMUCRFIDStatus) ──
-  regRos("rmuc_sub_rfid_status",                params_rfid_status);
-
-  // ── D. 订阅者：robot_position (/robot_position → RMUCRobotPosition) ──
+  // ── C. 订阅者：robot_position (/robot_position → RMUCRobotPosition) ──
   regRos("rmuc_sub_robot_position",             params_robot_position);
 
   // ── D2. 订阅者：radar_tracks (/radar/enemy_tracks → RMUCEnemyTracks) ──
   regRos("rmuc_sub_radar_tracks",               params_radar_tracks);
 
-  // ── E. P0 新增: 7 个裁判系统订阅者 ──
-  regRos("rmuc_sub_sentry_decision_status",     params_sentry_decision);
-  regRos("rmuc_sub_robot_buff",                 params_robot_buff);
-  regRos("rmuc_sub_projectile_allowance",       params_projectile_allowance);
-  regRos("rmuc_sub_field_status",               params_field_status);
-  regRos("rmuc_sub_enemy_mark",                 params_enemy_mark);
+  // ── E. 裁判系统订阅者 ──
   regRos("rmuc_sub_team_hp",                    params_team_hp);
 
   // ── F. 发布者：sentry_cmd (/sentry_cmd → RMUCSentryCmd) ──

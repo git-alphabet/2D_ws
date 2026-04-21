@@ -3,8 +3,8 @@
 # =============================================================================
 # 话题: /projectile_allowance     频率: 10 Hz
 # 来源: 电控/裁判系统串口解析节点
-# 订阅: RmucSubProjectileAllowance → 写入黑板
-# 引用: ParseSentryBlackboard → DecideEconomyCmd, AmmoPlan
+# 订阅: ❌ 已停用 (RmucSubProjectileAllowance 插件已删除，PSB 从未读取此数据)
+# 引用: ❌ 无
 # =============================================================================
 
 std_msgs/Header header

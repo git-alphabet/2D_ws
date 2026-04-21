@@ -21,7 +21,6 @@ BT::NodeStatus InitSentryConfigAction::tick()
   };
   setStr("topic_game_status", "game_status");
   setStr("topic_robot_status", "robot_status");
-  setStr("topic_rfid_status", "rfid_status");
   setStr("topic_robot_pose", "robot_position");
 
   // 坐标参数 (double, 默认 0.0)

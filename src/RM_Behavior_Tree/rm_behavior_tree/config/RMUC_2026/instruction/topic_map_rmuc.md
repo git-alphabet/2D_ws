@@ -6,18 +6,12 @@
 |---|---|---|---|---|
 | **RmucSubGameStatus** | `game_status` | `sp_msgs/msg/RMUCGameStatus` | `{game_status}`, `{time.now_ms}` | 比赛状态（阶段、剩余时间） |
 | **RmucSubRobotStatus** | `robot_status` | `sp_msgs/msg/RMUCRobotStatus` | `{robot_status}` (shared_ptr) | 机器人状态（血量、热量、弹量、基地血量、死亡标志等） |
-| **RmucSubRFIDStatus** | `rfid_status` | `sp_msgs/msg/RMUCRFIDStatus` | `{rfid.status}` | RFID 区域检测（补给区/基地增益/前哨站增益） |
 | **RmucSubRobotPosition** | `robot_position` | `sp_msgs/msg/RMUCRobotPosition` | `{pose.x}`, `{pose.y}`, `{pose.yaw}`, `{is_at_nav_goal}` | 机器人位姿 + Nav2 到达状态（仿真由 `robot_position_bridge.py` 发布） |
 | **SubRadarTracks** | `radar/enemy_tracks` | `sp_msgs/msg/RMUCEnemyTracks` | `{radar_tracks}` | 雷达敌方位置数据 |
-| **RmucSubSentryDecisionStatus** | `sentry_decision_status` | `sp_msgs/msg/RMUCSentryDecisionStatus` | `{sentry_decision_status}` | 裁判系统哨兵决策反馈（姿态确认、复活、弹丸兑换） |
-| **RmucSubRobotBuff** | `robot_buff` | `sp_msgs/msg/RMUCRobotBuff` | `{robot_buff}` | 增益状态（回血速率、冷却、防御、易伤） |
-| **RmucSubProjectileAllowance** | `projectile_allowance` | `sp_msgs/msg/RMUCProjectileAllowance` | `{projectile_allowance}` | 发弹配额 + 堡垒弹丸 |
-| **RmucSubFieldStatus** | `field_status` | `sp_msgs/msg/RMUCFieldStatus` | `{field_status}` | 场地资源状态（高地占领、能量机关、增益区） |
-| **RmucSubEnemyMark** | `enemy_mark` | `sp_msgs/msg/RMUCEnemyMark` | `{enemy_mark}` | 敌方易损标记状态 |
 | **RmucSubTeamHP** | `team_hp` | `sp_msgs/msg/RMUCTeamHP` | `{team_hp}` | 友方血量统计 |
 | **IsNavTargetSupply** *(内部订阅)* | `goal_pose` | `geometry_msgs/msg/PoseStamped` | — | 订阅 Nav2 当前导航目标，判断是否正在回补给区 |
 
-> **注意**：`team_positions` 订阅已禁用（幽灵端口，黑板键从未被消费）
+> **注意**：`team_positions`、`robot_buff`、`rfid_status`、`projectile_allowance`、`sentry_decision_status`、`field_status`、`enemy_mark` 订阅已全部禁用（幽灵端口或裁判反馈未被消费）
 
 ## 发布话题 (Publishers)
 
@@ -61,7 +55,6 @@
 
 | 插件名 (BT XML ID) | 类型 | 输入 | 输出 | 说明 |
 |---|---|---|---|---|
-| **DecideEconomyCmd** | SyncAction | `hp_cur`, `ammo_allow/target/low`, `team_coins`, `can_remote_heal/ammo`, `is_disengaged` (脱战状态：无敌人威胁时为true，控制远程补弹触发), `allow_ammo_max`, `ammo_increase_interval_ms` | `{cmd.allow_ammo_target}`, `{cmd.trig_remote_ammo}`, `{cmd.trig_remote_hp}` | 远程补血/补弹决策 + 弹丸配额累加（带限速） |
 | **DecideRespawnCmd** | SyncAction | `is_dead`, `team_coins`, `stage_remain_time`, `base_hp_cur/max`, `instant_respawn_cost` | `{cmd.confirm_respawn}`, `{cmd.confirm_instant_respawn}` | 复活决策（免费/即时） |
 
 ## 状态持续节点
@@ -84,9 +77,9 @@
 | 插件名 (BT XML ID) | 输入 | 判断逻辑 |
 |---|---|---|
 | **IsAmmoBelow** | `{ammo.allow}`, `{cfg.ammo_low}` | `ammo_allow < ammo_low` |
-| **IsAtGoal** | `{pose.x/y}`, `{goal_x/y}`, `arrive_radius` | 欧氏距离 < arrive_radius（参数化：`{cfg.supply_zone_radius}` / `{cfg.patrol_arrive_radius}` / `{cfg.base_defense_arrive_radius}`） |
+| **IsAtGoal** | `{pose.x/y}`, `{goal_x/y}`, `arrive_radius` | 欧氏距离 < arrive_radius（统一参数 `{cfg.arrive_radius}`） |
 | **IsBaseThreatened** | `{threat.base}` | 消费 ParseSentryBlackboard 派生的基地威胁标志（锁存机制：敌人 <`enemy_near_base_radius` + 基地掉血 → 触发，所有敌人 >12m → 解除） |
-| **IsNavTargetSupply** | `{cfg.supply_zone_x/y}`, `{cfg.supply_zone_radius}` + 内部订阅 `goal_pose` | 当前 Nav2 导航目标在补给区范围内 |
+| **IsNavTargetSupply** | `{cfg.supply_zone_x/y}`, `arrive_radius=\"{cfg.arrive_radius}\"` + 内部订阅 `goal_pose` | 当前 Nav2 导航目标在补给区范围内 |
 | **RmucIsDead** | `{robot_status}` | `current_hp <= 0` |
 | **RmucIsDetectEnemy** | `{robot_status}` | `is_detect_enemy == true` |
 | **RmucIsGameTime** | `{game_status}`, `{robot_status}`, `game_progress`, `lower/higher_remain_time` | 比赛阶段 + 时间窗口检查（带血量回退） |
@@ -101,14 +94,13 @@
 |---|---|---|
 | `game_status` | SUB | RmucSubGameStatus |
 | `robot_status` | SUB | RmucSubRobotStatus |
-| `rfid_status` | SUB | RmucSubRFIDStatus |
+| `rfid_status` | ❌已禁用 | RmucSubRFIDStatus (RFID字段全移除) |
 | `robot_position` | SUB | RmucSubRobotPosition |
 | `radar/enemy_tracks` | SUB | SubRadarTracks |
-| `sentry_decision_status` | SUB | RmucSubSentryDecisionStatus |
-| `robot_buff` | SUB | RmucSubRobotBuff |
-| `projectile_allowance` | SUB | RmucSubProjectileAllowance |
-| `field_status` | SUB | RmucSubFieldStatus |
-| `enemy_mark` | SUB | RmucSubEnemyMark |
+| `sentry_decision_status` | ❌已禁用 | RmucSubSentryDecisionStatus (裁判反馈未被消费) |
+| `projectile_allowance` | ❌已禁用 | RmucSubProjectileAllowance (PSB未读取) |
+| `field_status` | ❌已禁用 | RmucSubFieldStatus (场地字段均注释，BT未读取) |
+| `enemy_mark` | ❌已禁用 | RmucSubEnemyMark (BT 不读取此字段) |
 | `team_hp` | SUB | RmucSubTeamHP |
 | `goal_pose` | SUB | IsNavTargetSupply (内部) |
 | `sentry_cmd` | **PUB** | SentryCmdMux |
@@ -135,8 +127,8 @@ outpost.*          → 前哨站状态                  — ParseSentryBlackboar
 economy.*          → 经济 (金币、远程兑换)       — ParseSentryBlackboard 派生
 threat.*           → 威胁评估                    — ParseSentryBlackboard 派生 (锁存机制)
 sentry.*           → 哨兵专用 (姿态反馈、复活)   — ParseSentryBlackboard 派生
-buff.*             → 增益                        — ParseSentryBlackboard 派生
-field.*            → 场地资源                    — ParseSentryBlackboard 派生
+buff.*             → 增益                        — ❌ 已停用 (RmucSubRobotBuff 删除)
+field.*            → ❌ 已停用 (RmucSubFieldStatus 删除，PSB 无此输出)
 enemy.*            → 敌方标记                    — ParseSentryBlackboard 派生
 team.*             → 队伍 HP                     — ParseSentryBlackboard 派生
 pose.*             → 位姿                        — RmucSubRobotPosition 输出
@@ -159,11 +151,6 @@ rmuc_2026 (ReactiveSequence — 所有子节点每 tick 重新求值)
 │  ├─ RmucSubRFIDStatus       → {rfid.status}
 │  ├─ RmucSubRobotPosition    → {pose.x/y/yaw}, {is_at_nav_goal}
 │  ├─ SubRadarTracks           → {radar_tracks}
-│  ├─ RmucSubSentryDecisionStatus → {sentry_decision_status}
-│  ├─ RmucSubRobotBuff        → {robot_buff}
-│  ├─ RmucSubProjectileAllowance → {projectile_allowance}
-│  ├─ RmucSubFieldStatus      → {field_status}
-│  ├─ RmucSubEnemyMark        → {enemy_mark}
 │  ├─ RmucSubTeamHP           → {team_hp}
 │  └─ ParseSentryBlackboard   → 60+ 派生状态变量
 │
@@ -177,14 +164,13 @@ rmuc_2026 (ReactiveSequence — 所有子节点每 tick 重新求值)
    ├─ 【比赛阶段】 ReactiveSequence
    │  │
    │  ├─ CommandHub (SubTree)
-   │  │  ├─ DecideEconomyCmd     → {cmd.trig_remote_ammo/hp}, {cmd.allow_ammo_target}
    │  │  ├─ DecideRespawnCmd     → {cmd.confirm_respawn}, {cmd.confirm_instant_respawn}
    │  │  ├─ PostureDegradationGuard: {cmd.posture} → {cmd.final_posture}
    │  │  └─ SentryCmdMux (hz=5) → PUB /sentry_cmd
    │  │
    │  ├─ GlobalRobotControl (ReactiveFallback) → PUB /robot_control
    │  │  ├─ 死亡 → stop_gimbal=T, spin=F
-   │  │  ├─ 在补给区 (IsAtGoal, cfg.supply_zone_radius) → stop_gimbal=F, spin=F
+   │  ├─ 在补给区 (IsAtGoal, cfg.arrive_radius) → stop_gimbal=F, spin=F
    │  │  ├─ 检测到敌人 OR is_at_nav_goal=true → stop_gimbal=F, spin=T
    │  │  └─ 默认 → stop_gimbal=F, spin=F
    │  │
@@ -232,7 +218,7 @@ rmuc_2026 (ReactiveSequence — 所有子节点每 tick 重新求值)
 | 组件 | 类型 | 发布话题 | 说明 |
 |---|---|---|---|
 | **robot_position_bridge.py** | ROS2 节点 (Python) | `robot_position` | 仿真专用：从 TF (map→base_footprint) + Nav2 action status 合成 RMUCRobotPosition 消息，50Hz |
-| **rmuc_test_publisher.py** | 模拟器脚本 | `game_status`, `robot_status`, `rfid_status`, `sentry_decision_status`, `robot_buff`, `projectile_allowance`, `field_status`, `enemy_mark`, `team_hp` | 仿真裁判系统模拟器，订阅 `sentry_cmd` 同步 `current_posture` |
+| **rmuc_test_publisher.py** | 模拟器脚本 | `game_status`, `robot_status`, `team_hp` | 俿真裁判系统模拟器 |
 
 ---
 

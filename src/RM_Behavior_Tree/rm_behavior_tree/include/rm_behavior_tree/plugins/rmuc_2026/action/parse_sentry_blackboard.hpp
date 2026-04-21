@@ -8,9 +8,6 @@
 #include "behaviortree_cpp/action_node.h"
 #include "sp_msgs/msg/rmuc_game_status.hpp"
 #include "sp_msgs/msg/rmuc_robot_status.hpp"
-#include "sp_msgs/msg/rmuc_sentry_decision_status.hpp"
-#include "sp_msgs/msg/rmuc_robot_buff.hpp"
-#include "sp_msgs/msg/rmuc_projectile_allowance.hpp"
 #include "sp_msgs/msg/rmuc_enemy_tracks.hpp"
 #include "sp_msgs/msg/rmuc_team_hp.hpp"
 
@@ -28,9 +25,6 @@ public:
       // ── inputs: 原始消息 ──
       BT::InputPort<sp_msgs::msg::RMUCGameStatus>("game_status"),
       BT::InputPort<std::shared_ptr<sp_msgs::msg::RMUCRobotStatus>>("robot_status"),
-      BT::InputPort<sp_msgs::msg::RMUCSentryDecisionStatus>("sentry_decision_status"),
-      BT::InputPort<sp_msgs::msg::RMUCRobotBuff>("robot_buff"),
-      BT::InputPort<sp_msgs::msg::RMUCProjectileAllowance>("projectile_allowance"),
       BT::InputPort<sp_msgs::msg::RMUCEnemyTracks>("radar_tracks"),
       BT::InputPort<sp_msgs::msg::RMUCTeamHP>("team_hp"),
       BT::InputPort<double>("defend_anchor_x"),
@@ -50,16 +44,6 @@ public:
       BT::OutputPort<bool>("outpost_alive"),
       BT::OutputPort<bool>("is_dead"),
       BT::OutputPort<bool>("has_target"),
-
-      // ── outputs: SentryDecisionStatus 派生 ──
-      BT::OutputPort<int>("current_posture"),
-
-      // ── outputs: RobotBuff 派生 ──
-      BT::OutputPort<int>("buff_vulnerability_pct"),
-
-      // ── outputs: TeamHP 派生 ──
-      BT::OutputPort<int>("team_outpost_hp"),
-      BT::OutputPort<int>("team_base_hp"),
 
       // ── outputs: 占位/兼容 ──
       BT::OutputPort<bool>("base_threat"),

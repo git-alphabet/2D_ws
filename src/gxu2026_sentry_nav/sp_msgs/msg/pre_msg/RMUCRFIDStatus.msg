@@ -3,9 +3,8 @@
 # =============================================================================
 # 话题: /rfid_status           频率: 事件驱动 (变化时发布)
 # 来源: 电控/裁判系统串口解析节点
-# 订阅: RmucSubRFIDStatus → 写入黑板 {rfid_status}
-# 引用: IsZoneCardDetected, IsAnyDispelCardDetected, IsSupplyCardDetected,
-#       MicroSearchSupplyCard
+# 订阅: ❌ 已停用 (RmucSubRFIDStatus 插件已删除，RMUCRFIDStatus.msg 所有字段已移除)
+# 引用: ❌ 无
 # =============================================================================
 
 # std_msgs/Header header

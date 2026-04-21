@@ -12,15 +12,9 @@
                                   pose_x="{pose.x}"
                                   pose_y="{pose.y}"/>
             <SubRadarTracks topic_name="radar/enemy_tracks"
-                            radar_tracks="{radar_tracks}"/>
+                            radar_tracks="{radar_tracks}"/> 
 
-            <!-- P0 新增: 7 个裁判系统话题订阅 -->
-            <RmucSubSentryDecisionStatus topic_name="sentry_decision_status"
-                                          sentry_decision_status="{sentry_decision_status}"/>
-            <RmucSubRobotBuff topic_name="robot_buff"
-                              robot_buff="{robot_buff}"/>
-            <RmucSubProjectileAllowance topic_name="projectile_allowance"
-                                         projectile_allowance="{projectile_allowance}"/>
+            <!-- 裁判系统话题订阅 -->
             <RmucSubTeamHP topic_name="team_hp"
                            team_hp="{team_hp}"/>
 
@@ -32,9 +26,6 @@
                                    pose_x="{pose.x}"
                                    pose_y="{pose.y}"
                                    now_ms="{time.now_ms}"
-                                   sentry_decision_status="{sentry_decision_status}"
-                                   robot_buff="{robot_buff}"
-                                   projectile_allowance="{projectile_allowance}"
                                    radar_tracks="{radar_tracks}"
                                    team_hp="{team_hp}"
                                    stage_remain_time="{game.remain_s}"
@@ -46,10 +37,6 @@
                                    is_dead="{state.is_dead}"
                                    has_target="{combat.has_target}"
                                    base_threat="{threat.base}"
-                                   current_posture="{sentry.current_posture}"
-                                   buff_vulnerability_pct="{buff.vulnerability_pct}"
-                                   team_outpost_hp="{team.outpost_hp}"
-                                   team_base_hp="{team.base_hp}"
                                    is_disengaged="{state.disengaged}"
                                    />
         </Sequence>

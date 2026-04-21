@@ -3,8 +3,8 @@
 # =============================================================================
 # 话题: /robot_buff               频率: 10 Hz
 # 来源: 电控/裁判系统串口解析节点
-# 订阅: RmucSubRobotBuff → 写入黑板
-# 引用: ParseSentryBlackboard → DecidePosture, HoldAndHeal
+# 订阅: ❌ 已停用 (RmucSubRobotBuff 插件已删除，{buff.vulnerability_pct} 无下游消费)
+# 引用: ❌ 无
 # =============================================================================
 
 std_msgs/Header header

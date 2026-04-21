@@ -17,10 +17,6 @@ uint16 shooter_heat          # [2B] 当前枪口热量
 # ── 弹丸与允许发弹量 ──
 uint16 ammo_allow            # [2B] 剩余允许发弹量
 
-# ── 己方基地与前哨站 ──
-uint16 base_hp_cur           # [2B] 己方基地当前血量
-bool   outpost_alive         # [1B] 己方前哨站是否存活
-
 # ── 视觉检测 ──
 bool    is_detect_enemy      # [1B] 是否检测到敌人
 

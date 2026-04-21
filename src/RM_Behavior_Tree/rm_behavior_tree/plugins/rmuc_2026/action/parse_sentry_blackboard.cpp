@@ -31,37 +31,22 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
     const auto & r = **robot_ptr;
     setOutput("hp_cur", static_cast<int>(r.current_hp));
     setOutput("ammo_allow", static_cast<int>(r.ammo_allow));
-    setOutput("base_hp_cur", static_cast<int>(r.base_hp_cur));
-    setOutput("outpost_alive", r.outpost_alive);
+    // base_hp_cur: 已改由 team_hp.base_hp 接管 (0x0003 offset 14)
+    // outpost_alive 不再使用 robot_status.outpost_alive (bool转换可能有误)
+    // 将由 team_hp.outpost_hp > 0 得出（0x0003 offset 12 原始 uint16_t)
     setOutput("is_dead", r.current_hp <= 0);
     setOutput("has_target", r.is_detect_enemy);
   }
 
   auto radar_tracks = getInput<sp_msgs::msg::RMUCEnemyTracks>("radar_tracks");
-  if (radar_tracks) {
-    const bool has_radar_target = radar_tracks->enemy_count > 0;
-    if (has_radar_target) {
-      setOutput("has_target", true);
-    }
-  }
-
-  // ── 哨兵决策状态 (SentryDecisionStatus 0x020D) ──
-  auto sds = getInput<sp_msgs::msg::RMUCSentryDecisionStatus>("sentry_decision_status");
-  if (sds) {
-    setOutput("current_posture", static_cast<int>(sds->current_posture));
-  }
-
-  // ── 增益状态 (RobotBuff) ──
-  auto buff = getInput<sp_msgs::msg::RMUCRobotBuff>("robot_buff");
-  if (buff) {
-    setOutput("buff_vulnerability_pct", static_cast<int>(buff->vulnerability_pct));
-  }
+  // 注意: 雷达仅用于基地威胁判断，不参与 has_target (战斗仅依赖云台视觉 is_detect_enemy)
 
   // ── 队伍血量 (TeamHP) ──
   auto th = getInput<sp_msgs::msg::RMUCTeamHP>("team_hp");
   if (th) {
-    setOutput("team_outpost_hp", static_cast<int>(th->outpost_hp));
-    setOutput("team_base_hp", static_cast<int>(th->base_hp));
+    // 引用原始 uint16_t 字段 (0x0003 offset 12/14)，避免 robot_status bool转换失真
+    setOutput("outpost_alive", th->outpost_hp > 0);
+    setOutput("base_hp_cur", static_cast<int>(th->base_hp));  // 0x0003 offset 14 接管
   }
 
   // 基地危机锁存：
@@ -92,15 +77,14 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
 
   // 进入条件：雷达扫到敌人在基地附近 + 基地掉血
   bool base_hp_is_dropping = false;
-  if (robot_ptr) {
-    const auto & r = **robot_ptr;
-    base_hp_is_dropping = (last_base_hp_ >= 0 && r.base_hp_cur < last_base_hp_);
+  if (th) {
+    base_hp_is_dropping = (last_base_hp_ >= 0 && th->base_hp < static_cast<uint16_t>(last_base_hp_));
     if (base_hp_is_dropping && any_enemy_near) {
       base_threat = true;
       std::cout << "[ParseSentryBlackboard] 基地威胁触发：雷达扫到敌人在基地 5m 内且基地掉血"
                 << std::endl;
     }
-    last_base_hp_ = r.base_hp_cur;
+    last_base_hp_ = static_cast<int>(th->base_hp);
   }
 
   // 退出条件：云台没扫到敌人 + 基地不掉血，持续 30 秒自动解除
