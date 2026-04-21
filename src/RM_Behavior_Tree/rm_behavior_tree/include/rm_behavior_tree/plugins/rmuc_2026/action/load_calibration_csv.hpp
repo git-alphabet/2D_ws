@@ -27,7 +27,6 @@ public:
       BT::OutputPort<double>("base_buff_x"), BT::OutputPort<double>("base_buff_y"),
       BT::OutputPort<double>("outpost_buff_x"), BT::OutputPort<double>("outpost_buff_y"),
       BT::OutputPort<double>("fortress_ally_x"), BT::OutputPort<double>("fortress_ally_y"),
-      BT::OutputPort<double>("fortress_enemy_x"), BT::OutputPort<double>("fortress_enemy_y"),
       BT::OutputPort<double>("central_highland_x"), BT::OutputPort<double>("central_highland_y"),
       BT::OutputPort<double>("ladder_highland_x"), BT::OutputPort<double>("ladder_highland_y"),
       BT::OutputPort<double>("defend_anchor_x"), BT::OutputPort<double>("defend_anchor_y"),

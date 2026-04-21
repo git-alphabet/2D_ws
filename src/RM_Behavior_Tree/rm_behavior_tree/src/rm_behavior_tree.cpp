@@ -136,7 +136,7 @@ int main(int argc, char ** argv)
     const std::vector<std::string> coord_keys = {
       "home_x","home_y","supply_zone_x","supply_zone_y",
       "base_buff_x","base_buff_y","outpost_buff_x","outpost_buff_y",
-      "fortress_ally_x","fortress_ally_y","fortress_enemy_x","fortress_enemy_y",
+      "fortress_ally_x","fortress_ally_y",
       "central_highland_x","central_highland_y",
       "ladder_highland_x","ladder_highland_y",
       "defend_anchor_x","defend_anchor_y"
