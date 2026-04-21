@@ -2,9 +2,15 @@
 """
 RMUC 2026 裁判系统话题模拟器
 =============================
-模拟裁判系统和传感器发布的 10 个话题，用于测试 RMUC 行为树。
+模拟裁判系统和传感器发布的话题，用于测试 RMUC 行为树。
 注意：robot_position 由 robot_position_bridge.py 发布（从 TF + Nav2 状态获取），
 本模拟器不再发布该话题以避免冲突。
+
+活跃发布话题:
+  /game_status       — RMUCGameStatus (1 Hz)
+  /robot_status      — RMUCRobotStatus (10 Hz)
+  /team_hp           — RMUCTeamHP (1 Hz) — 含 outpost_hp, base_hp
+  /radar/enemy_tracks — RMUCEnemyTracks (10 Hz)
 
 使用方式:
   1. 先在一个终端启动仿真:  ./scripts/sim_mapping.sh
@@ -67,12 +73,6 @@ from std_msgs.msg import Header
 from sp_msgs.msg import (
     RMUCGameStatus,
     RMUCRobotStatus,
-    RMUCRFIDStatus,
-    RMUCSentryDecisionStatus,
-    RMUCRobotBuff,
-    RMUCProjectileAllowance,
-    RMUCFieldStatus,
-    RMUCEnemyMark,
     RMUCEnemyTracks,
     RMUCTeamHP,
     RMUCSentryCmd,
@@ -89,17 +89,8 @@ class RmucTestPublisher(Node):
         # ── 发布者 (话题名不带 ns，由 node namespace 自动加前缀) ──
         self.pub_game = self.create_publisher(RMUCGameStatus, "game_status", 10)
         self.pub_robot = self.create_publisher(RMUCRobotStatus, "robot_status", 10)
-        self.pub_rfid = self.create_publisher(RMUCRFIDStatus, "rfid_status", 10)
         # robot_position 由 robot_position_bridge.py 发布（从 TF + Nav2 状态获取），此处不再重复发布
-        self.pub_sentry_decision = self.create_publisher(
-            RMUCSentryDecisionStatus, "sentry_decision_status", 10
-        )
-        self.pub_robot_buff = self.create_publisher(RMUCRobotBuff, "robot_buff", 10)
-        self.pub_projectile = self.create_publisher(
-            RMUCProjectileAllowance, "projectile_allowance", 10
-        )
-        self.pub_field = self.create_publisher(RMUCFieldStatus, "field_status", 10)
-        self.pub_enemy_mark = self.create_publisher(RMUCEnemyMark, "enemy_mark", 10)
+        self.pub_team_hp = self.create_publisher(RMUCTeamHP, "team_hp", 10)
         self.pub_team_hp = self.create_publisher(RMUCTeamHP, "team_hp", 10)
 
         # ── 雷达敌方跟踪 (用于模拟基地威胁进入条件) ──
@@ -160,10 +151,6 @@ class RmucTestPublisher(Node):
             self.base_hp = max(0.0, self.base_hp - self.base_hp_drain / 10.0)
 
         self._pub_robot_status()
-        self._pub_sentry_decision_status()
-        self._pub_robot_buff()
-        self._pub_projectile_allowance()
-        self._pub_enemy_mark()
         self._pub_radar_tracks()
 
     def _pub_robot_status(self):
@@ -172,34 +159,9 @@ class RmucTestPublisher(Node):
         msg.current_hp = self.args.hp
         msg.shooter_heat = 30
         msg.ammo_allow = self.current_ammo
-        msg.base_hp_cur = int(self.base_hp)
-        msg.outpost_alive = not self.args.outpost_dead
+        # base_hp_cur / outpost_alive 已从 robot_status 删除，改由 team_hp 接管
         msg.is_detect_enemy = self.args.detect_enemy
         self.pub_robot.publish(msg)
-
-    def _pub_sentry_decision_status(self):
-        msg = RMUCSentryDecisionStatus()
-        msg.header = self._header()
-        msg.can_instant_respawn = True
-        msg.current_posture = self.current_posture  # 镜像 BT 的 sentry_cmd.cmd_posture
-        msg.exchanged_ammo_total = 0
-        self.pub_sentry_decision.publish(msg)
-
-    def _pub_robot_buff(self):
-        msg = RMUCRobotBuff()
-        msg.header = self._header()
-        msg.vulnerability_pct = 0
-        self.pub_robot_buff.publish(msg)
-
-    def _pub_projectile_allowance(self):
-        msg = RMUCProjectileAllowance()
-        msg.header = self._header()
-        self.pub_projectile.publish(msg)
-
-    def _pub_enemy_mark(self):
-        msg = RMUCEnemyMark()
-        msg.header = self._header()
-        self.pub_enemy_mark.publish(msg)
 
     def _pub_radar_tracks(self):
         msg = RMUCEnemyTracks()
@@ -219,8 +181,6 @@ class RmucTestPublisher(Node):
 
     def tick_1hz(self):
         self._pub_game_status()
-        self._pub_rfid_status()
-        self._pub_field_status()
         self._pub_team_hp()
 
         # 弹药补给模拟
@@ -255,16 +215,6 @@ class RmucTestPublisher(Node):
         msg.game_progress = self.args.phase
         msg.stage_remain_time = self.remain_time
         self.pub_game.publish(msg)
-
-    def _pub_rfid_status(self):
-        msg = RMUCRFIDStatus()
-        # 所有字段已注释，发布空消息
-        self.pub_rfid.publish(msg)
-
-    def _pub_field_status(self):
-        msg = RMUCFieldStatus()
-        msg.header = self._header()
-        self.pub_field.publish(msg)
 
     def _pub_team_hp(self):
         msg = RMUCTeamHP()
