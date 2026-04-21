@@ -202,10 +202,6 @@ ament_auto_add_library(rmuc_init_cmd_state SHARED
     plugins/rmuc_2026/action/init_cmd_state.cpp)
 add_target_dependencies(rmuc_init_cmd_state)
 
-ament_auto_add_library(rmuc_decide_posture SHARED
-    plugins/rmuc_2026/action/decide_posture.cpp)
-add_target_dependencies(rmuc_decide_posture)
-
 ament_auto_add_library(rmuc_select_posture SHARED
     plugins/rmuc_2026/action/select_posture.cpp)
 add_target_dependencies(rmuc_select_posture)

@@ -34,7 +34,6 @@ public:
       BT::BidirectionalPort<int>("hp_safe"),
       BT::BidirectionalPort<int>("ammo_low"),
       BT::BidirectionalPort<double>("enemy_near_base_radius"),
-      BT::BidirectionalPort<int>("objective_hold_ms"),
       BT::BidirectionalPort<int>("patrol_hold_ms"),
       BT::BidirectionalPort<bool>("patrol_enable"),
       BT::BidirectionalPort<std::string>("patrol_waypoints")};

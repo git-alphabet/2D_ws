@@ -192,7 +192,6 @@ int main(int argc, char ** argv)
   regBT("rmuc_init_sentry_config");
   regBT("rmuc_init_cmd_state");
   regBT("rmuc_load_calibration_csv");
-  regBT("rmuc_decide_posture");
   regBT("rmuc_select_posture");
   regBT("rmuc_posture_degradation_guard");
   regBT("rmuc_decide_respawn_cmd");
@@ -252,9 +251,7 @@ int main(int argc, char ** argv)
     };
     const std::vector<std::pair<std::string, int>> int_keys = {
       {"hp_low", 180}, {"hp_safe", 280},
-      {"heat_high", 210},
       {"ammo_low", 80},
-      {"objective_hold_ms", 12000},
       {"patrol_hold_ms", 5000}
     };
 

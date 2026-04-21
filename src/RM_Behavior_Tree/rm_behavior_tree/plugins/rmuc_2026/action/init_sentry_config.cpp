@@ -57,7 +57,6 @@ BT::NodeStatus InitSentryConfigAction::tick()
   setInt("hp_low", 180);
   setInt("hp_safe", 280);
   setInt("ammo_low", 80);
-  setInt("objective_hold_ms", 12000);
   setInt("patrol_hold_ms", 5000);
 
   // 巡逻参数 (从黑板直接读取，由 rm_behavior_tree.cpp 注入)

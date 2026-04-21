@@ -25,7 +25,6 @@
                 hp_safe="{cfg.hp_safe}"
                 ammo_low="{cfg.ammo_low}"
                 enemy_near_base_radius="{cfg.enemy_near_base_radius}"
-                objective_hold_ms="{cfg.objective_hold_ms}"
                 patrol_hold_ms="{cfg.patrol_hold_ms}"
                 patrol_enable="{cfg.patrol_enable}"
                 patrol_waypoints="{cfg.patrol_waypoints}"

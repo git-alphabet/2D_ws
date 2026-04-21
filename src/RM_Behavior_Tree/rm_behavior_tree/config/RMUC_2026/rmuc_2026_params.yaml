@@ -54,13 +54,9 @@ rm_behavior_tree:
       # ─────────── 战斗/生存阈值 ───────────
       hp_low: 180                     # 低血量阈值 (触发 LowHPRetreat 撤退回补给区)
       hp_safe: 280                    # 安全血量阈值 (HoldAndHeal 回血目标)
-      heat_high: 210                  # 高热量阈值 (触发热量相关限流策略)
       ammo_low: 80                    # 低弹药阈值 (触发 AmmoPlan)
 
       # ─────────── 导航参数 ───────────
       # 所有到达判定统一使用 arrive_radius（补给/巡逻/基地防御）
       arrive_radius: 0.8              # 统一到达判定半径 (米)
       enemy_near_base_radius: 4.0     # 敌人距基地威胁半径 (米)
-
-      # ─────────── 目标控制参数 ───────────
-      objective_hold_ms: 12000        # 目标点占据等待时间 (毫秒)
