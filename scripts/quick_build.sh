@@ -120,10 +120,25 @@ set +u
 source "/opt/ros/${ROS_DISTRO}/setup.bash"
 set -u
 
+# ccache 加速：对 C/C++ 编译启用 launcher，不影响无 ccache 场景。
+CMAKE_ARGS=(-DCMAKE_BUILD_TYPE=Release -DPython3_EXECUTABLE=/usr/bin/python3)
+if command -v ccache >/dev/null 2>&1; then
+  export CCACHE_DIR="${CCACHE_DIR:-$CACHE_ROOT/$BRANCH_SAFE/ccache}"
+  mkdir -p "$CCACHE_DIR"
+  ccache --max-size "${CCACHE_MAXSIZE:-20G}" >/dev/null 2>&1 || true
+  CMAKE_ARGS+=(
+    -DCMAKE_C_COMPILER_LAUNCHER=ccache
+    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+  )
+  echo "[ccache] enabled, dir=$CCACHE_DIR"
+else
+  echo "[ccache] not found, build without compiler cache"
+fi
+
 # Build the full ROS workspace in one pass.
 colcon --log-base "$LOG_BASE" build \
   --build-base "$BUILD_BASE" \
   --install-base "$INSTALL_BASE" \
   "${COLCON_EXECUTOR_ARGS[@]}" \
   --symlink-install \
-  --cmake-args -DCMAKE_BUILD_TYPE=Release -DPython3_EXECUTABLE=/usr/bin/python3
+  --cmake-args "${CMAKE_ARGS[@]}"
