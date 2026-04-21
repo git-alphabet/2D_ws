@@ -181,7 +181,6 @@ class RmucTestPublisher(Node):
         msg = RMUCSentryDecisionStatus()
         msg.header = self._header()
         msg.can_instant_respawn = True
-        msg.instant_respawn_cost = 100
         msg.current_posture = self.current_posture  # 镜像 BT 的 sentry_cmd.cmd_posture
         msg.exchanged_ammo_total = 0
         self.pub_sentry_decision.publish(msg)
@@ -195,7 +194,6 @@ class RmucTestPublisher(Node):
     def _pub_projectile_allowance(self):
         msg = RMUCProjectileAllowance()
         msg.header = self._header()
-        msg.remaining_coins = self.args.coins
         self.pub_projectile.publish(msg)
 
     def _pub_enemy_mark(self):

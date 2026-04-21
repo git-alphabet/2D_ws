@@ -13,9 +13,7 @@ BT::NodeStatus RmucSubProjectileAllowanceAction::onTick(
   const std::shared_ptr<sp_msgs::msg::RMUCProjectileAllowance> & last_msg)
 {
   if (last_msg) {
-    RCLCPP_DEBUG(
-      logger(), "[%s] projectile_allowance: coins=%d",
-      name().c_str(), last_msg->remaining_coins);
+    RCLCPP_DEBUG(logger(), "[%s] projectile_allowance received", name().c_str());
     setOutput("projectile_allowance", *last_msg);
   }
   return BT::NodeStatus::SUCCESS;
