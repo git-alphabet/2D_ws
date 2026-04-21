@@ -143,16 +143,13 @@ int main(int argc, char ** argv)
     };
     // double 阈值参数
     const std::vector<std::pair<std::string, double>> double_keys = {
-      {"arrive_radius", 0.35}, {"enemy_near_base_radius", 2.0},
-      {"base_defense_arrive_radius", 3.5},
-      {"supply_zone_radius", 0.5}, {"patrol_arrive_radius", 0.3}
+      {"arrive_radius", 1.0}, {"enemy_near_base_radius", 2.0}
     };
     // int 阈值参数
     const std::vector<std::pair<std::string, int>> int_keys = {
       {"hp_low", 180}, {"hp_safe", 280},
       {"heat_high", 210},
-      {"ammo_low", 80}, {"ammo_target", 300}, {"allow_ammo_max", 400},
-      {"ammo_increase_interval_ms", 1000},
+      {"ammo_low", 80},
       {"objective_hold_ms", 12000},
       {"patrol_hold_ms", 5000}
     };

@@ -51,17 +51,12 @@ BT::NodeStatus InitSentryConfigAction::tick()
     setOutput(key, v);
   };
 
-  setDouble("supply_zone_radius", 0.5);
-  setDouble("patrol_arrive_radius", 0.3);
-  setDouble("base_defense_arrive_radius", 3.5);
+  setDouble("arrive_radius", 1.0);
   setDouble("enemy_near_base_radius", 2.0);
 
   setInt("hp_low", 180);
   setInt("hp_safe", 280);
   setInt("ammo_low", 80);
-  setInt("ammo_target", 300);
-  setInt("allow_ammo_max", 400);
-  setInt("ammo_increase_interval_ms", 1000);
   setInt("objective_hold_ms", 12000);
   setInt("patrol_hold_ms", 5000);
 
