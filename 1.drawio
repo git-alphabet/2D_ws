@@ -1,361 +1,80 @@
 <mxfile host="65bd71144e">
-    <diagram id="rmuc2026-oneflow" name="RMUC2026 从头到尾单图">
-        <mxGraphModel dx="882" dy="495" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="11000" pageHeight="7600" math="0" shadow="0">
+    <diagram id="binary_decision_tree" name="二分树阈值解说版">
+        <mxGraphModel dx="500" dy="495" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="9800" pageHeight="7600" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
-                <mxCell id="title" value="RMUC 2026 行为树（从头到尾单图）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=28;fontStyle=1;" parent="1" vertex="1">
-                    <mxGeometry x="3700" y="20" width="3000" height="50" as="geometry"/>
+                <mxCell id="n0" value="开始&#xa;每一轮都从这里判断" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="3900" y="110" width="420" height="90" as="geometry"/>
                 </mxCell>
-                <mxCell id="root_seq" value="ReactiveSequence&#xa;rmuc_2026" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="4700" y="110" width="360" height="90" as="geometry"/>
+                <mxCell id="n1" value="现在是比赛时间吗&lt;br&gt;判定比赛阶段=4 且 剩余时间0到420秒" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="3900" y="270" width="420" height="90" as="geometry"/>
                 </mxCell>
-                <mxCell id="percep_tree" value="PerceptionAndBlackboard&#xa;Sequence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="4620" y="290" width="520" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_root_per" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="root_seq" target="percep_tree" edge="1">
+                <mxCell id="e01" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="n0" target="n1" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="per_sub_1" value="订阅基础话题&#xa;/game_status /robot_status /rfid_status /robot_position" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="4440" y="460" width="880" height="90" as="geometry"/>
+                <mxCell id="n2" value="是否处于危险状态&#xa;阵亡 或 当前血量小于180" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="3270" y="410" width="460" height="95" as="geometry"/>
                 </mxCell>
-                <mxCell id="per_sub_2" value="订阅扩展裁判话题&#xa;sentry_decision_status robot_buff projectile_allowance field_status enemy_mark team_positions team_hp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="4300" y="620" width="1160" height="95" as="geometry"/>
+                <mxCell id="n3" value="非比赛流程&#xa;停扫描 + 不旋转 + 二赫兹待机发指令" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=15;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="4440" y="440" width="520" height="95" as="geometry"/>
                 </mxCell>
-                <mxCell id="per_parse" value="ParseSentryBlackboard&#xa;解析 game hp heat ammo base outpost buff economy threat 等字段到黑板" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="4300" y="780" width="1160" height="95" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_per_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="percep_tree" target="per_sub_1" edge="1">
+                <mxCell id="e12" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="n1" target="n2" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="e_per_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="per_sub_1" target="per_sub_2" edge="1">
+                <mxCell id="e13" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#777777;" parent="1" source="n1" target="n3" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="e_per_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="per_sub_2" target="per_parse" edge="1">
+                <mxCell id="n4" value="血线告急，马上保命&lt;br&gt;阵亡就原地等复活&lt;br&gt;低血回补给，回血到280再出发" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="2630" y="402.5" width="520" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="n5" value="是否发现敌人" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="3290" y="670" width="420" height="95" as="geometry"/>
+                </mxCell>
+                <mxCell id="e24" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="n2" target="n4" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="init_tree" value="InitOnce&#xa;Sequence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="4620" y="980" width="520" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="init_cfg" value="InitSentryConfig&#xa;加载话题名 关键坐标 阈值 巡逻参数" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="4370" y="1140" width="1020" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="init_cmd" value="InitCmdState&#xa;初始化 cmd.state 与 allow_ammo_target" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="4480" y="1290" width="800" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_parse_init" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="per_parse" target="init_tree" edge="1">
+                <mxCell id="e25" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="n2" target="n5" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="e_init_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="init_tree" target="init_cfg" edge="1">
+                <mxCell id="n6" value="敌人贴脸，立刻反打&lt;br&gt;立即停车对抗（问题：减速带区域导航不会停止，如果切换姿态是否影响过减速带，理论上不会，因为改的是上限）&lt;br&gt;切到火力优先姿态1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="2670" y="662.5" width="460" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="n7" value="基地有危险吗&lt;br&gt;触发敌人进5米且基地掉血&lt;br&gt;解除连续30秒平静" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="3560" y="840" width="420" height="95" as="geometry"/>
+                </mxCell>
+                <mxCell id="e56" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="n5" target="n6" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="e_init_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="init_cfg" target="init_cmd" edge="1">
+                <mxCell id="e57" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="n5" target="n7" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="wde" value="WhileDoElse&#xa;RmucIsGameTime(比赛阶段?)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="4540" y="1460" width="680" height="95" as="geometry"/>
+                <mxCell id="n8" value="基地拉警报，马上回防&lt;br&gt;先回防守点&lt;br&gt;每秒下发一次守家目标" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="3060" y="965" width="480" height="110" as="geometry"/>
                 </mxCell>
-                <mxCell id="e_init_wde" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="init_cmd" target="wde" edge="1">
+                <mxCell id="n9" value="弹药低于80吗" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="3990" y="980" width="420" height="95" as="geometry"/>
+                </mxCell>
+                <mxCell id="e78" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="n7" target="n8" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="match_seq" value="比赛阶段&#xa;ReactiveSequence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="3500" y="1670" width="520" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="nonmatch_seq" value="非比赛阶段&#xa;ReactiveSequence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="6500" y="1670" width="520" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_wde_match" value="比赛中" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="wde" target="match_seq" edge="1">
+                <mxCell id="e79" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="n7" target="n9" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="e_wde_non" value="否则" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#777777;" parent="1" source="wde" target="nonmatch_seq" edge="1">
+                <mxCell id="n10" value="弹仓见底，火速补弹&lt;br&gt;去补给点补弹，超时30秒就换策略&lt;br&gt;阈值变化80到半弹到1到放弃" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="3570" y="1150" width="460" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="n11" value="局势稳定，开始运营控图&lt;br&gt;去战略点并巡逻&lt;br&gt;每秒下发一次导航目标" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
+                    <mxGeometry x="4360" y="1150" width="460" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="e910" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="n9" target="n10" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="cmdhub" value="CommandHub&#xa;Sequence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="2640" y="1670" width="560" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="priority_rf" value="ReactiveFallback&#xa;优先级战术分支" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="3900" y="1850" width="620" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_match_cmd" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="match_seq" target="cmdhub" edge="1">
+                <mxCell id="e911" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="n9" target="n11" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="e_match_pri" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;" parent="1" source="match_seq" target="priority_rf" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="cmd_1" value="DecidePosture" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="2630" y="2010" width="230" height="80" as="geometry"/>
-                </mxCell>
-                <mxCell id="cmd_2" value="DecideEconomyCmd" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="2930" y="2010" width="230" height="80" as="geometry"/>
-                </mxCell>
-                <mxCell id="cmd_3" value="DecideRespawnCmd" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="3210" y="2010" width="230" height="80" as="geometry"/>
-                </mxCell>
-                <mxCell id="cmd_4" value="RateController 5Hz&#xa;SentryCmdMux" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="2940" y="2365" width="490" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_cmd_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="cmdhub" target="cmd_1" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_cmd_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="cmd_1" target="cmd_2" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_cmd_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="cmd_2" target="cmd_3" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_cmd_4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="cmd_3" target="cmd_4" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="p0" value="P0 LowHPRetreat&#xa;SetBlackboard + SubTree" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="900" y="2050" width="500" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="p1" value="P1 BaseDefense&#xa;SetBlackboard + SubTree" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="2080" y="2050" width="500" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="p2" value="P2 EngageCombat&#xa;SetBlackboard + SubTree" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="3500" y="2050" width="500" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="p3" value="P3 SustainAndEconomy&#xa;SetBlackboard + SubTree" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="4900" y="2050" width="560" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="p4" value="P4 ObjectivePlanner&#xa;SetBlackboard + SubTree" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="6400" y="2050" width="560" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_pri_0" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#b85450;" parent="1" source="priority_rf" target="p0" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_pri_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#b85450;" parent="1" source="priority_rf" target="p1" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_pri_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#d79b00;" parent="1" source="priority_rf" target="p2" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_pri_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#d79b00;" parent="1" source="priority_rf" target="p3" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_pri_4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#82b366;" parent="1" source="priority_rf" target="p4" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="p0_a" value="A 死亡分支&#xa;RmucIsDead -&gt; RobotControl(停扫描) -&gt; NavControlCmd 停车" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="830" y="2205" width="640" height="95" as="geometry"/>
-                </mxCell>
-                <mxCell id="p0_b" value="B 低血量分支&#xa;IsHPBelow -&gt; RobotControl(不旋转) -&gt; ReactiveFallback" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="830" y="2365" width="640" height="95" as="geometry"/>
-                </mxCell>
-                <mxCell id="p0_b1" value="B1 在补给区&#xa;IsZoneCardDetected -&gt; HoldAndHeal" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="670" y="2510" width="360" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="p0_b2" value="B2 不在补给区&#xa;1Hz SendGoal(补给区) -&gt; KeepRunning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="1310" y="2512.5" width="360" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p0_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p0" target="p0_a" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p0_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p0_a" target="p0_b" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p0_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p0_b" target="p0_b1" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p0_4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p0_b" target="p0_b2" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="p1_1" value="IsBaseThreatened" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="2140" y="2210" width="380" height="85" as="geometry"/>
-                </mxCell>
-                <mxCell id="p1_2" value="1Hz SendGoal(defend_anchor)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="2140" y="2350" width="380" height="85" as="geometry"/>
-                </mxCell>
-                <mxCell id="p1_3" value="近锚点且检测敌人&#xa;停车 + 底盘旋转 + KeepRunning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="1920" y="2510" width="360" height="100" as="geometry"/>
-                </mxCell>
-                <mxCell id="p1_4" value="否则继续赶路或驻守&#xa;到锚点旋转 否则不旋转 + KeepRunning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="2380" y="2510" width="360" height="100" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p1_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p1" target="p1_1" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p1_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p1_1" target="p1_2" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p1_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p1_2" target="p1_3" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p1_4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p1_2" target="p1_4" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="p2_1" value="RmucIsDetectEnemy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="3560" y="2210" width="380" height="85" as="geometry"/>
-                </mxCell>
-                <mxCell id="p2_2" value="RmucNavControlCmd 停止导航" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="3560" y="2360" width="380" height="85" as="geometry"/>
-                </mxCell>
-                <mxCell id="p2_3" value="RmucRobotControl&#xa;底盘旋转" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="3560" y="2510" width="380" height="85" as="geometry"/>
-                </mxCell>
-                <mxCell id="p2_4" value="KeepRunning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="3560" y="2660" width="380" height="85" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p2_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p2" target="p2_1" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p2_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p2_1" target="p2_2" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p2_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p2_2" target="p2_3" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p2_4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p2_3" target="p2_4" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="p3_1" value="SustainAndEconomy&#xa;SubTree -&gt; AmmoPlan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="5000" y="2210" width="360" height="85" as="geometry"/>
-                </mxCell>
-                <mxCell id="p3_2" value="IsAmmoBelow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="5000" y="2360" width="360" height="85" as="geometry"/>
-                </mxCell>
-                <mxCell id="p3_3" value="在补给区&#xa;HoldForSupplyAmmoTick" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="4780" y="2510" width="300" height="95" as="geometry"/>
-                </mxCell>
-                <mxCell id="p3_4" value="不在补给区&#xa;SelectNearestResupplyStation -&gt; 1Hz SendGoal -&gt; RobotControl(不旋转) -&gt; KeepRunning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="5120" y="2510" width="420" height="110" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p3_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p3" target="p3_1" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p3_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p3_1" target="p3_2" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p3_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p3_2" target="p3_3" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p3_4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p3_2" target="p3_4" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="p4_1" value="SelectObjective" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="6490" y="2210" width="380" height="85" as="geometry"/>
-                </mxCell>
-                <mxCell id="p4_2" value="ObjectivePatrol" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="6490" y="2360" width="380" height="85" as="geometry"/>
-                </mxCell>
-                <mxCell id="p4_3" value="1Hz SendGoal(nav.goal)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="6490" y="2510" width="380" height="85" as="geometry"/>
-                </mxCell>
-                <mxCell id="p4_4" value="已到达目标&#xa;旋转=True + KeepRunning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="6270" y="2660" width="280" height="95" as="geometry"/>
-                </mxCell>
-                <mxCell id="p4_5" value="未到达目标&#xa;旋转=False + KeepRunning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="6590" y="2660" width="280" height="95" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p4_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p4" target="p4_1" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p4_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p4_1" target="p4_2" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p4_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p4_2" target="p4_3" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p4_4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p4_3" target="p4_4" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_p4_5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="p4_3" target="p4_5" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="nm_1" value="RateController 1Hz&#xa;SendGoal(Home)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="6990" y="1810" width="560" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="nm_2" value="RmucRobotControl&#xa;stop_gimbal_scan=True chassis_spin=False" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="6990" y="2090" width="560" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="nm_3" value="RateController 2Hz&#xa;SentryCmdMux(posture=3 trigger_remote_ammo=0 trigger_remote_hp=0)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=14;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="6990" y="2455" width="560" height="100" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_nm_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="nonmatch_seq" target="nm_1" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_nm_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="nm_1" target="nm_2" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_nm_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" parent="1" source="nm_2" target="nm_3" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="dec_title" value="决策条件面板（按当前源码实现）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#333333;fontSize=18;fontStyle=1;align=center;verticalAlign=middle;" parent="1" vertex="1">
-                    <mxGeometry x="8360" y="150" width="2440" height="70" as="geometry"/>
-                </mxCell>
-                <mxCell id="dec_stage" value="RmucIsGameTime（比赛阶段）&#xa;SUCCESS 条件：&#xa;1) game_progress == 4&#xa;2) 0 &lt;= stage_remain_time &lt;= 420" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
-                    <mxGeometry x="8360" y="260" width="760" height="130" as="geometry"/>
-                </mxCell>
-                <mxCell id="dec_posture" value="DecidePosture（姿态决策）&#xa;三姿态打分，取最高分：&#xa;攻击加分：有目标 +35，hp&gt;50% +20，防御增益 +15，冷却增益 +12，后半场 +18；ammo&lt;=0 则攻击分归零&#xa;防御加分：易伤 +50，基地威胁 +30，hp&lt;30% +35，hp&lt;50% +15，热量超限 +25，无目标 +8&#xa;移动加分：ammo&lt;=0 +50，无目标 +10，30%-50%血量 +5&#xa;平分优先级：防御 &gt; 移动 &gt; 攻击" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
-                    <mxGeometry x="8360" y="430" width="1180" height="250" as="geometry"/>
-                </mxCell>
-                <mxCell id="dec_econ" value="DecideEconomyCmd（经济指令：买弹/回血）&#xa;trigger_remote_hp = 1 条件：can_remote_heal &amp;&amp; hp_cur &lt; hp_max/2&#xa;trigger_remote_ammo = 1 条件：can_remote_ammo &amp;&amp; ammo_allow &lt; ammo_low&#xa;allow_ammo_target 递增条件：&#xa;ammo_allow &lt; ammo_target &amp;&amp; team_coins &gt;= 100 &amp;&amp; allow_ammo_target_in &lt; allow_ammo_max&#xa;满足时 allow_ammo_target_out += 50，且不超过 allow_ammo_max" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
-                    <mxGeometry x="9580" y="430" width="1220" height="250" as="geometry"/>
-                </mxCell>
-                <mxCell id="dec_respawn" value="DecideRespawnCmd（复活/买活）&#xa;若 is_dead == true：&#xa;confirm_respawn = 1（始终确认普通复活）&#xa;confirm_instant_respawn = 1 条件：&#xa;A) base_hp_cur &lt; base_hp_max/2 且 team_coins &gt;= 1.7 * instant_respawn_cost 且 instant_respawn_cost &gt; 0&#xa;或 B) stage_remain_time &lt; 60 秒" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
-                    <mxGeometry x="8360" y="730" width="1180" height="220" as="geometry"/>
-                </mxCell>
-                <mxCell id="dec_lowhp" value="LowHPRetreat（低血撤退）&#xa;入口条件：RmucIsHPBelow = (current_hp &lt; hp_low)&#xa;补给区恢复结束条件：HoldAndHeal SUCCESS 当 hp_cur &gt;= hp_safe" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
-                    <mxGeometry x="8360" y="990" width="760" height="140" as="geometry"/>
-                </mxCell>
-                <mxCell id="dec_base" value="BaseDefense（基地受威胁）&#xa;IsBaseThreatened SUCCESS 条件：&#xa;base_threat == true&#xa;或 base_hp_cur &lt; base_hp_max/2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
-                    <mxGeometry x="9160" y="990" width="640" height="140" as="geometry"/>
-                </mxCell>
-                <mxCell id="dec_ammo" value="AmmoPlan（补弹决策）&#xa;入口条件：IsAmmoBelow = (ammo_allow &lt; ammo_low)&#xa;在补给区停留结束：HoldForSupplyAmmoTick SUCCESS 当 ammo_allow &gt;= ammo_target" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
-                    <mxGeometry x="9840" y="990" width="960" height="140" as="geometry"/>
-                </mxCell>
-                <mxCell id="dec_obj" value="ObjectivePlanner（战略点选择）&#xa;SelectObjective：&#xa;outpost_alive == true  -&gt; CENTRAL_HIGHLAND&#xa;outpost_alive == false -&gt; TRAPEZOIDAL_HIGHLAND" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
-                    <mxGeometry x="8360" y="1180" width="1180" height="140" as="geometry"/>
-                </mxCell>
-                <mxCell id="dec_patrol" value="ObjectivePatrol（巡逻激活条件）&#xa;patrol_enable == true&#xa;&amp;&amp; objective_name == TRAPEZOIDAL_HIGHLAND&#xa;&amp;&amp; patrol_waypoints 非空&#xa;否则直接回战略目标点" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
-                    <mxGeometry x="9580" y="1180" width="1220" height="140" as="geometry"/>
-                </mxCell>
-                <mxCell id="dec_note" value="说明：以上条件来自当前源码文件&lt;br&gt;decide_posture.cpp / decide_economy_cmd.cpp / decide_respawn_cmd.cpp 等。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;align=left;verticalAlign=middle;spacingLeft=10;" parent="1" vertex="1">
-                    <mxGeometry x="8360" y="1360" width="2440" height="90" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_dec_stage" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;strokeColor=#d6b656;" parent="1" source="wde" target="dec_stage" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_dec_posture" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;strokeColor=#9673a6;" parent="1" source="cmd_1" target="dec_posture" edge="1">
-                    <mxGeometry relative="1" as="geometry">
-                        <Array as="points">
-                            <mxPoint x="2745" y="2120"/>
-                            <mxPoint x="8950" y="2120"/>
-                        </Array>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="e_dec_econ" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;strokeColor=#d79b00;" parent="1" edge="1">
-                    <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="3070" y="1960" as="sourcePoint"/>
-                        <mxPoint x="10180" y="610" as="targetPoint"/>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="e_dec_respawn" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;strokeColor=#b85450;" parent="1" edge="1">
-                    <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="3440" y="2030" as="sourcePoint"/>
-                        <mxPoint x="8950.058823529413" y="930" as="targetPoint"/>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="e_dec_lowhp" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;strokeColor=#b85450;" parent="1" source="p0_b" target="dec_lowhp" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_dec_base" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;strokeColor=#d6b656;" parent="1" source="p1_1" target="dec_base" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_dec_ammo" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;strokeColor=#d79b00;" parent="1" source="p3_2" target="dec_ammo" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_dec_obj" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;strokeColor=#82b366;" parent="1" source="p4_1" target="dec_obj" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="e_dec_patrol" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;strokeColor=#82b366;" parent="1" source="p4_2" target="dec_patrol" edge="1">
-                    <mxGeometry relative="1" as="geometry"/>
-                </mxCell>
-                <mxCell id="2" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 3;strokeWidth=2;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" target="cmd_2">
-                    <mxGeometry width="50" height="50" relative="1" as="geometry">
-                        <mxPoint x="3070" y="1960" as="sourcePoint"/>
-                        <mxPoint x="3220" y="1960" as="targetPoint"/>
-                    </mxGeometry>
+                <mxCell id="legend3" value="关键阈值总表&lt;br&gt;低血线180&lt;br&gt;安全血线280&lt;br&gt;低弹线80&lt;br&gt;到达半径0.8米&lt;br&gt;基地危险触发敌人进5米且基地掉血&lt;br&gt;基地危险解除连续30秒平静&lt;br&gt;补弹等待超时30秒&lt;br&gt;主指令频率5赫兹&lt;br&gt;非比赛待机频率2赫兹&lt;br&gt;导航目标下发1赫兹&lt;br&gt;姿态降级阈值180秒；强制维持5秒" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#333333;fontSize=14;align=left;verticalAlign=middle;spacingLeft=10;" vertex="1" parent="1">
+                    <mxGeometry x="4830" y="130" width="1170" height="290" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>
