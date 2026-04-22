@@ -42,7 +42,8 @@ public:
       BT::InputPort<double>("goal_y", 0.0, "goal y coordinate"),
       BT::InputPort<std::string>("frame_id", "map", "frame_id for the goal (e.g. map/odom/chassis)"),
       BT::InputPort<std::string>("action_name", "navigate_to_pose"),
-      BT::InputPort<int>("min_interval_ms", 0, "minimum publish interval in ms")
+      BT::InputPort<int>("min_interval_ms", 0, "minimum publish interval in ms"),
+      BT::InputPort<int>("max_dedup_ms", 0, "max dedup window in ms; 0 keeps permanent dedup")
     };
   }
   

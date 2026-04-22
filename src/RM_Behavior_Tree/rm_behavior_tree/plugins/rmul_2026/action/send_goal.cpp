@@ -101,6 +101,15 @@ BT::NodeStatus SendGoalAction::tick()
     }
   }
 
+  int max_dedup_ms = 0;
+  auto r_max_dedup = getInput<int>("max_dedup_ms");
+  if (r_max_dedup) {
+    max_dedup_ms = r_max_dedup.value();
+    if (max_dedup_ms < 0) {
+      max_dedup_ms = 0;
+    }
+  }
+
   auto now = node_->get_clock()->now();
 
   // ── 全局去重：只要和全局最后一次发布的目标相同就跳过 ──
@@ -112,8 +121,18 @@ BT::NodeStatus SendGoalAction::tick()
   // 避免已到达目标的无意义重复发送。目标变更或 CancelNavGoal 自动重置缓存。
 
   const bool is_same_goal = s_has_global_ && isSameGoal_(goal, s_last_global_goal_);
+  bool dedup_expired = false;
   if (is_same_goal && s_subs_confirmed_) {
-    return BT::NodeStatus::SUCCESS;
+    if (max_dedup_ms <= 0 || !has_last_) {
+      return BT::NodeStatus::SUCCESS;
+    }
+
+    const int64_t dt_ms = (now - last_pub_time_).nanoseconds() / 1000000LL;
+    if (dt_ms < max_dedup_ms) {
+      return BT::NodeStatus::SUCCESS;
+    }
+
+    dedup_expired = true;
   }
 
   geometry_msgs::msg::PoseStamped msg;
@@ -135,6 +154,12 @@ BT::NodeStatus SendGoalAction::tick()
     RCLCPP_INFO(
       node_->get_logger(),
       "[%s] New goal: [ %.3f, %.3f ]",
+      name().c_str(),
+      goal.pose.position.x, goal.pose.position.y);
+  } else if (dedup_expired) {
+    RCLCPP_INFO(
+      node_->get_logger(),
+      "[%s] Re-publishing deduped goal after timeout: [ %.3f, %.3f ]",
       name().c_str(),
       goal.pose.position.x, goal.pose.position.y);
   } else {

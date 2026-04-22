@@ -68,7 +68,8 @@ import time
 
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Header
+from rclpy.qos import QoSProfile, DurabilityPolicy
+from std_msgs.msg import Bool, Header
 
 from sp_msgs.msg import (
     RMUCGameStatus,
@@ -92,6 +93,18 @@ class RmucTestPublisher(Node):
         # robot_position 由 robot_position_bridge.py 发布（从 TF + Nav2 状态获取），此处不再重复发布
         self.pub_team_hp = self.create_publisher(RMUCTeamHP, "team_hp", 10)
         self.pub_team_hp = self.create_publisher(RMUCTeamHP, "team_hp", 10)
+
+        # ── enable_power: rmua19_robot_base 必须收到此信号才会响应 cmd_vel ──
+        # 路径镜像 Gazebo 裁判插件: /referee_system/{ns}/enable_power
+        # 空 ns 时退化为 /referee_system/enable_power
+        _ns = args.ns.strip('/')
+        _ep_topic = f"/referee_system/{_ns}/enable_power" if _ns else "/referee_system/enable_power"
+        _latch_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self.pub_enable_power = self.create_publisher(Bool, _ep_topic, _latch_qos)
+        # 立即发布一次，避免 robot_base 启动后等待第一次 timer
+        _ep = Bool()
+        _ep.data = True
+        self.pub_enable_power.publish(_ep)
 
         # ── 雷达敌方跟踪 (用于模拟基地威胁进入条件) ──
         self.pub_radar_tracks = self.create_publisher(RMUCEnemyTracks, "radar/enemy_tracks", 10)
@@ -182,6 +195,10 @@ class RmucTestPublisher(Node):
     def tick_1hz(self):
         self._pub_game_status()
         self._pub_team_hp()
+        # 持续发布 enable_power=True，确保 rmua19_robot_base 持续响应 cmd_vel
+        _ep = Bool()
+        _ep.data = True
+        self.pub_enable_power.publish(_ep)
 
         # 弹药补给模拟
         if self.args.supply_delay > 0:

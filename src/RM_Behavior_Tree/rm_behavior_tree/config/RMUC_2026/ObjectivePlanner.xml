@@ -32,12 +32,14 @@
 
             <!-- 发送导航目标给 Nav2（RateController 限制重发频率） -->
             <!-- ForceSuccess: 即使 Nav2 导航失败/中止，ObjectivePlanner 也保持活跃 -->
+            <!-- max_dedup_ms=20000: 同一目标 20s 后允许重发，避免首次失败后永久卡死 -->
             <!-- 底盘旋转由全局 GlobalRobotControl 根据 is_at_nav_goal 控制 -->
             <ForceSuccess>
                 <RateController hz="1">
                     <SendGoal name="{nav.objective}"
                               goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
-                              frame_id="map" action_name="navigate_to_pose"/>
+                              frame_id="map" action_name="navigate_to_pose"
+                              max_dedup_ms="20000"/>
                 </RateController>
             </ForceSuccess>
             <KeepRunning/>
