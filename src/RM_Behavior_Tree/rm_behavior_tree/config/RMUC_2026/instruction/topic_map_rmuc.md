@@ -95,6 +95,8 @@
 | `game_status` | SUB | RmucSubGameStatus |
 | `robot_status` | SUB | RmucSubRobotStatus |
 | `rfid_status` | ❌已禁用 | RmucSubRFIDStatus (RFID字段全移除) |
+| `team_positions` | ❌已禁用 | RmucSubTeamPositions (队伍位置未被消费) |
+| `robot_buff` | ❌已禁用 | RmucSubRobotBuff (增益字段已删除) |
 | `robot_position` | SUB | RmucSubRobotPosition |
 | `radar/enemy_tracks` | SUB | SubRadarTracks |
 | `sentry_decision_status` | ❌已禁用 | RmucSubSentryDecisionStatus (裁判反馈未被消费) |
@@ -148,7 +150,6 @@ rmuc_2026 (ReactiveSequence — 所有子节点每 tick 重新求值)
 ├─ PerceptionAndBlackboard (SubTree, 持续订阅 + 解析)
 │  ├─ RmucSubGameStatus       → {game_status}, {time.now_ms}
 │  ├─ RmucSubRobotStatus      → {robot_status}
-│  ├─ RmucSubRFIDStatus       → {rfid.status}
 │  ├─ RmucSubRobotPosition    → {pose.x/y/yaw}, {is_at_nav_goal}
 │  ├─ SubRadarTracks           → {radar_tracks}
 │  ├─ RmucSubTeamHP           → {team_hp}
@@ -218,7 +219,7 @@ rmuc_2026 (ReactiveSequence — 所有子节点每 tick 重新求值)
 | 组件 | 类型 | 发布话题 | 说明 |
 |---|---|---|---|
 | **robot_position_bridge.py** | ROS2 节点 (Python) | `robot_position` | 仿真专用：从 TF (map→base_footprint) + Nav2 action status 合成 RMUCRobotPosition 消息，50Hz |
-| **rmuc_test_publisher.py** | 模拟器脚本 | `game_status`, `robot_status`, `team_hp` | 俿真裁判系统模拟器 |
+| **rmuc_test_publisher.py** | 模拟器脚本 | `game_status`, `robot_status`, `team_hp` | 仿真裁判系统模拟器 |
 
 ---
 
