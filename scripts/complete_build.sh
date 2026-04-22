@@ -88,6 +88,21 @@ set +u
 source "/opt/ros/${ROS_DISTRO}/setup.bash"
 set -u
 
+# ccache 加速：仅在系统安装了 ccache 时启用，不改变原有构建流程。
+CMAKE_ARGS=(-DCMAKE_BUILD_TYPE=Release)
+if command -v ccache >/dev/null 2>&1; then
+  export CCACHE_DIR="${CCACHE_DIR:-$CACHE_ROOT/$BRANCH_SAFE/ccache}"
+  mkdir -p "$CCACHE_DIR"
+  ccache --max-size "${CCACHE_MAXSIZE:-20G}" >/dev/null 2>&1 || true
+  CMAKE_ARGS+=(
+    -DCMAKE_C_COMPILER_LAUNCHER=ccache
+    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+  )
+  echo "[ccache] enabled, dir=$CCACHE_DIR"
+else
+  echo "[ccache] not found, build without compiler cache"
+fi
+
 # Build the ROS workspace skipping NeuPAN and neupan_nav2_controller
 colcon --log-base "$LOG_BASE" build \
   --build-base "$BUILD_BASE" \
@@ -95,7 +110,7 @@ colcon --log-base "$LOG_BASE" build \
   --executor sequential \
   --packages-skip neupan_nav2_controller \
   --symlink-install \
-  --cmake-args -DCMAKE_BUILD_TYPE=Release
+  --cmake-args "${CMAKE_ARGS[@]}"
 
 # Activate NeuPAN virtual environment and set PYTHONPATH
 source neupan_env/bin/activate
@@ -113,7 +128,7 @@ colcon --log-base "$LOG_BASE" build \
   --install-base "$INSTALL_BASE" \
   --packages-select neupan_nav2_controller \
   --symlink-install \
-  --cmake-args -DCMAKE_BUILD_TYPE=Release
+  --cmake-args "${CMAKE_ARGS[@]}"
 
 # Deactivate the environment
 deactivate 2>/dev/null || true
