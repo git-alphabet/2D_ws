@@ -484,6 +484,18 @@ Visualization Manager:
       Value: true
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
+      Name: Speed Bump Zone
+      Namespaces:
+        {}
+      Topic:
+        Depth: 1
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: speed_bump_zone_markers
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
       Name: Calibrated Points
       Namespaces:
         {}

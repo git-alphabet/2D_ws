@@ -30,6 +30,8 @@
 #include "sp_msgs/msg/rmuc_robot_control.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "tf2_ros/transform_broadcaster.h"
+#include "tf2_ros/transform_listener.h"
+#include "visualization_msgs/msg/marker_array.hpp"
 
 namespace fake_vel_transform
 {
@@ -50,6 +52,12 @@ private:
   void manualSpinOverrideCallback(const std_msgs::msg::Bool::SharedPtr msg);
   void publishTransform();
   void publishHoldCmdVelIfNeeded(const rclcpp::Time & now);
+  void updateRobotPositionInMapFrame(const nav_msgs::msg::Odometry::ConstSharedPtr & msg);
+  void loadSpeedBumpZoneFromYaml();
+  void publishSpeedBumpMarkers();
+  bool pointInPolygon(
+    double x, double y,
+    const std::vector<std::pair<double, double>> & poly) const;
   geometry_msgs::msg::Twist transformVelocity(
     const geometry_msgs::msg::Twist::SharedPtr & twist, float yaw_diff);
 
@@ -65,6 +73,7 @@ private:
   std::unique_ptr<message_filters::Synchronizer<SyncPolicy>> sync_;
 
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_chassis_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr speed_bump_marker_pub_;
 
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
@@ -89,6 +98,18 @@ private:
   bool disable_spin_while_moving_{true};
   bool cmd_spin_override_logged_{false};
 
+  bool enable_speed_bump_min_speed_{true};
+  double speed_bump_min_linear_speed_{1.5};
+  std::string speed_bump_map_frame_{"map"};
+  bool publish_speed_bump_marker_{true};
+  std::string speed_bump_marker_topic_{"speed_bump_zone_markers"};
+  std::string speed_bump_zone_name_;
+  std::string speed_bump_zones_file_;
+  std::vector<std::pair<double, double>> speed_bump_zone_vertices_;
+  bool speed_bump_zone_loaded_{false};
+  bool robot_pose_in_map_ready_{false};
+  bool was_in_speed_bump_zone_{false};
+
   std::mutex cmd_vel_mutex_;
   geometry_msgs::msg::Twist::SharedPtr latest_cmd_vel_;
   double current_robot_base_angle_;
@@ -96,6 +117,7 @@ private:
 
   rclcpp::Time last_cmd_vel_rx_time_;
   rclcpp::Time last_cmd_vel_pub_time_;
+  rclcpp::Time last_marker_pub_time_;
 };
 
 }  // namespace fake_vel_transform
