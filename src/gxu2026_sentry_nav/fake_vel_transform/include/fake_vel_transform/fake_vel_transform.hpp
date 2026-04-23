@@ -18,6 +18,8 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "example_interfaces/msg/float32.hpp"
 #include "geometry_msgs/msg/twist.hpp"
@@ -50,6 +52,10 @@ private:
   void manualSpinOverrideCallback(const std_msgs::msg::Bool::SharedPtr msg);
   void publishTransform();
   void publishHoldCmdVelIfNeeded(const rclcpp::Time & now);
+  void loadSpeedBumpZoneFromYaml();
+  bool pointInPolygon(
+    double x, double y,
+    const std::vector<std::pair<double, double>> & poly) const;
   geometry_msgs::msg::Twist transformVelocity(
     const geometry_msgs::msg::Twist::SharedPtr & twist, float yaw_diff);
 
@@ -89,9 +95,20 @@ private:
   bool disable_spin_while_moving_{true};
   bool cmd_spin_override_logged_{false};
 
+  bool enable_speed_bump_min_speed_{true};
+  double speed_bump_min_linear_speed_{1.5};
+  std::string speed_bump_zone_name_;
+  std::string speed_bump_zones_file_;
+  std::vector<std::pair<double, double>> speed_bump_zone_vertices_;
+  bool speed_bump_zone_loaded_{false};
+  bool was_in_speed_bump_zone_{false};
+
   std::mutex cmd_vel_mutex_;
+  std::mutex pose_mutex_;
   geometry_msgs::msg::Twist::SharedPtr latest_cmd_vel_;
   double current_robot_base_angle_;
+  double current_robot_x_{0.0};
+  double current_robot_y_{0.0};
   rclcpp::Time last_controller_activate_time_;
 
   rclcpp::Time last_cmd_vel_rx_time_;
