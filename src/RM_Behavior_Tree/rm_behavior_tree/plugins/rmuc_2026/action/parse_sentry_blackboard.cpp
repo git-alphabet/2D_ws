@@ -6,8 +6,10 @@ namespace rm_behavior_tree
 
 namespace
 {
-constexpr double kBaseThreatEnterDistance = 5.0;
-constexpr int64_t kBaseThreatCalmTimeoutMs = 30000;  // 30秒无威胁自动解除
+constexpr double kDefaultBaseX = -2.3532;
+constexpr double kDefaultBaseY = -2.0007;
+constexpr double kDefaultBaseThreatEnterDistance = 5.0;
+constexpr int kDefaultBaseThreatCalmTimeoutMs = 30000;
 }
 
 ParseSentryBlackboardAction::ParseSentryBlackboardAction(
@@ -50,13 +52,59 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
   }
 
   // 基地危机锁存：
-  // 进入条件：雷达扫描到敌人在 defend_anchor 5m 内 + 基地 HP 下降
-  // 退出条件：云台没有扫描到敌人 + 基地不掉血，持续 30 秒自动解除
+  // 进入条件：雷达扫描到敌人在基地坐标附近 enemy_near_base_radius 内 + 基地 HP 下降
+  // 退出条件：云台没有扫描到敌人 + 基地不掉血，持续 base_threat_calm_timeout_ms 自动解除
   bool base_threat = base_threat_latched_;
-  double defend_anchor_x = 0.0;
-  double defend_anchor_y = 0.0;
-  getInput("defend_anchor_x", defend_anchor_x);
-  getInput("defend_anchor_y", defend_anchor_y);
+  double base_x = kDefaultBaseX;
+  double base_y = kDefaultBaseY;
+  double base_threat_enter_distance = kDefaultBaseThreatEnterDistance;
+  int base_threat_calm_timeout_ms = kDefaultBaseThreatCalmTimeoutMs;
+  const auto base_x_result = getInput("base_x", base_x);
+  const auto base_y_result = getInput("base_y", base_y);
+  const auto base_radius_result = getInput("enemy_near_base_radius", base_threat_enter_distance);
+  const auto base_calm_timeout_result = getInput(
+    "base_threat_calm_timeout_ms", base_threat_calm_timeout_ms);
+  const bool has_base_x = base_x_result.has_value();
+  const bool has_base_y = base_y_result.has_value();
+  const bool has_base_radius = base_radius_result.has_value();
+  const bool has_base_calm_timeout = base_calm_timeout_result.has_value();
+
+  if ((!has_base_x || !has_base_y) && !logged_missing_base_config_) {
+    std::cerr << "[ParseSentryBlackboard] 因为 cfg.base_x/base_y 读取失败"
+              << " (base_x=" << (has_base_x ? "ok" : base_x_result.error())
+              << ", base_y=" << (has_base_y ? "ok" : base_y_result.error())
+              << ")，导致无法从配置链获取基地坐标，现采用默认值 base=("
+              << kDefaultBaseX << ", " << kDefaultBaseY << ")"
+              << std::endl;
+    logged_missing_base_config_ = true;
+  }
+  if (has_base_x && has_base_y) {
+    logged_missing_base_config_ = false;
+  }
+
+  if (!has_base_radius && !logged_missing_base_radius_) {
+    std::cerr << "[ParseSentryBlackboard] 因为 cfg.enemy_near_base_radius 读取失败 ("
+              << base_radius_result.error()
+              << ")，导致无法从配置链获取基地威胁进入半径，现采用默认值 "
+              << kDefaultBaseThreatEnterDistance << "m"
+              << std::endl;
+    logged_missing_base_radius_ = true;
+  }
+  if (has_base_radius) {
+    logged_missing_base_radius_ = false;
+  }
+
+  if (!has_base_calm_timeout && !logged_missing_base_calm_timeout_) {
+    std::cerr << "[ParseSentryBlackboard] 因为 cfg.base_threat_calm_timeout_ms 读取失败 ("
+              << base_calm_timeout_result.error()
+              << ")，导致无法从配置链获取基地威胁解除平静时间，现采用默认值 "
+              << kDefaultBaseThreatCalmTimeoutMs << "ms"
+              << std::endl;
+    logged_missing_base_calm_timeout_ = true;
+  }
+  if (has_base_calm_timeout) {
+    logged_missing_base_calm_timeout_ = false;
+  }
 
   // 雷达距离计算（用于进入条件）
   bool any_enemy_near = false;
@@ -65,10 +113,10 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
     !radar_tracks->enemy_x.empty())
   {
     for (size_t index = 0; index < radar_tracks->enemy_x.size(); ++index) {
-      const double dx = static_cast<double>(radar_tracks->enemy_x[index]) - defend_anchor_x;
-      const double dy = static_cast<double>(radar_tracks->enemy_y[index]) - defend_anchor_y;
+      const double dx = static_cast<double>(radar_tracks->enemy_x[index]) - base_x;
+      const double dy = static_cast<double>(radar_tracks->enemy_y[index]) - base_y;
       const double distance = std::hypot(dx, dy);
-      if (distance < kBaseThreatEnterDistance) {
+      if (distance < base_threat_enter_distance) {
         any_enemy_near = true;
         break;
       }
@@ -81,13 +129,14 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
     base_hp_is_dropping = (last_base_hp_ >= 0 && th->base_hp < static_cast<uint16_t>(last_base_hp_));
     if (base_hp_is_dropping && any_enemy_near) {
       base_threat = true;
-      std::cout << "[ParseSentryBlackboard] 基地威胁触发：雷达扫到敌人在基地 5m 内且基地掉血"
+      std::cout << "[ParseSentryBlackboard] 基地威胁触发：雷达扫到敌人在基地 "
+                << base_threat_enter_distance << "m 内且基地掉血"
                 << std::endl;
     }
     last_base_hp_ = static_cast<int>(th->base_hp);
   }
 
-  // 退出条件：云台没扫到敌人 + 基地不掉血，持续 30 秒自动解除
+  // 退出条件：云台没扫到敌人 + 基地不掉血，持续 base_threat_calm_timeout_ms 自动解除
   bool gimbal_detects_enemy = false;
   if (robot_ptr) {
     gimbal_detects_enemy = (**robot_ptr).is_detect_enemy;
@@ -103,10 +152,14 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
       } else {
         auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
           now - base_threat_calm_start_).count();
-        if (elapsed_ms >= kBaseThreatCalmTimeoutMs) {
+        if (has_base_calm_timeout && base_threat_calm_timeout_ms > 0 &&
+          elapsed_ms >= base_threat_calm_timeout_ms)
+        {
           base_threat = false;
           base_threat_calm_tracking_ = false;
-          std::cout << "[ParseSentryBlackboard] 基地威胁解除：连续 30s 云台未检测到敌人且基地不掉血"
+          std::cout << "[ParseSentryBlackboard] 基地威胁解除：连续 "
+                    << base_threat_calm_timeout_ms
+                    << "ms 云台未检测到敌人且基地不掉血"
                     << std::endl;
         }
       }

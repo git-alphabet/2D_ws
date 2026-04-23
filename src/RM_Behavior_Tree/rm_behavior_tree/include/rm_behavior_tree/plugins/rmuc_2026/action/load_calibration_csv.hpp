@@ -24,6 +24,7 @@ public:
       // 坐标输出端口 (与 InitSentryConfig 对齐)
       BT::OutputPort<double>("home_x"), BT::OutputPort<double>("home_y"),
       BT::OutputPort<double>("supply_zone_x"), BT::OutputPort<double>("supply_zone_y"),
+      BT::OutputPort<double>("base_x"), BT::OutputPort<double>("base_y"),
       BT::OutputPort<double>("base_buff_x"), BT::OutputPort<double>("base_buff_y"),
       BT::OutputPort<double>("outpost_buff_x"), BT::OutputPort<double>("outpost_buff_y"),
       BT::OutputPort<double>("fortress_ally_x"), BT::OutputPort<double>("fortress_ally_y"),

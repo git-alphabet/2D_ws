@@ -52,7 +52,7 @@ BT::NodeStatus LoadCalibrationCSVAction::tick()
 
   // 已知坐标点名称 (不含 _x/_y 后缀)
   static const std::vector<std::string> known_points = {
-    "home", "supply_zone", "base_buff", "outpost_buff",
+    "home", "supply_zone", "base", "base_buff", "outpost_buff",
     "fortress_ally", "central_highland",
     "ladder_highland", "defend_anchor",
     "central_highland_left", "ramp_jump"

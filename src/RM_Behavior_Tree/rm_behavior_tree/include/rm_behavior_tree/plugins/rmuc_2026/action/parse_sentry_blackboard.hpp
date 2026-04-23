@@ -27,8 +27,12 @@ public:
       BT::InputPort<std::shared_ptr<sp_msgs::msg::RMUCRobotStatus>>("robot_status"),
       BT::InputPort<sp_msgs::msg::RMUCEnemyTracks>("radar_tracks"),
       BT::InputPort<sp_msgs::msg::RMUCTeamHP>("team_hp"),
+      BT::InputPort<double>("base_x"),
+      BT::InputPort<double>("base_y"),
       BT::InputPort<double>("defend_anchor_x"),
       BT::InputPort<double>("defend_anchor_y"),
+      BT::InputPort<double>("enemy_near_base_radius"),
+      BT::InputPort<int>("base_threat_calm_timeout_ms"),
       BT::InputPort<double>("pose_x"),
       BT::InputPort<double>("pose_y"),
       BT::InputPort<std::uint64_t>("now_ms"),
@@ -57,6 +61,9 @@ public:
 private:
   bool base_threat_latched_{false};
   int last_base_hp_{-1};
+  bool logged_missing_base_config_{false};
+  bool logged_missing_base_radius_{false};
+  bool logged_missing_base_calm_timeout_{false};
 
   // 基地威胁自动解除：危机模式下连续无敌人+基地不掉血超过30s→自动解除
   std::chrono::steady_clock::time_point base_threat_calm_start_{};

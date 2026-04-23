@@ -10,6 +10,7 @@
 
                 home_x="{cfg.home_x}" home_y="{cfg.home_y}"
                 supply_zone_x="{cfg.supply_zone_x}" supply_zone_y="{cfg.supply_zone_y}"
+                base_x="{cfg.base_x}" base_y="{cfg.base_y}"
                 base_buff_x="{cfg.base_buff_x}" base_buff_y="{cfg.base_buff_y}"
                 outpost_buff_x="{cfg.outpost_buff_x}" outpost_buff_y="{cfg.outpost_buff_y}"
                 fortress_ally_x="{cfg.fortress_ally_x}" fortress_ally_y="{cfg.fortress_ally_y}"
@@ -24,6 +25,7 @@
                 hp_safe="{cfg.hp_safe}"
                 ammo_low="{cfg.ammo_low}"
                 enemy_near_base_radius="{cfg.enemy_near_base_radius}"
+                base_threat_calm_timeout_ms="{cfg.base_threat_calm_timeout_ms}"
                 patrol_hold_ms="{cfg.patrol_hold_ms}"
                 patrol_enable="{cfg.patrol_enable}"
                 patrol_waypoints="{cfg.patrol_waypoints}"
@@ -33,6 +35,7 @@
                 csv_path="{cfg.calibration_csv_path}"
                 home_x="{cfg.home_x}" home_y="{cfg.home_y}"
                 supply_zone_x="{cfg.supply_zone_x}" supply_zone_y="{cfg.supply_zone_y}"
+                base_x="{cfg.base_x}" base_y="{cfg.base_y}"
                 base_buff_x="{cfg.base_buff_x}" base_buff_y="{cfg.base_buff_y}"
                 outpost_buff_x="{cfg.outpost_buff_x}" outpost_buff_y="{cfg.outpost_buff_y}"
                 fortress_ally_x="{cfg.fortress_ally_x}" fortress_ally_y="{cfg.fortress_ally_y}"

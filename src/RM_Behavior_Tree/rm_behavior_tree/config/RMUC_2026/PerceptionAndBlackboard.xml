@@ -21,8 +21,12 @@
             <!-- Parse/derive common fields used by tactics -->
             <ParseSentryBlackboard game_status="{game_status}"
                                    robot_status="{robot_status}"
+                                   base_x="{cfg.base_x}"
+                                   base_y="{cfg.base_y}"
                                    defend_anchor_x="{cfg.defend_anchor_x}"
                                    defend_anchor_y="{cfg.defend_anchor_y}"
+                                   enemy_near_base_radius="{cfg.enemy_near_base_radius}"
+                                   base_threat_calm_timeout_ms="{cfg.base_threat_calm_timeout_ms}"
                                    pose_x="{pose.x}"
                                    pose_y="{pose.y}"
                                    now_ms="{time.now_ms}"

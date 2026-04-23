@@ -20,6 +20,7 @@ public:
       BT::OutputPort<std::string>("topic_robot_pose", "robot pose topic"),
       BT::BidirectionalPort<double>("home_x"), BT::BidirectionalPort<double>("home_y"),
       BT::BidirectionalPort<double>("supply_zone_x"), BT::BidirectionalPort<double>("supply_zone_y"),
+      BT::BidirectionalPort<double>("base_x"), BT::BidirectionalPort<double>("base_y"),
       BT::BidirectionalPort<double>("base_buff_x"), BT::BidirectionalPort<double>("base_buff_y"),
       BT::BidirectionalPort<double>("outpost_buff_x"), BT::BidirectionalPort<double>("outpost_buff_y"),
       BT::BidirectionalPort<double>("fortress_ally_x"), BT::BidirectionalPort<double>("fortress_ally_y"),
@@ -33,6 +34,7 @@ public:
       BT::BidirectionalPort<int>("hp_safe"),
       BT::BidirectionalPort<int>("ammo_low"),
       BT::BidirectionalPort<double>("enemy_near_base_radius"),
+      BT::BidirectionalPort<int>("base_threat_calm_timeout_ms"),
       BT::BidirectionalPort<int>("patrol_hold_ms"),
       BT::BidirectionalPort<bool>("patrol_enable"),
       BT::BidirectionalPort<std::string>("patrol_waypoints")};

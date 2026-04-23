@@ -3,7 +3,7 @@
 
     <BehaviorTree ID="BaseDefense">
         <ReactiveSequence>
-            <!-- 基地威胁锁存判定：基地掉血+敌人进入5m→触发，所有敌人撤出12m→解除 -->
+            <!-- 基地威胁锁存判定：基地掉血+敌人进入 enemy_near_base_radius → 触发；云台未检测敌人且基地不掉血持续 base_threat_calm_timeout_ms → 解除 -->
             <IsBaseThreatened base_threat="{threat.base}"/>
 
             <!-- 基地防御 → 攻击姿态(1)，3倍伤害保护基地 -->

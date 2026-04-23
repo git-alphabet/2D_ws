@@ -11,11 +11,11 @@
 
     <BehaviorTree ID="rmuc_2026">
         <ReactiveSequence>
+            <!-- 初始化配置 + 标定覆盖先执行，确保同一 tick 内感知派生使用最新 cfg.* -->
+            <SubTree ID="InitOnce" _autoremap="true"/>
+
             <!-- 感知 -> 黑板（应持续 tick；节点预期为非阻塞） -->
             <SubTree ID="PerceptionAndBlackboard" _autoremap="true"/>
-
-            <!-- 初始化配置 + 内部命令状态（幂等；可安全重复 tick） -->
-            <SubTree ID="InitOnce" _autoremap="true"/>
 
             <!-- 比赛阶段循环（7 分钟 = 420 秒） -->
             <WhileDoElse>
@@ -33,80 +33,8 @@
                     <!-- 构建并按控制速率发送哨兵自主决策指令 (0x0120) -->
                     <SubTree ID="CommandHub" _autoremap="true"/>
 
-                    <!-- 全局底盘/云台控制：基于条件，与子树无关 -->
-                    <ReactiveFallback name="GlobalRobotControl">
-                        <!-- 死亡 → 停云台，不旋转 -->
-                        <Sequence>
-                            <RmucIsDead message="{robot_status}"/>
-                            <RmucRobotControl stop_gimbal_scan="True"
-                                              chassis_spin="False"/>
-                        </Sequence>
-                        <!-- 在补给区 → 不旋转（安全区域，回血/补弹中） -->
-                        <Sequence>
-                            <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
-                                      goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
-                                      arrive_radius="{cfg.arrive_radius}"/>
-                            <RmucRobotControl stop_gimbal_scan="False"
-                                              chassis_spin="False"/>
-                        </Sequence>
-                        <!-- 到达当前导航目标 → 旋转 -->
-                        <Sequence>
-                            <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
-                                      goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
-                                      arrive_radius="{cfg.arrive_radius}"/>
-                            <RmucRobotControl stop_gimbal_scan="False"
-                                              chassis_spin="True"/>
-                        </Sequence>
-                        <!-- 默认（导航中等） → 不旋转 -->
-                        <RmucRobotControl stop_gimbal_scan="False"
-                                          chassis_spin="False"/>
-                    </ReactiveFallback>
-
-                    <!-- ═══ 生存优先：死亡/低血量回补给区（不受敌人检测阻塞） ═══
-                         LowHPRetreat 返回 RUNNING 时阻塞后续所有节点（敌人检测 + 战术）
-                         LowHPRetreat 返回 FAILURE 时（HP 正常）放行 -->
-                    <ReactiveFallback name="SurvivalGuard">
-                        <!-- HP 正常且未死亡 → SUCCESS，放行 -->
-                        <Sequence>
-                            <Inverter>
-                                <RmucIsDead message="{robot_status}"/>
-                            </Inverter>
-                            <Inverter>
-                                <RmucIsHPBelow message="{robot_status}" hp_threshold="{cfg.hp_low}"/>
-                            </Inverter>
-                        </Sequence>
-                        <!-- 死亡或低血量 → LowHPRetreat 接管（返回 RUNNING 阻塞后续） -->
-                        <Sequence>
-                            <SetBlackboard output_key="active_subtree" value="LowHPRetreat"/>
-                            <SubTree ID="LowHPRetreat" _autoremap="true"/>
-                        </Sequence>
-                    </ReactiveFallback>
-
-                    <!-- ═══ 敌人检测阻塞：检测到敌人 → 取消导航、原地停车，阻塞战术子树 ═══
-                         直到 detect_enemy=false 才放行（ReactiveFallback 每 tick 重新求值）
-                         例外：当前导航目标 = 补给区时无视敌人（回家优先）
-                         注：LowHPRetreat 在上方 SurvivalGuard 中，回家不受此阻塞 -->
-                    <ReactiveFallback name="EnemyDetectionGuard">
-                        <!-- 无敌人 → 放行 -->
-                        <Inverter>
-                            <RmucIsDetectEnemy message="{robot_status}"/>
-                        </Inverter>
-                        <!-- 当前 Nav2 目标 = 补给区 → 放行（无视敌人，继续导航回家） -->
-                        <IsNavTargetSupply goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
-                                     arrive_radius="{cfg.arrive_radius}"/>
-                        <!-- 有敌人 + 目标不是补给区 → 切攻击姿态 + 取消导航 + 开启旋转 + 阻塞 -->
-                        <Sequence>
-                            <SetBlackboard output_key="active_subtree" value="EnemyHold"/>
-                            <SelectPosture posture_value="1"
-                                           posture_out="{cmd.posture}"
-                                           is_allow_select_posture="{cmd.allow_posture_send}"/>
-                            <CancelNavGoal action_name="navigate_to_pose"/>
-                            <RmucRobotControl stop_gimbal_scan="False"
-                                              chassis_spin="True"/>
-                            <RmucNavControlCmd cmd_type="3" emergency_stop="False"/>
-                            <KeepRunning/>
-                        </Sequence>
-                    </ReactiveFallback>
+                    <!-- 全局接管控制：持续发布底盘/云台控制，并在低血/敌情下统一做门禁 -->
+                    <SubTree ID="GlobalNavigationAndChassisControl" _autoremap="true"/>
 
                     <!-- ═══ 全局默认姿态：到达当前导航目标→防御(2)，导航中→移动(3) ═══
                          使用 IsAtGoal 几何距离判断，不依赖 Nav2 action 状态
@@ -169,6 +97,7 @@
     <!-- ===================== 子树引用 ===================== -->
     <include path="PerceptionAndBlackboard.xml"/>
     <include path="InitOnce.xml"/>
+    <include path="GlobalNavigationAndChassisControl.xml"/>
     <include path="CommandHub.xml"/>
     <include path="LowHPRetreat.xml"/>
     <include path="BaseDefense.xml"/>

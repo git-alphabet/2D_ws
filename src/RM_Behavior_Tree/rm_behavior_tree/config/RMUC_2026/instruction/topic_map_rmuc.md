@@ -34,7 +34,7 @@
 
 | 插件名 (BT XML ID) | 类型 | 说明 |
 |---|---|---|
-| **ParseSentryBlackboard** | SyncAction | 解析原始裁判系统消息 → 派生 60+ 黑板变量：时间、血量、热量、弹量、基地血量、复活状态、增益值、场地资源、敌方易损标记、队伍血量、**基地威胁判定**（锁存：敌人 <5m + 基地掉血 → 触发，所有敌人 >12m → 解除） |
+| **ParseSentryBlackboard** | SyncAction | 解析原始裁判系统消息 → 派生 60+ 黑板变量：时间、血量、热量、弹量、基地血量、复活状态、增益值、场地资源、敌方易损标记、队伍血量、**基地威胁判定**（锁存：敌人 <`enemy_near_base_radius` + 基地掉血 → 触发；云台未检测敌人且基地不掉血持续 `base_threat_calm_timeout_ms` → 解除） |
 
 ## 初始化节点
 
@@ -78,7 +78,7 @@
 |---|---|---|
 | **IsAmmoBelow** | `{ammo.allow}`, `{cfg.ammo_low}` | `ammo_allow < ammo_low` |
 | **IsAtGoal** | `{pose.x/y}`, `{goal_x/y}`, `arrive_radius` | 欧氏距离 < arrive_radius（统一参数 `{cfg.arrive_radius}`） |
-| **IsBaseThreatened** | `{threat.base}` | 消费 ParseSentryBlackboard 派生的基地威胁标志（锁存机制：敌人 <`enemy_near_base_radius` + 基地掉血 → 触发，所有敌人 >12m → 解除） |
+| **IsBaseThreatened** | `{threat.base}` | 消费 ParseSentryBlackboard 派生的基地威胁标志（锁存机制：敌人 <`enemy_near_base_radius` + 基地掉血 → 触发；云台未检测敌人且基地不掉血持续 `base_threat_calm_timeout_ms` → 解除） |
 | **IsNavTargetSupply** | `{cfg.supply_zone_x/y}`, `arrive_radius=\"{cfg.arrive_radius}\"` + 内部订阅 `goal_pose` | 当前 Nav2 导航目标在补给区范围内 |
 | **RmucIsDead** | `{robot_status}` | `current_hp <= 0` |
 | **RmucIsDetectEnemy** | `{robot_status}` | `is_detect_enemy == true` |

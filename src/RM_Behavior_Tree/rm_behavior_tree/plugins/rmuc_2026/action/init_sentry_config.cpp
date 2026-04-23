@@ -25,6 +25,7 @@ BT::NodeStatus InitSentryConfigAction::tick()
 
   // 坐标参数 (double, 默认 0.0)
   for (auto * k : {"home_x","home_y","supply_zone_x","supply_zone_y",
+                    "base_x","base_y",
                     "base_buff_x","base_buff_y","outpost_buff_x","outpost_buff_y",
                     "fortress_ally_x","fortress_ally_y",
                     "central_highland_x","central_highland_y",
@@ -51,11 +52,12 @@ BT::NodeStatus InitSentryConfigAction::tick()
   };
 
   setDouble("arrive_radius", 1.0);
-  setDouble("enemy_near_base_radius", 2.0);
+  setDouble("enemy_near_base_radius", 0.0);
 
   setInt("hp_low", 180);
   setInt("hp_safe", 280);
   setInt("ammo_low", 80);
+  setInt("base_threat_calm_timeout_ms", 0);
   setInt("patrol_hold_ms", 5000);
 
   // 巡逻参数 (从黑板直接读取，由 rm_behavior_tree.cpp 注入)

@@ -205,20 +205,22 @@ int main(int argc, char ** argv)
     auto bb = tree.rootBlackboard();
     const std::vector<std::string> coord_keys = {
       "home_x","home_y","supply_zone_x","supply_zone_y",
+      "base_x","base_y",
       "base_buff_x","base_buff_y","outpost_buff_x","outpost_buff_y",
       "fortress_ally_x","fortress_ally_y",
-      "central_highland_x","central_highland_y"
+      "central_highland_x","central_highland_y",
       "ladder_highland_x","ladder_highland_y",
       "defend_anchor_x","defend_anchor_y",
       "central_highland_left_x","central_highland_left_y",
       "ramp_jump_x","ramp_jump_y"
     };
     const std::vector<std::pair<std::string, double>> double_keys = {
-      {"arrive_radius", 1.0}, {"enemy_near_base_radius", 2.0}
+      {"arrive_radius", 1.0}, {"enemy_near_base_radius", 0.0}
     };
     const std::vector<std::pair<std::string, int>> int_keys = {
       {"hp_low", 180}, {"hp_safe", 280},
       {"ammo_low", 80},
+      {"base_threat_calm_timeout_ms", 0},
       {"patrol_hold_ms", 5000}
     };
 
