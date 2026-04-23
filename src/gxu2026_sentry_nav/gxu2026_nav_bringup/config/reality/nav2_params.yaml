@@ -407,6 +407,12 @@ fake_vel_transform:
     # 测试开关：true=移动时关闭小陀螺，false=移动时也保留小陀螺
     disable_spin_while_moving: true
     init_spin_speed: 3.0
+    # 减速带速度下限控制：进入 speed_bump 区域后，线速度低于该值会被抬高
+    enable_speed_bump_min_speed: true
+    speed_bump_min_linear_speed: 1.5
+    speed_bump_map_frame: "map"
+    speed_bump_zone_name: "speed_bump"
+    speed_bump_zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
 
 # 非线性小陀螺（实车）：同仿真，发布 cmd_spin（Float32，单位 rad/s）
 nonlinear_spin_publisher:
@@ -649,11 +655,16 @@ local_costmap:
       height: 5
       resolution: 0.05
       robot_radius: 0.2
-      plugins: ["static_layer", "intensity_voxel_layer", "inflation_layer"]  # "semantic_zone_layer" 已注释，禁行区已关闭
-      # semantic_zone_layer: (禁行区 - 已注释)
-      #   plugin: "pb_nav2_costmap_2d::SemanticZoneLayer"
-      #   enabled: true
-      #   zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
+      plugins: ["static_layer", "semantic_zone_layer", "intensity_voxel_layer", "inflation_layer"]
+      semantic_zone_layer:
+        plugin: "pb_nav2_costmap_2d::SemanticZoneLayer"
+        enabled: true
+        zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
+        target_zone_name: "speed_bump"
+        slow_zone_cost: 180
+        publish_markers: false
+        marker_topic: "semantic_zone_markers"
+        marker_frame_id: "map"
       intensity_voxel_layer:
         plugin: pb_nav2_costmap_2d::IntensityVoxelLayer
         enabled: true
@@ -704,11 +715,16 @@ global_costmap:
       robot_radius: 0.2
       resolution: 0.05
       track_unknown_space: true
-      plugins: ["static_layer", "intensity_voxel_layer", "inflation_layer"]  # "semantic_zone_layer" 已注释，禁行区已关闭
-      # semantic_zone_layer: (禁行区 - 已注释)
-      #   plugin: "pb_nav2_costmap_2d::SemanticZoneLayer"
-      #   enabled: true
-      #   zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
+      plugins: ["static_layer", "semantic_zone_layer", "intensity_voxel_layer", "inflation_layer"]
+      semantic_zone_layer:
+        plugin: "pb_nav2_costmap_2d::SemanticZoneLayer"
+        enabled: true
+        zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
+        target_zone_name: "speed_bump"
+        slow_zone_cost: 180
+        publish_markers: true
+        marker_topic: "semantic_zone_markers"
+        marker_frame_id: "map"
       intensity_voxel_layer:
         plugin: pb_nav2_costmap_2d::IntensityVoxelLayer
         enabled: true

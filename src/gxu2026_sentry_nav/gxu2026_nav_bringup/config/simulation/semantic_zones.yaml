@@ -1,22 +1,12 @@
-# 语义区域定义 — RMUL 2026 仿真
-# 每个区域由多边形顶点(逆时针)定义，类型决定 costmap 代价或 BT 行为
-#
-# type:
-#   keepout      — LETHAL_OBSTACLE(254)，规划器绝对不可通过
-#   high_cost    — 高代价(200)，规划器尽量避开但紧急时可通过
-#   spin_zone    — 不影响 costmap，仅供 BT IsInSemanticZone 查询
-#   slow_zone    — 高代价(180)，减速区
-#
-# vertices: [[x1,y1], [x2,y2], ...] 逆时针
-
 zones:
-  - name: "highland_keepout"
-    type: keepout
-    vertices:
-      - [6.092, -2.550]
-      - [3.529, -2.571]
-      - [3.488,  0.258]
-      - [10.507,  0.184]
-      - [10.507, -7.217]
-      - [8.552, -7.260]
-      - [8.462, -2.328]
+- name: speed_bump
+  type: speed_bump
+  vertices:
+  - - 2.27
+    - -6.99
+  - - 4.82
+    - -6.99
+  - - 4.82
+    - -8.99
+  - - 2.27
+    - -8.99
