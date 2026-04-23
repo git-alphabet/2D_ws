@@ -174,10 +174,16 @@ def _neupan_env(controller_plugin: str, *, neupan_activate: Path,
     if controller_plugin != "neupan_nav2_controller":
         return ""
 
-    if not neupan_activate.exists():
-        raise RuntimeError(f"NeuPAN virtualenv not found at {neupan_activate}")
+    parts: list[str] = []
+    if neupan_activate.exists():
+        parts.append(f"source {shlex.quote(str(neupan_activate))}")
+    else:
+        # 容器场景默认允许不使用本地 neupan venv，依赖由镜像环境提供。
+        print(
+            f"[{script_name}] NeuPAN venv not found at {neupan_activate}, continue with container Python env.",
+            file=sys.stderr,
+        )
 
-    parts = [f"source {shlex.quote(str(neupan_activate))}"]
     if neupan_site_packages.is_dir():
         # Use double-quoted assignment so $PYTHONPATH expands correctly at runtime.
         # (A backslash-escaped \$PYTHONPATH would be treated as a literal string,
@@ -896,8 +902,7 @@ def main(argv: list[str]) -> int:
             gazebo_cmd += f" enable_chassis_odometry_gt:={'true' if enable_gt else 'false'}"
         if "use_gui:=" not in gazebo_cmd:
             _headless = (_is_truthy(os.environ.get("GAZEBO_HEADLESS"))
-                         or not os.environ.get("DISPLAY", "").strip()
-                         or cfg.no_new_terminal)
+                         or not os.environ.get("DISPLAY", "").strip())
             if _headless:
                 gazebo_cmd = _ensure_launch_arg(gazebo_cmd, "use_gui", "false")
                 print(f"[{script_name}] Headless Gazebo (DISPLAY={os.environ.get('DISPLAY', '(unset)')!r})", file=sys.stderr)

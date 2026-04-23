@@ -5,13 +5,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # 仿真单终端开关：true=Gazebo无头 + 建图在本终端前台；false=保持原有多终端行为。
-SIM_SINGLE_TERMINAL_HEADLESS=true
+SIM_SINGLE_TERMINAL_HEADLESS="${SIM_SINGLE_TERMINAL_HEADLESS:-true}"
 
 # Gazebo GUI 开关：0=开启GUI窗口；1=无头模式（仅在 HEADLESS=true 时才生效）
-export GAZEBO_HEADLESS=0
+export GAZEBO_HEADLESS="${GAZEBO_HEADLESS:-0}"
 
 # Gazebo 启动后等待时间(秒)，等稳定后再启动 rviz2/SLAM
-export GAZEBO_STARTUP_DELAY=10
+export GAZEBO_STARTUP_DELAY="${GAZEBO_STARTUP_DELAY:-10}"
 
 export QT_FONT_DPI=400
 export __NV_PRIME_RENDER_OFFLOAD=1
@@ -23,6 +23,10 @@ export IGN_GAZEBO_RENDER_ENGINE_GUI="${IGN_GAZEBO_RENDER_ENGINE_GUI:-ogre2}"
 
 # 容器内有 xterm，允许弹多终端（覆盖 Docker 自动 no_new_terminal 逻辑）
 export NO_NEW_TERMINAL="${NO_NEW_TERMINAL:-0}"
+
+if [[ "${SIM_SINGLE_TERMINAL_HEADLESS}" == "true" ]]; then
+	export NO_NEW_TERMINAL=1
+fi
 
 # Backward-compatible override name.
 if [[ -n ${SLAM_PARAMS_FILE:-} ]] && [[ -z ${SIM_PARAMS_FILE:-} ]]; then
