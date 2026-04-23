@@ -13,13 +13,16 @@
 #include <string>
 #include <vector>
 
-#include "geometry_msgs/msg/point.hpp"
 #include "nav2_util/node_utils.hpp"
-#include "visualization_msgs/msg/marker.hpp"
 #include "yaml-cpp/yaml.h"
 
 namespace pb_nav2_costmap_2d
 {
+
+namespace
+{
+constexpr unsigned char SPEED_BUMP_COST = 180;
+}
 
 void SemanticZoneLayer::onInitialize()
 {
@@ -41,36 +44,17 @@ void SemanticZoneLayer::onInitialize()
     node, name_ + ".zones_file", rclcpp::ParameterValue(""));
   nav2_util::declare_parameter_if_not_declared(
     node, name_ + ".target_zone_name", rclcpp::ParameterValue(target_zone_name_));
-  nav2_util::declare_parameter_if_not_declared(
-    node, name_ + ".slow_zone_cost", rclcpp::ParameterValue(slow_zone_cost_));
-  nav2_util::declare_parameter_if_not_declared(
-    node, name_ + ".publish_markers", rclcpp::ParameterValue(publish_markers_));
-  nav2_util::declare_parameter_if_not_declared(
-    node, name_ + ".marker_topic", rclcpp::ParameterValue(marker_topic_));
-  nav2_util::declare_parameter_if_not_declared(
-    node, name_ + ".marker_frame_id", rclcpp::ParameterValue(marker_frame_id_));
 
   std::string zones_file;
   node->get_parameter(name_ + ".zones_file", zones_file);
   node->get_parameter(name_ + ".target_zone_name", target_zone_name_);
-  node->get_parameter(name_ + ".slow_zone_cost", slow_zone_cost_);
-  node->get_parameter(name_ + ".publish_markers", publish_markers_);
-  node->get_parameter(name_ + ".marker_topic", marker_topic_);
-  node->get_parameter(name_ + ".marker_frame_id", marker_frame_id_);
-
-  if (publish_markers_) {
-    marker_pub_ = node->create_publisher<visualization_msgs::msg::MarkerArray>(
-      marker_topic_, rclcpp::QoS(1).transient_local().reliable());
-  }
 
   if (zones_file.empty()) {
     RCLCPP_WARN(node->get_logger(), "SemanticZoneLayer: zones_file is empty, no zones loaded");
-    publishZoneMarkers();
     return;
   }
 
   loadZonesFromYaml(zones_file);
-  publishZoneMarkers();
 }
 
 void SemanticZoneLayer::loadZonesFromYaml(const std::string & yaml_path)
@@ -133,9 +117,6 @@ void SemanticZoneLayer::loadZonesFromYaml(const std::string & yaml_path)
       continue;
     }
 
-    const int clamped_cost = std::clamp(slow_zone_cost_, 1, 252);
-    zone.cost = static_cast<unsigned char>(clamped_cost);
-
     // Parse vertices
     for (const auto & v : z["vertices"]) {
       if (!v.IsSequence() || v.size() < 2) {
@@ -154,7 +135,7 @@ void SemanticZoneLayer::loadZonesFromYaml(const std::string & yaml_path)
     if (zone.vertices.size() >= 3) {
       RCLCPP_INFO(
         node->get_logger(), "SemanticZoneLayer: loaded zone '%s' (type=%s, vertices=%zu, cost=%u)",
-        zone.name.c_str(), zone.type.c_str(), zone.vertices.size(), zone.cost);
+        zone.name.c_str(), zone.type.c_str(), zone.vertices.size(), SPEED_BUMP_COST);
       zones_.push_back(std::move(zone));
     }
   }
@@ -176,80 +157,6 @@ void SemanticZoneLayer::loadZonesFromYaml(const std::string & yaml_path)
     node->get_logger(),
     "SemanticZoneLayer: loaded %zu zones, bbox=[%.2f,%.2f]-[%.2f,%.2f], enabled=%d",
     zones_.size(), zone_min_x_, zone_min_y_, zone_max_x_, zone_max_y_, enabled_);
-}
-
-void SemanticZoneLayer::publishZoneMarkers()
-{
-  if (!publish_markers_ || !marker_pub_) {
-    return;
-  }
-
-  auto node = node_.lock();
-  if (!node) {
-    return;
-  }
-
-  visualization_msgs::msg::MarkerArray marker_array;
-
-  visualization_msgs::msg::Marker clear_all;
-  clear_all.action = visualization_msgs::msg::Marker::DELETEALL;
-  marker_array.markers.push_back(clear_all);
-
-  int marker_id = 0;
-  for (const auto & zone : zones_) {
-    visualization_msgs::msg::Marker outline;
-    outline.header.frame_id = marker_frame_id_;
-    outline.header.stamp = node->now();
-    outline.ns = "semantic_zone_layer";
-    outline.id = marker_id++;
-    outline.type = visualization_msgs::msg::Marker::LINE_STRIP;
-    outline.action = visualization_msgs::msg::Marker::ADD;
-    outline.pose.orientation.w = 1.0;
-    outline.scale.x = 0.08;
-    outline.color.r = 0.0f;
-    outline.color.g = 0.6f;
-    outline.color.b = 1.0f;
-    outline.color.a = 1.0f;
-
-    double center_x = 0.0;
-    double center_y = 0.0;
-    for (const auto & vertex : zone.vertices) {
-      geometry_msgs::msg::Point p;
-      p.x = vertex.first;
-      p.y = vertex.second;
-      p.z = 0.05;
-      outline.points.push_back(p);
-      center_x += vertex.first;
-      center_y += vertex.second;
-    }
-    if (!zone.vertices.empty()) {
-      outline.points.push_back(outline.points.front());
-      center_x /= static_cast<double>(zone.vertices.size());
-      center_y /= static_cast<double>(zone.vertices.size());
-    }
-    marker_array.markers.push_back(outline);
-
-    visualization_msgs::msg::Marker text;
-    text.header.frame_id = marker_frame_id_;
-    text.header.stamp = node->now();
-    text.ns = "semantic_zone_layer";
-    text.id = marker_id++;
-    text.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
-    text.action = visualization_msgs::msg::Marker::ADD;
-    text.pose.orientation.w = 1.0;
-    text.pose.position.x = center_x;
-    text.pose.position.y = center_y;
-    text.pose.position.z = 0.25;
-    text.scale.z = 0.25;
-    text.color.r = 0.0f;
-    text.color.g = 0.8f;
-    text.color.b = 1.0f;
-    text.color.a = 1.0f;
-    text.text = zone.name;
-    marker_array.markers.push_back(text);
-  }
-
-  marker_pub_->publish(marker_array);
 }
 
 void SemanticZoneLayer::updateBounds(
@@ -286,8 +193,8 @@ void SemanticZoneLayer::updateCosts(
       for (const auto & zone : zones_) {
         if (pointInPolygon(wx, wy, zone.vertices)) {
           unsigned char old_cost = master_grid.getCost(i, j);
-          if (zone.cost > old_cost) {
-            master_grid.setCost(i, j, zone.cost);
+          if (SPEED_BUMP_COST > old_cost) {
+            master_grid.setCost(i, j, SPEED_BUMP_COST);
             ++cells_marked;
           }
         }

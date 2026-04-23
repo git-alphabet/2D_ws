@@ -34,6 +34,7 @@
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2_ros/transform_listener.h"
+#include "visualization_msgs/msg/marker_array.hpp"
 
 namespace fake_vel_transform
 {
@@ -56,6 +57,7 @@ private:
   void publishHoldCmdVelIfNeeded(const rclcpp::Time & now);
   void updateRobotPositionInMapFrame(const nav_msgs::msg::Odometry::ConstSharedPtr & msg);
   void loadSpeedBumpZoneFromYaml();
+  void publishSpeedBumpMarkers();
   bool pointInPolygon(
     double x, double y,
     const std::vector<std::pair<double, double>> & poly) const;
@@ -74,6 +76,7 @@ private:
   std::unique_ptr<message_filters::Synchronizer<SyncPolicy>> sync_;
 
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_chassis_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr speed_bump_marker_pub_;
 
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -103,6 +106,8 @@ private:
   bool enable_speed_bump_min_speed_{true};
   double speed_bump_min_linear_speed_{1.5};
   std::string speed_bump_map_frame_{"map"};
+  bool publish_speed_bump_marker_{true};
+  std::string speed_bump_marker_topic_{"speed_bump_zone_markers"};
   std::string speed_bump_zone_name_;
   std::string speed_bump_zones_file_;
   std::vector<std::pair<double, double>> speed_bump_zone_vertices_;
@@ -120,6 +125,7 @@ private:
 
   rclcpp::Time last_cmd_vel_rx_time_;
   rclcpp::Time last_cmd_vel_pub_time_;
+  rclcpp::Time last_marker_pub_time_;
 };
 
 }  // namespace fake_vel_transform

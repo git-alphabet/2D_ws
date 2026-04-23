@@ -9,7 +9,6 @@
 #ifndef PB_NAV2_PLUGINS__LAYERS__SEMANTIC_ZONE_LAYER_HPP_
 #define PB_NAV2_PLUGINS__LAYERS__SEMANTIC_ZONE_LAYER_HPP_
 
-#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -17,7 +16,6 @@
 #include "nav2_costmap_2d/layer.hpp"
 #include "nav2_costmap_2d/layered_costmap.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "visualization_msgs/msg/marker_array.hpp"
 
 namespace pb_nav2_costmap_2d
 {
@@ -27,7 +25,6 @@ struct SemanticZone
   std::string name;
   std::string type;                            // speed_bump
   std::vector<std::pair<double, double>> vertices;  // polygon vertices in map frame
-  unsigned char cost;                          // costmap cost value
 };
 
 class SemanticZoneLayer : public nav2_costmap_2d::Layer
@@ -50,18 +47,11 @@ public:
 
 private:
   void loadZonesFromYaml(const std::string & yaml_path);
-  void publishZoneMarkers();
   bool pointInPolygon(
     double x, double y,
     const std::vector<std::pair<double, double>> & poly) const;
 
   std::string target_zone_name_{"speed_bump"};
-  int slow_zone_cost_{180};
-
-  bool publish_markers_{true};
-  std::string marker_topic_{"semantic_zone_markers"};
-  std::string marker_frame_id_{"map"};
-  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
 
   std::vector<SemanticZone> zones_;
   bool zones_loaded_{false};

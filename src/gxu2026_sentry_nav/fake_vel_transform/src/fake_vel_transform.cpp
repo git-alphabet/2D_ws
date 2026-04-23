@@ -17,9 +17,12 @@
 #include "example_interfaces/msg/float32.hpp"
 #include <cmath>
 
+#include "geometry_msgs/msg/point.hpp"
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "tf2/utils.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+#include "visualization_msgs/msg/marker.hpp"
+#include "visualization_msgs/msg/marker_array.hpp"
 #include "yaml-cpp/yaml.h"
 
 namespace fake_vel_transform
@@ -56,6 +59,8 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->declare_parameter<bool>("enable_speed_bump_min_speed", true);
   this->declare_parameter<double>("speed_bump_min_linear_speed", 1.5);
   this->declare_parameter<std::string>("speed_bump_map_frame", "map");
+  this->declare_parameter<bool>("publish_speed_bump_marker", true);
+  this->declare_parameter<std::string>("speed_bump_marker_topic", "speed_bump_zone_markers");
   this->declare_parameter<std::string>("speed_bump_zone_name", "speed_bump");
   this->declare_parameter<std::string>("speed_bump_zones_file", "");
 
@@ -74,6 +79,8 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->get_parameter("enable_speed_bump_min_speed", enable_speed_bump_min_speed_);
   this->get_parameter("speed_bump_min_linear_speed", speed_bump_min_linear_speed_);
   this->get_parameter("speed_bump_map_frame", speed_bump_map_frame_);
+  this->get_parameter("publish_speed_bump_marker", publish_speed_bump_marker_);
+  this->get_parameter("speed_bump_marker_topic", speed_bump_marker_topic_);
   this->get_parameter("speed_bump_zone_name", speed_bump_zone_name_);
   this->get_parameter("speed_bump_zones_file", speed_bump_zones_file_);
 
@@ -98,6 +105,16 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
     speed_bump_map_frame_.c_str());
 
   tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+
+  if (publish_speed_bump_marker_) {
+    auto qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
+    speed_bump_marker_pub_ =
+      this->create_publisher<visualization_msgs::msg::MarkerArray>(speed_bump_marker_topic_, qos);
+    if (speed_bump_zone_loaded_) {
+      publishSpeedBumpMarkers();
+      last_marker_pub_time_ = this->get_clock()->now();
+    }
+  }
 
   cmd_vel_chassis_pub_ =
     this->create_publisher<geometry_msgs::msg::Twist>(output_cmd_vel_topic_, 1);
@@ -256,7 +273,118 @@ void FakeVelTransform::publishTransform()
   t.transform.rotation = tf2::toMsg(q);
   tf_broadcaster_->sendTransform(t);
 
+  if (
+    publish_speed_bump_marker_ && speed_bump_zone_loaded_ && speed_bump_marker_pub_ &&
+    (now - last_marker_pub_time_).seconds() >= 1.0)
+  {
+    publishSpeedBumpMarkers();
+    last_marker_pub_time_ = now;
+  }
+
   publishHoldCmdVelIfNeeded(now);
+}
+
+void FakeVelTransform::publishSpeedBumpMarkers()
+{
+  if (!speed_bump_marker_pub_ || !speed_bump_zone_loaded_ || speed_bump_zone_vertices_.size() < 3) {
+    return;
+  }
+
+  visualization_msgs::msg::MarkerArray marker_array;
+  const auto stamp = this->get_clock()->now();
+
+  visualization_msgs::msg::Marker fill;
+  fill.header.frame_id = speed_bump_map_frame_;
+  fill.header.stamp = stamp;
+  fill.ns = "speed_bump_zone";
+  fill.id = 0;
+  fill.type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
+  fill.action = visualization_msgs::msg::Marker::ADD;
+  fill.pose.orientation.w = 1.0;
+  fill.scale.x = 1.0;
+  fill.scale.y = 1.0;
+  fill.scale.z = 1.0;
+  fill.color.r = 1.0F;
+  fill.color.g = 0.42F;
+  fill.color.b = 0.0F;
+  fill.color.a = 0.45F;
+
+  const auto & vertices = speed_bump_zone_vertices_;
+  for (size_t i = 1; i + 1 < vertices.size(); ++i) {
+    geometry_msgs::msg::Point p0;
+    p0.x = vertices[0].first;
+    p0.y = vertices[0].second;
+    p0.z = 0.05;
+
+    geometry_msgs::msg::Point p1;
+    p1.x = vertices[i].first;
+    p1.y = vertices[i].second;
+    p1.z = 0.05;
+
+    geometry_msgs::msg::Point p2;
+    p2.x = vertices[i + 1].first;
+    p2.y = vertices[i + 1].second;
+    p2.z = 0.05;
+
+    fill.points.push_back(p0);
+    fill.points.push_back(p1);
+    fill.points.push_back(p2);
+  }
+  marker_array.markers.push_back(fill);
+
+  visualization_msgs::msg::Marker outline;
+  outline.header.frame_id = speed_bump_map_frame_;
+  outline.header.stamp = stamp;
+  outline.ns = "speed_bump_zone";
+  outline.id = 1;
+  outline.type = visualization_msgs::msg::Marker::LINE_STRIP;
+  outline.action = visualization_msgs::msg::Marker::ADD;
+  outline.pose.orientation.w = 1.0;
+  outline.scale.x = 0.2;
+  outline.color.r = 1.0F;
+  outline.color.g = 1.0F;
+  outline.color.b = 0.0F;
+  outline.color.a = 1.0F;
+
+  for (const auto & v : vertices) {
+    geometry_msgs::msg::Point p;
+    p.x = v.first;
+    p.y = v.second;
+    p.z = 0.08;
+    outline.points.push_back(p);
+  }
+  geometry_msgs::msg::Point close_point;
+  close_point.x = vertices.front().first;
+  close_point.y = vertices.front().second;
+  close_point.z = 0.08;
+  outline.points.push_back(close_point);
+  marker_array.markers.push_back(outline);
+
+  visualization_msgs::msg::Marker corners;
+  corners.header.frame_id = speed_bump_map_frame_;
+  corners.header.stamp = stamp;
+  corners.ns = "speed_bump_zone";
+  corners.id = 2;
+  corners.type = visualization_msgs::msg::Marker::SPHERE_LIST;
+  corners.action = visualization_msgs::msg::Marker::ADD;
+  corners.pose.orientation.w = 1.0;
+  corners.scale.x = 0.3;
+  corners.scale.y = 0.3;
+  corners.scale.z = 0.3;
+  corners.color.r = 1.0F;
+  corners.color.g = 0.0F;
+  corners.color.b = 0.0F;
+  corners.color.a = 1.0F;
+  for (const auto & v : vertices) {
+    geometry_msgs::msg::Point p;
+    p.x = v.first;
+    p.y = v.second;
+    p.z = 0.12;
+    corners.points.push_back(p);
+  }
+  marker_array.markers.push_back(corners);
+
+  speed_bump_marker_pub_->publish(marker_array);
 }
 
 void FakeVelTransform::publishHoldCmdVelIfNeeded(const rclcpp::Time & now)
