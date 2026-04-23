@@ -1,6 +1,6 @@
 zones:
 - name: speed_bump
-  type: slow_zone
+  type: speed_bump
   vertices:
   - - 2.27
     - -6.99

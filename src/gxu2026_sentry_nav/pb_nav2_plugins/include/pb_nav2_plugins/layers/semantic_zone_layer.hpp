@@ -25,7 +25,7 @@ namespace pb_nav2_costmap_2d
 struct SemanticZone
 {
   std::string name;
-  std::string type;                            // slow_zone
+  std::string type;                            // speed_bump
   std::vector<std::pair<double, double>> vertices;  // polygon vertices in map frame
   unsigned char cost;                          // costmap cost value
 };
@@ -56,7 +56,6 @@ private:
     const std::vector<std::pair<double, double>> & poly) const;
 
   std::string target_zone_name_{"speed_bump"};
-  std::string target_zone_type_{"slow_zone"};
   int slow_zone_cost_{180};
 
   bool publish_markers_{true};

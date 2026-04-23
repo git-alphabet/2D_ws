@@ -410,6 +410,7 @@ fake_vel_transform:
     # 减速带速度下限控制：进入 speed_bump 区域后，线速度低于该值会被抬高
     enable_speed_bump_min_speed: true
     speed_bump_min_linear_speed: 1.5
+    speed_bump_map_frame: "map"
     speed_bump_zone_name: "speed_bump"
     speed_bump_zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
 
@@ -660,7 +661,6 @@ local_costmap:
         enabled: true
         zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
         target_zone_name: "speed_bump"
-        target_zone_type: "slow_zone"
         slow_zone_cost: 180
         publish_markers: false
         marker_topic: "semantic_zone_markers"
@@ -721,7 +721,6 @@ global_costmap:
         enabled: true
         zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
         target_zone_name: "speed_bump"
-        target_zone_type: "slow_zone"
         slow_zone_cost: 180
         publish_markers: true
         marker_topic: "semantic_zone_markers"

@@ -42,8 +42,6 @@ void SemanticZoneLayer::onInitialize()
   nav2_util::declare_parameter_if_not_declared(
     node, name_ + ".target_zone_name", rclcpp::ParameterValue(target_zone_name_));
   nav2_util::declare_parameter_if_not_declared(
-    node, name_ + ".target_zone_type", rclcpp::ParameterValue(target_zone_type_));
-  nav2_util::declare_parameter_if_not_declared(
     node, name_ + ".slow_zone_cost", rclcpp::ParameterValue(slow_zone_cost_));
   nav2_util::declare_parameter_if_not_declared(
     node, name_ + ".publish_markers", rclcpp::ParameterValue(publish_markers_));
@@ -55,7 +53,6 @@ void SemanticZoneLayer::onInitialize()
   std::string zones_file;
   node->get_parameter(name_ + ".zones_file", zones_file);
   node->get_parameter(name_ + ".target_zone_name", target_zone_name_);
-  node->get_parameter(name_ + ".target_zone_type", target_zone_type_);
   node->get_parameter(name_ + ".slow_zone_cost", slow_zone_cost_);
   node->get_parameter(name_ + ".publish_markers", publish_markers_);
   node->get_parameter(name_ + ".marker_topic", marker_topic_);
@@ -108,22 +105,25 @@ void SemanticZoneLayer::loadZonesFromYaml(const std::string & yaml_path)
 
   for (const auto & z : config["zones"]) {
     SemanticZone zone;
-    if (!z["name"] || !z["type"] || !z["vertices"]) {
+    if (!z["name"] || !z["vertices"]) {
       RCLCPP_WARN(node->get_logger(), "SemanticZoneLayer: malformed zone entry in %s", yaml_path.c_str());
       continue;
     }
 
     zone.name = z["name"].as<std::string>();
-    zone.type = z["type"].as<std::string>();
-    if (zone.name != target_zone_name_ || zone.type != target_zone_type_) {
+    zone.type = z["type"] ? z["type"].as<std::string>() : "";
+    if (zone.name != target_zone_name_) {
       continue;
     }
-    if (zone.type != "slow_zone") {
+    if (!zone.type.empty() && zone.type != "speed_bump") {
       RCLCPP_WARN(
         node->get_logger(),
-        "SemanticZoneLayer: zone '%s' type '%s' is unsupported, expected slow_zone",
+        "SemanticZoneLayer: zone '%s' type '%s' is unsupported, expected speed_bump",
         zone.name.c_str(), zone.type.c_str());
       continue;
+    }
+    if (zone.type.empty()) {
+      zone.type = "speed_bump";
     }
     if (!zones_.empty()) {
       RCLCPP_WARN(
@@ -167,8 +167,8 @@ void SemanticZoneLayer::loadZonesFromYaml(const std::string & yaml_path)
     zone_max_y_ = 0.0;
     RCLCPP_WARN(
       node->get_logger(),
-      "SemanticZoneLayer: target zone '%s' (type=%s) not found in %s",
-      target_zone_name_.c_str(), target_zone_type_.c_str(), yaml_path.c_str());
+      "SemanticZoneLayer: target zone '%s' not found in %s",
+      target_zone_name_.c_str(), yaml_path.c_str());
     return;
   }
 

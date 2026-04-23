@@ -35,7 +35,7 @@ class LabelSpec:
 
 
 DEFAULT_LABELS: Sequence[LabelSpec] = (
-    LabelSpec(name="speed_bump", rgb=(0, 0, 255), zone_type="slow_zone"),
+    LabelSpec(name="speed_bump", rgb=(0, 0, 255), zone_type="speed_bump"),
 )
 
 

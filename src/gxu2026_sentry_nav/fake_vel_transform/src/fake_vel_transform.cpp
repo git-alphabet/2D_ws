@@ -17,6 +17,7 @@
 #include "example_interfaces/msg/float32.hpp"
 #include <cmath>
 
+#include "geometry_msgs/msg/point_stamped.hpp"
 #include "tf2/utils.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "yaml-cpp/yaml.h"
@@ -54,6 +55,7 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->declare_parameter<bool>("disable_spin_while_moving", true);
   this->declare_parameter<bool>("enable_speed_bump_min_speed", true);
   this->declare_parameter<double>("speed_bump_min_linear_speed", 1.5);
+  this->declare_parameter<std::string>("speed_bump_map_frame", "map");
   this->declare_parameter<std::string>("speed_bump_zone_name", "speed_bump");
   this->declare_parameter<std::string>("speed_bump_zones_file", "");
 
@@ -71,8 +73,12 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->get_parameter("disable_spin_while_moving", disable_spin_while_moving_);
   this->get_parameter("enable_speed_bump_min_speed", enable_speed_bump_min_speed_);
   this->get_parameter("speed_bump_min_linear_speed", speed_bump_min_linear_speed_);
+  this->get_parameter("speed_bump_map_frame", speed_bump_map_frame_);
   this->get_parameter("speed_bump_zone_name", speed_bump_zone_name_);
   this->get_parameter("speed_bump_zones_file", speed_bump_zones_file_);
+
+  tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
   loadSpeedBumpZoneFromYaml();
 
@@ -86,6 +92,10 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
     "Speed bump min speed: enabled=%s, min_linear_speed=%.3f, zone=%s, loaded=%s",
     enable_speed_bump_min_speed_ ? "true" : "false", speed_bump_min_linear_speed_,
     speed_bump_zone_name_.c_str(), speed_bump_zone_loaded_ ? "true" : "false");
+  RCLCPP_INFO(
+    get_logger(),
+    "Speed bump reference frame: %s",
+    speed_bump_map_frame_.c_str());
 
   tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
@@ -177,11 +187,7 @@ void FakeVelTransform::manualSpinOverrideCallback(const std_msgs::msg::Bool::Sha
 
 void FakeVelTransform::odometryCallback(const nav_msgs::msg::Odometry::ConstSharedPtr & msg)
 {
-  {
-    std::lock_guard<std::mutex> pose_lock(pose_mutex_);
-    current_robot_x_ = msg->pose.pose.position.x;
-    current_robot_y_ = msg->pose.pose.position.y;
-  }
+  updateRobotPositionInMapFrame(msg);
 
   // NOTE: Haven't synced with local_plan
   if ((this->get_clock()->now() - last_controller_activate_time_).seconds() > CONTROLLER_TIMEOUT) {
@@ -228,11 +234,7 @@ void FakeVelTransform::syncCallback(
     current_cmd_vel = latest_cmd_vel_;
   }
 
-  {
-    std::lock_guard<std::mutex> pose_lock(pose_mutex_);
-    current_robot_x_ = odom_msg->pose.pose.position.x;
-    current_robot_y_ = odom_msg->pose.pose.position.y;
-  }
+  updateRobotPositionInMapFrame(odom_msg);
 
   current_robot_base_angle_ = tf2::getYaw(odom_msg->pose.pose.orientation);
   float yaw_diff = current_robot_base_angle_;
@@ -316,10 +318,16 @@ geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
   if (enable_speed_bump_min_speed_ && speed_bump_zone_loaded_) {
     double robot_x;
     double robot_y;
+    bool robot_pose_ready;
     {
       std::lock_guard<std::mutex> pose_lock(pose_mutex_);
       robot_x = current_robot_x_;
       robot_y = current_robot_y_;
+      robot_pose_ready = robot_pose_in_map_ready_;
+    }
+
+    if (!robot_pose_ready) {
+      return aft_tf_vel;
     }
 
     const bool in_speed_bump = pointInPolygon(robot_x, robot_y, speed_bump_zone_vertices_);
@@ -348,6 +356,41 @@ geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
   }
 
   return aft_tf_vel;
+}
+
+void FakeVelTransform::updateRobotPositionInMapFrame(const nav_msgs::msg::Odometry::ConstSharedPtr & msg)
+{
+  const std::string src_frame = msg->header.frame_id;
+  double robot_x = msg->pose.pose.position.x;
+  double robot_y = msg->pose.pose.position.y;
+
+  if (!speed_bump_map_frame_.empty() && src_frame != speed_bump_map_frame_) {
+    geometry_msgs::msg::PointStamped in_point;
+    geometry_msgs::msg::PointStamped out_point;
+    in_point.header = msg->header;
+    in_point.point.x = msg->pose.pose.position.x;
+    in_point.point.y = msg->pose.pose.position.y;
+    in_point.point.z = msg->pose.pose.position.z;
+
+    try {
+      out_point = tf_buffer_->transform(in_point, speed_bump_map_frame_, tf2::durationFromSec(0.05));
+      robot_x = out_point.point.x;
+      robot_y = out_point.point.y;
+    } catch (const tf2::TransformException & ex) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 2000,
+        "Failed to transform odometry pose from %s to %s: %s",
+        src_frame.c_str(), speed_bump_map_frame_.c_str(), ex.what());
+      return;
+    }
+  }
+
+  {
+    std::lock_guard<std::mutex> pose_lock(pose_mutex_);
+    current_robot_x_ = robot_x;
+    current_robot_y_ = robot_y;
+    robot_pose_in_map_ready_ = true;
+  }
 }
 
 void FakeVelTransform::loadSpeedBumpZoneFromYaml()
@@ -385,19 +428,19 @@ void FakeVelTransform::loadSpeedBumpZoneFromYaml()
   }
 
   for (const auto & zone : zones) {
-    if (!zone["name"] || !zone["type"] || !zone["vertices"]) {
+    if (!zone["name"] || !zone["vertices"]) {
       continue;
     }
 
     const std::string name = zone["name"].as<std::string>();
-    const std::string type = zone["type"].as<std::string>();
+    const std::string type = zone["type"] ? zone["type"].as<std::string>() : "";
     if (name != speed_bump_zone_name_) {
       continue;
     }
-    if (type != "slow_zone") {
+    if (!type.empty() && type != "speed_bump") {
       RCLCPP_WARN(
         get_logger(),
-        "Speed bump zone %s has type %s, expected slow_zone, ignore this zone.",
+        "Speed bump zone %s has type %s, expected speed_bump, ignore this zone.",
         name.c_str(), type.c_str());
       continue;
     }

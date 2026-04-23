@@ -31,7 +31,9 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sp_msgs/msg/rmuc_robot_control.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_broadcaster.h"
+#include "tf2_ros/transform_listener.h"
 
 namespace fake_vel_transform
 {
@@ -52,6 +54,7 @@ private:
   void manualSpinOverrideCallback(const std_msgs::msg::Bool::SharedPtr msg);
   void publishTransform();
   void publishHoldCmdVelIfNeeded(const rclcpp::Time & now);
+  void updateRobotPositionInMapFrame(const nav_msgs::msg::Odometry::ConstSharedPtr & msg);
   void loadSpeedBumpZoneFromYaml();
   bool pointInPolygon(
     double x, double y,
@@ -73,6 +76,8 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_chassis_pub_;
 
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+  std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
   rclcpp::TimerBase::SharedPtr timer_;
 
@@ -97,10 +102,12 @@ private:
 
   bool enable_speed_bump_min_speed_{true};
   double speed_bump_min_linear_speed_{1.5};
+  std::string speed_bump_map_frame_{"map"};
   std::string speed_bump_zone_name_;
   std::string speed_bump_zones_file_;
   std::vector<std::pair<double, double>> speed_bump_zone_vertices_;
   bool speed_bump_zone_loaded_{false};
+  bool robot_pose_in_map_ready_{false};
   bool was_in_speed_bump_zone_{false};
 
   std::mutex cmd_vel_mutex_;
