@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="binary_decision_tree" name="二分树阈值解说版">
-        <mxGraphModel dx="10949" dy="8753" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="9800" pageHeight="7600" math="0" shadow="0">
+        <mxGraphModel dx="11086" dy="8360" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="9800" pageHeight="7600" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -410,11 +410,79 @@
                 <mxCell id="212" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;判断基地HP是否产生波动&lt;/b&gt;&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;&lt;br&gt;&lt;/b&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b style=&quot;color: rgb(63, 63, 63); scrollbar-color: rgb(226, 226, 226) rgb(251, 251, 251);&quot;&gt;判断雷达站扫描基地5m范围内是否有敌人&lt;/b&gt;&lt;b&gt;&lt;/b&gt;&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
                     <mxGeometry x="3970.01" y="5430" width="505" height="145" as="geometry"/>
                 </mxCell>
+                <mxCell id="219" style="edgeStyle=orthogonalEdgeStyle;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="215" target="218">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
                 <mxCell id="215" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;进入危机模式&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
                     <mxGeometry x="4010" y="5690" width="427.49" height="70" as="geometry"/>
                 </mxCell>
                 <mxCell id="217" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;是&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
                     <mxGeometry x="4220" y="5610" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="222" style="edgeStyle=orthogonalEdgeStyle;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="218" target="221">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="218" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;强制切换到攻击姿态&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="4045" y="5840" width="357.5" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="224" style="edgeStyle=orthogonalEdgeStyle;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="221" target="223">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="221" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;导航去defend_archor基地防御锚点&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="3973.76" y="5980" width="497.5" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="226" style="edgeStyle=orthogonalEdgeStyle;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="223" target="225">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="223" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;在defend_archor常驻&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="3965.01" y="6130" width="514.99" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="228" style="edgeStyle=orthogonalEdgeStyle;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="225" target="227">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="235" style="edgeStyle=orthogonalEdgeStyle;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="225" target="232">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="5020" y="6375"/>
+                            <mxPoint x="5020" y="6170"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="225" value="&lt;div&gt;&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;到达defend_archor，启动30s计时&lt;/b&gt;&lt;/font&gt;&lt;/div&gt;&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;&lt;br&gt;&lt;/b&gt;&lt;/font&gt;&lt;/div&gt;哨兵本机云台没检测到敌人&lt;/b&gt;&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;&lt;br&gt;&lt;/b&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;基地HP保持不变&lt;/b&gt;&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="3939.74" y="6290" width="568" height="170" as="geometry"/>
+                </mxCell>
+                <mxCell id="239" style="edgeStyle=orthogonalEdgeStyle;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="227" target="238">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="227" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;退出危机模式&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="4037.51" y="6560" width="370" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="229" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;是&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="4235" y="6483" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="236" style="edgeStyle=orthogonalEdgeStyle;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="232" target="223">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="232" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;刷新30s计时器&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="4650" y="6140" width="290" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="237" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;否&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="4680" y="6330" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="241" style="edgeStyle=orthogonalEdgeStyle;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="238" target="240">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="238" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;退出子树：BaseDefense&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="4028.75" y="6690" width="390" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="243" style="edgeStyle=orthogonalEdgeStyle;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="240" target="242">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="240" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;进入子树：&lt;/b&gt;&lt;/font&gt;&lt;span style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;SustainAndEconomy&lt;/b&gt;&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="3982.48" y="6840" width="482.51" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="242" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;&lt;b&gt;进入子树：AmmoPlan&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="4008.74" y="7000" width="430" height="70" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>
