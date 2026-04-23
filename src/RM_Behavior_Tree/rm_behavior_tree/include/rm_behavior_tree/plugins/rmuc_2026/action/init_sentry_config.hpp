@@ -33,6 +33,7 @@ public:
       BT::BidirectionalPort<int>("hp_low"),
       BT::BidirectionalPort<int>("hp_safe"),
       BT::BidirectionalPort<int>("ammo_low"),
+      BT::BidirectionalPort<int>("supply_wait_timeout_s"),
       BT::BidirectionalPort<double>("enemy_near_base_radius"),
       BT::BidirectionalPort<int>("base_threat_calm_timeout_ms"),
       BT::BidirectionalPort<int>("patrol_hold_ms"),

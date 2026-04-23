@@ -58,6 +58,7 @@ rm_behavior_tree:
       hp_low: 180                     # 低血量阈值 (触发 LowHPRetreat 撤退回补给区)
       hp_safe: 280                    # 安全血量阈值 (HoldAndHeal 回血目标)
       ammo_low: 80                    # 低弹药阈值 (触发 AmmoPlan)
+      supply_wait_timeout_s: 10       # 在补给区等待免费补弹的单次超时 (秒)
 
       # ─────────── 导航参数 ───────────
       # 所有到达判定统一使用 arrive_radius（补给/巡逻/基地防御）

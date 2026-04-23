@@ -57,6 +57,7 @@ BT::NodeStatus InitSentryConfigAction::tick()
   setInt("hp_low", 180);
   setInt("hp_safe", 280);
   setInt("ammo_low", 80);
+  setInt("supply_wait_timeout_s", 30);
   setInt("base_threat_calm_timeout_ms", 0);
   setInt("patrol_hold_ms", 5000);
 

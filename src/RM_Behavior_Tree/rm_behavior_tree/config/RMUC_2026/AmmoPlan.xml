@@ -13,7 +13,7 @@
                               goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
                               arrive_radius="{cfg.arrive_radius}"/>
                     <HoldForSupplyAmmoTick ammo_allow="{ammo.allow}"
-                                           timeout_s="30"
+                                           timeout_s="{cfg.supply_wait_timeout_s}"
                                            default_threshold="{cfg.ammo_low}"
                                            supply_fail_count="{supply.fail_count}"
                                            supply_next_threshold="{supply.next_threshold}"/>
