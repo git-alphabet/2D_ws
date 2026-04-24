@@ -36,6 +36,8 @@ RMUC 2026 裁判系统话题模拟器
   --base-hp       基地当前血量 (默认 5000)
   --base-hp-drain 每秒基地血量下降速度 (默认 0)
   --enemy-near-base 雷达模拟敌人在基地附近 (配合 --base-hp-drain 触发基地威胁)
+    --base-x        基地坐标 x (默认当前活动 RMUC 参数)
+    --base-y        基地坐标 y (默认当前活动 RMUC 参数)
   --coins         剩余金币 (默认 800)
   --supply-delay  N秒后模拟补给区发放弹药 (0=不发放, 用于测试超时)
   --supply-amount 每次发放弹药量 (默认 100)
@@ -75,6 +77,7 @@ from sp_msgs.msg import (
     RMUCGameStatus,
     RMUCRobotStatus,
     RMUCEnemyTracks,
+    RMUCSentryDecisionStatus,
     RMUCTeamHP,
     RMUCSentryCmd,
 )
@@ -92,7 +95,9 @@ class RmucTestPublisher(Node):
         self.pub_robot = self.create_publisher(RMUCRobotStatus, "robot_status", 10)
         # robot_position 由 robot_position_bridge.py 发布（从 TF + Nav2 状态获取），此处不再重复发布
         self.pub_team_hp = self.create_publisher(RMUCTeamHP, "team_hp", 10)
-        self.pub_team_hp = self.create_publisher(RMUCTeamHP, "team_hp", 10)
+        self.pub_sentry_decision = self.create_publisher(
+            RMUCSentryDecisionStatus, "sentry_decision_status", 10
+        )
 
         # ── enable_power: rmua19_robot_base 必须收到此信号才会响应 cmd_vel ──
         # 路径镜像 Gazebo 裁判插件: /referee_system/{ns}/enable_power
@@ -164,6 +169,7 @@ class RmucTestPublisher(Node):
             self.base_hp = max(0.0, self.base_hp - self.base_hp_drain / 10.0)
 
         self._pub_robot_status()
+        self._pub_sentry_decision_status()
         self._pub_radar_tracks()
 
     def _pub_robot_status(self):
@@ -180,15 +186,23 @@ class RmucTestPublisher(Node):
         msg = RMUCEnemyTracks()
         msg.header = self._header()
         if self.args.enemy_near_base:
-            # 模拟一个敌人在 defend_anchor (2.76, -1.93) 附近 3m 处
+            # 模拟一个敌人在当前活动基地坐标附近，确保命中基地威胁判定。
             msg.enemy_count = 1
-            msg.enemy_x = [2.76 + 2.0]  # ~2m 偏移，在 5m 阈值内
-            msg.enemy_y = [-1.93 + 1.0]
+            msg.enemy_x = [self.args.base_x + 2.0]  # ~2m 偏移，在 5m 阈值内
+            msg.enemy_y = [self.args.base_y + 1.0]
         else:
             msg.enemy_count = 0
             msg.enemy_x = []
             msg.enemy_y = []
         self.pub_radar_tracks.publish(msg)
+
+    def _pub_sentry_decision_status(self):
+        msg = RMUCSentryDecisionStatus()
+        msg.header = self._header()
+        msg.can_instant_respawn = False
+        msg.current_posture = self.current_posture
+        msg.exchanged_ammo_total = 0
+        self.pub_sentry_decision.publish(msg)
 
     # ────────── 1 Hz 话题 ──────────
 
@@ -255,6 +269,10 @@ def main():
                         help="每秒基地血量下降速度 (默认0)")
     parser.add_argument("--enemy-near-base", action="store_true",
                         help="雷达模拟敌人在基地附近 (配合 --base-hp-drain 触发基地威胁)")
+    parser.add_argument("--base-x", type=float, default=-2.3532,
+                        help="基地坐标 x (默认当前活动 RMUC 参数)")
+    parser.add_argument("--base-y", type=float, default=-2.0007,
+                        help="基地坐标 y (默认当前活动 RMUC 参数)")
     parser.add_argument("--coins", type=int, default=800,
                         help="剩余金币 (默认800)")
     parser.add_argument("--supply-delay", type=float, default=0,

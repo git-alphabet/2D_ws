@@ -20,9 +20,6 @@ rm_behavior_tree:
       base_x: -2.3532                # 基地坐标 x（独立点位；默认值与当前 CSV 标定值一致）
       base_y: -2.0007                # 基地坐标 y（独立点位；默认值与当前 CSV 标定值一致）
 
-      base_buff_x: -0.06             # 己方基地增益区中心 x
-      base_buff_y: -2.49             # 己方基地增益区中心 y
-
       outpost_buff_x: 6.53           # 己方前哨站增益区中心 x
       outpost_buff_y: -5.12          # 己方前哨站增益区中心 y
 

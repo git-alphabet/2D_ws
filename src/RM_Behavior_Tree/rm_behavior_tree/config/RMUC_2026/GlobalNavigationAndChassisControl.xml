@@ -62,6 +62,8 @@
 
             <!-- 敌情门禁：检测到敌人 → 取消导航、原地停车，阻塞后续战术 -->
             <ReactiveFallback name="EnemyDetectionGuard">
+                <!-- 基地威胁模式 → 放行，优先回基地防御锚点，不受普通见敌阻塞打断 -->
+                <IsBaseThreatened base_threat="{threat.base}"/>
                 <!-- 无敌人 → 放行 -->
                 <Inverter>
                     <RmucIsDetectEnemy message="{robot_status}"/>

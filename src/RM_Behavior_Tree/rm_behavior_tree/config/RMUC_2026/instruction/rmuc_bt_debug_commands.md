@@ -87,7 +87,7 @@ colcon build --build-base /ws/.buildcache/Alphabet/build \
 ## 9. 姿态转换相关调试
 
 > 姿态值: 1=进攻  2=防御  3=移动
-> 决策链: 裁判系统 → `sentry_decision_status` → `ParseSentryBlackboard` → `DecidePosture` → `SentryCmdMux` → `/sentry_cmd`
+> 当前 RMUC 2026 主链: 各战术子树/基地威胁逻辑写入 `cmd.posture` → `PostureDegradationGuard` 产出 `cmd.final_posture` → `SentryCmdMux` 发布 `/sentry_cmd`
 
 ### 9.1 查看当前姿态反馈（裁判系统 → BT 输入）
 
@@ -148,23 +148,40 @@ grep -i "posture\|姿态\|DecidePosture" /ws/launch_logs/*.log 2>/dev/null | tai
 # 搜索 sentry_cmd 发布相关
 grep -i "SentryCmdMux\|sentry_cmd" /ws/launch_logs/*.log 2>/dev/null | tail -20
 ```
+> **切换规则**: 普通姿态切换仍受 5 秒冷却和姿态降级守卫约束。
+> **基地威胁模式**: 触发后优先回防 `defend_anchor`，未到锚点时输出移动(3)；到达锚点后输出进攻(1)；威胁解除后才恢复普通姿态决策。
 
-### 9.6 姿态决策评分逻辑速查
+## 10. 基地威胁模式调试
 
-| 条件 | 攻击(1) | 防御(2) | 移动(3) |
-|------|---------|---------|---------|
-| 基础分 | 5 | 8 | 10 |
-| has_target | +35 | — | — |
-| hp > 50% | +20 | — | — |
-| 30% < hp < 50% | +8 | +15 | +5 |
-| hp < 30% | — | +35 | — |
-| buff_defense > 0 | +15 | — | — |
-| buff_cool > 0 | +12 | — | — |
-| buff_vuln > 0 | — | +50 | — |
-| base_threat | — | +30 | — |
-| heat > heat_high | — | +25 | — |
-| !has_target | — | +8 | +10 |
-| elapsed > 180s | +18 | — | — |
-| ammo <= 0 | →0 | — | +50 |
+```bash
+# 1) 单独开一个终端，发送基地威胁输入：敌人在基地附近 + 基地持续掉血
+source /opt/ros/humble/setup.bash && \
+source /ws/.buildcache/Alphabet/install/setup.bash && \
+python3 /ws/scripts/used/rmuc_test_publisher.py \
+  --phase=4 \
+  --enemy-near-base \
+  --base-hp-drain=5 \
+  --duration=25
 
-> **切换规则**: 5秒冷却 + 新姿态评分需超出当前评分 ≥12 分才切换。`base_threat` 强制切换为攻击(1)且无视冷却。
+# 3) 观察姿态：早期应为移动(3)，到达防御锚点后应切到进攻(1)
+ros2 topic echo /red_standard_robot1/sentry_decision_status --field current_posture
+
+# 3.1) 查询当前基地威胁锁存状态（最关键）
+# 当前没有单独 ROS 话题直接发布 threat.base；
+# 看最新一条基地威胁事件日志即可判断当前状态：
+# - 最新是“基地威胁触发” → 当前 threat.base=true
+# - 最新是“基地威胁解除” → 当前 threat.base=false
+grep -hE '基地威胁触发|基地威胁解除' /ws/launch_logs/*.log 2>/dev/null | tail -1
+
+# 4) 观察 BT 是否发出回防锚点目标
+grep -i 'DefendAnchor\|New goal\|Reached the goal' /ws/launch_logs/*.log 2>/dev/null | tail -20
+
+# 5) 观察当前位置是否接近 defend_anchor
+ros2 topic echo /red_standard_robot1/robot_position --once
+```
+
+> 预期现象:
+> 0. `grep ... | tail -1` 若输出“基地威胁触发”，说明当前 `threat.base=true`；若最后一条是“基地威胁解除”，说明当前 `threat.base=false`。
+> 1. `sentry_decision_status.current_posture` 先为 3，随后变为 1。
+> 2. 日志出现 `DefendAnchor New goal: [ 0.097, -0.401 ]`。
+> 3. 控制器日志出现 `Reached the goal!`。

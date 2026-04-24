@@ -125,13 +125,21 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
 
   // 进入条件：雷达扫到敌人在基地附近 + 基地掉血
   bool base_hp_is_dropping = false;
+  auto now = std::chrono::steady_clock::now();
   if (th) {
     base_hp_is_dropping = (last_base_hp_ >= 0 && th->base_hp < static_cast<uint16_t>(last_base_hp_));
     if (base_hp_is_dropping && any_enemy_near) {
       base_threat = true;
-      std::cout << "[ParseSentryBlackboard] 基地威胁触发：雷达扫到敌人在基地 "
-                << base_threat_enter_distance << "m 内且基地掉血"
-                << std::endl;
+      const bool should_log_trigger = !base_threat_latched_ ||
+        !has_base_threat_trigger_log_ ||
+        (now - last_base_threat_trigger_log_) >= std::chrono::seconds(5);
+      if (should_log_trigger) {
+        std::cout << "[ParseSentryBlackboard] 基地威胁触发：雷达扫到敌人在基地 "
+                  << base_threat_enter_distance << "m 内且基地掉血"
+                  << std::endl;
+        last_base_threat_trigger_log_ = now;
+        has_base_threat_trigger_log_ = true;
+      }
     }
     last_base_hp_ = static_cast<int>(th->base_hp);
   }
@@ -144,7 +152,6 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
 
   if (base_threat) {
     bool is_calm = !gimbal_detects_enemy && !base_hp_is_dropping;
-    auto now = std::chrono::steady_clock::now();
     if (is_calm) {
       if (!base_threat_calm_tracking_) {
         base_threat_calm_tracking_ = true;

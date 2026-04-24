@@ -64,6 +64,8 @@ private:
   bool logged_missing_base_config_{false};
   bool logged_missing_base_radius_{false};
   bool logged_missing_base_calm_timeout_{false};
+  std::chrono::steady_clock::time_point last_base_threat_trigger_log_{};
+  bool has_base_threat_trigger_log_{false};
 
   // 基地威胁自动解除：危机模式下连续无敌人+基地不掉血超过30s→自动解除
   std::chrono::steady_clock::time_point base_threat_calm_start_{};
