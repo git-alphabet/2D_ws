@@ -24,7 +24,6 @@
                               arrive_radius="{cfg.arrive_radius}"/>
                     <RmucIsDetectEnemy message="{robot_status}"/>
                     <RmucNavControlCmd cmd_type="3" emergency_stop="False"/>
-                    <!-- 底盘旋转由全局 GlobalRobotControl 控制 -->
                     <KeepRunning/>
                 </ReactiveSequence>
 
