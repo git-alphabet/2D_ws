@@ -47,6 +47,7 @@ def _set_navigation_switches(
     default_style_file = "rmuc_01.xml"
     enable_rm_bt = False
     style_file = default_style_file
+    rm_bt_executable = "rm_behavior_tree"
     processed_file = str(params_path)
     controller_plugin_name = None
     neupan_frame_name = None
@@ -611,6 +612,27 @@ def _set_navigation_switches(
         if not rm_bt_params and target_data is not raw_yaml:
             rm_bt_params = _get_ros_params(raw_yaml, "rm_behavior_tree")
         style_file = rm_bt_params.get("style", style_file)
+        rm_bt_executable = rm_bt_params.get("executable", rm_bt_executable)
+
+        # 统一从 rm_behavior_tree 包中加载 RMUC 哨兵参数，避免在 nav2_params.yaml 里重复维护。
+        try:
+            rm_bt_share_dir = get_package_share_directory("rm_behavior_tree")
+            rmuc_bt_params_file = os.path.join(
+                rm_bt_share_dir, "config", "RMUC_2026", "rmuc_2026_params.yaml"
+            )
+            with open(rmuc_bt_params_file, "r", encoding="utf-8") as _f:
+                _rmuc_params_yaml = yaml.safe_load(_f) or {}
+            rmuc_rm_bt_params = _get_ros_params(_rmuc_params_yaml, "rm_behavior_tree")
+            if isinstance(rmuc_rm_bt_params, dict) and rmuc_rm_bt_params:
+                target_rm_bt = target_data.setdefault("rm_behavior_tree", {}).setdefault(
+                    "ros__parameters", {}
+                )
+                for _k, _v in rmuc_rm_bt_params.items():
+                    if target_rm_bt.get(_k) != _v:
+                        target_rm_bt[_k] = copy.deepcopy(_v)
+                        switch_override_required = True
+        except Exception:
+            pass
         if behavior_tree_selector:
             selector_lower = behavior_tree_selector.lower()
             if selector_lower in {"disabled", "none", "nav2", "default"}:
@@ -779,6 +801,7 @@ def _set_navigation_switches(
         SetLaunchConfiguration(
             "enable_rm_behavior_tree", "true" if enable_rm_bt else "false"
         ),
+        SetLaunchConfiguration("rm_behavior_tree_executable", rm_bt_executable),
         SetLaunchConfiguration("rm_behavior_tree_style_path", style_path),
         SetLaunchConfiguration("processed_params_file", processed_file),
         SetLaunchConfiguration("enable_obstacle_scan", enable_obstacle_scan_value),

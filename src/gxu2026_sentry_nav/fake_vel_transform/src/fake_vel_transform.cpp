@@ -14,6 +14,9 @@
 
 #include "fake_vel_transform/fake_vel_transform.hpp"
 
+#include "example_interfaces/msg/float32.hpp"
+#include <cmath>
+
 #include "tf2/utils.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
@@ -23,6 +26,7 @@ namespace fake_vel_transform
 constexpr double EPSILON = 1e-5;
 constexpr double CONTROLLER_TIMEOUT = 0.5;
 constexpr double OUTPUT_HOLD_PUBLISH_TIMEOUT = 0.1;
+constexpr double SPIN_LINEAR_STOP_THRESHOLD = 0.05;
 
 FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
 : Node("fake_vel_transform", options)
@@ -31,7 +35,6 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
 
   // Initialize state
   current_robot_base_angle_ = 0.0;
-  spin_speed_ = 0.0f;
   last_controller_activate_time_ = this->get_clock()->now();
   last_cmd_vel_rx_time_ = last_controller_activate_time_;
   last_cmd_vel_pub_time_ = last_controller_activate_time_;
@@ -40,24 +43,33 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->declare_parameter<std::string>("fake_robot_base_frame", "gimbal_link_fake");
   this->declare_parameter<std::string>("odom_topic", "odom");
   this->declare_parameter<std::string>("local_plan_topic", "local_plan");
+  this->declare_parameter<std::string>("robot_control_topic", "robot_control");
   this->declare_parameter<std::string>("cmd_spin_topic", "cmd_spin");
+  this->declare_parameter<bool>("use_manual_spin_override", false);
+  this->declare_parameter<std::string>("manual_spin_override_topic", "manual_chassis_spin");
   this->declare_parameter<std::string>("input_cmd_vel_topic", "");
   this->declare_parameter<std::string>("output_cmd_vel_topic", "");
   this->declare_parameter<float>("init_spin_speed", 0.0);
+  this->declare_parameter<bool>("disable_spin_while_moving", true);
 
   this->get_parameter("robot_base_frame", robot_base_frame_);
   this->get_parameter("fake_robot_base_frame", fake_robot_base_frame_);
   this->get_parameter("odom_topic", odom_topic_);
   this->get_parameter("local_plan_topic", local_plan_topic_);
+  this->get_parameter("robot_control_topic", robot_control_topic_);
   this->get_parameter("cmd_spin_topic", cmd_spin_topic_);
+  this->get_parameter("use_manual_spin_override", use_manual_spin_override_);
+  this->get_parameter("manual_spin_override_topic", manual_spin_override_topic_);
   this->get_parameter("input_cmd_vel_topic", input_cmd_vel_topic_);
   this->get_parameter("output_cmd_vel_topic", output_cmd_vel_topic_);
   this->get_parameter("init_spin_speed", init_spin_speed_);
+  this->get_parameter("disable_spin_while_moving", disable_spin_while_moving_);
 
   RCLCPP_INFO(
     get_logger(),
-    "Spin control: topic=%s, init_spin_speed=%.3f rad/s (enabled when RMUCRobotControl.chassis_spin=true)",
-    robot_control_topic_.c_str(), init_spin_speed_);
+    "Spin control: topic=%s, init_spin_speed=%.3f rad/s, disable_spin_while_moving=%s",
+    robot_control_topic_.c_str(), init_spin_speed_,
+    disable_spin_while_moving_ ? "true" : "false");
 
   tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
@@ -68,7 +80,17 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
     robot_control_topic_, 10,
     std::bind(&FakeVelTransform::robotControlCallback, this, std::placeholders::_1));
   cmd_spin_sub_ = this->create_subscription<example_interfaces::msg::Float32>(
-    cmd_spin_topic_, 1, std::bind(&FakeVelTransform::cmdSpinCallback, this, std::placeholders::_1));
+    cmd_spin_topic_, 10,
+    std::bind(&FakeVelTransform::cmdSpinCallback, this, std::placeholders::_1));
+  if (use_manual_spin_override_) {
+    manual_spin_override_sub_ = this->create_subscription<std_msgs::msg::Bool>(
+      manual_spin_override_topic_, 10,
+      std::bind(&FakeVelTransform::manualSpinOverrideCallback, this, std::placeholders::_1));
+    RCLCPP_WARN(
+      get_logger(),
+      "Manual spin override enabled: topic=%s (this overrides RMUL.chassis_spin)",
+      manual_spin_override_topic_.c_str());
+  }
   cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
     input_cmd_vel_topic_, 10,
     std::bind(&FakeVelTransform::cmdVelCallback, this, std::placeholders::_1));
@@ -115,6 +137,26 @@ void FakeVelTransform::robotControlCallback(const sp_msgs::msg::RMUCRobotControl
 void FakeVelTransform::cmdSpinCallback(const example_interfaces::msg::Float32::SharedPtr msg)
 {
   spin_speed_ = msg->data;
+  has_received_cmd_spin_ = true;
+  if (!cmd_spin_override_logged_) {
+    RCLCPP_INFO(
+      get_logger(),
+      "Received cmd_spin for the first time, dynamic cmd_spin now overrides init_spin_speed.");
+    cmd_spin_override_logged_ = true;
+  }
+}
+
+void FakeVelTransform::manualSpinOverrideCallback(const std_msgs::msg::Bool::SharedPtr msg)
+{
+  const bool prev = manual_spin_override_enabled_;
+  manual_spin_override_enabled_ = msg->data;
+
+  if (manual_spin_override_enabled_ != prev || !last_spin_enabled_logged_) {
+    RCLCPP_INFO(
+      get_logger(), "Manual spin override updated: enabled=%s",
+      manual_spin_override_enabled_ ? "true" : "false");
+    last_spin_enabled_logged_ = true;
+  }
 }
 
 void FakeVelTransform::odometryCallback(const nav_msgs::msg::Odometry::ConstSharedPtr & msg)
@@ -221,7 +263,25 @@ geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
   const geometry_msgs::msg::Twist::SharedPtr & twist, float yaw_diff)
 {
   geometry_msgs::msg::Twist aft_tf_vel;
-  aft_tf_vel.angular.z = twist->angular.z + spin_speed_;
+
+  float current_spin = 0.0f;
+  // spin_enabled_ 由 BT RmucRobotControl 的 chassis_spin 控制
+  if (spin_enabled_) {
+    if (has_received_cmd_spin_) {
+      current_spin = spin_speed_;      // NonlinearSpinPublisher 动态值优先
+    } else {
+      current_spin = init_spin_speed_; // 回退到初始自旋速度
+    }
+  }
+
+  const double linear_speed = std::hypot(twist->linear.x, twist->linear.y);
+  const bool is_moving = linear_speed > SPIN_LINEAR_STOP_THRESHOLD;
+  if (disable_spin_while_moving_ && is_moving) {
+    aft_tf_vel.angular.z = 0.0;
+  } else {
+    aft_tf_vel.angular.z = current_spin;
+  }
+
   aft_tf_vel.linear.x = twist->linear.x * cos(yaw_diff) + twist->linear.y * sin(yaw_diff);
   aft_tf_vel.linear.y = -twist->linear.x * sin(yaw_diff) + twist->linear.y * cos(yaw_diff);
   return aft_tf_vel;

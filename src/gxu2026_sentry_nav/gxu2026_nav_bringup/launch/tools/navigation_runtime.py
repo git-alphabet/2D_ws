@@ -58,6 +58,7 @@ def build_navigation_runtime_actions(
     sensor_scan_lidar_odometry_topic,
     enable_gimbal_yaw_bridge,
     enable_rm_behavior_tree,
+    rm_behavior_tree_executable,
     rm_behavior_tree_style_path,
     enable_obstacle_scan,
     enable_mid360_costmap_additive,
@@ -284,7 +285,7 @@ def build_navigation_runtime_actions(
 
     start_rm_behavior_tree_cmd = Node(
         package="rm_behavior_tree",
-        executable="rm_behavior_tree",
+        executable=rm_behavior_tree_executable,
         name="rm_behavior_tree",
         output="screen",
         respawn=use_respawn,

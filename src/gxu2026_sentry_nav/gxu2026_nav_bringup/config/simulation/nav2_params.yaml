@@ -12,7 +12,7 @@ pb_navigation_switches:
   ros__parameters:
     controller_plugin: "neupan_nav2_controller"   # 控制器插件选择：neupan_nav2_controller / pb_omni_pid_pursuit_controller
     odometry_source: "point_lio"                   #point_lio / small_point_lio / loam_interface
-    behavior_tree: "default"                       # .xml or default,none
+    behavior_tree: "config/RMUC_2026/spin_and_navigate.xml"                       # .xml or default,none
     robot_description_file: "gxu2026_sentry_robot" # 机器人描述文件基名：对应 gxu2026_robot_description/resource/xmacro/<name>.sdf.xmacro
 
 
@@ -199,7 +199,8 @@ small_point_lio:
 # 行为树相关（RM 侧）：仿真使用 sim time
 rm_behavior_tree:
   ros__parameters:
-    style: rmuc_01.xml
+    executable: rm_behavior_tree_rmuc
+    style: config/RMUC_2026/spin_and_navigate.xml
     use_sim_time: True
 
 # Point-LIO：里程计/定位源之一（注意其 tf_send_en = False 时不会发布 TF）
@@ -371,10 +372,11 @@ fake_vel_transform:
     odom_topic: "odometry"
     robot_base_frame: "gimbal_yaw"
     fake_robot_base_frame: "gimbal_yaw_fake"
-    local_plan_topic: "controller_server/FollowPath/local_plan"
+    local_plan_topic: "local_plan"
     input_cmd_vel_topic: "cmd_vel_nav2_result"
     output_cmd_vel_topic: "cmd_vel"
     cmd_spin_topic: "cmd_spin"
+    disable_spin_while_moving: true
     init_spin_speed: 3.14
 
 # 非线性小陀螺：发布 cmd_spin（Float32，单位 rad/s），被 fake_vel_transform 叠加到 cmd_vel.angular.z

@@ -56,6 +56,7 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
   rclcpp::Subscription<sp_msgs::msg::RMUCRobotControl>::SharedPtr robot_control_sub_;
   rclcpp::Subscription<example_interfaces::msg::Float32>::SharedPtr cmd_spin_sub_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr manual_spin_override_sub_;
 
   message_filters::Subscriber<nav_msgs::msg::Odometry> odom_sub_filter_;
   message_filters::Subscriber<nav_msgs::msg::Path> local_plan_sub_filter_;
@@ -73,10 +74,20 @@ private:
   std::string fake_robot_base_frame_;
   std::string odom_topic_;
   std::string local_plan_topic_;
+  std::string robot_control_topic_;
   std::string cmd_spin_topic_;
+  std::string manual_spin_override_topic_;
   std::string input_cmd_vel_topic_;
   std::string output_cmd_vel_topic_;
-  float spin_speed_;
+  float init_spin_speed_;
+  float spin_speed_{0.0f};
+  bool has_received_cmd_spin_{false};
+  bool spin_enabled_{false};
+  bool last_spin_enabled_logged_{false};
+  bool use_manual_spin_override_{false};
+  bool manual_spin_override_enabled_{false};
+  bool disable_spin_while_moving_{true};
+  bool cmd_spin_override_logged_{false};
 
   std::mutex cmd_vel_mutex_;
   geometry_msgs::msg::Twist::SharedPtr latest_cmd_vel_;

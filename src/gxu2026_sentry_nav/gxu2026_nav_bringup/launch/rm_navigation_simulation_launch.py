@@ -20,6 +20,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
+    ExecuteProcess,
     IncludeLaunchDescription,
     LogInfo,
     OpaqueFunction,
@@ -256,5 +257,26 @@ def generate_launch_description():
     ld.add_action(start_velodyne_convert_tool)
     ld.add_action(bringup_cmd)
     ld.add_action(rviz_cmd)
+
+    # 标定辅助节点（仅 SLAM 模式）
+    calib_script = os.environ.get("CALIB_HELPER_SCRIPT", "")
+    if not calib_script:
+        _ws_candidate = Path(bringup_dir)
+        for _ in range(6):
+            _ws_candidate = _ws_candidate.parent
+            _candidate = _ws_candidate / "scripts" / "calib_point_helper.py"
+            if _candidate.exists():
+                calib_script = str(_candidate)
+                break
+    if calib_script and os.path.isfile(calib_script):
+        calib_args = ["python3", calib_script]
+        if os.environ.get("CALIB_NO_CSV", "").strip().lower() in {"1", "true", "yes"}:
+            calib_args.append("--no-csv")
+        start_calib_helper = ExecuteProcess(
+            cmd=calib_args,
+            output="screen",
+            condition=IfCondition(slam),
+        )
+        ld.add_action(start_calib_helper)
 
     return ld

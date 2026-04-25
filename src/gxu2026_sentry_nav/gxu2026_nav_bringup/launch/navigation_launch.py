@@ -69,6 +69,7 @@ def generate_launch_description():
 
     enable_gimbal_yaw_bridge = LaunchConfiguration("enable_gimbal_yaw_bridge")
     enable_rm_behavior_tree = LaunchConfiguration("enable_rm_behavior_tree")
+    rm_behavior_tree_executable = LaunchConfiguration("rm_behavior_tree_executable")
     rm_behavior_tree_style_path = LaunchConfiguration("rm_behavior_tree_style_path")
 
     lifecycle_nodes = [
@@ -268,6 +269,7 @@ def generate_launch_description():
         sensor_scan_lidar_odometry_topic=sensor_scan_lidar_odometry_topic,
         enable_gimbal_yaw_bridge=enable_gimbal_yaw_bridge,
         enable_rm_behavior_tree=enable_rm_behavior_tree,
+        rm_behavior_tree_executable=rm_behavior_tree_executable,
         rm_behavior_tree_style_path=rm_behavior_tree_style_path,
         enable_obstacle_scan=enable_obstacle_scan,
         enable_mid360_costmap_additive=enable_mid360_costmap_additive,
@@ -313,6 +315,7 @@ def generate_launch_description():
     # processed params defaults to original params file
     ld.add_action(SetLaunchConfiguration("processed_params_file", params_file))
     ld.add_action(SetLaunchConfiguration("enable_obstacle_scan", "false"))
+    ld.add_action(SetLaunchConfiguration("rm_behavior_tree_executable", "rm_behavior_tree"))
     ld.add_action(SetLaunchConfiguration("enable_mid360_costmap_additive", "false"))
     ld.add_action(SetLaunchConfiguration("enable_odin1_loam_reframe", "false"))
     ld.add_action(SetLaunchConfiguration("enable_scan_additive", "false"))
