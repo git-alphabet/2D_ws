@@ -15,6 +15,7 @@
 
 import os
 from pathlib import Path
+from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -258,7 +259,13 @@ def generate_launch_description():
     ld.add_action(bringup_cmd)
     ld.add_action(rviz_cmd)
 
-    # 标定辅助节点（仅 SLAM 模式）
+    # CALIB_HELPER_MODE:
+    #   off/false/0  
+    #   slam          
+    #   always/nav    
+    calib_mode = os.environ.get("CALIB_HELPER_MODE", "slam").strip().lower()
+    calib_enabled = calib_mode not in ("0", "false", "no", "off", "disable", "disabled")
+
     calib_script = os.environ.get("CALIB_HELPER_SCRIPT", "")
     if not calib_script:
         _ws_candidate = Path(bringup_dir)
@@ -268,15 +275,22 @@ def generate_launch_description():
             if _candidate.exists():
                 calib_script = str(_candidate)
                 break
-    if calib_script and os.path.isfile(calib_script):
+
+    if calib_enabled and calib_script and os.path.isfile(calib_script):
         calib_args = ["python3", calib_script]
-        if os.environ.get("CALIB_NO_CSV", "").strip().lower() in {"1", "true", "yes"}:
+        if os.environ.get("CALIB_NO_CSV", "").strip() in ("1", "true", "yes"):
             calib_args.append("--no-csv")
-        start_calib_helper = ExecuteProcess(
-            cmd=calib_args,
-            output="screen",
-            condition=IfCondition(slam),
-        )
+        if calib_mode in ("always", "all", "nav"):
+            start_calib_helper = ExecuteProcess(
+                cmd=calib_args,
+                output="screen",
+            )
+        else:
+            start_calib_helper = ExecuteProcess(
+                cmd=calib_args,
+                output="screen",
+                condition=IfCondition(slam),
+            )
         ld.add_action(start_calib_helper)
 
     return ld

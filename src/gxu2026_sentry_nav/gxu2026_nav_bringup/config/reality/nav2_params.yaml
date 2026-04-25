@@ -30,6 +30,13 @@ robot_description_runtime:
   ros__parameters:
     robot_description_file: "gxu2026_sentry_robot"
 
+   # 标定辅助节点模式：
+    #   off     关闭
+    #   slam    仅 SLAM 时启动（默认）
+    #   always  任何时候都启动（含纯导航）
+    calib_helper_mode: "always"
+    # 是否不保存 CSV 文件（true 表示跳过 CSV 写入）
+    calib_no_csv: false
 
 # /auto_aim_yaw -> serial/gimbal_joint_state
 # 说明：
