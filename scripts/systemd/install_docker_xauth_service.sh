@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ "${EUID}" -ne 0 ]]; then
+  echo "Please run as root: sudo bash scripts/systemd/install_docker_xauth_service.sh" >&2
+  exit 1
+fi
+
+install -m 0755 "$SCRIPT_DIR/docker_xauth_sync.sh" /usr/local/sbin/gxu2026-docker-xauth-sync
+install -m 0644 "$SCRIPT_DIR/gxu2026-docker-xauth.service" /etc/systemd/system/gxu2026-docker-xauth.service
+install -m 0644 "$SCRIPT_DIR/gxu2026-docker-xauth.timer" /etc/systemd/system/gxu2026-docker-xauth.timer
+
+systemctl daemon-reload
+systemctl enable --now gxu2026-docker-xauth.timer
+systemctl start gxu2026-docker-xauth.service
+
+echo "Installed and started: gxu2026-docker-xauth.service + gxu2026-docker-xauth.timer"
+echo "Check status with: systemctl status gxu2026-docker-xauth.service"
+echo "Check timer with: systemctl status gxu2026-docker-xauth.timer"
