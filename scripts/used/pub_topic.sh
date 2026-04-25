@@ -57,13 +57,13 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # ── 发布 game_status (1 Hz) ─────────────────────────────────────
-ros2 topic pub /"$NS"/game_status rm_decision_interfaces/msg/RMUL \
+ros2 topic pub /"$NS"/game_status sp_msgs/msg/RMUL \
     "{game_progress: $GAME_PROGRESS, stage_remain_time: $REMAIN_TIME}" \
     --rate 1 --qos-reliability reliable &
 PIDS+=($!)
-
-# ── 发布 robot_status (10 Hz) ───────────────────────────────────
-ros2 topic pub /"$NS"/robot_status rm_decision_interfaces/msg/RMUL \
+ 
+  # ── 发布 robot_status (10 Hz) ───────────────────────────────────
+ros2 topic pub /"$NS"/robot_status sp_msgs/msg/RMUL \
     "{current_hp: $HP, shooter_heat: $SHOOTER_HEAT, is_detect_enemy: $DETECT_ENEMY, is_attacked: 0}" \
     --rate 10 --qos-reliability reliable &
 PIDS+=($!)

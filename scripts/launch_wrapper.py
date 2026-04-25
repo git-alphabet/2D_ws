@@ -26,10 +26,6 @@ def _beijing_timestamp() -> str:
     return datetime.now(BEIJING_TZ).strftime("%Y%m%d_%H%M")
 
 
-def _beijing_log_timestamp() -> str:
-    return datetime.now(BEIJING_TZ).strftime("%Y%m%d_%H%M%S")
-
-
 def _init_dirs(ws_dir: Path) -> None:
     """启动最开始就创建必要的目录."""
     dirs_to_create = [
@@ -560,8 +556,7 @@ def _start_watchdog(cfg: CommonConfig, topics: list[tuple[str, float]], bg: "Bac
     )
     base_env = _build_base_env(cfg)
     log_dir = _runtime_log_dir(cfg)
-    log_ts = _beijing_log_timestamp()
-    log_file = log_dir / f"{Path(cfg.script_name).stem}_watchdog_{log_ts}.log"
+    log_file = log_dir / f"{Path(cfg.script_name).stem}_watchdog.log"
 
     # Python one-liner: 每 10s 用 ros2 topic hz --window 10 轮询一次
     py_script = r"""
@@ -629,26 +624,17 @@ def _kill_reality(script_name: str) -> None:
         _kill_by_pattern(pat, title, script_name)
 
 
-def _kill_bag_recorders(script_name: str) -> None:
-    for pat, title in [
-        (r"(^|/)record_bag(\s|$)", "record_bag wrapper"),
-        (r"(^|\s)ros2\s+bag\s+record(\s|$)", "ros2 bag recorder"),
-    ]:
-        _kill_by_pattern(pat, title, script_name)
-
-
 def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: str, *, background: bool = False, bg: Optional[BackgroundGroup] = None, pgid_file: Optional[Path] = None, before_shutdown: Optional[Callable[[], None]] = None, post_command: str = "") -> None:
     base_env = _build_base_env(cfg)
     log_dir = _runtime_log_dir(cfg)
     slug = _slugify(title)
-    log_ts = _beijing_log_timestamp()
-    log_file = log_dir / f"{Path(cfg.script_name).stem}_{slug}_{log_ts}.log"
+    log_file = log_dir / f"{Path(cfg.script_name).stem}_{slug}.log"
 
     full_cmd = f"cd {shlex.quote(str(cfg.ws_dir))}; {base_env}"
     if extra_env:
         full_cmd += f"; {extra_env}"
     full_cmd += f"; {command}"
-    wrap_cmd = f"{full_cmd} 2>&1 | tee -a {shlex.quote(str(log_file))}"
+    wrap_cmd = f"export PYTHONUNBUFFERED=1; stdbuf -oL -eL bash -c {shlex.quote(full_cmd)} 2>&1 | tee {shlex.quote(str(log_file))}"
     print(f"[{cfg.script_name}] LaunchCmd[{title}]: {command}", file=sys.stderr)
     _log_start_status(cfg.script_name, title, command, log_file)
 
@@ -746,7 +732,7 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
     keep_core = full_cmd
     if post_command:
         keep_core += f"; {post_command}"
-    keep_shell = f"{keep_core} 2>&1 | tee -a {shlex.quote(str(log_file))}; exec bash"
+    keep_shell = f"export PYTHONUNBUFFERED=1; stdbuf -oL -eL bash -c {shlex.quote(keep_core)} 2>&1 | tee {shlex.quote(str(log_file))}; exec bash"
     if term == "gnome-terminal":
         _run_shell(f"gnome-terminal --title={shlex.quote(title)} -- bash -c {shlex.quote(keep_shell)}")
         print(f"[{cfg.script_name}] STARTED {title} in gnome-terminal", file=sys.stderr)
@@ -798,31 +784,6 @@ def _wait_for_background(bg: BackgroundGroup, script_name: str) -> int:
     except (KeyboardInterrupt, SystemExit):
         pass
     return 0
-
-
-def _bag_record_command(cfg: CommonConfig) -> str:
-    mode = os.environ.get("AUTO_RECORD_BAG_MODE", "full").strip().lower() or "full"
-    if mode not in {"basic", "full"}:
-        print(
-            f"[{cfg.script_name}] Invalid AUTO_RECORD_BAG_MODE={mode!r}, fallback to 'full'",
-            file=sys.stderr,
-        )
-        mode = "full"
-
-    storage = os.environ.get("AUTO_RECORD_BAG_STORAGE", "sqlite3").strip().lower() or "sqlite3"
-    if storage not in {"sqlite3", "mcap"}:
-        print(
-            f"[{cfg.script_name}] Invalid AUTO_RECORD_BAG_STORAGE={storage!r}, fallback to 'sqlite3'",
-            file=sys.stderr,
-        )
-        storage = "sqlite3"
-
-    bag_script = cfg.ws_dir / "scripts/record_bag.sh"
-    return (
-        f"{shlex.quote(str(bag_script))} "
-        f"--mode {shlex.quote(mode)} "
-        f"--storage {shlex.quote(storage)}"
-    )
 
 
 def main(argv: list[str]) -> int:
@@ -989,26 +950,14 @@ def main(argv: list[str]) -> int:
         auto_save_cb = None
         auto_save_post_cmd = ""
 
-    use_watchdog = _is_truthy(os.environ.get("ENABLE_WATCHDOG"))
-    auto_record_bag = _is_truthy(os.environ.get("AUTO_RECORD_BAG"))
-
-    reality_bg: Optional[BackgroundGroup] = None
-    if use_watchdog or auto_record_bag:
-        reality_bg = BackgroundGroup(script_name)
-        atexit.register(reality_bg.cleanup)
-
-    if auto_record_bag:
-        if cfg.kill_existing:
-            _kill_bag_recorders(script_name)
-        bag_cmd = _bag_record_command(cfg)
-        _launch_in_terminal(cfg, "Reality Full Bag", bag_cmd, "", background=True, bg=reality_bg)
-
-    if use_watchdog and reality_bg is not None:
+    if _is_truthy(os.environ.get("ENABLE_WATCHDOG")):
+        _wd_bg = BackgroundGroup(script_name)
+        atexit.register(_wd_bg.cleanup)
         _start_watchdog(cfg, [
             ("/registered_scan", 5.0),
             ("/Odometry", 10.0),
             ("/scan", 5.0),
-        ], reality_bg)
+        ], _wd_bg)
 
     _launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env, pgid_file=_PGID_FILES["reality"], before_shutdown=auto_save_cb, post_command=auto_save_post_cmd)
     return 0
