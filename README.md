@@ -481,77 +481,42 @@ docker run -it --rm --name gxu_robotz_nav2026 \
 sudo apt-get install -y nvidia-container-toolkit
 sudo nvidia-ctk runtime configure --runtime=docker
 sudo systemctl restart docker
-
-# 2. 确保宿主机 Xauthority 文件存在（compose 会挂载 ${HOME}/.Xauthority）
-touch "${HOME}/.Xauthority"
-chmod 600 "${HOME}/.Xauthority" || true
-
-# 3. 配置 X11 自动授权服务（一次性）
-mkdir -p ~/.local/bin ~/.config/systemd/user
-cat > ~/.local/bin/docker-x11-access <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-if ! command -v xhost >/dev/null 2>&1; then
-  exit 0
-fi
-
-display="${DISPLAY:-}"
-if [[ -z "$display" ]] && command -v loginctl >/dev/null 2>&1 && [[ -n "${XDG_SESSION_ID:-}" ]]; then
-  detected_display="$(loginctl show-session "${XDG_SESSION_ID}" -p Display --value 2>/dev/null || true)"
-  [[ -n "$detected_display" ]] && display="$detected_display"
-fi
-[[ -z "$display" ]] && display=":0"
-
-xauth="${XAUTHORITY:-}"
-if [[ -z "$xauth" || ! -r "$xauth" ]]; then
-  for candidate in "/run/user/${UID}/gdm/Xauthority" "${HOME}/.Xauthority"; do
-    if [[ -r "$candidate" ]]; then
-      xauth="$candidate"
-      break
-    fi
-  done
-fi
-
-[[ -z "$xauth" || ! -r "$xauth" ]] && exit 0
-
-export DISPLAY="$display"
-export XAUTHORITY="$xauth"
-xhost +SI:localuser:root >/dev/null 2>&1 || true
-xhost +local:docker >/dev/null 2>&1 || true
-EOF
-
-chmod +x ~/.local/bin/docker-x11-access
-
-cat > ~/.config/systemd/user/docker-x11-access.service <<'EOF'
-[Unit]
-Description=Grant local Docker access to X11 after graphical login
-After=graphical-session.target
-PartOf=graphical-session.target
-
-[Service]
-Type=oneshot
-ExecStart=%h/.local/bin/docker-x11-access
-RemainAfterExit=yes
-
-[Install]
-WantedBy=graphical-session.target
-WantedBy=default.target
-EOF
-
-systemctl --user daemon-reload
-systemctl --user enable --now docker-x11-access.service
-systemctl --user --no-pager status docker-x11-access.service
 ```
 
-> `compose.dev.yml` 已改为 `${HOME}/.Xauthority:/tmp/.docker.xauth:ro`。
-> 不要再使用 `/tmp/.docker.xauth` 作为宿主机源路径，避免该路径被误创建为目录后触发 mount file/dir 类型冲突。
->
-> 规范：
-> - 不要在 `~/.xprofile`、`~/.profile`、`~/.bashrc` 中写 `xhost` 或 `export DISPLAY=:0`。
-> - 图形授权统一放在 user-level systemd 服务，避免污染 GDM 登录链路。
+#### 步骤 2：配置 X11 自动授权（系统服务，支持 Wayland + NoMachine）
 
-### 9.3 构建环境镜像
+> **为什么需要这步**：
+> 1) `/tmp` 每次重启会清空，`/tmp/.docker.xauth` 会丢失。  
+> 2) Wayland 和 NoMachine 的授权 cookie 位置不固定，单纯绑定 `~/.Xauthority` 经常不够用。  
+> 3) 旧方案是 user service + 单一 DISPLAY，容易在远程会话切换后失效。
+>
+> 新方案使用 **system service + timer**，周期性汇总 `/home/*/.Xauthority`、`/run/user/*/Xauthority`、`/run/user/*/.mutter-Xwaylandauth.*`，自动生成 `/tmp/.docker.xauth`，容器统一挂载这个文件。
+
+```bash
+cd ~/ros2_ws
+sudo apt-get install -y xauth
+chmod +x scripts/systemd/install_docker_xauth_service.sh
+sudo bash scripts/systemd/install_docker_xauth_service.sh
+```
+
+验证：
+
+```bash
+systemctl status gxu2026-docker-xauth.service
+systemctl status gxu2026-docker-xauth.timer
+ls -la /tmp/.docker.xauth   # 应为普通文件，非目录
+xauth -f /tmp/.docker.xauth list | head
+```
+
+如果你有自定义路径，也可在 `docker/.env` 中设置：
+
+```bash
+XAUTH_HOST_FILE=/tmp/.docker.xauth
+```
+
+> NoMachine 场景下若 `DISPLAY` 不是 `:0`，请在同一个图形会话里启动 `docker compose`，让当前 `DISPLAY` 自动透传到容器；否则可手动导出后再启动：`export DISPLAY=:1001`。
+
+### 7.3 构建环境镜像
 
 ```bash
 # 国内加速（默认已设为清华源，直接 build 即可）

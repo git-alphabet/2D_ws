@@ -1,0 +1,8 @@
+[Unit]
+Description=Sync Docker X11 auth cookie file
+After=systemd-user-sessions.service
+Wants=systemd-user-sessions.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/gxu2026-docker-xauth-sync
