@@ -104,6 +104,7 @@ private:
   bool cmd_spin_override_logged_{false};
 
   bool enable_speed_bump_min_speed_{true};
+  bool enable_speed_bump_zero_angular_z_{true};
   double speed_bump_min_linear_speed_{1.5};
   std::string speed_bump_map_frame_{"map"};
   bool publish_speed_bump_marker_{true};

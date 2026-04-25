@@ -12,7 +12,7 @@ pb_navigation_switches:
   ros__parameters:
     controller_plugin: "pb_omni_pid_pursuit_controller"   # 控制器插件选择：neupan_nav2_controller / pb_omni_pid_pursuit_controller
     odometry_source: "point_lio"                   #point_lio / small_point_lio / loam_interface
-    behavior_tree: "config/RMUC_2026/rmuc_2026.xml"  # .xml or default,none
+    behavior_tree: "none"  # .xml or default,none
 
 
     enable_gimbal_yaw_bridge: false               # 仿真中 TF 由 Gazebo bringup 的 robot_state_publisher 直接提供，无需此通路。
@@ -430,11 +430,13 @@ fake_vel_transform:
     output_cmd_vel_topic: "cmd_vel"
     robot_control_topic: "robot_control"
     # 安全开关：移动时禁止底盘旋转（仿真/实车统一为 true）
-    disable_spin_while_moving: true
+    disable_spin_while_moving: false
     # 默认自旋速度：BT 发 chassis_spin=True 后使用此值
     init_spin_speed: 3.14
     # 减速带速度下限控制：进入 speed_bump 区域后，线速度低于该值会被抬高
     enable_speed_bump_min_speed: true
+    # 减速带角速度限制：进入 speed_bump 区域后，强制 angular.z=0
+    enable_speed_bump_zero_angular_z: true
     speed_bump_min_linear_speed: 1.5
     speed_bump_map_frame: "map"
     speed_bump_zone_name: "speed_bump"

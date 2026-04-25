@@ -12,7 +12,6 @@ which is robust and simple for rectangular zones such as speed bumps.
 
 from __future__ import annotations
 
-import argparse
 import math
 from collections import deque
 from dataclasses import dataclass
@@ -21,6 +20,16 @@ from typing import Dict, Iterable, List, Sequence, Tuple
 
 import yaml
 from PIL import Image
+
+
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
+
+# 用户在这里修改输入输出路径，不再需要命令行传参。
+LABEL_IMAGE_PATH = WORKSPACE_ROOT / "rmuc_2025.png"
+MAP_YAML_PATH = WORKSPACE_ROOT / "src/gxu2026_sentry_nav/gxu2026_nav_bringup/map/simulation/rmuc_2025.yaml"
+OUTPUT_YAML_PATH = WORKSPACE_ROOT / "src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
+PALETTE_YAML_PATH: Path | None = None
+MIN_PIXELS = 20
 
 
 RGB = Tuple[int, int, int]
@@ -241,34 +250,19 @@ def convert(
         print(f"  {k}: {counts[k]}")
 
 
-def build_arg_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Convert semantic label image to semantic_zones.yaml")
-    p.add_argument("--label-image", required=True, type=Path, help="Path to RGB semantic label image")
-    p.add_argument("--map-yaml", required=True, type=Path, help="Path to ROS map yaml")
-    p.add_argument("--output-yaml", required=True, type=Path, help="Path to output semantic_zones.yaml")
-    p.add_argument(
-        "--palette-yaml",
-        type=Path,
-        default=None,
-        help="Optional palette yaml with labels list: name/rgb/zone_type, default is blue speed_bump",
-    )
-    p.add_argument(
-        "--min-pixels",
-        type=int,
-        default=20,
-        help="Ignore connected components with fewer pixels than this",
-    )
-    return p
-
-
 def main() -> int:
-    args = build_arg_parser().parse_args()
+    if not LABEL_IMAGE_PATH.exists():
+        raise FileNotFoundError(f"Label image not found: {LABEL_IMAGE_PATH}")
+    if not MAP_YAML_PATH.exists():
+        raise FileNotFoundError(f"Map yaml not found: {MAP_YAML_PATH}")
+
+    OUTPUT_YAML_PATH.parent.mkdir(parents=True, exist_ok=True)
     convert(
-        label_image=args.label_image,
-        map_yaml=args.map_yaml,
-        output_yaml=args.output_yaml,
-        palette_path=args.palette_yaml,
-        min_pixels=args.min_pixels,
+        label_image=LABEL_IMAGE_PATH,
+        map_yaml=MAP_YAML_PATH,
+        output_yaml=OUTPUT_YAML_PATH,
+        palette_path=PALETTE_YAML_PATH,
+        min_pixels=MIN_PIXELS,
     )
     return 0
 

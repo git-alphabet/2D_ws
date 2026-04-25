@@ -57,6 +57,7 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->declare_parameter<float>("init_spin_speed", 0.0);
   this->declare_parameter<bool>("disable_spin_while_moving", true);
   this->declare_parameter<bool>("enable_speed_bump_min_speed", true);
+  this->declare_parameter<bool>("enable_speed_bump_zero_angular_z", true);
   this->declare_parameter<double>("speed_bump_min_linear_speed", 1.5);
   this->declare_parameter<std::string>("speed_bump_map_frame", "map");
   this->declare_parameter<bool>("publish_speed_bump_marker", true);
@@ -77,6 +78,7 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->get_parameter("init_spin_speed", init_spin_speed_);
   this->get_parameter("disable_spin_while_moving", disable_spin_while_moving_);
   this->get_parameter("enable_speed_bump_min_speed", enable_speed_bump_min_speed_);
+  this->get_parameter("enable_speed_bump_zero_angular_z", enable_speed_bump_zero_angular_z_);
   this->get_parameter("speed_bump_min_linear_speed", speed_bump_min_linear_speed_);
   this->get_parameter("speed_bump_map_frame", speed_bump_map_frame_);
   this->get_parameter("publish_speed_bump_marker", publish_speed_bump_marker_);
@@ -96,8 +98,9 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
     disable_spin_while_moving_ ? "true" : "false");
   RCLCPP_INFO(
     get_logger(),
-    "Speed bump min speed: enabled=%s, min_linear_speed=%.3f, zone=%s, loaded=%s",
+    "Speed bump control: min_speed_enabled=%s, min_linear_speed=%.3f, zero_angular_enabled=%s, zone=%s, loaded=%s",
     enable_speed_bump_min_speed_ ? "true" : "false", speed_bump_min_linear_speed_,
+    enable_speed_bump_zero_angular_z_ ? "true" : "false",
     speed_bump_zone_name_.c_str(), speed_bump_zone_loaded_ ? "true" : "false");
   RCLCPP_INFO(
     get_logger(),
@@ -443,7 +446,7 @@ geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
   aft_tf_vel.linear.x = twist->linear.x * cos(yaw_diff) + twist->linear.y * sin(yaw_diff);
   aft_tf_vel.linear.y = -twist->linear.x * sin(yaw_diff) + twist->linear.y * cos(yaw_diff);
 
-  if (enable_speed_bump_min_speed_ && speed_bump_zone_loaded_) {
+  if ((enable_speed_bump_min_speed_ || enable_speed_bump_zero_angular_z_) && speed_bump_zone_loaded_) {
     double robot_x;
     double robot_y;
     bool robot_pose_ready;
@@ -467,8 +470,16 @@ geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
     }
 
     if (in_speed_bump) {
+      if (enable_speed_bump_zero_angular_z_ && std::abs(aft_tf_vel.angular.z) > EPSILON) {
+        aft_tf_vel.angular.z = 0.0;
+        RCLCPP_DEBUG_THROTTLE(
+          get_logger(), *get_clock(), 1000,
+          "Speed bump angular.z clamp applied: force 0.0 rad/s");
+      }
+
       const double transformed_linear_speed = std::hypot(aft_tf_vel.linear.x, aft_tf_vel.linear.y);
       if (
+        enable_speed_bump_min_speed_ &&
         transformed_linear_speed > EPSILON &&
         transformed_linear_speed < speed_bump_min_linear_speed_)
       {
@@ -526,14 +537,14 @@ void FakeVelTransform::loadSpeedBumpZoneFromYaml()
   speed_bump_zone_loaded_ = false;
   speed_bump_zone_vertices_.clear();
 
-  if (!enable_speed_bump_min_speed_) {
+  if (!enable_speed_bump_min_speed_ && !enable_speed_bump_zero_angular_z_) {
     return;
   }
 
   if (speed_bump_zones_file_.empty()) {
     RCLCPP_WARN(
       get_logger(),
-      "Speed bump min speed enabled but speed_bump_zones_file is empty, feature disabled.");
+      "Speed bump control enabled but speed_bump_zones_file is empty, feature disabled.");
     return;
   }
 
