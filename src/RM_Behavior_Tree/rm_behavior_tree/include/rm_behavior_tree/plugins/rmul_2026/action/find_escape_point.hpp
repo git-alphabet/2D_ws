@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <mutex>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "behaviortree_cpp/action_node.h"
 #include "behaviortree_ros2/ros_node_params.hpp"
@@ -56,6 +58,8 @@ public:
                           "max ms to stay at escape point before returning FAILURE (0=no timeout)"),
       BT::InputPort<double>("arrive_radius", 0.3,
                              "distance to escape point considered arrived"),
+      BT::InputPort<std::string>("zones_file", "",
+                                  "semantic zones YAML file path for keepout filtering"),
       BT::OutputPort<double>("escape_x", "escape point x"),
       BT::OutputPort<double>("escape_y", "escape point y"),
       BT::OutputPort<geometry_msgs::msg::PoseStamped>("escape_pose", "escape point as PoseStamped"),
@@ -98,13 +102,15 @@ private:
 
   /// 在给定参数下搜索候选点，返回最佳逃脱点
   /// has_goal=false 时进入全局开阔区搜索模式（纯 clearance 排序）
+  /// robot_in_keepout=true 时跳过路径可达性检查（允许穿越禁行区边界逃离）
   bool searchPhase(
     double robot_x, double robot_y,
     double goal_x, double goal_y,
     double retreat_dx, double retreat_dy,
     bool has_goal,
     const SearchParams & params,
-    double & out_x, double & out_y) const;
+    double & out_x, double & out_y,
+    bool robot_in_keepout = false) const;
 
   /// 射线检查：沿 (ax,ay)->(bx,by) 采样，若路径上有 cost>=lethal 的像素则返回 false
   bool isPathClear(double ax, double ay, double bx, double by,
@@ -112,6 +118,12 @@ private:
 
   /// 检查候选点是否在黑名单中
   bool isBlacklisted(double x, double y) const;
+
+  /// 检查候选点是否在禁行区多边形内
+  bool isInKeepoutZone(double x, double y) const;
+
+  /// 从 YAML 加载禁行区多边形
+  void loadKeepoutZones(const std::string & yaml_path);
 
   /// 输出逃脱点到端口
   void outputResult(double x, double y);
@@ -147,6 +159,12 @@ private:
   std::vector<BlacklistEntry> blacklist_;
   static constexpr double BLACKLIST_RADIUS = 0.4;           // 黑名单点周围 0.4m 内不选
   static constexpr int BLACKLIST_EXPIRE_MS = 30000;         // 黑名单 30s 后过期
+
+  // ---- 禁行区多边形（从 semantic_zones.yaml 加载）----
+  using Polygon = std::vector<std::pair<double, double>>;
+  std::vector<Polygon> keepout_polygons_;
+  bool keepout_loaded_{false};
+  std::string loaded_zones_file_;
 };
 
 }  // namespace rm_behavior_tree

@@ -36,7 +36,8 @@ public:
       BT::OutputPort<double>("control_zone_offset_x"),
       BT::OutputPort<double>("control_zone_offset_y"),
       BT::OutputPort<double>("arrive_radius"),
-      BT::OutputPort<double>("stuck_check_radius")
+      BT::OutputPort<double>("stuck_check_radius"),
+      BT::OutputPort<std::string>("semantic_zones_file")
     };
   }
 

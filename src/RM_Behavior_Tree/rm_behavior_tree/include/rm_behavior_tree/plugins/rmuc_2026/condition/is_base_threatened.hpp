@@ -6,7 +6,7 @@
 
 namespace rm_behavior_tree
 {
-/// 基地受威胁判定：base_threat 为 true 或 基地血量低于 50%
+/// 基地受威胁判定：统一消费黑板派生后的 base_threat
 class IsBaseThreatenedCondition : public BT::ConditionNode
 {
 public:
@@ -14,10 +14,7 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
-      BT::InputPort<bool>("base_threat"),
-      BT::InputPort<int>("base_hp_cur"),
-      BT::InputPort<int>("base_hp_max"),
-      BT::InputPort<double>("enemy_near_base_radius", "2.0", "enemy_near_base_radius")};
+      BT::InputPort<bool>("base_threat")};
   }
   BT::NodeStatus tick() override;
 };

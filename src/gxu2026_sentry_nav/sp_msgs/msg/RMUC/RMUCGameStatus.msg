@@ -9,7 +9,7 @@
 
 std_msgs/Header header
 
-uint8  game_progress         # 比赛阶段
+uint8  game_progress         # [1B] 比赛阶段
                              #   0=未开始  1=准备阶段  2=自检阶段
                              #   3=5秒倒计时  4=比赛进行中  5=结算中
-uint16 stage_remain_time     # 当前阶段剩余时间 (秒)
+uint16 stage_remain_time     # [2B] 当前阶段剩余时间 (秒)

@@ -9,47 +9,68 @@ InitSentryConfigAction::InitSentryConfigAction(
 
 BT::NodeStatus InitSentryConfigAction::tick()
 {
-  // 所有端口均带有 XML 默认值，tick 时将默认值写入黑板
-  // BT.CPP 会自动将 OutputPort 的 default 值写入对应黑板键
-  // 此处显式 setOutput 以确保黑板已初始化（覆盖 XML 默认值即可）
-  auto set = [this](const char * key, auto val) {
-    setOutput(key, val);
-  };
-  set("topic_game_status", std::string("game_status"));
-  set("topic_robot_status", std::string("robot_status"));
-  set("topic_rfid_status", std::string("rfid_status"));
-  set("topic_robot_pose", std::string("robot_position"));
-  set("topic_radar_tracks", std::string("radar/enemy_tracks"));
+  if (loaded_once_) {
+    return BT::NodeStatus::SUCCESS;
+  }
 
-  // 坐标默认为 0，由 XML 参数或上层设置覆盖
-  for (auto * k : {"home_x","home_y","supply_x","supply_y",
+  // 话题名称 (字符串默认值)
+  auto setStr = [this](const char * key, const std::string & fallback) {
+    std::string v = fallback;
+    getInput(key, v);
+    setOutput(key, v);
+  };
+  setStr("topic_game_status", "game_status");
+  setStr("topic_robot_status", "robot_status");
+  setStr("topic_robot_pose", "robot_position");
+
+  // 坐标参数 (double, 默认 0.0)
+  for (auto * k : {"home_x","home_y","supply_zone_x","supply_zone_y",
+                    "base_x","base_y",
                     "base_buff_x","base_buff_y","outpost_buff_x","outpost_buff_y",
-                    "fortress_ally_x","fortress_ally_y","fortress_enemy_x","fortress_enemy_y",
+                    "fortress_ally_x","fortress_ally_y",
                     "central_highland_x","central_highland_y",
                     "ladder_highland_x","ladder_highland_y",
                     "defend_anchor_x","defend_anchor_y",
-                    "patrol_wpt_0_x","patrol_wpt_0_y",
-                    "patrol_wpt_1_x","patrol_wpt_1_y",
-                    "patrol_wpt_2_x","patrol_wpt_2_y"})
+                    "central_highland_left_x","central_highland_left_y",
+                    "ramp_jump_x","ramp_jump_y"})
   {
     double v = 0.0;
     getInput(k, v);
     setOutput(k, v);
   }
-  set("arrive_radius", 0.35);
-  set("hp_critical", 80);
-  set("hp_low", 180);
-  set("hp_safe", 280);
-  set("heat_high", 210);
-  set("heat_critical", 245);
-  set("ammo_low", 80);
-  set("ammo_target", 300);
-  set("base_deficit_for_fortress", 500);
-  set("enemy_near_base_radius", 2.0);
-  set("objective_hold_ms", 12000);
-  set("combat_fire_burst_ms", 180);
-  set("combat_fire_pause_ms", 120);
 
+  // 阈值参数 (通过 getInput 读取，支持 YAML 覆盖)
+  auto setDouble = [this](const char * key, double fallback) {
+    double v = fallback;
+    getInput(key, v);
+    setOutput(key, v);
+  };
+  auto setInt = [this](const char * key, int fallback) {
+    int v = fallback;
+    getInput(key, v);
+    setOutput(key, v);
+  };
+
+  setDouble("arrive_radius", 1.0);
+  setDouble("enemy_near_base_radius", 0.0);
+
+  setInt("hp_low", 180);
+  setInt("hp_safe", 280);
+  setInt("ammo_low", 80);
+  setInt("supply_wait_timeout_s", 30);
+  setInt("base_threat_calm_timeout_ms", 0);
+  setInt("patrol_hold_ms", 5000);
+
+  // 巡逻参数 (从黑板直接读取，由 rm_behavior_tree.cpp 注入)
+  bool patrol_enable = false;
+  getInput("patrol_enable", patrol_enable);
+  setOutput("patrol_enable", patrol_enable);
+
+  std::string patrol_waypoints;
+  getInput("patrol_waypoints", patrol_waypoints);
+  setOutput("patrol_waypoints", patrol_waypoints);
+
+  loaded_once_ = true;
   return BT::NodeStatus::SUCCESS;
 }
 

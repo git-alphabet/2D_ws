@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4"
+      main_tree_to_execute="rmuc_2026"> 
+
+    <!--
+      哨兵自主决策行为树 (BT.CPP v4 XML)
+      - 核心：生存能力 + 目标控制 + 经济感知补给 + 姿态管理
+      - 基于 RoboMaster 2026 哨兵规则设计：姿态系统、远程兑换、补给回血、堡垒/基地/前哨站增益
+      - 所有地图坐标可通过 InitSentryConfig 输出配置
+    -->
+
+    <BehaviorTree ID="rmuc_2026">
+        <ReactiveSequence>
+            <!-- 初始化配置 + 标定覆盖先执行，确保同一 tick 内感知派生使用最新 cfg.* -->
+            <SubTree ID="InitOnce" _autoremap="true"/>
+
+            <!-- 感知 -> 黑板（应持续 tick；节点预期为非阻塞） -->
+            <SubTree ID="PerceptionAndBlackboard" _autoremap="true"/>
+
+            <!-- 比赛阶段循环（7 分钟 = 420 秒） -->
+            <WhileDoElse>
+                <RmucIsGameTime name="IsMatchStage"
+                                message="{game_status}"
+                                robot_status="{robot_status}"
+                                game_progress="4"
+                                lower_remain_time="0"
+                                higher_remain_time="420"
+                                allow_no_game_status_hp_fallback="true"/>
+
+                <!-- ===================== 比赛阶段 ===================== -->
+                <ReactiveSequence>
+
+                    <!-- 构建并按控制速率发送哨兵自主决策指令 (0x0120) -->
+                    <SubTree ID="CommandHub" _autoremap="true"/>
+
+                    <!-- 全局接管控制：持续发布底盘/云台控制，并在低血/敌情下统一做门禁 -->
+                    <SubTree ID="GlobalNavigationAndChassisControl" _autoremap="true"/>
+
+                    <!-- ═══ 全局默认姿态：到达当前导航目标→防御(2)，导航中→移动(3) ═══
+                         使用 IsAtGoal 几何距离判断，不依赖 Nav2 action 状态
+                         姿态可被下方战术子树覆写（如 BaseDefense→1）
+                         注：EnemyDetectionGuard 已在上方确认无敌人 -->
+                    <ReactiveFallback name="DefaultPosture">
+                        <Sequence>
+                            <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
+                                      goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                                      arrive_radius="{cfg.arrive_radius}"/>
+                            <SelectPosture posture_value="2"
+                                           posture_out="{cmd.posture}"
+                                           is_allow_select_posture="{cmd.allow_posture_send}"/>
+                        </Sequence>
+                        <SelectPosture posture_value="3"
+                                       posture_out="{cmd.posture}"
+                                       is_allow_select_posture="{cmd.allow_posture_send}"/>
+                    </ReactiveFallback>
+
+                    <!-- 基于优先级的战术（仅在生存无忧 + 无敌人时 tick） -->
+                    <ReactiveFallback>
+
+                        <!-- 0) 基地/堡垒防御（受威胁时） -->
+                        <Sequence>
+                            <SetBlackboard output_key="active_subtree" value="BaseDefense"/>
+                            <SubTree ID="BaseDefense" _autoremap="true"/>
+                        </Sequence>
+
+                        <!-- 1) 后勤：补弹（经济感知） -->
+                        <Sequence>
+                            <SetBlackboard output_key="active_subtree" value="SustainAndEconomy"/>
+                            <SubTree ID="SustainAndEconomy" _autoremap="true"/>
+                        </Sequence>
+
+                        <!-- 2) 目标控制：中央高地/梯形高地/堡垒/隧道等 -->
+                        <Sequence>
+                            <SetBlackboard output_key="active_subtree" value="ObjectivePlanner"/>
+                            <SubTree ID="ObjectivePlanner" _autoremap="true"/>
+                        </Sequence>
+
+                    </ReactiveFallback>
+
+                </ReactiveSequence>
+
+                <!-- ===================== 非比赛阶段（空闲等待） ===================== -->
+                <ReactiveSequence>
+                    <RmucRobotControl stop_gimbal_scan="True"
+                                      chassis_spin="False"/>
+                    <RateController hz="2">
+                        <SentryCmdMux posture="3"
+                                      confirm_respawn="0"
+                                      cmd_state="{cmd.state}"/>
+                    </RateController>
+                </ReactiveSequence>
+
+            </WhileDoElse>
+        </ReactiveSequence>
+    </BehaviorTree>
+
+    <!-- ===================== 子树引用 ===================== -->
+    <include path="PerceptionAndBlackboard.xml"/>
+    <include path="InitOnce.xml"/>
+    <include path="GlobalNavigationAndChassisControl.xml"/>
+    <include path="CommandHub.xml"/>
+    <include path="LowHPRetreat.xml"/>
+    <include path="BaseDefense.xml"/>
+    <include path="SustainAndEconomy.xml"/>
+    <include path="AmmoPlan.xml"/>
+    <include path="ObjectivePlanner.xml"/>
+
+</root>

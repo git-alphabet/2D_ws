@@ -6,7 +6,7 @@
 
 namespace rm_behavior_tree
 {
-/// 初始化指令状态黑板变量 (cmd_state, allow_ammo_target)
+/// 初始化指令状态黑板变量 (cmd_state)
 class InitCmdStateAction : public BT::SyncActionNode
 {
 public:
@@ -14,8 +14,7 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
-      BT::BidirectionalPort<std::string>("cmd_state", std::string(""), "cmd state"),
-      BT::BidirectionalPort<int>("allow_ammo_target", 0, "allow ammo target")};
+      BT::BidirectionalPort<std::string>("cmd_state", std::string(""), "cmd state")};
   }
   BT::NodeStatus tick() override;
 };

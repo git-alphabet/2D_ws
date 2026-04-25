@@ -115,7 +115,8 @@
                                                                  escape_timeout_ms="3000"
                                                                  escape_x="{nav.goal_x}"
                                                                  escape_y="{nav.goal_y}"
-                                                                 escape_pose="{nav.goal_pose}"/>
+                                                                 escape_pose="{nav.goal_pose}"
+                                                                 zones_file="{cfg.semantic_zones_file}"/>
                                                 <SendGoal name="GoSupplyToHeal_Escape"
                                                           goal_pose="{nav.goal_pose}"
                                                           frame_id="map"
@@ -133,9 +134,9 @@
                                 </ReactiveSequence>
                             </ReactiveFallback>
 
-                            <!-- 3. 到达后刹车+开小陀螺防护 -->
+                            <!-- 3. 到达后刹车 -->
                             <RobotControl stop_gimbal_scan="True" 
-                                          chassis_spin="True"/>
+                                          chassis_spin="False"/>
                             <NavControlCmd cmd_type="3" 
                                            emergency_stop="False"/>
 

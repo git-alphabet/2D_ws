@@ -5,32 +5,32 @@
 std_msgs/Header header
 
 # ── 1. 比赛状态 (GameStatus, 0x0001) ──────────────────────────────────────────
-uint8  game_progress         # 当前比赛阶段 (0-4)
-uint16 stage_remain_time     # 当前阶段剩余时间 (s)
+uint8  game_progress         # [1B] 当前比赛阶段 (0-4)
+uint16 stage_remain_time     # [2B] 当前阶段剩余时间 (s)
 
 # ── 2. 机器人状态 (RobotStatus, 0x0201 / 0x0202) ─────────────────────────────
-uint16 current_hp            # 本机当前血量
-uint8  is_attacked           # 是否受到攻击 (0=否, 1=是)
-uint16 shooter_heat          # 枪口热量
+uint16 current_hp            # [2B] 本机当前血量
+uint8  is_attacked           # [1B] 是否受到攻击 (0=否, 1=是)
+uint16 shooter_heat          # [2B] 枪口热量
 
 # ── 3. RFID 状态 (RFID, 0x0209 / 0x020A) ─────────────────────────────────────
-bool   rfid_supply_arrived   # 补给区交互卡反馈
-bool   rfid_control_arrived  # 控制区交互卡反馈
+bool   rfid_supply_arrived   # [1B] 补给区交互卡反馈
+bool   rfid_control_arrived  # [1B] 控制区交互卡反馈
 
 # ── 5. 导航控制命令 (NavControlCmd) ───────────────────────────────────────────
-int32  cmd_type              # 指令类型：0=无操作(禁止导航), 1=开始导航(允许发起导航), 2=终止导航, 3=原地不动
-bool   emergency_stop        # 紧急停止（优先级最高, true=立刻停）
+int32  cmd_type              # [4B] 指令类型：0=无操作(禁止导航), 1=开始导航(允许发起导航), 2=终止导航, 3=原地不动
+bool   emergency_stop        # [1B] 紧急停止（优先级最高, true=立刻停）
 
 # ── 6. 机器人控制命令 (RobotControl) ──────────────────────────────────────────
-bool    stop_gimbal_scan     # 是否停止云台扫描 (false=扫描, true=停止)
-bool    chassis_spin         # 是否启动底盘小陀螺 (false=不启动, true=启动)
+bool    stop_gimbal_scan     # [1B] 是否停止云台扫描 (false=扫描, true=停止)
+bool    chassis_spin         # [1B] 是否启动底盘小陀螺 (false=不启动, true=启动)
 
 # ── 7. 机器人位姿 (RobotPosition, 0x0203) ────────────────────────────────────
-float32 x                    # 当前位置 x (meter, map 坐标系)
-float32 y                    # 当前位置 y (meter, map 坐标系)
+float32 x                    # [4B] 当前位置 x (meter, map 坐标系)
+float32 y                    # [4B] 当前位置 y (meter, map 坐标系)
 
 # ── 8. 视觉检测 ──────────────────────────────────────────────────────────────
-bool   is_detect_enemy       # 是否检测到敌人
+bool   is_detect_enemy       # [1B] 是否检测到敌人
 
 # ── 9. 判断机器人是否到达导航指定位置 ─────────────────────────────────────
-bool   is_at_nav_goal        # 是否到达导航目标点 
+bool   is_at_nav_goal        # [1B] 是否到达导航目标点 

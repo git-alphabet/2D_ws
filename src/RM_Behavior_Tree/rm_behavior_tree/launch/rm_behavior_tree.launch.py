@@ -13,6 +13,12 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time', default='False')
     bt_xml_file = PathJoinSubstitution([bt_config_dir, style])
 
+    # RMUC 2026 参数文件 (如果存在则加载)
+    rmuc_params_file = os.path.join(bt_config_dir, 'RMUC_2026', 'rmuc_2026_params.yaml')
+    extra_params = []
+    if os.path.isfile(rmuc_params_file):
+        extra_params.append(rmuc_params_file)
+
     rm_behavior_tree_node = Node(
         package='rm_behavior_tree',
         executable='rm_behavior_tree',
@@ -23,7 +29,7 @@ def generate_launch_description():
                             'style': bt_xml_file,
                             'use_sim_time': use_sim_time,
                         }
-        ]
+        ] + extra_params
     )
 
     return LaunchDescription([rm_behavior_tree_node])

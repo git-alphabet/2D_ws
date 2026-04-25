@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="BaseDefense">
+        <ReactiveSequence>
+            <!-- 基地威胁锁存判定：基地掉血+敌人进入 enemy_near_base_radius → 触发；云台未检测敌人且基地不掉血持续 base_threat_calm_timeout_ms → 解除 -->
+            <IsBaseThreatened base_threat="{threat.base}"/>
+
+            <!-- 基地防御 → 攻击姿态(1)，3倍伤害保护基地 -->
+            <SelectPosture posture_value="1"
+                           posture_out="{cmd.posture}"
+                           is_allow_select_posture="{cmd.allow_posture_send}"/>
+
+            <!-- 导航到防御锚点 -->
+            <RateController hz="1">
+                <SendGoal name="DefendAnchor"
+                          goal_x="{cfg.defend_anchor_x}"
+                          goal_y="{cfg.defend_anchor_y}"
+                          frame_id="map"
+                          action_name="navigate_to_pose"/>
+            </RateController>
+
+            <ReactiveFallback>
+                <!-- 在防御点 3.5m 范围内 + 检测到敌人 → 停车对抗 -->
+                <ReactiveSequence>
+                    <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
+                              goal_x="{cfg.defend_anchor_x}" goal_y="{cfg.defend_anchor_y}"
+                              arrive_radius="{cfg.arrive_radius}"/>
+                    <RmucIsDetectEnemy message="{robot_status}"/>
+                    <RmucNavControlCmd cmd_type="3" emergency_stop="False"/>
+                    <!-- 底盘旋转由全局 GlobalRobotControl 控制 -->
+                    <KeepRunning/>
+                </ReactiveSequence>
+
+                <!-- 否则：继续赶路/驻守 -->
+                <KeepRunning/>
+            </ReactiveFallback>
+        </ReactiveSequence>
+    </BehaviorTree>
+
+</root>

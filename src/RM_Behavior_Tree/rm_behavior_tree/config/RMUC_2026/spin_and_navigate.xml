@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4" main_tree_to_execute="SpinAndNavigate">
+
+    <!--
+      简易行为树：原地旋转 + 导航停转
+      功能：
+        - 在 RViz2 中通过 Nav2 Goal 手动设置导航目标点
+        - 导航过程中停止底盘旋转 (chassis_spin = False)
+        - 到达目标 / 未设目标时开启底盘旋转 (chassis_spin = True)
+    -->
+
+    <BehaviorTree ID="SpinAndNavigate">
+        <ReactiveSequence>
+
+            <!-- 持续订阅机器人位置与导航到达状态 -->
+            <RmucSubRobotPosition topic_name="robot_position"
+                                  pose_x="{pose.x}"
+                                  pose_y="{pose.y}"/>
+
+            <!-- 底盘旋转控制 -->
+            <ReactiveFallback>
+                <!-- 正在导航中 (is_at_nav_goal == false) → 停止旋转 -->
+                <ReactiveSequence>
+                    <ScriptCondition code="is_at_nav_goal == false"/>
+                    <RmucRobotControl stop_gimbal_scan="False"
+                                      chassis_spin="False"/>
+                    <KeepRunning/>
+                </ReactiveSequence>
+
+                <!-- 到达目标 / 原地不动 → 底盘旋转 -->
+                <ReactiveSequence>
+                    <RmucRobotControl stop_gimbal_scan="False"
+                                      chassis_spin="True"/>
+                    <KeepRunning/>
+                </ReactiveSequence>
+            </ReactiveFallback>
+
+        </ReactiveSequence>
+    </BehaviorTree>
+
+</root>

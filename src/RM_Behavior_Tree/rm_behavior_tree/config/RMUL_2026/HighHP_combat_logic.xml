@@ -31,10 +31,10 @@
           <Inverter>
             <IsRecoveryNeeded need_recovery="{need_recovery}"/>
           </Inverter>
-          <!-- 门控2: 靠近控制区（路径距离≤2m），远途中不恋战 -->
+          <!-- 门控2: 靠近控制区（路径距离≤0.5m），远途中不恋战 -->
           <IsWithinScope pose_x="{pose.x}" pose_y="{pose.y}"
                          goal_x="{cfg.control_zone_goal_x}" goal_y="{cfg.control_zone_goal_y}"
-                         arrive_radius="1.3"
+                         arrive_radius="0.5"
                          use_path_distance="true"/>
           <IsDetectEnemy message="{robot_status}"/>
 
@@ -181,7 +181,8 @@
                                        goal_y="{cfg.control_zone_goal_y}"
                                        escape_x="{escape.goal_x}"
                                        escape_y="{escape.goal_y}"
-                                       escape_pose="{escape.goal_pose}"/>
+                                       escape_pose="{escape.goal_pose}"
+                                       zones_file="{cfg.semantic_zones_file}"/>
                       <SendGoal name="PatrolControlZone_Escape"
                                 goal_pose="{escape.goal_pose}"
                                 frame_id="map"

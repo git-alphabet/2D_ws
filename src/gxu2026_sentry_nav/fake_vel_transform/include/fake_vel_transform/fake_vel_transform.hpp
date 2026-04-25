@@ -18,7 +18,8 @@
 #include <memory>
 #include <mutex>
 #include <string>
-#include <limits>
+#include <utility>
+#include <vector>
 
 #include "example_interfaces/msg/float32.hpp"
 #include "geometry_msgs/msg/twist.hpp"
@@ -30,7 +31,10 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sp_msgs/msg/rmuc_robot_control.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_broadcaster.h"
+#include "tf2_ros/transform_listener.h"
+#include "visualization_msgs/msg/marker_array.hpp"
 
 namespace fake_vel_transform
 {
@@ -51,6 +55,12 @@ private:
   void manualSpinOverrideCallback(const std_msgs::msg::Bool::SharedPtr msg);
   void publishTransform();
   void publishHoldCmdVelIfNeeded(const rclcpp::Time & now);
+  void updateRobotPositionInMapFrame(const nav_msgs::msg::Odometry::ConstSharedPtr & msg);
+  void loadSpeedBumpZoneFromYaml();
+  void publishSpeedBumpMarkers();
+  bool pointInPolygon(
+    double x, double y,
+    const std::vector<std::pair<double, double>> & poly) const;
   geometry_msgs::msg::Twist transformVelocity(
     const geometry_msgs::msg::Twist::SharedPtr & twist, float yaw_diff);
 
@@ -66,8 +76,11 @@ private:
   std::unique_ptr<message_filters::Synchronizer<SyncPolicy>> sync_;
 
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_chassis_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr speed_bump_marker_pub_;
 
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+  std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
   rclcpp::TimerBase::SharedPtr timer_;
 
@@ -80,14 +93,7 @@ private:
   std::string manual_spin_override_topic_;
   std::string input_cmd_vel_topic_;
   std::string output_cmd_vel_topic_;
-  std::string angular_z_mode_;
-  float spin_feedforward_base_speed_{0.0f};
-  double controller_angular_z_scale_{1.0};
-  double spin_feedforward_scale_{1.0};
-  double spin_ff_velocity_decay_gain_{0.0};
-  double angular_z_lower_limit_{-std::numeric_limits<double>::infinity()};
-  double angular_z_upper_limit_{std::numeric_limits<double>::infinity()};
-  double max_abs_angular_z_{0.0};
+  float init_spin_speed_;
   float spin_speed_{0.0f};
   bool has_received_cmd_spin_{false};
   bool spin_enabled_{false};
@@ -97,13 +103,30 @@ private:
   bool disable_spin_while_moving_{true};
   bool cmd_spin_override_logged_{false};
 
+  bool enable_speed_bump_min_speed_{true};
+  bool enable_speed_bump_zero_angular_z_{true};
+  double speed_bump_min_linear_speed_{1.5};
+  std::string speed_bump_map_frame_{"map"};
+  bool publish_speed_bump_marker_{true};
+  std::string speed_bump_marker_topic_{"speed_bump_zone_markers"};
+  std::string speed_bump_zone_name_;
+  std::string speed_bump_zones_file_;
+  std::vector<std::pair<double, double>> speed_bump_zone_vertices_;
+  bool speed_bump_zone_loaded_{false};
+  bool robot_pose_in_map_ready_{false};
+  bool was_in_speed_bump_zone_{false};
+
   std::mutex cmd_vel_mutex_;
+  std::mutex pose_mutex_;
   geometry_msgs::msg::Twist::SharedPtr latest_cmd_vel_;
   double current_robot_base_angle_;
+  double current_robot_x_{0.0};
+  double current_robot_y_{0.0};
   rclcpp::Time last_controller_activate_time_;
 
   rclcpp::Time last_cmd_vel_rx_time_;
   rclcpp::Time last_cmd_vel_pub_time_;
+  rclcpp::Time last_marker_pub_time_;
 };
 
 }  // namespace fake_vel_transform

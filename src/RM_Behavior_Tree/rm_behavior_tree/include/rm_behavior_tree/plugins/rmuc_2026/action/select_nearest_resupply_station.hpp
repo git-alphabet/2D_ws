@@ -16,9 +16,10 @@ public:
   {
     return {
       BT::InputPort<double>("pose_x"), BT::InputPort<double>("pose_y"),
-      BT::InputPort<double>("supply_x"), BT::InputPort<double>("supply_y"),
+      BT::InputPort<double>("supply_zone_x"), BT::InputPort<double>("supply_zone_y"),
       BT::InputPort<double>("base_buff_x"), BT::InputPort<double>("base_buff_y"),
       BT::InputPort<double>("outpost_buff_x"), BT::InputPort<double>("outpost_buff_y"),
+      BT::InputPort<bool>("outpost_alive", "true", "outpost_alive"),
       BT::OutputPort<double>("goal_x"), BT::OutputPort<double>("goal_y")};
   }
   BT::NodeStatus tick() override;

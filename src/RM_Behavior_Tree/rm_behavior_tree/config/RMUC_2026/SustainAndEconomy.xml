@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="SustainAndEconomy">
+        <ReactiveSequence>
+            <!-- Ammo management (prefer supply free ticks & station purchase; remote only when disengaged) -->
+            <SubTree ID="AmmoPlan" _autoremap="true"/>
+            <!-- 补弹 → 防御姿态(2)，减伤跑路更安全；仅在 AmmoPlan 活跃 (RUNNING) 时才设置 -->
+            <SelectPosture posture_value="2"
+                           posture_out="{cmd.posture}"
+                           is_allow_select_posture="{cmd.allow_posture_send}"/>
+        </ReactiveSequence>
+    </BehaviorTree>
+
+</root>

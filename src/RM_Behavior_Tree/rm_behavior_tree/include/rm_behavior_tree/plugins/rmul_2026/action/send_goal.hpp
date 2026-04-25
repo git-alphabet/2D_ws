@@ -42,11 +42,15 @@ public:
       BT::InputPort<double>("goal_y", 0.0, "goal y coordinate"),
       BT::InputPort<std::string>("frame_id", "map", "frame_id for the goal (e.g. map/odom/chassis)"),
       BT::InputPort<std::string>("action_name", "navigate_to_pose"),
-      BT::InputPort<int>("min_interval_ms", 0, "minimum publish interval in ms")
+      BT::InputPort<int>("min_interval_ms", 0, "minimum publish interval in ms"),
+      BT::InputPort<int>("max_dedup_ms", 0, "max dedup window in ms; 0 keeps permanent dedup")
     };
   }
   
   BT::NodeStatus tick() override;
+
+  /// 清除全局目标缓存（CancelNavGoal 后调用，确保下次 SendGoal 重新发布）
+  static void clearGoalCache();
 
 private:
   static bool isFinite_(double v)
@@ -64,6 +68,10 @@ private:
   geometry_msgs::msg::PoseStamped last_goal_;
   rclcpp::Time last_pub_time_{0, 0, RCL_ROS_TIME};
   bool has_last_{false};
+
+  static geometry_msgs::msg::PoseStamped s_last_global_goal_;
+  static bool s_has_global_;
+  static bool s_subs_confirmed_;   // true once publisher has matched subscribers
 };
 
 }  // namespace rm_behavior_tree

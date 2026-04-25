@@ -416,6 +416,17 @@ fake_vel_transform:
     # 基础自旋前馈角速度（rad/s）；当没有 cmd_spin 输入时使用。
     spin_feedforward_base_speed: 3.0
     # 兼容旧参数（建议不再使用）：init_spin_speed
+    init_spin_speed: 3.0
+
+    # 减速带速度下限控制：进入 speed_bump 区域后，线速度低于该值会被抬高
+    enable_speed_bump_min_speed: true
+    # 减速带角速度限制：进入 speed_bump 区域后，强制 angular.z=0
+    enable_speed_bump_zero_angular_z: true
+    speed_bump_min_linear_speed: 1.5
+    speed_bump_map_frame: "map"
+    speed_bump_zone_name: "speed_bump"
+    # 语义区域文件路径，当前留空表示不加载（需要你按实车地图补齐）
+    speed_bump_zones_file: ""
 
 # 非线性小陀螺（实车）：同仿真，发布 cmd_spin（Float32，单位 rad/s）
 nonlinear_spin_publisher:

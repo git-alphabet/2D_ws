@@ -2,10 +2,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <fstream>
 #include <limits>
+#include <utility>
 #include <vector>
 
 #include "behaviortree_ros2/plugins.hpp"
+#include "yaml-cpp/yaml.h"
 
 namespace rm_behavior_tree
 {
@@ -89,6 +92,78 @@ bool FindEscapePointAction::isBlacklisted(double x, double y) const
   return false;
 }
 
+void FindEscapePointAction::loadKeepoutZones(const std::string & yaml_path)
+{
+  if (yaml_path == loaded_zones_file_) {
+    return;  // already loaded
+  }
+
+  keepout_polygons_.clear();
+  keepout_loaded_ = false;
+
+  YAML::Node config;
+  try {
+    config = YAML::LoadFile(yaml_path);
+  } catch (const YAML::Exception & e) {
+    if (node_) {
+      RCLCPP_WARN(node_->get_logger(),
+        "[FindEscapePoint] Failed to load zones file %s: %s", yaml_path.c_str(), e.what());
+    }
+    return;
+  }
+
+  if (!config["zones"]) {
+    return;
+  }
+
+  for (const auto & z : config["zones"]) {
+    if (z["type"].as<std::string>("") != "keepout") {
+      continue;
+    }
+    Polygon poly;
+    for (const auto & v : z["vertices"]) {
+      poly.emplace_back(v[0].as<double>(), v[1].as<double>());
+    }
+    if (poly.size() >= 3) {
+      keepout_polygons_.push_back(std::move(poly));
+    }
+  }
+
+  keepout_loaded_ = !keepout_polygons_.empty();
+  loaded_zones_file_ = yaml_path;
+
+  if (node_) {
+    RCLCPP_INFO(node_->get_logger(),
+      "[FindEscapePoint] Loaded %zu keepout polygons from %s",
+      keepout_polygons_.size(), yaml_path.c_str());
+  }
+}
+
+bool FindEscapePointAction::isInKeepoutZone(double x, double y) const
+{
+  if (!keepout_loaded_) {
+    return false;
+  }
+  for (const auto & poly : keepout_polygons_) {
+    // Ray-casting point-in-polygon
+    bool inside = false;
+    size_t n = poly.size();
+    for (size_t i = 0, j = n - 1; i < n; j = i++) {
+      double xi = poly[i].first, yi = poly[i].second;
+      double xj = poly[j].first, yj = poly[j].second;
+      if (((yi > y) != (yj > y)) &&
+        (x < (xj - xi) * (y - yi) / (yj - yi) + xi))
+      {
+        inside = !inside;
+      }
+    }
+    if (inside) {
+      return true;
+    }
+  }
+  return false;
+}
+
 double FindEscapePointAction::getNeighborClearance(
   double wx, double wy, double step) const
 {
@@ -120,7 +195,8 @@ bool FindEscapePointAction::searchPhase(
   double retreat_dx, double retreat_dy,
   bool has_goal,
   const SearchParams & params,
-  double & out_x, double & out_y) const
+  double & out_x, double & out_y,
+  bool robot_in_keepout) const
 {
   // 8方向搜索
   static const double dirs[][2] = {
@@ -141,12 +217,18 @@ bool FindEscapePointAction::searchPhase(
       }
 
       // 方案1：路径可达性验证 — 跳过路径上有致命障碍的候选点
-      if (!isPathClear(robot_x, robot_y, px, py)) {
+      // 当机器人在禁行区内时跳过此检查（必须穿越 LETHAL 边界才能逃离）
+      if (!robot_in_keepout && !isPathClear(robot_x, robot_y, px, py)) {
         continue;
       }
 
       // 方案2：黑名单过滤 — 跳过之前被判定不可达的区域
       if (isBlacklisted(px, py)) {
+        continue;
+      }
+
+      // 禁行区过滤 — 跳过落入 keepout 多边形内的候选点
+      if (isInKeepoutZone(px, py)) {
         continue;
       }
 
@@ -261,6 +343,15 @@ BT::NodeStatus FindEscapePointAction::tick()
 
   if (node_) {
     rclcpp::spin_some(node_);
+  }
+
+  // 1b. 加载禁行区多边形（仅首次或路径变更时加载）
+  {
+    std::string zones_file;
+    getInput("zones_file", zones_file);
+    if (!zones_file.empty()) {
+      loadKeepoutZones(zones_file);
+    }
   }
 
   // 2. 读取输入
@@ -395,24 +486,32 @@ do_search:
   // 5. 三阶段搜索
   const double step = 0.15;  // 搜索步长
 
+  // 检测机器人是否在禁行区内 — 若是，放宽路径检查以允许逃离
+  const bool robot_in_keepout = isInKeepoutZone(robot_x, robot_y);
+  if (robot_in_keepout && node_) {
+    RCLCPP_WARN_THROTTLE(node_->get_logger(), *node_->get_clock(), 5000,
+      "[FindEscapePoint] Robot (%.2f,%.2f) is INSIDE keepout zone, "
+      "relaxing path check to allow escape", robot_x, robot_y);
+  }
+
   // 阶段①: cost<50, 1.0~2.0m, 有目标时优先后退方向
   SearchParams phase1{1.0, 2.0, step, 50, has_goal};
   double ex = 0.0, ey = 0.0;
-  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase1, ex, ey)) {
+  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase1, ex, ey, robot_in_keepout)) {
     commitAndOutput(ex, ey, has_goal ? "Phase1" : "Phase1(global)", robot_x, robot_y);
     return BT::NodeStatus::SUCCESS;
   }
 
   // 阶段②: cost<150, 2.0~3.0m, 有目标时优先后退方向
   SearchParams phase2{2.0, 3.0, step, 150, has_goal};
-  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase2, ex, ey)) {
+  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase2, ex, ey, robot_in_keepout)) {
     commitAndOutput(ex, ey, has_goal ? "Phase2" : "Phase2(global)", robot_x, robot_y);
     return BT::NodeStatus::SUCCESS;
   }
 
   // 阶段③: cost<235, 3.0~4.0m, 任意方向
   SearchParams phase3{3.0, 4.0, step, 235, false};
-  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase3, ex, ey)) {
+  if (searchPhase(robot_x, robot_y, goal_x, goal_y, retreat_dx, retreat_dy, has_goal, phase3, ex, ey, robot_in_keepout)) {
     commitAndOutput(ex, ey, has_goal ? "Phase3" : "Phase3(global)", robot_x, robot_y);
     return BT::NodeStatus::SUCCESS;
   }

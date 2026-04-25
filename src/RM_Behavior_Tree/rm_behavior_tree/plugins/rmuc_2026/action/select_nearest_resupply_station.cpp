@@ -15,21 +15,32 @@ BT::NodeStatus SelectNearestResupplyStationAction::tick()
   getInput("pose_x", px);
   getInput("pose_y", py);
 
+  bool outpost_alive = true;
+  getInput("outpost_alive", outpost_alive);
+
   struct Pt { double x; double y; };
-  std::array<Pt, 3> pts{};
   double v = 0;
-  getInput("supply_x", v); pts[0].x = v;
-  getInput("supply_y", v); pts[0].y = v;
-  getInput("base_buff_x", v); pts[1].x = v;
-  getInput("base_buff_y", v); pts[1].y = v;
-  getInput("outpost_buff_x", v); pts[2].x = v;
-  getInput("outpost_buff_y", v); pts[2].y = v;
+
+  Pt supply{};
+  getInput("supply_zone_x", v); supply.x = v;
+  getInput("supply_zone_y", v); supply.y = v;
+
+  Pt base_buff{};
+  getInput("base_buff_x", v); base_buff.x = v;
+  getInput("base_buff_y", v); base_buff.y = v;
+
+  Pt outpost_buff{};
+  getInput("outpost_buff_x", v); outpost_buff.x = v;
+  getInput("outpost_buff_y", v); outpost_buff.y = v;
+
+  std::array<Pt, 3> pts{supply, base_buff, outpost_buff};
+  const int count = outpost_alive ? 3 : 2;
 
   double best = 1e9;
-  Pt best_pt{0, 0};
-  for (auto & p : pts) {
-    double d = std::hypot(p.x - px, p.y - py);
-    if (d < best) { best = d; best_pt = p; }
+  Pt best_pt{supply.x, supply.y};
+  for (int i = 0; i < count; ++i) {
+    double d = std::hypot(pts[i].x - px, pts[i].y - py);
+    if (d < best) { best = d; best_pt = pts[i]; }
   }
   setOutput("goal_x", best_pt.x);
   setOutput("goal_y", best_pt.y);

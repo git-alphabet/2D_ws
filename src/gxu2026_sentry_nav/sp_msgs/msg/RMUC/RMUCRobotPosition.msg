@@ -11,7 +11,6 @@
 
 std_msgs/Header header
 
-float32 pose_x               # 位置 x (meter, map 坐标系)
-float32 pose_y               # 位置 y (meter, map 坐标系)
-float32 pose_yaw             # 航向角 (radian, map 坐标系)
-bool    is_at_nav_goal       # 是否到达导航目标点
+float32 pose_x               # [4B] 位置 x (meter, map 坐标系)
+float32 pose_y               # [4B] 位置 y (meter, map 坐标系)
+# float32 pose_yaw             # 航向角 (radian, map 坐标系)

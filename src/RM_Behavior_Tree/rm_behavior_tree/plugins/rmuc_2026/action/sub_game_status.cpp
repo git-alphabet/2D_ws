@@ -5,12 +5,12 @@ namespace rm_behavior_tree
 
 RmucSubGameStatusAction::RmucSubGameStatusAction(
   const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
-: BT::RosTopicSubNode<rm_decision_interfaces::msg::RMUCGameStatus>(name, conf, params)
+: BT::RosTopicSubNode<sp_msgs::msg::RMUCGameStatus>(name, conf, params)
 {
 }
 
 BT::NodeStatus RmucSubGameStatusAction::onTick(
-  const std::shared_ptr<rm_decision_interfaces::msg::RMUCGameStatus> & last_msg)
+  const std::shared_ptr<sp_msgs::msg::RMUCGameStatus> & last_msg)
 {
   if (last_msg) {
     RCLCPP_DEBUG(

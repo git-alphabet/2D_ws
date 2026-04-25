@@ -19,10 +19,11 @@ public:
       BT::InputPort<int>("stage_elapsed_time"),
       BT::InputPort<int>("stage_remain_time"),
       BT::InputPort<int>("hp_cur"), BT::InputPort<int>("hp_max"),
-      BT::InputPort<int>("base_hp_cur"), BT::InputPort<int>("base_hp_max"),
-      BT::InputPort<int>("base_deficit_for_fortress"),
       BT::InputPort<bool>("outpost_alive"),
-      BT::InputPort<bool>("base_threat"),
+      BT::InputPort<double>("central_highland_x"),
+      BT::InputPort<double>("central_highland_y"),
+      BT::InputPort<double>("ladder_highland_x"),
+      BT::InputPort<double>("ladder_highland_y"),
       BT::OutputPort<double>("goal_x"), BT::OutputPort<double>("goal_y"),
       BT::OutputPort<std::string>("objective_name")};
   }

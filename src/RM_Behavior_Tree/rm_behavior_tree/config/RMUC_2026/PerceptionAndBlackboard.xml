@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="PerceptionAndBlackboard">
+        <Sequence>
+            <RmucSubGameStatus topic_name="game_status"
+                               game_status="{game_status}"
+                               now_ms="{time.now_ms}"/>
+            <RmucSubRobotStatus topic_name="robot_status"
+                                robot_status="{robot_status}"/>
+            <RmucSubRobotPosition topic_name="robot_position"
+                                  pose_x="{pose.x}"
+                                  pose_y="{pose.y}"/>
+            <SubRadarTracks topic_name="radar/enemy_tracks"
+                            radar_tracks="{radar_tracks}"/> 
+
+            <!-- 裁判系统话题订阅 -->
+            <RmucSubTeamHP topic_name="team_hp"
+                           team_hp="{team_hp}"/>
+
+            <!-- Parse/derive common fields used by tactics -->
+            <ParseSentryBlackboard game_status="{game_status}"
+                                   robot_status="{robot_status}"
+                                   base_x="{cfg.base_x}"
+                                   base_y="{cfg.base_y}"
+                                   defend_anchor_x="{cfg.defend_anchor_x}"
+                                   defend_anchor_y="{cfg.defend_anchor_y}"
+                                   enemy_near_base_radius="{cfg.enemy_near_base_radius}"
+                                   base_threat_calm_timeout_ms="{cfg.base_threat_calm_timeout_ms}"
+                                   pose_x="{pose.x}"
+                                   pose_y="{pose.y}"
+                                   now_ms="{time.now_ms}"
+                                   radar_tracks="{radar_tracks}"
+                                   team_hp="{team_hp}"
+                                   stage_remain_time="{game.remain_s}"
+                                   stage_elapsed_time="{game.elapsed_s}"
+                                   hp_cur="{hp.cur}"
+                                   ammo_allow="{ammo.allow}"
+                                   base_hp_cur="{base.hp.cur}"
+                                   outpost_alive="{outpost.alive}"
+                                   is_dead="{state.is_dead}"
+                                   has_target="{combat.has_target}"
+                                   base_threat="{threat.base}"
+                                   is_disengaged="{state.disengaged}"
+                                   />
+        </Sequence>
+    </BehaviorTree>
+
+</root>

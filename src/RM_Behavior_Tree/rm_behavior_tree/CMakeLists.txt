@@ -99,34 +99,19 @@ ament_auto_add_library(is_dead SHARED
 )
 add_target_dependencies(is_dead)
 
-# ── RMUC 2026 RespawnRecovery 子树插件 ──────────────────────────────────────
+# ── RMUC 2026 LowHPRetreat 子树插件 ──────────────────────────────────────
 # Conditions
 ament_auto_add_library(rmuc_is_dead SHARED
     plugins/rmuc_2026/condition/is_dead.cpp
 )
 add_target_dependencies(rmuc_is_dead)
 
-ament_auto_add_library(rmuc_is_supply_card_detected SHARED
-    plugins/rmuc_2026/condition/is_supply_card_detected.cpp
+ament_auto_add_library(rmuc_is_detect_enemy SHARED
+    plugins/rmuc_2026/condition/is_detect_enemy.cpp
 )
-add_target_dependencies(rmuc_is_supply_card_detected)
-
-ament_auto_add_library(rmuc_is_at_nav_goal SHARED
-    plugins/rmuc_2026/condition/is_at_nav_goal.cpp
-)
-add_target_dependencies(rmuc_is_at_nav_goal)
+add_target_dependencies(rmuc_is_detect_enemy)
 
 # Actions
-ament_auto_add_library(rmuc_detect_respawn_and_set_recovery SHARED
-    plugins/rmuc_2026/action/detect_respawn_and_set_recovery.cpp
-)
-add_target_dependencies(rmuc_detect_respawn_and_set_recovery)
-
-ament_auto_add_library(rmuc_wait_and_heal SHARED
-    plugins/rmuc_2026/action/wait_and_heal.cpp
-)
-add_target_dependencies(rmuc_wait_and_heal)
-
 ament_auto_add_library(rmuc_robot_control SHARED
     plugins/rmuc_2026/action/robot_control.cpp
 )
@@ -137,11 +122,6 @@ ament_auto_add_library(rmuc_nav_control_cmd SHARED
 )
 add_target_dependencies(rmuc_nav_control_cmd)
 
-ament_auto_add_library(rmuc_micro_search_supply_card SHARED
-    plugins/rmuc_2026/action/micro_search_supply_card.cpp
-)
-add_target_dependencies(rmuc_micro_search_supply_card)
-
 # ── RMUC 2026 镜像插件 (6个：Sub[Game/Robot/RFID/Position] + IsGameTime + IsHPBelow) ──
 ament_auto_add_library(rmuc_sub_game_status SHARED
     plugins/rmuc_2026/action/sub_game_status.cpp)
@@ -151,13 +131,13 @@ ament_auto_add_library(rmuc_sub_robot_status SHARED
     plugins/rmuc_2026/action/sub_robot_status.cpp)
 add_target_dependencies(rmuc_sub_robot_status)
 
-ament_auto_add_library(rmuc_sub_rfid_status SHARED
-    plugins/rmuc_2026/action/sub_rfid_status.cpp)
-add_target_dependencies(rmuc_sub_rfid_status)
-
 ament_auto_add_library(rmuc_sub_robot_position SHARED
     plugins/rmuc_2026/action/sub_robot_position.cpp)
 add_target_dependencies(rmuc_sub_robot_position)
+
+ament_auto_add_library(rmuc_sub_radar_tracks SHARED
+    plugins/rmuc_2026/action/sub_radar_tracks.cpp)
+add_target_dependencies(rmuc_sub_radar_tracks)
 
 ament_auto_add_library(rmuc_is_game_time SHARED
     plugins/rmuc_2026/condition/is_game_time.cpp)
@@ -167,11 +147,12 @@ ament_auto_add_library(rmuc_is_hp_below SHARED
     plugins/rmuc_2026/condition/is_hp_below.cpp)
 add_target_dependencies(rmuc_is_hp_below)
 
-# ── RMUC 2026 感知/指令类 RMUC 特有插件 ──
-ament_auto_add_library(rmuc_sub_radar_tracks SHARED
-    plugins/rmuc_2026/action/sub_radar_tracks.cpp)
-add_target_dependencies(rmuc_sub_radar_tracks)
+# ── RMUC 2026 裁判系统话题订阅插件 ──
+ament_auto_add_library(rmuc_sub_team_hp SHARED
+    plugins/rmuc_2026/action/sub_team_hp.cpp)
+add_target_dependencies(rmuc_sub_team_hp)
 
+# ── RMUC 2026 感知/指令类 RMUC 特有插件 ──
 ament_auto_add_library(rmuc_parse_sentry_blackboard SHARED
     plugins/rmuc_2026/action/parse_sentry_blackboard.cpp)
 add_target_dependencies(rmuc_parse_sentry_blackboard)
@@ -197,30 +178,17 @@ ament_auto_add_library(rmuc_init_cmd_state SHARED
     plugins/rmuc_2026/action/init_cmd_state.cpp)
 add_target_dependencies(rmuc_init_cmd_state)
 
-ament_auto_add_library(rmuc_decide_posture SHARED
-    plugins/rmuc_2026/action/decide_posture.cpp)
-add_target_dependencies(rmuc_decide_posture)
+ament_auto_add_library(rmuc_select_posture SHARED
+    plugins/rmuc_2026/action/select_posture.cpp)
+add_target_dependencies(rmuc_select_posture)
 
-ament_auto_add_library(rmuc_decide_economy_cmd SHARED
-    plugins/rmuc_2026/action/decide_economy_cmd.cpp)
-add_target_dependencies(rmuc_decide_economy_cmd)
+ament_auto_add_library(rmuc_posture_degradation_guard SHARED
+    plugins/rmuc_2026/action/posture_degradation_guard.cpp)
+add_target_dependencies(rmuc_posture_degradation_guard)
 
-ament_auto_add_library(rmuc_select_safe_retreat_goal SHARED
-    plugins/rmuc_2026/action/select_safe_retreat_goal.cpp)
-add_target_dependencies(rmuc_select_safe_retreat_goal)
-
-# ── RMUC 2026 战斗/瞄准 ──
-ament_auto_add_library(rmuc_select_best_target SHARED
-    plugins/rmuc_2026/action/select_best_target.cpp)
-add_target_dependencies(rmuc_select_best_target)
-
-ament_auto_add_library(rmuc_aim_at_target SHARED
-    plugins/rmuc_2026/action/aim_at_target.cpp)
-add_target_dependencies(rmuc_aim_at_target)
-
-ament_auto_add_library(rmuc_fire_burst SHARED
-    plugins/rmuc_2026/action/fire_burst.cpp)
-add_target_dependencies(rmuc_fire_burst)
+ament_auto_add_library(rmuc_load_calibration_csv SHARED
+    plugins/rmuc_2026/action/load_calibration_csv.cpp)
+add_target_dependencies(rmuc_load_calibration_csv)
 
 # ── RMUC 2026 后勤/补给 ──
 ament_auto_add_library(rmuc_hold_and_heal SHARED
@@ -235,10 +203,6 @@ ament_auto_add_library(rmuc_select_nearest_resupply_station SHARED
     plugins/rmuc_2026/action/select_nearest_resupply_station.cpp)
 add_target_dependencies(rmuc_select_nearest_resupply_station)
 
-ament_auto_add_library(rmuc_select_nearest_dispel_card SHARED
-    plugins/rmuc_2026/action/select_nearest_dispel_card.cpp)
-add_target_dependencies(rmuc_select_nearest_dispel_card)
-
 # ── RMUC 2026 目标/巡逻 ──
 ament_auto_add_library(rmuc_select_objective SHARED
     plugins/rmuc_2026/action/select_objective.cpp)
@@ -248,42 +212,26 @@ ament_auto_add_library(rmuc_hold_objective SHARED
     plugins/rmuc_2026/action/hold_objective.cpp)
 add_target_dependencies(rmuc_hold_objective)
 
-ament_auto_add_library(rmuc_waypoint_patrol SHARED
-    plugins/rmuc_2026/action/waypoint_patrol.cpp)
-add_target_dependencies(rmuc_waypoint_patrol)
+ament_auto_add_library(rmuc_objective_patrol SHARED
+    plugins/rmuc_2026/action/objective_patrol.cpp)
+add_target_dependencies(rmuc_objective_patrol)
 
 # ── RMUC 2026 条件插件 ──
 ament_auto_add_library(rmuc_is_ammo_below SHARED
     plugins/rmuc_2026/condition/is_ammo_below.cpp)
 add_target_dependencies(rmuc_is_ammo_below)
 
-ament_auto_add_library(rmuc_is_critical_state SHARED
-    plugins/rmuc_2026/condition/is_critical_state.cpp)
-add_target_dependencies(rmuc_is_critical_state)
-
 ament_auto_add_library(rmuc_is_base_threatened SHARED
     plugins/rmuc_2026/condition/is_base_threatened.cpp)
 add_target_dependencies(rmuc_is_base_threatened)
-
-ament_auto_add_library(rmuc_has_valid_target SHARED
-    plugins/rmuc_2026/condition/has_valid_target.cpp)
-add_target_dependencies(rmuc_has_valid_target)
-
-ament_auto_add_library(rmuc_is_combat_allowed SHARED
-    plugins/rmuc_2026/condition/is_combat_allowed.cpp)
-add_target_dependencies(rmuc_is_combat_allowed)
-
-ament_auto_add_library(rmuc_is_fire_window_ok SHARED
-    plugins/rmuc_2026/condition/is_fire_window_ok.cpp)
-add_target_dependencies(rmuc_is_fire_window_ok)
 
 ament_auto_add_library(rmuc_is_at_goal SHARED
     plugins/rmuc_2026/condition/is_at_goal.cpp)
 add_target_dependencies(rmuc_is_at_goal)
 
-ament_auto_add_library(rmuc_is_any_dispel_card_detected SHARED
-    plugins/rmuc_2026/condition/is_any_dispel_card_detected.cpp)
-add_target_dependencies(rmuc_is_any_dispel_card_detected)
+ament_auto_add_library(rmuc_is_nav_target_supply SHARED
+    plugins/rmuc_2026/condition/is_nav_target_supply.cpp)
+add_target_dependencies(rmuc_is_nav_target_supply)
 
 # ── 结束 RMUC 2026 全部插件 ────────────────────────────────────────────────
 
@@ -311,6 +259,12 @@ ament_auto_add_library(is_navigation_stuck SHARED
     plugins/rmul_2026/condition/is_navigation_stuck.cpp
 )
 add_target_dependencies(is_navigation_stuck)
+
+ament_auto_add_library(is_in_semantic_zone SHARED 
+    plugins/rmul_2026/condition/is_in_semantic_zone.cpp
+)
+add_target_dependencies(is_in_semantic_zone)
+target_link_libraries(is_in_semantic_zone yaml-cpp)
 
 # Actions
 ament_auto_add_library(send_goal SHARED 
@@ -420,6 +374,7 @@ ament_auto_add_library(find_escape_point SHARED
     plugins/rmul_2026/action/find_escape_point.cpp
 )
 add_target_dependencies(find_escape_point)
+target_link_libraries(find_escape_point yaml-cpp)
 
 ament_auto_add_library(is_goal_area_clear SHARED
     plugins/rmul_2026/condition/is_goal_area_clear.cpp
@@ -491,6 +446,11 @@ ament_auto_add_library(clear_costmap SHARED
 )
 add_target_dependencies(clear_costmap)
 target_link_libraries(clear_costmap ${nav2_msgs_TARGETS})
+
+install(PROGRAMS config/RMUC_2026/robot_position_bridge.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME robot_position_bridge
+)
 
 ament_auto_package(
   INSTALL_TO_SHARE
