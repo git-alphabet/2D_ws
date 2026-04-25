@@ -15,6 +15,7 @@
 #include "fake_vel_transform/fake_vel_transform.hpp"
 
 #include "example_interfaces/msg/float32.hpp"
+#include <array>
 #include <cmath>
 
 #include "geometry_msgs/msg/point.hpp"
@@ -32,6 +33,111 @@ constexpr double EPSILON = 1e-5;
 constexpr double CONTROLLER_TIMEOUT = 0.5;
 constexpr double OUTPUT_HOLD_PUBLISH_TIMEOUT = 0.1;
 constexpr double SPIN_LINEAR_STOP_THRESHOLD = 0.05;
+
+namespace
+{
+double signedArea(const std::vector<std::pair<double, double>> & vertices)
+{
+  if (vertices.size() < 3) {
+    return 0.0;
+  }
+
+  double area2 = 0.0;
+  for (size_t i = 0, j = vertices.size() - 1; i < vertices.size(); j = i++) {
+    area2 += vertices[j].first * vertices[i].second - vertices[i].first * vertices[j].second;
+  }
+  return 0.5 * area2;
+}
+
+double cross2d(
+  const std::pair<double, double> & a,
+  const std::pair<double, double> & b,
+  const std::pair<double, double> & c)
+{
+  return (b.first - a.first) * (c.second - a.second) -
+         (b.second - a.second) * (c.first - a.first);
+}
+
+bool pointInTriangle(
+  const std::pair<double, double> & p,
+  const std::pair<double, double> & a,
+  const std::pair<double, double> & b,
+  const std::pair<double, double> & c)
+{
+  const double c1 = cross2d(a, b, p);
+  const double c2 = cross2d(b, c, p);
+  const double c3 = cross2d(c, a, p);
+  const bool has_neg = (c1 < -1e-9) || (c2 < -1e-9) || (c3 < -1e-9);
+  const bool has_pos = (c1 > 1e-9) || (c2 > 1e-9) || (c3 > 1e-9);
+  return !(has_neg && has_pos);
+}
+
+std::vector<std::array<size_t, 3>> triangulatePolygon(
+  const std::vector<std::pair<double, double>> & vertices)
+{
+  std::vector<std::array<size_t, 3>> triangles;
+  if (vertices.size() < 3) {
+    return triangles;
+  }
+
+  std::vector<size_t> idx(vertices.size());
+  for (size_t i = 0; i < vertices.size(); ++i) {
+    idx[i] = i;
+  }
+
+  const bool is_ccw = signedArea(vertices) > 0.0;
+  size_t guard = 0;
+  const size_t guard_limit = vertices.size() * vertices.size();
+
+  while (idx.size() > 3 && guard++ < guard_limit) {
+    bool ear_found = false;
+    for (size_t i = 0; i < idx.size(); ++i) {
+      const size_t i_prev = idx[(i + idx.size() - 1) % idx.size()];
+      const size_t i_curr = idx[i];
+      const size_t i_next = idx[(i + 1) % idx.size()];
+
+      const auto & a = vertices[i_prev];
+      const auto & b = vertices[i_curr];
+      const auto & c = vertices[i_next];
+
+      const double cross = cross2d(a, b, c);
+      const bool convex = is_ccw ? (cross > 1e-9) : (cross < -1e-9);
+      if (!convex) {
+        continue;
+      }
+
+      bool contains_point = false;
+      for (size_t k = 0; k < idx.size(); ++k) {
+        const size_t i_test = idx[k];
+        if (i_test == i_prev || i_test == i_curr || i_test == i_next) {
+          continue;
+        }
+        if (pointInTriangle(vertices[i_test], a, b, c)) {
+          contains_point = true;
+          break;
+        }
+      }
+      if (contains_point) {
+        continue;
+      }
+
+      triangles.push_back({i_prev, i_curr, i_next});
+      idx.erase(idx.begin() + static_cast<std::ptrdiff_t>(i));
+      ear_found = true;
+      break;
+    }
+
+    if (!ear_found) {
+      break;
+    }
+  }
+
+  if (idx.size() == 3) {
+    triangles.push_back({idx[0], idx[1], idx[2]});
+  }
+  return triangles;
+}
+}  // namespace
 
 FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
 : Node("fake_vel_transform", options)
@@ -313,27 +419,30 @@ void FakeVelTransform::publishSpeedBumpMarkers()
   fill.color.a = 0.45F;
 
   const auto & vertices = speed_bump_zone_vertices_;
-  for (size_t i = 1; i + 1 < vertices.size(); ++i) {
+  const auto triangles = triangulatePolygon(vertices);
+  for (const auto & tri : triangles) {
     geometry_msgs::msg::Point p0;
-    p0.x = vertices[0].first;
-    p0.y = vertices[0].second;
+    p0.x = vertices[tri[0]].first;
+    p0.y = vertices[tri[0]].second;
     p0.z = 0.05;
 
     geometry_msgs::msg::Point p1;
-    p1.x = vertices[i].first;
-    p1.y = vertices[i].second;
+    p1.x = vertices[tri[1]].first;
+    p1.y = vertices[tri[1]].second;
     p1.z = 0.05;
 
     geometry_msgs::msg::Point p2;
-    p2.x = vertices[i + 1].first;
-    p2.y = vertices[i + 1].second;
+    p2.x = vertices[tri[2]].first;
+    p2.y = vertices[tri[2]].second;
     p2.z = 0.05;
 
     fill.points.push_back(p0);
     fill.points.push_back(p1);
     fill.points.push_back(p2);
   }
-  marker_array.markers.push_back(fill);
+  if (!fill.points.empty()) {
+    marker_array.markers.push_back(fill);
+  }
 
   visualization_msgs::msg::Marker outline;
   outline.header.frame_id = speed_bump_map_frame_;

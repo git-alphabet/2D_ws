@@ -6,8 +6,8 @@ This script is designed for a fixed-map workflow:
 2) Read map metadata from a ROS map yaml (resolution/origin/yaw).
 3) Export polygons in map frame to semantic_zones.yaml.
 
-Default extraction mode is axis-aligned bounding box per connected component,
-which is robust and simple for rectangular zones such as speed bumps.
+Default extraction mode is polygon contour per connected component.
+The exported vertices follow the painted boundary instead of a rectangle bbox.
 """
 
 from __future__ import annotations
@@ -34,6 +34,7 @@ MIN_PIXELS = 20
 
 RGB = Tuple[int, int, int]
 RC = Tuple[int, int]
+CC = Tuple[int, int]
 
 
 @dataclass(frozen=True)
@@ -131,27 +132,133 @@ def _pixel_corner_to_map(
     return wx, wy
 
 
-def _bbox_polygon_map(
+def _polygon_area(poly: Sequence[Tuple[float, float]]) -> float:
+    if len(poly) < 3:
+        return 0.0
+    s = 0.0
+    n = len(poly)
+    for i in range(n):
+        x1, y1 = poly[i]
+        x2, y2 = poly[(i + 1) % n]
+        s += x1 * y2 - x2 * y1
+    return 0.5 * s
+
+
+def _simplify_collinear(points: List[CC]) -> List[CC]:
+    if len(points) < 3:
+        return points
+
+    simplified: List[CC] = []
+    n = len(points)
+    for i in range(n):
+        p_prev = points[(i - 1) % n]
+        p_cur = points[i]
+        p_next = points[(i + 1) % n]
+
+        v1x = p_cur[0] - p_prev[0]
+        v1y = p_cur[1] - p_prev[1]
+        v2x = p_next[0] - p_cur[0]
+        v2y = p_next[1] - p_cur[1]
+
+        cross = v1x * v2y - v1y * v2x
+        dot = v1x * v2x + v1y * v2y
+        if cross == 0 and dot > 0:
+            continue
+        simplified.append(p_cur)
+    return simplified
+
+
+def _component_outer_boundary(component: List[RC]) -> List[CC]:
+    cells = set(component)
+    edges: Dict[CC, List[CC]] = {}
+
+    def add_edge(start: CC, end: CC) -> None:
+        edges.setdefault(start, []).append(end)
+
+    for r, c in cells:
+        # Use clockwise oriented boundary edges in pixel-corner coordinates.
+        if (r - 1, c) not in cells:
+            add_edge((c, r), (c + 1, r))
+        if (r, c + 1) not in cells:
+            add_edge((c + 1, r), (c + 1, r + 1))
+        if (r + 1, c) not in cells:
+            add_edge((c + 1, r + 1), (c, r + 1))
+        if (r, c - 1) not in cells:
+            add_edge((c, r + 1), (c, r))
+
+    if not edges:
+        return []
+
+    used_edges: set[Tuple[CC, CC]] = set()
+    loops: List[List[CC]] = []
+
+    for start, outgoing in edges.items():
+        for first_end in outgoing:
+            e0 = (start, first_end)
+            if e0 in used_edges:
+                continue
+
+            loop: List[CC] = [start]
+            curr_start = start
+            curr_end = first_end
+
+            while True:
+                edge = (curr_start, curr_end)
+                if edge in used_edges:
+                    break
+                used_edges.add(edge)
+                loop.append(curr_end)
+
+                if curr_end == start:
+                    loops.append(loop)
+                    break
+
+                next_candidates = edges.get(curr_end, [])
+                next_end = None
+                for cand in next_candidates:
+                    if (curr_end, cand) not in used_edges:
+                        next_end = cand
+                        break
+
+                if next_end is None:
+                    raise RuntimeError("Contour extraction failed: open boundary detected")
+
+                curr_start, curr_end = curr_end, next_end
+
+    if not loops:
+        return []
+
+    # Keep the largest closed loop as the outer contour.
+    def loop_area_abs(closed_loop: List[CC]) -> float:
+        if len(closed_loop) < 4:
+            return 0.0
+        s = 0.0
+        for i in range(len(closed_loop) - 1):
+            x1, y1 = closed_loop[i]
+            x2, y2 = closed_loop[i + 1]
+            s += x1 * y2 - x2 * y1
+        return abs(0.5 * s)
+
+    outer = max(loops, key=loop_area_abs)
+    if len(outer) < 4:
+        return []
+
+    # Drop duplicated closing point and simplify straight runs.
+    contour = outer[:-1]
+    contour = _simplify_collinear(contour)
+    return contour
+
+
+def _component_polygon_map(
     component: List[RC],
     image_h: int,
     resolution: float,
     origin_xy: Tuple[float, float],
     yaw: float,
 ) -> List[Tuple[float, float]]:
-    rows = [rc[0] for rc in component]
-    cols = [rc[1] for rc in component]
-    min_r = min(rows)
-    max_r = max(rows)
-    min_c = min(cols)
-    max_c = max(cols)
-
-    # Rectangle corners in pixel-corner coordinates (clockwise in image frame).
-    corners_px = [
-        (min_c, min_r),
-        (max_c + 1, min_r),
-        (max_c + 1, max_r + 1),
-        (min_c, max_r + 1),
-    ]
+    corners_px = _component_outer_boundary(component)
+    if len(corners_px) < 3:
+        return []
 
     poly: List[Tuple[float, float]] = []
     for c, r in corners_px:
@@ -223,7 +330,7 @@ def convert(
             idx += 1
             counts[label.name] = counts.get(label.name, 0) + 1
 
-            poly = _bbox_polygon_map(
+            poly = _component_polygon_map(
                 component=comp,
                 image_h=image_h,
                 resolution=resolution,
@@ -231,9 +338,18 @@ def convert(
                 yaw=yaw,
             )
 
+            if len(poly) < 3 or abs(_polygon_area(poly)) < 1e-9:
+                continue
+
+            zone_name = f"{label.name}_{idx}" if use_suffix else label.name
+            area = abs(_polygon_area(poly))
+            print(
+                f"  zone={zone_name} pixels={len(comp)} vertices={len(poly)} area={area:.3f}"
+            )
+
             zones.append(
                 {
-                    "name": f"{label.name}_{idx}" if use_suffix else label.name,
+                    "name": zone_name,
                     "type": label.zone_type,
                     "vertices": _round_poly(poly),
                 }
