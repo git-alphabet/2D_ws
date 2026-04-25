@@ -11,7 +11,7 @@ RMUC 标定点辅助节点 —— 单个 PublishPoint 工具 + 自动轮转模�
   5. 发布 /calib/prev 或 /calib/next (std_msgs/Empty) 可上翻/下翻
 
 话题:
-  订阅: /calib/clicked_point  (geometry_msgs/msg/PointStamped) — rviz 点击
+    订阅: /calib/control_point, /calib/clicked_point (geometry_msgs/msg/PointStamped) — rviz 点击
   订阅: /calib/select          (std_msgs/msg/String) — 跳到指定标定点
   订阅: /calib/prev, /calib/next (std_msgs/msg/Empty) — 上翻/下翻
   发布: /calibrated_points     (visualization_msgs/msg/MarkerArray) — 十字标志+标签
@@ -80,6 +80,7 @@ class CalibPointHelper(Node):
         self.hint_pub = self.create_publisher(MarkerArray, "/calib/current_label", latching_qos)
 
         # 订阅 rviz 点击
+        self.create_subscription(PointStamped, "/calib/control_point", self._on_click, 10)
         self.create_subscription(PointStamped, "/calib/clicked_point", self._on_click, 10)
         # 订阅控制话题
         self.create_subscription(String, "/calib/select", self._on_select, 10)

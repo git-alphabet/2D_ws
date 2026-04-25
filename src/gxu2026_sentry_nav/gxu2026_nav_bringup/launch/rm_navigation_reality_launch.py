@@ -16,15 +16,112 @@
 import os
 from pathlib import Path
 
+import yaml
+
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, OpaqueFunction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, TextSubstitution
 from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterFile
 from nav2_common.launch import RewrittenYaml
+
+
+def _resolve_calib_helper_settings(params_file_path: str, namespace_value: str) -> tuple[str, bool]:
+    mode_value = "always"
+    no_csv_value = False
+
+    if params_file_path:
+        try:
+            with open(params_file_path, "r", encoding="utf-8") as file_obj:
+                yaml_obj = yaml.safe_load(file_obj) or {}
+        except Exception:
+            yaml_obj = {}
+
+        if isinstance(yaml_obj, dict):
+            root_candidates = [yaml_obj]
+            normalized_namespace = namespace_value.strip().lstrip("/")
+            if normalized_namespace:
+                namespaced_root = yaml_obj.get(normalized_namespace)
+                if isinstance(namespaced_root, dict):
+                    root_candidates.insert(0, namespaced_root)
+
+            for root in root_candidates:
+                switches_obj = root.get("pb_navigation_switches")
+                if not isinstance(switches_obj, dict):
+                    continue
+                ros_params = switches_obj.get("ros__parameters")
+                if not isinstance(ros_params, dict):
+                    continue
+
+                mode_candidate = ros_params.get("calib_helper_mode")
+                if isinstance(mode_candidate, str) and mode_candidate.strip():
+                    mode_value = mode_candidate.strip().lower()
+
+                no_csv_candidate = ros_params.get("calib_no_csv")
+                if isinstance(no_csv_candidate, bool):
+                    no_csv_value = no_csv_candidate
+                elif isinstance(no_csv_candidate, str):
+                    no_csv_value = no_csv_candidate.strip().lower() in ("1", "true", "yes", "on")
+
+                break
+
+    env_mode = os.environ.get("CALIB_HELPER_MODE", "").strip().lower()
+    if env_mode:
+        mode_value = env_mode
+
+    env_no_csv = os.environ.get("CALIB_NO_CSV", "").strip().lower()
+    if env_no_csv:
+        no_csv_value = env_no_csv in ("1", "true", "yes", "on")
+
+    return mode_value, no_csv_value
+
+
+def _setup_calib_helper(context, *_args, **_kwargs):
+    params_file_path = LaunchConfiguration("params_file").perform(context)
+    namespace_value = LaunchConfiguration("namespace").perform(context)
+
+    calib_mode, calib_no_csv = _resolve_calib_helper_settings(
+        params_file_path=params_file_path,
+        namespace_value=namespace_value,
+    )
+    calib_enabled = calib_mode not in ("0", "false", "no", "off", "disable", "disabled")
+
+    calib_script = os.environ.get("CALIB_HELPER_SCRIPT", "")
+    if not calib_script:
+        bringup_dir = get_package_share_directory("gxu2026_nav_bringup")
+        _ws_candidate = Path(bringup_dir)
+        for _ in range(6):
+            _ws_candidate = _ws_candidate.parent
+            _candidate = _ws_candidate / "scripts" / "calib_point_helper.py"
+            if _candidate.exists():
+                calib_script = str(_candidate)
+                break
+
+    if not (calib_enabled and calib_script and os.path.isfile(calib_script)):
+        return []
+
+    calib_args = ["python3", calib_script]
+    if calib_no_csv:
+        calib_args.append("--no-csv")
+
+    if calib_mode in ("always", "all", "nav"):
+        return [
+            ExecuteProcess(
+                cmd=calib_args,
+                output="screen",
+            )
+        ]
+
+    return [
+        ExecuteProcess(
+            cmd=calib_args,
+            output="screen",
+            condition=IfCondition(LaunchConfiguration("slam")),
+        )
+    ]
 
 
 def generate_launch_description():
@@ -216,38 +313,6 @@ def generate_launch_description():
     ld.add_action(bringup_cmd)
     ld.add_action(rviz_cmd)
 
-    # CALIB_HELPER_MODE:
-    #   off/false/0   -> s�
-    #   slam          -> � SLAM !/(
-    #   always/nav    -> �* SLAM �/(
-    calib_mode = os.environ.get("CALIB_HELPER_MODE", "slam").strip().lower()
-    calib_enabled = calib_mode not in ("0", "false", "no", "off", "disable", "disabled")
-
-    calib_script = os.environ.get("CALIB_HELPER_SCRIPT", "")
-    if not calib_script:
-        _ws_candidate = Path(bringup_dir)
-        for _ in range(6):
-            _ws_candidate = _ws_candidate.parent
-            _candidate = _ws_candidate / "scripts" / "calib_point_helper.py"
-            if _candidate.exists():
-                calib_script = str(_candidate)
-                break
-
-    if calib_enabled and calib_script and os.path.isfile(calib_script):
-        calib_args = ["python3", calib_script]
-        if os.environ.get("CALIB_NO_CSV", "").strip() in ("1", "true", "yes"):
-            calib_args.append("--no-csv")
-        if calib_mode in ("always", "all", "nav"):
-            start_calib_helper = ExecuteProcess(
-                cmd=calib_args,
-                output="screen",
-            )
-        else:
-            start_calib_helper = ExecuteProcess(
-                cmd=calib_args,
-                output="screen",
-                condition=IfCondition(slam),
-            )
-        ld.add_action(start_calib_helper)
+    ld.add_action(OpaqueFunction(function=_setup_calib_helper))
 
     return ld

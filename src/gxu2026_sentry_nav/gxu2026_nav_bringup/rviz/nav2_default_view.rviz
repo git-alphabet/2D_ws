@@ -392,6 +392,18 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /calibrated_points
       Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Calib Current Label
+      Namespaces:
+        {}
+      Topic:
+        Depth: 5
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /calib/current_label
+      Value: true
     - Alpha: 1
       Class: rviz_default_plugins/PointStamped
       Color: 255; 0; 0
