@@ -128,32 +128,7 @@ colcon --log-base "$LOG_BASE" build \
   --build-base "$BUILD_BASE" \
   --install-base "$INSTALL_BASE" \
   "${COLCON_EXECUTOR_ARGS[@]}" \
-  --packages-skip neupan_nav2_controller \
   --symlink-install \
   --cmake-args "${CMAKE_ARGS[@]}"
 
-# Activate NeuPAN virtual environment and set PYTHONPATH
-source neupan_env/bin/activate
-NEUPAN_SITE_PACKAGES="neupan_env/lib/python3.10/site-packages"
-if [[ -n "${PYTHONPATH:-}" ]]; then
-  export PYTHONPATH="${PYTHONPATH}:${NEUPAN_SITE_PACKAGES}"
-else
-  export PYTHONPATH="${NEUPAN_SITE_PACKAGES}"
-fi
-
-# Build only the AI packages
-colcon --log-base "$LOG_BASE" build \
-  --build-base "$BUILD_BASE" \
-  --install-base "$INSTALL_BASE" \
-  "${COLCON_EXECUTOR_ARGS[@]}" \
-  --packages-select neupan_nav2_controller \
-  --symlink-install \
-  --cmake-args "${CMAKE_ARGS[@]}"
-
-# Deactivate the environment
-deactivate 2>/dev/null || true
-
-# Clean PYTHONPATH
-if [[ -n "${PYTHONPATH:-}" ]]; then
-  PYTHONPATH="$(echo "$PYTHONPATH" | tr ':' '\n' | grep -v "neupan_env" | tr '\n' ':')"
-fi
+# ...existing code...

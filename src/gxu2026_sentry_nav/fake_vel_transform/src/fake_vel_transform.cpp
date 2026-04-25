@@ -15,11 +15,15 @@
 #include "fake_vel_transform/fake_vel_transform.hpp"
 
 #include "example_interfaces/msg/float32.hpp"
+#include <array>
 #include <cmath>
 
+#include "geometry_msgs/msg/point.hpp"
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "tf2/utils.hpp"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+#include "visualization_msgs/msg/marker.hpp"
+#include "visualization_msgs/msg/marker_array.hpp"
 #include "yaml-cpp/yaml.h"
 
 namespace fake_vel_transform
@@ -29,6 +33,111 @@ constexpr double EPSILON = 1e-5;
 constexpr double CONTROLLER_TIMEOUT = 0.5;
 constexpr double OUTPUT_HOLD_PUBLISH_TIMEOUT = 0.1;
 constexpr double SPIN_LINEAR_STOP_THRESHOLD = 0.05;
+
+namespace
+{
+double signedArea(const std::vector<std::pair<double, double>> & vertices)
+{
+  if (vertices.size() < 3) {
+    return 0.0;
+  }
+
+  double area2 = 0.0;
+  for (size_t i = 0, j = vertices.size() - 1; i < vertices.size(); j = i++) {
+    area2 += vertices[j].first * vertices[i].second - vertices[i].first * vertices[j].second;
+  }
+  return 0.5 * area2;
+}
+
+double cross2d(
+  const std::pair<double, double> & a,
+  const std::pair<double, double> & b,
+  const std::pair<double, double> & c)
+{
+  return (b.first - a.first) * (c.second - a.second) -
+         (b.second - a.second) * (c.first - a.first);
+}
+
+bool pointInTriangle(
+  const std::pair<double, double> & p,
+  const std::pair<double, double> & a,
+  const std::pair<double, double> & b,
+  const std::pair<double, double> & c)
+{
+  const double c1 = cross2d(a, b, p);
+  const double c2 = cross2d(b, c, p);
+  const double c3 = cross2d(c, a, p);
+  const bool has_neg = (c1 < -1e-9) || (c2 < -1e-9) || (c3 < -1e-9);
+  const bool has_pos = (c1 > 1e-9) || (c2 > 1e-9) || (c3 > 1e-9);
+  return !(has_neg && has_pos);
+}
+
+std::vector<std::array<size_t, 3>> triangulatePolygon(
+  const std::vector<std::pair<double, double>> & vertices)
+{
+  std::vector<std::array<size_t, 3>> triangles;
+  if (vertices.size() < 3) {
+    return triangles;
+  }
+
+  std::vector<size_t> idx(vertices.size());
+  for (size_t i = 0; i < vertices.size(); ++i) {
+    idx[i] = i;
+  }
+
+  const bool is_ccw = signedArea(vertices) > 0.0;
+  size_t guard = 0;
+  const size_t guard_limit = vertices.size() * vertices.size();
+
+  while (idx.size() > 3 && guard++ < guard_limit) {
+    bool ear_found = false;
+    for (size_t i = 0; i < idx.size(); ++i) {
+      const size_t i_prev = idx[(i + idx.size() - 1) % idx.size()];
+      const size_t i_curr = idx[i];
+      const size_t i_next = idx[(i + 1) % idx.size()];
+
+      const auto & a = vertices[i_prev];
+      const auto & b = vertices[i_curr];
+      const auto & c = vertices[i_next];
+
+      const double cross = cross2d(a, b, c);
+      const bool convex = is_ccw ? (cross > 1e-9) : (cross < -1e-9);
+      if (!convex) {
+        continue;
+      }
+
+      bool contains_point = false;
+      for (size_t k = 0; k < idx.size(); ++k) {
+        const size_t i_test = idx[k];
+        if (i_test == i_prev || i_test == i_curr || i_test == i_next) {
+          continue;
+        }
+        if (pointInTriangle(vertices[i_test], a, b, c)) {
+          contains_point = true;
+          break;
+        }
+      }
+      if (contains_point) {
+        continue;
+      }
+
+      triangles.push_back({i_prev, i_curr, i_next});
+      idx.erase(idx.begin() + static_cast<std::ptrdiff_t>(i));
+      ear_found = true;
+      break;
+    }
+
+    if (!ear_found) {
+      break;
+    }
+  }
+
+  if (idx.size() == 3) {
+    triangles.push_back({idx[0], idx[1], idx[2]});
+  }
+  return triangles;
+}
+}  // namespace
 
 FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
 : Node("fake_vel_transform", options)
@@ -54,8 +163,11 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->declare_parameter<float>("init_spin_speed", 0.0);
   this->declare_parameter<bool>("disable_spin_while_moving", true);
   this->declare_parameter<bool>("enable_speed_bump_min_speed", true);
+  this->declare_parameter<bool>("enable_speed_bump_zero_angular_z", true);
   this->declare_parameter<double>("speed_bump_min_linear_speed", 1.5);
   this->declare_parameter<std::string>("speed_bump_map_frame", "map");
+  this->declare_parameter<bool>("publish_speed_bump_marker", true);
+  this->declare_parameter<std::string>("speed_bump_marker_topic", "speed_bump_zone_markers");
   this->declare_parameter<std::string>("speed_bump_zone_name", "speed_bump");
   this->declare_parameter<std::string>("speed_bump_zones_file", "");
 
@@ -72,8 +184,11 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->get_parameter("init_spin_speed", init_spin_speed_);
   this->get_parameter("disable_spin_while_moving", disable_spin_while_moving_);
   this->get_parameter("enable_speed_bump_min_speed", enable_speed_bump_min_speed_);
+  this->get_parameter("enable_speed_bump_zero_angular_z", enable_speed_bump_zero_angular_z_);
   this->get_parameter("speed_bump_min_linear_speed", speed_bump_min_linear_speed_);
   this->get_parameter("speed_bump_map_frame", speed_bump_map_frame_);
+  this->get_parameter("publish_speed_bump_marker", publish_speed_bump_marker_);
+  this->get_parameter("speed_bump_marker_topic", speed_bump_marker_topic_);
   this->get_parameter("speed_bump_zone_name", speed_bump_zone_name_);
   this->get_parameter("speed_bump_zones_file", speed_bump_zones_file_);
 
@@ -89,8 +204,9 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
     disable_spin_while_moving_ ? "true" : "false");
   RCLCPP_INFO(
     get_logger(),
-    "Speed bump min speed: enabled=%s, min_linear_speed=%.3f, zone=%s, loaded=%s",
+    "Speed bump control: min_speed_enabled=%s, min_linear_speed=%.3f, zero_angular_enabled=%s, zone=%s, loaded=%s",
     enable_speed_bump_min_speed_ ? "true" : "false", speed_bump_min_linear_speed_,
+    enable_speed_bump_zero_angular_z_ ? "true" : "false",
     speed_bump_zone_name_.c_str(), speed_bump_zone_loaded_ ? "true" : "false");
   RCLCPP_INFO(
     get_logger(),
@@ -98,6 +214,16 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
     speed_bump_map_frame_.c_str());
 
   tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+
+  if (publish_speed_bump_marker_) {
+    auto qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
+    speed_bump_marker_pub_ =
+      this->create_publisher<visualization_msgs::msg::MarkerArray>(speed_bump_marker_topic_, qos);
+    if (speed_bump_zone_loaded_) {
+      publishSpeedBumpMarkers();
+      last_marker_pub_time_ = this->get_clock()->now();
+    }
+  }
 
   cmd_vel_chassis_pub_ =
     this->create_publisher<geometry_msgs::msg::Twist>(output_cmd_vel_topic_, 1);
@@ -256,7 +382,121 @@ void FakeVelTransform::publishTransform()
   t.transform.rotation = tf2::toMsg(q);
   tf_broadcaster_->sendTransform(t);
 
+  if (
+    publish_speed_bump_marker_ && speed_bump_zone_loaded_ && speed_bump_marker_pub_ &&
+    (now - last_marker_pub_time_).seconds() >= 1.0)
+  {
+    publishSpeedBumpMarkers();
+    last_marker_pub_time_ = now;
+  }
+
   publishHoldCmdVelIfNeeded(now);
+}
+
+void FakeVelTransform::publishSpeedBumpMarkers()
+{
+  if (!speed_bump_marker_pub_ || !speed_bump_zone_loaded_ || speed_bump_zone_vertices_.size() < 3) {
+    return;
+  }
+
+  visualization_msgs::msg::MarkerArray marker_array;
+  const auto stamp = this->get_clock()->now();
+
+  visualization_msgs::msg::Marker fill;
+  fill.header.frame_id = speed_bump_map_frame_;
+  fill.header.stamp = stamp;
+  fill.ns = "speed_bump_zone";
+  fill.id = 0;
+  fill.type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
+  fill.action = visualization_msgs::msg::Marker::ADD;
+  fill.pose.orientation.w = 1.0;
+  fill.scale.x = 1.0;
+  fill.scale.y = 1.0;
+  fill.scale.z = 1.0;
+  fill.color.r = 1.0F;
+  fill.color.g = 0.42F;
+  fill.color.b = 0.0F;
+  fill.color.a = 0.45F;
+
+  const auto & vertices = speed_bump_zone_vertices_;
+  const auto triangles = triangulatePolygon(vertices);
+  for (const auto & tri : triangles) {
+    geometry_msgs::msg::Point p0;
+    p0.x = vertices[tri[0]].first;
+    p0.y = vertices[tri[0]].second;
+    p0.z = 0.05;
+
+    geometry_msgs::msg::Point p1;
+    p1.x = vertices[tri[1]].first;
+    p1.y = vertices[tri[1]].second;
+    p1.z = 0.05;
+
+    geometry_msgs::msg::Point p2;
+    p2.x = vertices[tri[2]].first;
+    p2.y = vertices[tri[2]].second;
+    p2.z = 0.05;
+
+    fill.points.push_back(p0);
+    fill.points.push_back(p1);
+    fill.points.push_back(p2);
+  }
+  if (!fill.points.empty()) {
+    marker_array.markers.push_back(fill);
+  }
+
+  visualization_msgs::msg::Marker outline;
+  outline.header.frame_id = speed_bump_map_frame_;
+  outline.header.stamp = stamp;
+  outline.ns = "speed_bump_zone";
+  outline.id = 1;
+  outline.type = visualization_msgs::msg::Marker::LINE_STRIP;
+  outline.action = visualization_msgs::msg::Marker::ADD;
+  outline.pose.orientation.w = 1.0;
+  outline.scale.x = 0.2;
+  outline.color.r = 1.0F;
+  outline.color.g = 1.0F;
+  outline.color.b = 0.0F;
+  outline.color.a = 1.0F;
+
+  for (const auto & v : vertices) {
+    geometry_msgs::msg::Point p;
+    p.x = v.first;
+    p.y = v.second;
+    p.z = 0.08;
+    outline.points.push_back(p);
+  }
+  geometry_msgs::msg::Point close_point;
+  close_point.x = vertices.front().first;
+  close_point.y = vertices.front().second;
+  close_point.z = 0.08;
+  outline.points.push_back(close_point);
+  marker_array.markers.push_back(outline);
+
+  visualization_msgs::msg::Marker corners;
+  corners.header.frame_id = speed_bump_map_frame_;
+  corners.header.stamp = stamp;
+  corners.ns = "speed_bump_zone";
+  corners.id = 2;
+  corners.type = visualization_msgs::msg::Marker::SPHERE_LIST;
+  corners.action = visualization_msgs::msg::Marker::ADD;
+  corners.pose.orientation.w = 1.0;
+  corners.scale.x = 0.3;
+  corners.scale.y = 0.3;
+  corners.scale.z = 0.3;
+  corners.color.r = 1.0F;
+  corners.color.g = 0.0F;
+  corners.color.b = 0.0F;
+  corners.color.a = 1.0F;
+  for (const auto & v : vertices) {
+    geometry_msgs::msg::Point p;
+    p.x = v.first;
+    p.y = v.second;
+    p.z = 0.12;
+    corners.points.push_back(p);
+  }
+  marker_array.markers.push_back(corners);
+
+  speed_bump_marker_pub_->publish(marker_array);
 }
 
 void FakeVelTransform::publishHoldCmdVelIfNeeded(const rclcpp::Time & now)
@@ -315,7 +555,7 @@ geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
   aft_tf_vel.linear.x = twist->linear.x * cos(yaw_diff) + twist->linear.y * sin(yaw_diff);
   aft_tf_vel.linear.y = -twist->linear.x * sin(yaw_diff) + twist->linear.y * cos(yaw_diff);
 
-  if (enable_speed_bump_min_speed_ && speed_bump_zone_loaded_) {
+  if ((enable_speed_bump_min_speed_ || enable_speed_bump_zero_angular_z_) && speed_bump_zone_loaded_) {
     double robot_x;
     double robot_y;
     bool robot_pose_ready;
@@ -339,8 +579,16 @@ geometry_msgs::msg::Twist FakeVelTransform::transformVelocity(
     }
 
     if (in_speed_bump) {
+      if (enable_speed_bump_zero_angular_z_ && std::abs(aft_tf_vel.angular.z) > EPSILON) {
+        aft_tf_vel.angular.z = 0.0;
+        RCLCPP_DEBUG_THROTTLE(
+          get_logger(), *get_clock(), 1000,
+          "Speed bump angular.z clamp applied: force 0.0 rad/s");
+      }
+
       const double transformed_linear_speed = std::hypot(aft_tf_vel.linear.x, aft_tf_vel.linear.y);
       if (
+        enable_speed_bump_min_speed_ &&
         transformed_linear_speed > EPSILON &&
         transformed_linear_speed < speed_bump_min_linear_speed_)
       {
@@ -398,14 +646,14 @@ void FakeVelTransform::loadSpeedBumpZoneFromYaml()
   speed_bump_zone_loaded_ = false;
   speed_bump_zone_vertices_.clear();
 
-  if (!enable_speed_bump_min_speed_) {
+  if (!enable_speed_bump_min_speed_ && !enable_speed_bump_zero_angular_z_) {
     return;
   }
 
   if (speed_bump_zones_file_.empty()) {
     RCLCPP_WARN(
       get_logger(),
-      "Speed bump min speed enabled but speed_bump_zones_file is empty, feature disabled.");
+      "Speed bump control enabled but speed_bump_zones_file is empty, feature disabled.");
     return;
   }
 

@@ -76,6 +76,13 @@ if [ -n "${HOME:-}" ] && [ -d "${HOME}" ]; then
     echo 'export RCL_LOGGING_DISABLE_FILE_OUTPUT=${RCL_LOGGING_DISABLE_FILE_OUTPUT:-1}' >> "${BASHRC_PATH}"
     echo 'mkdir -p "$ROS_HOME" "$ROS_LOG_DIR" 2>/dev/null || true' >> "${BASHRC_PATH}"
   fi
+
+  # 兼容 docker exec 常见的 `bash -lc`：登录 shell 会读取 .bash_profile，默认不会读取 .bashrc。
+  BASH_PROFILE_PATH="${HOME:-}/.bash_profile"
+  if ! grep -q "GXU_BASH_PROFILE_LOAD_BASHRC" "${BASH_PROFILE_PATH}" 2>/dev/null; then
+    echo '# GXU_BASH_PROFILE_LOAD_BASHRC' >> "${BASH_PROFILE_PATH}"
+    echo 'if [ -f "$HOME/.bashrc" ]; then source "$HOME/.bashrc"; fi' >> "${BASH_PROFILE_PATH}"
+  fi
 else
   echo "[ros_entrypoint] HOME directory not available (${HOME:-unset}), skip .bashrc update"
 fi
