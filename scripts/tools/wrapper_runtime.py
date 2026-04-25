@@ -23,9 +23,6 @@ from tools.wrapper_helpers import (
 from tools.wrapper_models import BackgroundGroup, CommonConfig
 
 
-ODIN_SAVE_GRACE_SEC = float(os.environ.get("ODIN_SAVE_GRACE_SEC", "8"))
-
-
 def validate_extra_launch_args(args: list[str]) -> None:
     allowed_prefixes = ("--", "__")
     for arg in args:
@@ -72,14 +69,6 @@ def ensure_launch_arg(cmd: str, name: str, value: str) -> str:
     return cmd + f" {name}:={value}"
 
 
-def upsert_launch_arg(cmd: str, name: str, value: str) -> str:
-    pattern = rf"(^|\s){re.escape(name)}:=([^\s]+)"
-    replacement = rf"\1{name}:={value}"
-    if re.search(pattern, cmd):
-        return re.sub(pattern, replacement, cmd, count=1)
-    return cmd + f" {name}:={value}"
-
-
 def extract_launch_arg(cmd: str, name: str) -> Optional[str]:
     try:
         for token in shlex.split(cmd):
@@ -89,144 +78,6 @@ def extract_launch_arg(cmd: str, name: str) -> Optional[str]:
     except Exception:
         pass
     return None
-
-
-def _read_odin_custom_map_mode(ws_dir: Path, ros_cmd: str) -> Optional[int]:
-    cfg_path = _resolve_odin_config_path(ws_dir, ros_cmd)
-    if not cfg_path.exists():
-        return None
-
-    try:
-        import yaml  # type: ignore
-
-        data = yaml.safe_load(cfg_path.read_text()) or {}
-        register_keys = data.get("register_keys", {}) if isinstance(data, dict) else {}
-        raw_mode = register_keys.get("custom_map_mode")
-        if raw_mode is None:
-            return None
-        return int(raw_mode)
-    except Exception:
-        return None
-
-
-def _resolve_odin_config_path(ws_dir: Path, ros_cmd: str) -> Path:
-    odin_cfg_from_cmd = extract_launch_arg(ros_cmd, "odin_config_file")
-    odin_cfg_env = os.environ.get("ODIN_CONFIG_FILE", "").strip()
-    odin_cfg_default = ws_dir / "src/odin_ros_driver/config/control_command.yaml"
-    return Path(odin_cfg_from_cmd or odin_cfg_env or str(odin_cfg_default)).expanduser()
-
-
-def _force_odin_custom_map_mode(cfg_path: Path, desired_mode: int, script_name: str) -> None:
-    if not cfg_path.exists():
-        print(
-            f"[{script_name}] WARN odin config not found: {cfg_path}; skip mode override.",
-            file=sys.stderr,
-        )
-        return
-
-    text = cfg_path.read_text()
-    pattern = r"(?m)^(\s*custom_map_mode:\s*)(\d+)(\s*(?:#.*)?)$"
-    match = re.search(pattern, text)
-    if not match:
-        raise RuntimeError(
-            f"custom_map_mode not found in odin config: {cfg_path}"
-        )
-
-    current_mode = int(match.group(2))
-    if current_mode == desired_mode:
-        return
-
-    new_text, count = re.subn(
-        pattern,
-        rf"\g<1>{desired_mode}\g<3>",
-        text,
-        count=1,
-    )
-    if count != 1:
-        raise RuntimeError(
-            f"Failed to update custom_map_mode in odin config: {cfg_path}"
-        )
-
-    cfg_path.write_text(new_text)
-    print(
-        f"[{script_name}] Override odin custom_map_mode: {current_mode} -> {desired_mode} ({cfg_path})",
-        file=sys.stderr,
-    )
-
-
-def ensure_odin_mode_consistency(cfg: CommonConfig, mode: str, ros_cmd: str) -> str:
-    # 仅对实车入口做自动一致性处理，避免 launch 参数与 odin YAML 配置漂移。
-    if mode not in {"reality_mapping", "reality_navigation"}:
-        return ros_cmd
-
-    preset_raw = os.environ.get("ODIN_MODE_PRESET", "").strip()
-    if preset_raw:
-        try:
-            preset_mode = int(preset_raw)
-        except ValueError as exc:
-            raise RuntimeError(
-                f"Invalid ODIN_MODE_PRESET '{preset_raw}', expected 0/1/2"
-            ) from exc
-        if preset_mode not in {0, 1, 2}:
-            raise RuntimeError(
-                f"Invalid ODIN_MODE_PRESET '{preset_raw}', expected 0/1/2"
-            )
-
-        cfg_path = _resolve_odin_config_path(cfg.ws_dir, ros_cmd)
-        _force_odin_custom_map_mode(cfg_path, preset_mode, cfg.script_name)
-        ros_cmd = upsert_launch_arg(ros_cmd, "odin_map_mode", str(preset_mode))
-        print(
-            f"[{cfg.script_name}] Force odin_map_mode:={preset_mode} by ODIN_MODE_PRESET",
-            file=sys.stderr,
-        )
-        return ros_cmd
-
-    custom_mode = _read_odin_custom_map_mode(cfg.ws_dir, ros_cmd)
-    if custom_mode is None:
-        print(
-            f"[{cfg.script_name}] WARN cannot read custom_map_mode from odin config; skip mode auto-check.",
-            file=sys.stderr,
-        )
-        return ros_cmd
-
-    launch_mode = extract_launch_arg(ros_cmd, "odin_map_mode")
-    if launch_mode is not None:
-        try:
-            launch_mode_int = int(launch_mode)
-        except ValueError as exc:
-            raise RuntimeError(f"Invalid odin_map_mode '{launch_mode}' in launch cmd") from exc
-
-        if launch_mode_int != custom_mode:
-            raise RuntimeError(
-                "odin_map_mode mismatch: "
-                f"launch={launch_mode_int}, control_command.yaml custom_map_mode={custom_mode}. "
-                "Please keep them identical."
-            )
-        return ros_cmd
-
-    ros_cmd = ensure_launch_arg(ros_cmd, "odin_map_mode", str(custom_mode))
-    print(
-        f"[{cfg.script_name}] Auto-inject odin_map_mode:={custom_mode} to match control_command.yaml",
-        file=sys.stderr,
-    )
-    return ros_cmd
-
-
-def save_odin_bin_now(cfg: CommonConfig) -> None:
-    odin_dir = cfg.ws_dir / "src/odin_ros_driver"
-    set_param_sh = odin_dir / "set_param.sh"
-    if not set_param_sh.exists():
-        print(f"[{cfg.script_name}] Skip odin bin save: {set_param_sh} not found", file=sys.stderr)
-        return
-
-    base_env = build_base_env(cfg)
-    cmd = f"{base_env}; cd {shlex.quote(str(odin_dir))}; bash set_param.sh save_map 1"
-
-    print(f"[{cfg.script_name}] Trigger odin save_map=1 for bin export", file=sys.stderr)
-    try:
-        run_shell(cmd)
-    except Exception as exc:
-        print(f"[{cfg.script_name}] Trigger odin bin save failed: {exc}", file=sys.stderr)
 
 
 def start_watchdog(cfg: CommonConfig, topics: list[tuple[str, float]], bg: BackgroundGroup) -> None:

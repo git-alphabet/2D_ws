@@ -11,8 +11,6 @@ export QT_FONT_DPI=192
 export __NV_PRIME_RENDER_OFFLOAD=1
 export __GLX_VENDOR_LIBRARY_NAME=nvidia
 
-# 入口脚本默认覆盖 odin1 驱动模式：2=重定位。
-export ODIN_MODE_PRESET="${ODIN_MODE_PRESET:-2}"
 export NAV2_TF_WARMUP_ENABLED="${NAV2_TF_WARMUP_ENABLED:-True}"
 # 重定位阶段 map->odom 可能需要较长收敛时间；默认放宽 warmup 超时，避免 Nav2 过早激活。
 export NAV2_TF_WARMUP_TIMEOUT_SEC="${NAV2_TF_WARMUP_TIMEOUT_SEC:-30.0}"

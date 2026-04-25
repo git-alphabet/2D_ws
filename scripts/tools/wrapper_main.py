@@ -25,13 +25,10 @@ from tools.wrapper_helpers import (
 )
 from tools.wrapper_models import BackgroundGroup, CommonConfig
 from tools.wrapper_runtime import (
-    ODIN_SAVE_GRACE_SEC,
     ensure_launch_arg,
-    ensure_odin_mode_consistency,
     extract_launch_arg,
     launch_in_terminal,
     save_map_now,
-    save_odin_bin_now,
     start_timestamp_monitor,
     start_watchdog,
 )
@@ -158,8 +155,6 @@ def main(argv: list[str]) -> int:
         if extra_args:
             ros_cmd += " " + " ".join(map(shlex.quote, extra_args))
 
-        ros_cmd = ensure_odin_mode_consistency(cfg, mode, ros_cmd)
-
         is_multi_terminal = bool(cfg.terminal_cmd) and not cfg.no_new_terminal
         if is_multi_terminal:
             launch_in_terminal(cfg, "Gazebo Sim", gazebo_cmd, "")
@@ -189,8 +184,6 @@ def main(argv: list[str]) -> int:
     if extra_args:
         ros_cmd += " " + " ".join(map(shlex.quote, extra_args))
 
-    ros_cmd = ensure_odin_mode_consistency(cfg, mode, ros_cmd)
-
     reality_bg = BackgroundGroup(script_name)
     atexit.register(reality_bg.cleanup)
 
@@ -210,15 +203,8 @@ def main(argv: list[str]) -> int:
         mapping_ts = datetime.now(timezone(timedelta(hours=8))).strftime("%Y%m%d_%H%M%S")
 
         def _mapping_presave() -> None:
-            print(f"[{cfg.script_name}] Mapping pre-shutdown save: bin + 2D map", file=sys.stderr)
-            save_odin_bin_now(cfg)
+            print(f"[{cfg.script_name}] Mapping pre-shutdown save: 2D map", file=sys.stderr)
             save_map_now(cfg, "reality", mapping_ts, mapping_ns)
-            if ODIN_SAVE_GRACE_SEC > 0:
-                print(
-                    f"[{cfg.script_name}] Wait {ODIN_SAVE_GRACE_SEC:.1f}s for odin map transfer before shutdown",
-                    file=sys.stderr,
-                )
-                time.sleep(ODIN_SAVE_GRACE_SEC)
 
         pre_shutdown_hook = _mapping_presave
 
