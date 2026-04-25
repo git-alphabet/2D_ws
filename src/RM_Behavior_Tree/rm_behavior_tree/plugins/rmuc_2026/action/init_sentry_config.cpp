@@ -9,6 +9,10 @@ InitSentryConfigAction::InitSentryConfigAction(
 
 BT::NodeStatus InitSentryConfigAction::tick()
 {
+  if (loaded_once_) {
+    return BT::NodeStatus::SUCCESS;
+  }
+
   // 话题名称 (字符串默认值)
   auto setStr = [this](const char * key, const std::string & fallback) {
     std::string v = fallback;
@@ -17,16 +21,18 @@ BT::NodeStatus InitSentryConfigAction::tick()
   };
   setStr("topic_game_status", "game_status");
   setStr("topic_robot_status", "robot_status");
-  setStr("topic_rfid_status", "rfid_status");
   setStr("topic_robot_pose", "robot_position");
 
   // 坐标参数 (double, 默认 0.0)
   for (auto * k : {"home_x","home_y","supply_zone_x","supply_zone_y",
+                    "base_x","base_y",
                     "base_buff_x","base_buff_y","outpost_buff_x","outpost_buff_y",
-                    "fortress_ally_x","fortress_ally_y","fortress_enemy_x","fortress_enemy_y",
+                    "fortress_ally_x","fortress_ally_y",
                     "central_highland_x","central_highland_y",
                     "ladder_highland_x","ladder_highland_y",
-                    "defend_anchor_x","defend_anchor_y"})
+                    "defend_anchor_x","defend_anchor_y",
+                    "central_highland_left_x","central_highland_left_y",
+                    "ramp_jump_x","ramp_jump_y"})
   {
     double v = 0.0;
     getInput(k, v);
@@ -45,16 +51,14 @@ BT::NodeStatus InitSentryConfigAction::tick()
     setOutput(key, v);
   };
 
-  setDouble("arrive_radius", 0.35);
-  setDouble("enemy_near_base_radius", 2.0);
+  setDouble("arrive_radius", 1.0);
+  setDouble("enemy_near_base_radius", 0.0);
 
   setInt("hp_low", 180);
   setInt("hp_safe", 280);
-  setInt("heat_high", 210);
   setInt("ammo_low", 80);
-  setInt("ammo_target", 300);
-  setInt("allow_ammo_max", 400);
-  setInt("objective_hold_ms", 12000);
+  setInt("supply_wait_timeout_s", 30);
+  setInt("base_threat_calm_timeout_ms", 0);
   setInt("patrol_hold_ms", 5000);
 
   // 巡逻参数 (从黑板直接读取，由 rm_behavior_tree.cpp 注入)
@@ -66,6 +70,7 @@ BT::NodeStatus InitSentryConfigAction::tick()
   getInput("patrol_waypoints", patrol_waypoints);
   setOutput("patrol_waypoints", patrol_waypoints);
 
+  loaded_once_ = true;
   return BT::NodeStatus::SUCCESS;
 }
 

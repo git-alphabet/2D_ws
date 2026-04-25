@@ -21,12 +21,10 @@ public:
     return {
       BT::InputPort<int>("posture", "3", "姿态 1=进攻 2=防御 3=移动"),
       BT::InputPort<int>("confirm_respawn", "0", "confirm_respawn"),
-      BT::InputPort<int>("confirm_instant_respawn", "0", "confirm_instant_respawn"),
-      BT::InputPort<int>("allow_ammo_target", "0", "allow_ammo_target"),
-      BT::InputPort<int>("trigger_remote_ammo", "0", "trigger_remote_ammo"),
-      BT::InputPort<int>("trigger_remote_hp", "0", "trigger_remote_hp"),
       BT::BidirectionalPort<std::string>("cmd_state", "", "内部状态跟踪")};
   }
+
+private:
 };
 }  // namespace rm_behavior_tree
 

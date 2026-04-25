@@ -14,10 +14,6 @@ BT::NodeStatus InitCmdStateAction::tick()
   if (!getInput("cmd_state", state) || state.empty()) {
     setOutput("cmd_state", std::string("IDLE"));
   }
-  int ammo_target = 0;
-  if (!getInput("allow_ammo_target", ammo_target)) {
-    setOutput("allow_ammo_target", 0);
-  }
   return BT::NodeStatus::SUCCESS;
 }
 

@@ -131,13 +131,13 @@ ament_auto_add_library(rmuc_sub_robot_status SHARED
     plugins/rmuc_2026/action/sub_robot_status.cpp)
 add_target_dependencies(rmuc_sub_robot_status)
 
-ament_auto_add_library(rmuc_sub_rfid_status SHARED
-    plugins/rmuc_2026/action/sub_rfid_status.cpp)
-add_target_dependencies(rmuc_sub_rfid_status)
-
 ament_auto_add_library(rmuc_sub_robot_position SHARED
     plugins/rmuc_2026/action/sub_robot_position.cpp)
 add_target_dependencies(rmuc_sub_robot_position)
+
+ament_auto_add_library(rmuc_sub_radar_tracks SHARED
+    plugins/rmuc_2026/action/sub_radar_tracks.cpp)
+add_target_dependencies(rmuc_sub_radar_tracks)
 
 ament_auto_add_library(rmuc_is_game_time SHARED
     plugins/rmuc_2026/condition/is_game_time.cpp)
@@ -146,6 +146,11 @@ add_target_dependencies(rmuc_is_game_time)
 ament_auto_add_library(rmuc_is_hp_below SHARED
     plugins/rmuc_2026/condition/is_hp_below.cpp)
 add_target_dependencies(rmuc_is_hp_below)
+
+# ── RMUC 2026 裁判系统话题订阅插件 ──
+ament_auto_add_library(rmuc_sub_team_hp SHARED
+    plugins/rmuc_2026/action/sub_team_hp.cpp)
+add_target_dependencies(rmuc_sub_team_hp)
 
 # ── RMUC 2026 感知/指令类 RMUC 特有插件 ──
 ament_auto_add_library(rmuc_parse_sentry_blackboard SHARED
@@ -173,13 +178,17 @@ ament_auto_add_library(rmuc_init_cmd_state SHARED
     plugins/rmuc_2026/action/init_cmd_state.cpp)
 add_target_dependencies(rmuc_init_cmd_state)
 
-ament_auto_add_library(rmuc_decide_posture SHARED
-    plugins/rmuc_2026/action/decide_posture.cpp)
-add_target_dependencies(rmuc_decide_posture)
+ament_auto_add_library(rmuc_select_posture SHARED
+    plugins/rmuc_2026/action/select_posture.cpp)
+add_target_dependencies(rmuc_select_posture)
 
-ament_auto_add_library(rmuc_decide_economy_cmd SHARED
-    plugins/rmuc_2026/action/decide_economy_cmd.cpp)
-add_target_dependencies(rmuc_decide_economy_cmd)
+ament_auto_add_library(rmuc_posture_degradation_guard SHARED
+    plugins/rmuc_2026/action/posture_degradation_guard.cpp)
+add_target_dependencies(rmuc_posture_degradation_guard)
+
+ament_auto_add_library(rmuc_load_calibration_csv SHARED
+    plugins/rmuc_2026/action/load_calibration_csv.cpp)
+add_target_dependencies(rmuc_load_calibration_csv)
 
 # ── RMUC 2026 后勤/补给 ──
 ament_auto_add_library(rmuc_hold_and_heal SHARED
@@ -216,13 +225,13 @@ ament_auto_add_library(rmuc_is_base_threatened SHARED
     plugins/rmuc_2026/condition/is_base_threatened.cpp)
 add_target_dependencies(rmuc_is_base_threatened)
 
-ament_auto_add_library(rmuc_is_combat_allowed SHARED
-    plugins/rmuc_2026/condition/is_combat_allowed.cpp)
-add_target_dependencies(rmuc_is_combat_allowed)
-
 ament_auto_add_library(rmuc_is_at_goal SHARED
     plugins/rmuc_2026/condition/is_at_goal.cpp)
 add_target_dependencies(rmuc_is_at_goal)
+
+ament_auto_add_library(rmuc_is_nav_target_supply SHARED
+    plugins/rmuc_2026/condition/is_nav_target_supply.cpp)
+add_target_dependencies(rmuc_is_nav_target_supply)
 
 # ── 结束 RMUC 2026 全部插件 ────────────────────────────────────────────────
 
@@ -437,6 +446,11 @@ ament_auto_add_library(clear_costmap SHARED
 )
 add_target_dependencies(clear_costmap)
 target_link_libraries(clear_costmap ${nav2_msgs_TARGETS})
+
+install(PROGRAMS config/RMUC_2026/robot_position_bridge.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME robot_position_bridge
+)
 
 ament_auto_package(
   INSTALL_TO_SHARE

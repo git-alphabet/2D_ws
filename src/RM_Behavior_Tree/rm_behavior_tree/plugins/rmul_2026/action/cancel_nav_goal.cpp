@@ -1,4 +1,5 @@
 #include "rm_behavior_tree/plugins/rmul_2026/action/cancel_nav_goal.hpp"
+#include "rm_behavior_tree/plugins/rmul_2026/action/send_goal.hpp"
 
 #include "behaviortree_ros2/plugins.hpp"
 #include <type_traits>
@@ -148,6 +149,9 @@ BT::NodeStatus CancelNavGoalAction::tick()
 
   // 6) 发送请求
   auto future = client_->async_send_request(request);
+
+  // 清除 SendGoal 全局去重缓存，确保下次 SendGoal 会重新发布同一目标
+  SendGoalAction::clearGoalCache();
 
   // 记录节流时间
   last_call_time_ = now;

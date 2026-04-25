@@ -11,19 +11,21 @@
 
     <BehaviorTree ID="rmuc_2026">
         <ReactiveSequence>
+            <!-- 初始化配置 + 标定覆盖先执行，确保同一 tick 内感知派生使用最新 cfg.* -->
+            <SubTree ID="InitOnce" _autoremap="true"/>
+
             <!-- 感知 -> 黑板（应持续 tick；节点预期为非阻塞） -->
             <SubTree ID="PerceptionAndBlackboard" _autoremap="true"/>
-
-            <!-- 初始化配置 + 内部命令状态（幂等；可安全重复 tick） -->
-            <SubTree ID="InitOnce" _autoremap="true"/>
 
             <!-- 比赛阶段循环（7 分钟 = 420 秒） -->
             <WhileDoElse>
                 <RmucIsGameTime name="IsMatchStage"
                                 message="{game_status}"
+                                robot_status="{robot_status}"
                                 game_progress="4"
                                 lower_remain_time="0"
-                                higher_remain_time="420"/>
+                                higher_remain_time="420"
+                                allow_no_game_status_hp_fallback="true"/>
 
                 <!-- ===================== 比赛阶段 ===================== -->
                 <ReactiveSequence>
@@ -31,62 +33,59 @@
                     <!-- 构建并按控制速率发送哨兵自主决策指令 (0x0120) -->
                     <SubTree ID="CommandHub" _autoremap="true"/>
 
-                    <!-- 基于优先级的战术 -->
+                    <!-- 全局接管控制：持续发布底盘/云台控制，并在低血/敌情下统一做门禁 -->
+                    <SubTree ID="GlobalNavigationAndChassisControl" _autoremap="true"/>
+
+                    <!-- ═══ 全局默认姿态：到达当前导航目标→防御(2)，导航中→移动(3) ═══
+                         使用 IsAtGoal 几何距离判断，不依赖 Nav2 action 状态
+                         姿态可被下方战术子树覆写（如 BaseDefense→1）
+                         注：EnemyDetectionGuard 已在上方确认无敌人 -->
+                    <ReactiveFallback name="DefaultPosture">
+                        <Sequence>
+                            <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
+                                      goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                                      arrive_radius="{cfg.arrive_radius}"/>
+                            <SelectPosture posture_value="2"
+                                           posture_out="{cmd.posture}"
+                                           is_allow_select_posture="{cmd.allow_posture_send}"/>
+                        </Sequence>
+                        <SelectPosture posture_value="3"
+                                       posture_out="{cmd.posture}"
+                                       is_allow_select_posture="{cmd.allow_posture_send}"/>
+                    </ReactiveFallback>
+
+                    <!-- 基于优先级的战术（仅在生存无忧 + 无敌人时 tick） -->
                     <ReactiveFallback>
 
-                        <!-- 0) 死亡停车 / 低血量撤退回补给区回血 -->
-                        <Sequence>
-                            <SetBlackboard output_key="active_subtree" value="LowHPRetreat"/>
-                            <SubTree ID="LowHPRetreat" _autoremap="true"/>
-                        </Sequence>
-
-                        <!-- 1) 基地/堡垒防御（受威胁时） -->
+                        <!-- 0) 基地/堡垒防御（受威胁时） -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="BaseDefense"/>
                             <SubTree ID="BaseDefense" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 2) 交战（有有效目标且安全时） -->
-                        <Sequence>
-                            <SetBlackboard output_key="active_subtree" value="EngageCombat"/>
-                            <SubTree ID="EngageCombat" _autoremap="true"/>
-                        </Sequence>
-
-                        <!-- 3) 后勤：补弹（经济感知） -->
+                        <!-- 1) 后勤：补弹（经济感知） -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="SustainAndEconomy"/>
                             <SubTree ID="SustainAndEconomy" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 4) 目标控制：中央高地/梯形高地/堡垒/隧道等 -->
+                        <!-- 2) 目标控制：中央高地/梯形高地/堡垒/隧道等 -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="ObjectivePlanner"/>
                             <SubTree ID="ObjectivePlanner" _autoremap="true"/>
                         </Sequence>
 
-
                     </ReactiveFallback>
 
                 </ReactiveSequence>
 
-                <!-- ===================== 非比赛阶段 ===================== -->
+                <!-- ===================== 非比赛阶段（空闲等待） ===================== -->
                 <ReactiveSequence>
-                    <RateController hz="1">
-                        <SendGoal name="Home"
-                                  goal_x="{cfg.home_x}"
-                                  goal_y="{cfg.home_y}"
-                                  frame_id="map"
-                                  action_name="navigate_to_pose"/>
-                    </RateController>
                     <RmucRobotControl stop_gimbal_scan="True"
                                       chassis_spin="False"/>
                     <RateController hz="2">
                         <SentryCmdMux posture="3"
                                       confirm_respawn="0"
-                                      confirm_instant_respawn="0"
-                                      allow_ammo_target="{cmd.allow_ammo_target}"
-                                      trigger_remote_ammo="0"
-                                      trigger_remote_hp="0"
                                       cmd_state="{cmd.state}"/>
                     </RateController>
                 </ReactiveSequence>
@@ -98,10 +97,10 @@
     <!-- ===================== 子树引用 ===================== -->
     <include path="PerceptionAndBlackboard.xml"/>
     <include path="InitOnce.xml"/>
+    <include path="GlobalNavigationAndChassisControl.xml"/>
     <include path="CommandHub.xml"/>
     <include path="LowHPRetreat.xml"/>
     <include path="BaseDefense.xml"/>
-    <include path="EngageCombat.xml"/>
     <include path="SustainAndEconomy.xml"/>
     <include path="AmmoPlan.xml"/>
     <include path="ObjectivePlanner.xml"/>

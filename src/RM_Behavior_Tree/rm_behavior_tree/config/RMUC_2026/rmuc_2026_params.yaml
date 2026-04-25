@@ -1,61 +1,67 @@
 # RMUC 2026 哨兵行为树参数配置文件
-
-# 使用方式：在 launch 文件中通过 parameters 加载本文件
+#
+# 使用方式：由 navigation_launch.py 自动加载，和 nav2_params.yaml 合并
 # 所有参数前缀：rmuc_sentry_config.*
+# 本文件作为 rmuc_sentry_config.* 参数的唯一真相来源
 # 坐标单位：米 (map 坐标系)
 
-rmuc_sentry_config:
+rm_behavior_tree:
+  ros__parameters:
+    rmuc_sentry_config:
 
-  # 地图坐标
-  # 请根据实际比赛场地填写 (单位: 米, map 坐标系)
+      # ─────────── 地图坐标 ───────────
+      # 请根据实际比赛场地填写 (单位: 米, map 坐标系)
+      home_x: 0.0                    # 己方出生点/复活点 x
+      home_y: 0.0                    # 己方出生点/复活点 y
 
-  home_x: 0.0                    # 己方出生点/复活点 x
-  home_y: 0.0                    # 己方出生点/复活点 y
+      supply_zone_x: -2.35           # 补给区坐标 x (RFID刷卡 + 导航 + 选点统一使用)
+      supply_zone_y: -6.89           # 补给区坐标 y
 
-  supply_zone_x: 0.0             # 补给区坐标 x (RFID刷卡 + 导航 + 选点 统一使用)
-  supply_zone_y: 0.0             # 补给区坐标 y
+      base_x: -2.3532                # 基地坐标 x（独立点位；默认值与当前 CSV 标定值一致）
+      base_y: -2.0007                # 基地坐标 y（独立点位；默认值与当前 CSV 标定值一致）
 
-  base_buff_x: 0.0               # 己方基地增益区中心 x
-  base_buff_y: 0.0               # 己方基地增益区中心 y
+      base_buff_x: -0.06             # 己方基地增益区中心 x
+      base_buff_y: -2.49             # 己方基地增益区中心 y
 
-  outpost_buff_x: 0.0            # 己方前哨站增益区中心 x
-  outpost_buff_y: 0.0            # 己方前哨站增益区中心 y
+      outpost_buff_x: 6.53           # 己方前哨站增益区中心 x
+      outpost_buff_y: -5.12          # 己方前哨站增益区中心 y
 
-  fortress_ally_x: 0.0           # 己方堡垒区中心 x
-  fortress_ally_y: 0.0           # 己方堡垒区中心 y
+      fortress_ally_x: 2.76          # 己方堡垒区中心 x
+      fortress_ally_y: -1.93         # 己方堡垒区中心 y
 
-  fortress_enemy_x: 0.0          # 敌方堡垒区中心 x
-  fortress_enemy_y: 0.0          # 敌方堡垒区中心 y
+      central_highland_x: 6.70       # 中央高地中线偏家 x
+      central_highland_y: -1.95      # 中央高地中线偏家 y
 
-  central_highland_x: 0.0        # 中央高地中心 x
-  central_highland_y: 0.0        # 中央高地中心 y
+      ladder_highland_x: -0.714      # 梯形高地 x
+      ladder_highland_y: 3.207       # 梯形高地 y
 
-  ladder_highland_x: 0.0         # 梯形高地中心 x
-  ladder_highland_y: 0.0         # 梯形高地中心 y
+      defend_anchor_x: 2.76          # 防御锚点 x（基地前守卫位置）
+      defend_anchor_y: -1.93         # 防御锚点 y
 
-  defend_anchor_x: 0.0           # 防御锚点 (基地前守卫位置) x 直接写基地位置即可
-  defend_anchor_y: 0.0           # 防御锚点 y
+      # 可能有用的预设点（目前未启用）
+      central_highland_left_x: 9.00
+      central_highland_left_y: 2.30  # 中央高地左侧点坐标
+      ramp_jump_x: 7.8
+      ramp_jump_y: 5.0               # 梯形高地飞坡坐标
 
-  # ─────────── 巡逻航点 (3个点组成巡逻三角形) ───────────
-  # ── 巡逻配置 ──
-  patrol_enable: false              # 是否启用巡逻 (仅前哨站被毁时生效)
-  patrol_waypoints: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # 巡逻点数组 [x1,y1,x2,y2,...] 填几组就巡几个点
-  patrol_hold_ms: 5000              # 巡逻到达每个点后停留时间 (毫秒)
+      # ─────────── 标定覆盖 ───────────
+      # CSV 文件路径，为空则不启用标定覆盖（使用上面的 YAML 默认值）
+      # 填写绝对路径，如 /ws/src/RM_Behavior_Tree/rm_behavior_tree/config/RMUC_2026/rmuc_calibration.csv
+      calibration_csv_path: "/ws/src/RM_Behavior_Tree/rm_behavior_tree/config/RMUC_2026/rmuc_calibration.csv"
 
-  # ─────────── 战斗/生存阈值 ───────────
-  hp_low: 180                    # 低血量阈值 (触发 LowHPRetreat 撤退回补给区)
-  hp_safe: 280                   # 安全血量阈值 (HoldAndHeal 回血目标)
-  heat_high: 210                 # 高热量阈值 (限制开火)
-  ammo_low: 80                   # 低弹药阈值 (触发 AmmoPlan) 即低于多少弹药量的时候需要去补给
-  ammo_target: 300               # 目标弹药量 (AmmoPlan 补给目标) 即在增益点补充到多少才停
-  allow_ammo_max: 400            # 允许发弹量上限 (防止无限累加)
+      # ─────────── 巡逻配置 ───────────
+      patrol_enable: true             # 是否启用巡逻 (仅前哨站被毁时生效)
+      patrol_waypoints: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # 巡逻点数组 [x1,y1,x2,y2,...]
+      patrol_hold_ms: 4000            # 巡逻到达每个点后停留时间 (毫秒)
 
-  # ─────────── 导航参数 ───────────
-  arrive_radius: 0.35            # 到达判定半径 (米)
+      # ─────────── 战斗/生存阈值 ───────────
+      hp_low: 180                     # 低血量阈值 (触发 LowHPRetreat 撤退回补给区)
+      hp_safe: 280                    # 安全血量阈值 (HoldAndHeal 回血目标)
+      ammo_low: 80                    # 低弹药阈值 (触发 AmmoPlan)
+      supply_wait_timeout_s: 10       # 在补给区等待免费补弹的单次超时 (秒)
 
-  # ─────────── 基地防御参数 ───────────
-  base_deficit_for_fortress: 500  # 基地血量差值阈值 (判断是否需要堡垒支援)
-  enemy_near_base_radius: 2.0    # 敌人距基地威胁半径 (米)
-
-  # ─────────── 目标控制参数 ───────────
-  objective_hold_ms: 12000       # 目标点占据等待时间 (毫秒)
+      # ─────────── 导航参数 ───────────
+      # 所有到达判定统一使用 arrive_radius（补给/巡逻/基地防御）
+      arrive_radius: 0.8              # 统一到达判定半径 (米)
+      enemy_near_base_radius: 5.0     # 敌人距基地威胁半径 (米)
+      base_threat_calm_timeout_ms: 30000  # 基地威胁自动解除平静时间 (毫秒)

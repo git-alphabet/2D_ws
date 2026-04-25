@@ -135,22 +135,22 @@ int main(int argc, char ** argv)
     // 坐标参数
     const std::vector<std::string> coord_keys = {
       "home_x","home_y","supply_zone_x","supply_zone_y",
+      "base_x","base_y",
       "base_buff_x","base_buff_y","outpost_buff_x","outpost_buff_y",
-      "fortress_ally_x","fortress_ally_y","fortress_enemy_x","fortress_enemy_y",
+      "fortress_ally_x","fortress_ally_y",
       "central_highland_x","central_highland_y",
       "ladder_highland_x","ladder_highland_y",
       "defend_anchor_x","defend_anchor_y"
     };
     // double 阈值参数
     const std::vector<std::pair<std::string, double>> double_keys = {
-      {"arrive_radius", 0.35}, {"enemy_near_base_radius", 2.0}
+      {"arrive_radius", 1.0}, {"enemy_near_base_radius", 0.0}
     };
     // int 阈值参数
     const std::vector<std::pair<std::string, int>> int_keys = {
       {"hp_low", 180}, {"hp_safe", 280},
-      {"heat_high", 210},
-      {"ammo_low", 80}, {"ammo_target", 300}, {"allow_ammo_max", 400},
-      {"objective_hold_ms", 12000},
+      {"ammo_low", 80},
+      {"base_threat_calm_timeout_ms", 0},
       {"patrol_hold_ms", 5000}
     };
 

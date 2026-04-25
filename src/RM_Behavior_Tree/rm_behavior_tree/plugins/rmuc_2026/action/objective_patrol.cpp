@@ -1,4 +1,5 @@
 #include "rm_behavior_tree/plugins/rmuc_2026/action/objective_patrol.hpp"
+#include "behaviortree_cpp/blackboard.h"
 #include <sstream>
 
 namespace rm_behavior_tree
@@ -47,6 +48,35 @@ BT::NodeStatus ObjectivePatrolAction::tick()
   std::string wpts_str;
   getInput("patrol_waypoints", wpts_str);
 
+  auto * root_bb = config().blackboard->rootBlackboard();
+  const std::string state_prefix = "objective_patrol." + name() + ".";
+
+  auto ensure_int = [&](const std::string & key, int default_val) {
+    try {
+      root_bb->get<int>(key);
+    } catch (...) {
+      root_bb->set<int>(key, default_val);
+    }
+  };
+  auto ensure_bool = [&](const std::string & key, bool default_val) {
+    try {
+      root_bb->get<bool>(key);
+    } catch (...) {
+      root_bb->set<bool>(key, default_val);
+    }
+  };
+  auto ensure_int64 = [&](const std::string & key, int64_t default_val) {
+    try {
+      root_bb->get<int64_t>(key);
+    } catch (...) {
+      root_bb->set<int64_t>(key, default_val);
+    }
+  };
+
+  ensure_int(state_prefix + "current_idx", 0);
+  ensure_bool(state_prefix + "was_arrived", false);
+  ensure_int64(state_prefix + "arrived_time_ms", 0);
+
   // 巡逻仅在 TRAPEZOIDAL_HIGHLAND + 启用 + 有巡逻点 时激活
   bool patrol_active = patrol_enable
                        && obj_name == "TRAPEZOIDAL_HIGHLAND"
@@ -56,65 +86,88 @@ BT::NodeStatus ObjectivePatrolAction::tick()
     // 直接输出战略目标坐标
     setOutput("goal_x", obj_x);
     setOutput("goal_y", obj_y);
-    // 重置巡逻状态
-    current_idx_ = 0;
-    was_arrived_ = false;
-    cycle_.clear();
+    root_bb->set<int>(state_prefix + "current_idx", 0);
+    root_bb->set<bool>(state_prefix + "was_arrived", false);
+    root_bb->set<int64_t>(state_prefix + "arrived_time_ms", 0);
     return BT::NodeStatus::SUCCESS;
   }
 
-  // 检测配置是否变化，重建巡逻循环
-  if (wpts_str != last_waypoints_str_ || obj_x != last_obj_x_ || obj_y != last_obj_y_) {
-    last_waypoints_str_ = wpts_str;
-    last_obj_x_ = obj_x;
-    last_obj_y_ = obj_y;
+  // 每 tick 重新构建巡逻环，状态保存在 root blackboard，避免节点实例重建导致状态丢失
+  std::vector<Pt> cycle;
+  cycle.push_back({obj_x, obj_y});
+  auto patrol_pts = parseWaypoints(wpts_str);
+  cycle.insert(cycle.end(), patrol_pts.begin(), patrol_pts.end());
 
-    cycle_.clear();
-    cycle_.push_back({obj_x, obj_y});  // 战略目标作为第一个点
-    auto patrol_pts = parseWaypoints(wpts_str);
-    cycle_.insert(cycle_.end(), patrol_pts.begin(), patrol_pts.end());
-
-    current_idx_ = 0;
-    was_arrived_ = false;
-  }
-
-  if (cycle_.empty()) {
+  if (cycle.empty()) {
     setOutput("goal_x", obj_x);
     setOutput("goal_y", obj_y);
     return BT::NodeStatus::SUCCESS;
   }
 
-  // 确保索引有效
-  current_idx_ = current_idx_ % static_cast<int>(cycle_.size());
+  int current_idx = root_bb->get<int>(state_prefix + "current_idx");
+  bool was_arrived = root_bb->get<bool>(state_prefix + "was_arrived");
+  int64_t arrived_time_ms = root_bb->get<int64_t>(state_prefix + "arrived_time_ms");
+
+  current_idx = current_idx % static_cast<int>(cycle.size());
 
   double arrive_radius = 0.5;
   int hold_ms = 5000;
   getInput("arrive_radius", arrive_radius);
   getInput("patrol_hold_ms", hold_ms);
+  hold_ms_cache_ = hold_ms;
 
-  auto & target = cycle_[current_idx_];
+  auto & target = cycle[current_idx];
   double dist = std::hypot(target.x - px, target.y - py);
-  bool arrived = dist < arrive_radius;
+  // 迟滞判定：已到达后用 2 倍半径防止自转漂移导致反复切换
+  double effective_radius = was_arrived ? arrive_radius * 2.0 : arrive_radius;
+  bool arrived = dist < effective_radius;
 
-  if (arrived && !was_arrived_) {
+  auto now = std::chrono::steady_clock::now();
+  const int64_t now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+    now.time_since_epoch()).count();
+
+  if (arrived && !was_arrived) {
     // 刚到达
-    was_arrived_ = true;
-    arrived_time_ = std::chrono::steady_clock::now();
+    was_arrived = true;
+    arrived_time_ms = now_ms;
   } else if (!arrived) {
-    was_arrived_ = false;
+    was_arrived = false;
+    arrived_time_ms = 0;
   }
 
-  if (was_arrived_) {
-    auto elapsed = std::chrono::steady_clock::now() - arrived_time_;
-    if (std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() >= hold_ms) {
+  if (was_arrived && arrived_time_ms > 0) {
+    const int64_t hold_elapsed_ms = now_ms - arrived_time_ms;
+    if (hold_elapsed_ms >= hold_ms) {
       // 停留时间到，切换下一个点
-      current_idx_ = (current_idx_ + 1) % static_cast<int>(cycle_.size());
-      was_arrived_ = false;
+      int old_idx = current_idx;
+      current_idx = (current_idx + 1) % static_cast<int>(cycle.size());
+      was_arrived = false;
+      arrived_time_ms = 0;
+      fprintf(stderr, "[ObjectivePatrol] hold done → idx %d→%d goal=(%.2f,%.2f)\n",
+              old_idx, current_idx, cycle[current_idx].x, cycle[current_idx].y);
     }
   }
 
-  setOutput("goal_x", cycle_[current_idx_].x);
-  setOutput("goal_y", cycle_[current_idx_].y);
+  root_bb->set<int>(state_prefix + "current_idx", current_idx);
+  root_bb->set<bool>(state_prefix + "was_arrived", was_arrived);
+  root_bb->set<int64_t>(state_prefix + "arrived_time_ms", arrived_time_ms);
+
+  // 每 5 秒打印一次巡逻状态，便于调试
+  {
+    static auto last_diag = std::chrono::steady_clock::now();
+    if (std::chrono::duration_cast<std::chrono::seconds>(now - last_diag).count() >= 5) {
+      last_diag = now;
+      long hold_elapsed_ms = (was_arrived && arrived_time_ms > 0) ?
+        static_cast<long>(now_ms - arrived_time_ms) : 0;
+      fprintf(stderr,
+              "[ObjectivePatrol] enable=%d obj=%s wpts=%zuB active=%d idx=%d/%zu arrived=%d hold=%ldms/%dms dist=%.2f\n",
+              patrol_enable, obj_name.c_str(), wpts_str.size(), patrol_active,
+              current_idx, cycle.size(), was_arrived, hold_elapsed_ms, hold_ms_cache_, dist);
+    }
+  }
+
+  setOutput("goal_x", cycle[current_idx].x);
+  setOutput("goal_y", cycle[current_idx].y);
   return BT::NodeStatus::SUCCESS;
 }
 

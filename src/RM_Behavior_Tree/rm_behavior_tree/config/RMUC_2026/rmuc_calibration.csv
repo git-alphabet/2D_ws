@@ -1,0 +1,27 @@
+# RMUC 2026 标定坐标文件
+# 格式: 点位名称,x,y
+# 以 # 开头的行为注释，空行跳过
+# 点位名称必须与行为树中的名称一致（不含 _x/_y 后缀）
+# 如果某个点位不在此文件中，将使用 rmuc_2026_params.yaml 中的默认值
+#
+# 使用方法:
+#   1. 启动 sim_mapping.sh, 标定辅助节点会自动启动
+#   2. 在 rviz 工具栏选择 "标定点 Calib", 点击地图标定, 自动轮转下一个点
+#   3. 跳到指定标定点: ros2 topic pub --once /calib/select std_msgs/msg/String "data: fortress_ally"
+#   4. 上/下翻: ros2 topic pub --once /calib/next std_msgs/msg/Empty '{}'
+#              ros2 topic pub --once /calib/prev std_msgs/msg/Empty '{}'
+#   5. 重复点击可更新坐标, 只影响当前标定点, 其余不变
+#
+# ─────────── 地图坐标 ───────────
+
+# base_buff,-0.0600,-2.4900
+# fortress_ally,2.7600,-1.9300
+# outpost_buff,3.5489,-4.2745
+# defend_anchor,0.0968,-0.4008
+# supply_zone,2.3928,0.0091
+# central_highland,3.8882,-4.9462
+# ladder_highland,0.7524,-3.6890
+# patrol_1,5.4593,2.5318
+# patrol_2,4.1185,0.3385
+# patrol_3,0.0596,-6.6217
+base,-2.3532,-2.0007

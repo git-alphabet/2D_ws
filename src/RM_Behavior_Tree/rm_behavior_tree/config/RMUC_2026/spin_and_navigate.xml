@@ -13,11 +13,9 @@
         <ReactiveSequence>
 
             <!-- 持续订阅机器人位置与导航到达状态 -->
-            <RmucSubRobotPosition topic_name="/robot_position"
+            <RmucSubRobotPosition topic_name="robot_position"
                                   pose_x="{pose.x}"
-                                  pose_y="{pose.y}"
-                                  pose_yaw="{pose.yaw}"
-                                  is_at_nav_goal="{is_at_nav_goal}"/>
+                                  pose_y="{pose.y}"/>
 
             <!-- 底盘旋转控制 -->
             <ReactiveFallback>

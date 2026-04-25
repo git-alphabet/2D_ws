@@ -9,7 +9,6 @@
  * 话题约定 (输入 — 订阅):
  *   /game_status       — RMUCGameStatus      (1 Hz)
  *   /robot_status      — RMUCRobotStatus     (10 Hz)
- *   /rfid_status       — RMUCRFIDStatus      (事件驱动)
  *   /robot_position    — RMUCRobotPosition   (50 Hz)
  *
  * 话题约定 (输出 — 发布):
@@ -56,13 +55,13 @@ int main(int argc, char ** argv)
   params_robot_status.nh = std::make_shared<rclcpp::Node>("rmuc_robot_status_io");
   params_robot_status.default_port_value = "robot_status";
 
-  BT::RosNodeParams params_rfid_status;
-  params_rfid_status.nh = std::make_shared<rclcpp::Node>("rmuc_rfid_status_io");
-  params_rfid_status.default_port_value = "rfid_status";
-
   BT::RosNodeParams params_robot_position;
   params_robot_position.nh = std::make_shared<rclcpp::Node>("rmuc_robot_position_io");
   params_robot_position.default_port_value = "robot_position";
+
+  BT::RosNodeParams params_radar_tracks;
+  params_radar_tracks.nh = std::make_shared<rclcpp::Node>("rmuc_radar_tracks_io");
+  params_radar_tracks.default_port_value = "radar/enemy_tracks";
 
   // ── 输出话题（发布者） ──
   BT::RosNodeParams params_sentry_cmd;
@@ -81,6 +80,11 @@ int main(int argc, char ** argv)
   BT::RosNodeParams params_utility;
   params_utility.nh = std::make_shared<rclcpp::Node>("rmuc_utility");
   params_utility.default_port_value = "";
+
+  // ── 裁判系统话题对应的 RosNodeParams ──
+  BT::RosNodeParams params_team_hp;
+  params_team_hp.nh = std::make_shared<rclcpp::Node>("rmuc_team_hp_io");
+  params_team_hp.default_port_value = "team_hp";
 
   // ── SendGoal (共享 RMUL 通用导航话题，PoseStamped 类型) ──
   BT::RosNodeParams params_send_goal;
@@ -115,11 +119,14 @@ int main(int argc, char ** argv)
   // ── B. 订阅者：robot_status (/robot_status → RMUCRobotStatus) ──
   regRos("rmuc_sub_robot_status",               params_robot_status);
 
-  // ── C. 订阅者：rfid_status (/rfid_status → RMUCRFIDStatus) ──
-  regRos("rmuc_sub_rfid_status",                params_rfid_status);
-
-  // ── D. 订阅者：robot_position (/robot_position → RMUCRobotPosition) ──
+  // ── C. 订阅者：robot_position (/robot_position → RMUCRobotPosition) ──
   regRos("rmuc_sub_robot_position",             params_robot_position);
+
+  // ── D2. 订阅者：radar_tracks (/radar/enemy_tracks → RMUCEnemyTracks) ──
+  regRos("rmuc_sub_radar_tracks",               params_radar_tracks);
+
+  // ── E. 裁判系统订阅者 ──
+  regRos("rmuc_sub_team_hp",                    params_team_hp);
 
   // ── F. 发布者：sentry_cmd (/sentry_cmd → RMUCSentryCmd) ──
   regRos("rmuc_sentry_cmd_mux",                 params_sentry_cmd);
@@ -135,15 +142,25 @@ int main(int argc, char ** argv)
   regRos("clear_recovery_flag",                 params_utility);
   regRos("is_recovery_needed",                  params_utility);
 
+  // ── J2. Nav2 导航目标查询 ──
+  regRos("rmuc_is_nav_target_supply",           params_utility);
+
   // ── K. SendGoal (PoseStamped，非 RMUC 消息) ──
   regRos("send_goal",                           params_send_goal);
+
+  // ── K2. IsAtGoal (需要订阅 global_costmap/costmap 做视线检查) ──
+  BT::RosNodeParams params_costmap;
+  params_costmap.nh = std::make_shared<rclcpp::Node>("is_at_goal_costmap_io");
+  params_costmap.default_port_value = "global_costmap/costmap";
+  regRos("rmuc_is_at_goal",                     params_costmap);
 
   // ── L. RMUC 纯 BT 插件（无需 ROS 参数，通过黑板获取数据） ──
   // 动作
   regBT("rmuc_init_sentry_config");
   regBT("rmuc_init_cmd_state");
-  regBT("rmuc_decide_posture");
-  regBT("rmuc_decide_economy_cmd");
+  regBT("rmuc_load_calibration_csv");
+  regBT("rmuc_select_posture");
+  regBT("rmuc_posture_degradation_guard");
   regBT("rmuc_decide_respawn_cmd");
   regBT("rmuc_parse_sentry_blackboard");
   regBT("rmuc_hold_and_heal");
@@ -156,10 +173,9 @@ int main(int argc, char ** argv)
   regBT("rmuc_is_dead");
   regBT("rmuc_is_game_time");
   regBT("rmuc_is_hp_below");
-  regBT("rmuc_is_at_goal");
+  // rmuc_is_at_goal 已移至 K2（需要 costmap 订阅）
   regBT("rmuc_is_zone_card_detected");
   regBT("rmuc_is_base_threatened");
-  regBT("rmuc_is_combat_allowed");
   regBT("rmuc_is_detect_enemy");
   regBT("rmuc_is_ammo_below");
 
@@ -180,6 +196,100 @@ int main(int argc, char ** argv)
                  bt_xml_path.c_str(), e.what());
     rclcpp::shutdown();
     return 1;
+  }
+
+  // ─── RMUC 2026 参数注入 ───
+  // 从 ROS 参数 (rmuc_sentry_config.*) 读取，注入到树的根黑板
+  // InitSentryConfig 的 getInput 会优先读取黑板中已有的值
+  {
+    auto bb = tree.rootBlackboard();
+    const std::vector<std::string> coord_keys = {
+      "home_x","home_y","supply_zone_x","supply_zone_y",
+      "base_x","base_y",
+      "base_buff_x","base_buff_y","outpost_buff_x","outpost_buff_y",
+      "fortress_ally_x","fortress_ally_y",
+      "central_highland_x","central_highland_y",
+      "ladder_highland_x","ladder_highland_y",
+      "defend_anchor_x","defend_anchor_y",
+      "central_highland_left_x","central_highland_left_y",
+      "ramp_jump_x","ramp_jump_y"
+    };
+    const std::vector<std::pair<std::string, double>> double_keys = {
+      {"arrive_radius", 1.0}, {"enemy_near_base_radius", 0.0}
+    };
+    const std::vector<std::pair<std::string, int>> int_keys = {
+      {"hp_low", 180}, {"hp_safe", 280},
+      {"ammo_low", 80},
+      {"base_threat_calm_timeout_ms", 0},
+      {"patrol_hold_ms", 5000}
+    };
+
+    const std::string prefix = "rmuc_sentry_config.";
+    int injected = 0;
+
+    for (const auto & k : coord_keys) {
+      auto param_name = prefix + k;
+      if (!node->has_parameter(param_name)) {
+        node->declare_parameter<double>(param_name, 0.0);
+      }
+      double v = node->get_parameter(param_name).as_double();
+      bb->set("cfg." + k, v);
+      injected++;
+    }
+    for (const auto & [k, def] : double_keys) {
+      auto param_name = prefix + k;
+      if (!node->has_parameter(param_name)) {
+        node->declare_parameter<double>(param_name, def);
+      }
+      double v = node->get_parameter(param_name).as_double();
+      bb->set("cfg." + k, v);
+      injected++;
+    }
+    for (const auto & [k, def] : int_keys) {
+      auto param_name = prefix + k;
+      if (!node->has_parameter(param_name)) {
+        node->declare_parameter<int>(param_name, def);
+      }
+      int v = static_cast<int>(node->get_parameter(param_name).as_int());
+      bb->set("cfg." + k, v);
+      injected++;
+    }
+    RCLCPP_INFO(node->get_logger(), "Injected %d RMUC config params into blackboard", injected);
+
+    // patrol_enable (bool)
+    {
+      auto pn = prefix + "patrol_enable";
+      if (!node->has_parameter(pn)) node->declare_parameter<bool>(pn, false);
+      bool v = node->get_parameter(pn).as_bool();
+      bb->set("cfg.patrol_enable", v);
+      injected++;
+    }
+    // patrol_waypoints (vector<double> → string "x1,y1;x2,y2;...")
+    {
+      auto pn = prefix + "patrol_waypoints";
+      if (!node->has_parameter(pn))
+        node->declare_parameter<std::vector<double>>(pn, std::vector<double>{});
+      auto vec = node->get_parameter(pn).as_double_array();
+      std::string wpts_str;
+      for (size_t i = 0; i + 1 < vec.size(); i += 2) {
+        if (!wpts_str.empty()) wpts_str += ";";
+        wpts_str += std::to_string(vec[i]) + "," + std::to_string(vec[i + 1]);
+      }
+      bb->set("cfg.patrol_waypoints", wpts_str);
+      if (!wpts_str.empty()) injected++;
+      RCLCPP_INFO(node->get_logger(), "Patrol waypoints (%zu points): %s",
+                  vec.size() / 2, wpts_str.c_str());
+    }
+    // calibration_csv_path (string)
+    {
+      auto pn = prefix + "calibration_csv_path";
+      if (!node->has_parameter(pn)) node->declare_parameter<std::string>(pn, "");
+      std::string v = node->get_parameter(pn).as_string();
+      bb->set("cfg.calibration_csv_path", v);
+      if (!v.empty()) {
+        RCLCPP_INFO(node->get_logger(), "Calibration CSV path: %s", v.c_str());
+      }
+    }
   }
 
   // Groot2Publisher 端口 1668（RMUL 用 1667，避免冲突）

@@ -45,6 +45,7 @@ private:
   int current_idx_{0};
   bool was_arrived_{false};
   std::chrono::steady_clock::time_point arrived_time_;
+  int hold_ms_cache_{0};
   std::string last_waypoints_str_;
   double last_obj_x_{0}, last_obj_y_{0};
 };

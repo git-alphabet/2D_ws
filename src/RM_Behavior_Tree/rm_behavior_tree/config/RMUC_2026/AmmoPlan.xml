@@ -3,31 +3,28 @@
 
     <BehaviorTree ID="AmmoPlan">
         <ReactiveSequence>
-            <IsAmmoBelow ammo_allow="{ammo.allow}" ammo_low="{cfg.ammo_low}"/>
+            <!-- 动态阈值：初始80，失败后降级为 x/2 → 1(=0发) → -1(放弃) -->
+            <IsAmmoBelow ammo_allow="{ammo.allow}" ammo_low="{supply.next_threshold}"/>
 
             <ReactiveFallback>
-                <!-- If at supply: claim free ticks and optionally stay for next minute -->
+                <!-- If at supply: wait for ammo (30s timeout, retry degradation) -->
                 <ReactiveSequence>
-                    <IsZoneCardDetected zone="SUPPLY" rfid_status="{rfid.status}" robot_status="{robot_status}"/>
-                    <HoldForSupplyAmmoTick stage_elapsed_time="{game.elapsed_s}"
-                                           ammo_allow="{ammo.allow}"
-                                           ammo_target="{cfg.ammo_target}"/>
+                    <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
+                              goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
+                              arrive_radius="{cfg.arrive_radius}"/>
+                    <HoldForSupplyAmmoTick ammo_allow="{ammo.allow}"
+                                           timeout_s="{cfg.supply_wait_timeout_s}"
+                                           default_threshold="{cfg.ammo_low}"
+                                           supply_fail_count="{supply.fail_count}"
+                                           supply_next_threshold="{supply.next_threshold}"/>
                 </ReactiveSequence>
 
-                <!-- Else: go to nearest station (supply/base/outpost) -->
+                <!-- Else: go to supply zone for free ammo -->
                 <ReactiveSequence>
-                    <SelectNearestResupplyStation pose_x="{pose.x}" pose_y="{pose.y}"
-                                                  supply_zone_x="{cfg.supply_zone_x}" supply_zone_y="{cfg.supply_zone_y}"
-                                                  base_buff_x="{cfg.base_buff_x}" base_buff_y="{cfg.base_buff_y}"
-                                                  outpost_buff_x="{cfg.outpost_buff_x}" outpost_buff_y="{cfg.outpost_buff_y}"
-                                                  goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"/>
-                    <RateController hz="1">
-                        <SendGoal name="GoResupplyStation"
-                                  goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
-                                  frame_id="map" action_name="navigate_to_pose"/>
-                    </RateController>
-                    <RmucRobotControl stop_gimbal_scan="False"
-                                      chassis_spin="False"/>
+                    <SendGoal name="GoSupplyZone"
+                              goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
+                              frame_id="map" action_name="navigate_to_pose"/>
+                    <!-- 底盘旋转由全局 GlobalRobotControl 控制 -->
                     <KeepRunning/>
                 </ReactiveSequence>
             </ReactiveFallback>

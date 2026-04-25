@@ -16,13 +16,7 @@ public:
   {
     return {
       BT::InputPort<bool>("is_dead"),
-      BT::InputPort<int>("team_coins"),
-      BT::InputPort<int>("stage_remain_time"),
-      BT::InputPort<int>("base_hp_cur"),
-      BT::InputPort<int>("base_hp_max"),
-      BT::InputPort<int>("instant_respawn_cost"),
-      BT::OutputPort<int>("confirm_respawn"),
-      BT::OutputPort<int>("confirm_instant_respawn")};
+      BT::OutputPort<int>("confirm_respawn")};
   }
 
   BT::NodeStatus tick() override;

@@ -4,6 +4,17 @@
 namespace rm_behavior_tree
 {
 
+// 静态成员初始化
+geometry_msgs::msg::PoseStamped SendGoalAction::s_last_global_goal_;
+bool SendGoalAction::s_has_global_ = false;
+bool SendGoalAction::s_subs_confirmed_ = false;
+
+void SendGoalAction::clearGoalCache()
+{
+  s_has_global_ = false;
+  s_subs_confirmed_ = false;
+}
+
 SendGoalAction::SendGoalAction(
   const std::string & name, const BT::NodeConfig & conf, const BT::RosNodeParams & params)
   : BT::SyncActionNode(name, conf), node_(params.nh)
@@ -90,19 +101,38 @@ BT::NodeStatus SendGoalAction::tick()
     }
   }
 
+  int max_dedup_ms = 0;
+  auto r_max_dedup = getInput<int>("max_dedup_ms");
+  if (r_max_dedup) {
+    max_dedup_ms = r_max_dedup.value();
+    if (max_dedup_ms < 0) {
+      max_dedup_ms = 0;
+    }
+  }
+
   auto now = node_->get_clock()->now();
 
-  if (min_interval_ms > 0 && has_last_) {
-    const bool same_goal = isSameGoal_(goal, last_goal_);
-    if (same_goal) {
-      const int64_t dt_ns = (now - last_pub_time_).nanoseconds();
-      const int64_t min_dt_ns = static_cast<int64_t>(min_interval_ms) * 1000000LL;
-      // If clock jumps backward OR interval not reached, skip publish
-      if (dt_ns < 0 || dt_ns < min_dt_ns) {
-        // Return SUCCESS even if we skip publishing! This prevents resetting the BT branch!
-        return BT::NodeStatus::SUCCESS;
-      }
+  // ── 全局去重：只要和全局最后一次发布的目标相同就跳过 ──
+  // 所有 SendGoal 实例共享此记录，A→B→A 时第二个 A 会正常发布
+  // CancelNavGoal 调用 clearGoalCache() 后强制重新发布
+  // 注意：仅在确认 publisher 已有 subscriber 匹配后才激活去重，
+  //       避免 publisher 刚创建时首条消息因 DDS 发现延迟丢失
+  // 一旦 subscriber 匹配确认，相同目标永久去重（不使用 TTL），
+  // 避免已到达目标的无意义重复发送。目标变更或 CancelNavGoal 自动重置缓存。
+
+  const bool is_same_goal = s_has_global_ && isSameGoal_(goal, s_last_global_goal_);
+  bool dedup_expired = false;
+  if (is_same_goal && s_subs_confirmed_) {
+    if (max_dedup_ms <= 0 || !has_last_) {
+      return BT::NodeStatus::SUCCESS;
     }
+
+    const int64_t dt_ms = (now - last_pub_time_).nanoseconds() / 1000000LL;
+    if (dt_ms < max_dedup_ms) {
+      return BT::NodeStatus::SUCCESS;
+    }
+
+    dedup_expired = true;
   }
 
   geometry_msgs::msg::PoseStamped msg;
@@ -120,20 +150,41 @@ BT::NodeStatus SendGoalAction::tick()
   msg.pose.orientation.z = 0.0;
   msg.pose.orientation.w = 1.0;
 
-  // 使用 throttle 限制重复发导航点时的刷屏日志 (每2秒最多打印一次相同或不同动作的 Goal)
-  RCLCPP_INFO_THROTTLE(
-    node_->get_logger(),
-    *node_->get_clock(),
-    2000,
-    "[%s] Goal position: [ %.3f, %.3f, %.3f ]",
-    name().c_str(),
-    goal.pose.position.x, goal.pose.position.y, goal.pose.position.z);
+  if (!is_same_goal) {
+    RCLCPP_INFO(
+      node_->get_logger(),
+      "[%s] New goal: [ %.3f, %.3f ]",
+      name().c_str(),
+      goal.pose.position.x, goal.pose.position.y);
+  } else if (dedup_expired) {
+    RCLCPP_INFO(
+      node_->get_logger(),
+      "[%s] Re-publishing deduped goal after timeout: [ %.3f, %.3f ]",
+      name().c_str(),
+      goal.pose.position.x, goal.pose.position.y);
+  } else {
+    RCLCPP_WARN_THROTTLE(
+      node_->get_logger(), *node_->get_clock(), 1000,
+      "[%s] Re-publishing goal (awaiting subscriber match, subs=%zu)",
+      name().c_str(), publisher_->get_subscription_count());
+  }
 
+  s_last_global_goal_ = goal;
+  s_has_global_ = true;
   last_goal_ = goal;
   last_pub_time_ = now;
   has_last_ = true;
 
   publisher_->publish(msg);
+
+  if (!s_subs_confirmed_ && publisher_->get_subscription_count() > 0) {
+    s_subs_confirmed_ = true;
+    RCLCPP_INFO(
+      node_->get_logger(),
+      "[%s] Publisher-subscriber match confirmed (subs=%zu)",
+      name().c_str(), publisher_->get_subscription_count());
+  }
+
   return BT::NodeStatus::SUCCESS;
 }
 

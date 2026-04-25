@@ -6,34 +6,52 @@
             <InitSentryConfig
                 topic_game_status="{cfg.topic_game_status}"
                 topic_robot_status="{cfg.topic_robot_status}"
-                topic_rfid_status="{cfg.topic_rfid_status}"
                 topic_robot_pose="{cfg.topic_robot_pose}"
 
                 home_x="{cfg.home_x}" home_y="{cfg.home_y}"
                 supply_zone_x="{cfg.supply_zone_x}" supply_zone_y="{cfg.supply_zone_y}"
+                base_x="{cfg.base_x}" base_y="{cfg.base_y}"
                 base_buff_x="{cfg.base_buff_x}" base_buff_y="{cfg.base_buff_y}"
                 outpost_buff_x="{cfg.outpost_buff_x}" outpost_buff_y="{cfg.outpost_buff_y}"
                 fortress_ally_x="{cfg.fortress_ally_x}" fortress_ally_y="{cfg.fortress_ally_y}"
-                fortress_enemy_x="{cfg.fortress_enemy_x}" fortress_enemy_y="{cfg.fortress_enemy_y}"
                 central_highland_x="{cfg.central_highland_x}" central_highland_y="{cfg.central_highland_y}"
                 ladder_highland_x="{cfg.ladder_highland_x}" ladder_highland_y="{cfg.ladder_highland_y}"
                 defend_anchor_x="{cfg.defend_anchor_x}" defend_anchor_y="{cfg.defend_anchor_y}"
+                central_highland_left_x="{cfg.central_highland_left_x}" central_highland_left_y="{cfg.central_highland_left_y}"
+                ramp_jump_x="{cfg.ramp_jump_x}" ramp_jump_y="{cfg.ramp_jump_y}"
 
                 arrive_radius="{cfg.arrive_radius}"
                 hp_low="{cfg.hp_low}"
                 hp_safe="{cfg.hp_safe}"
-                heat_high="{cfg.heat_high}"
                 ammo_low="{cfg.ammo_low}"
-                ammo_target="{cfg.ammo_target}"
-                allow_ammo_max="{cfg.allow_ammo_max}"
+                supply_wait_timeout_s="{cfg.supply_wait_timeout_s}"
                 enemy_near_base_radius="{cfg.enemy_near_base_radius}"
-                objective_hold_ms="{cfg.objective_hold_ms}"
+                base_threat_calm_timeout_ms="{cfg.base_threat_calm_timeout_ms}"
                 patrol_hold_ms="{cfg.patrol_hold_ms}"
                 patrol_enable="{cfg.patrol_enable}"
                 patrol_waypoints="{cfg.patrol_waypoints}"
                 />
-            <InitCmdState cmd_state="{cmd.state}"
-                          allow_ammo_target="{cmd.allow_ammo_target}"/>
+            <!-- 标定覆盖：从 CSV 文件加载标定坐标，覆盖上面 YAML 默认值 -->
+            <LoadCalibrationCSV
+                csv_path="{cfg.calibration_csv_path}"
+                home_x="{cfg.home_x}" home_y="{cfg.home_y}"
+                supply_zone_x="{cfg.supply_zone_x}" supply_zone_y="{cfg.supply_zone_y}"
+                base_x="{cfg.base_x}" base_y="{cfg.base_y}"
+                base_buff_x="{cfg.base_buff_x}" base_buff_y="{cfg.base_buff_y}"
+                outpost_buff_x="{cfg.outpost_buff_x}" outpost_buff_y="{cfg.outpost_buff_y}"
+                fortress_ally_x="{cfg.fortress_ally_x}" fortress_ally_y="{cfg.fortress_ally_y}"
+                central_highland_x="{cfg.central_highland_x}" central_highland_y="{cfg.central_highland_y}"
+                ladder_highland_x="{cfg.ladder_highland_x}" ladder_highland_y="{cfg.ladder_highland_y}"
+                defend_anchor_x="{cfg.defend_anchor_x}" defend_anchor_y="{cfg.defend_anchor_y}"
+                central_highland_left_x="{cfg.central_highland_left_x}" central_highland_left_y="{cfg.central_highland_left_y}"
+                ramp_jump_x="{cfg.ramp_jump_x}" ramp_jump_y="{cfg.ramp_jump_y}"
+                patrol_waypoints="{cfg.patrol_waypoints}"
+                />
+            <InitCmdState cmd_state="{cmd.state}"/>
+            <!-- 补弹重试状态初始化由 HoldForSupplyAmmoTick 在首次触发时通过 rootBlackboard 完成 -->
+            <!-- 姿态由 DefaultPosture (rmuc_2026.xml) 在每 tick 中动态设置：
+                 到达目标→防御(2)，导航中→移动(3)
+                 PostureDegradationGuard 的第一 tick 默认值 = 3 -->
         </Sequence>
     </BehaviorTree>
 
