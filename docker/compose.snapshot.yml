@@ -4,7 +4,6 @@
 #
 # 可选参数（通过环境变量覆盖）:
 #   TARGET_CONTAINER=docker-nav-1   # 需要快照的容器名
-#   SNAPSHOT_TAG=20260314-2330        # 不传则自动使用北京时间时间戳
 
 name: nav-snapshot
 
@@ -12,15 +11,14 @@ services:
   snapshot:
     image: docker:27-cli
     env_file:
-      - ./.env
+      - .env
     working_dir: /workspace
     environment:
       DOCKER_HUB_USER: ${DOCKER_HUB_USER:-}
       IMAGE_NAME: ${IMAGE_NAME:-}
       DOCKERHUB_NS: ${DOCKERHUB_NS:-}
       IMAGE_REPO: ${IMAGE_REPO:-}
-      TARGET_CONTAINER: ${TARGET_CONTAINER:-gxu2026-nav-laptop}
-      SNAPSHOT_TAG: ${SNAPSHOT_TAG:-}
+      TARGET_CONTAINER: ${TARGET_CONTAINER:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ..:/workspace:rw
@@ -30,21 +28,28 @@ services:
       - |
         set -eu
         HUB_USER="$${DOCKER_HUB_USER:-$${DOCKERHUB_NS:-}}"
-        IMAGE_NAME_EFFECTIVE="$${IMAGE_NAME:-$${IMAGE_REPO:-}}"
+        IMG_NAME="$${IMAGE_NAME:-$${IMAGE_REPO:-}}"
 
-        if [ -z "$$HUB_USER" ] || [ -z "$$IMAGE_NAME_EFFECTIVE" ]; then
-          echo "[错误] 缺少 DOCKER_HUB_USER 或 IMAGE_NAME，请先在 .env 配置。"
-          echo "[提示] 也可使用 DOCKERHUB_NS 与 IMAGE_REPO（docker/.env 默认就是这两个变量）。"
+        if [ -z "$$HUB_USER" ] || [ -z "$$IMG_NAME" ]; then
+          echo "[ERROR] Missing image repo config. Please set one of the following variable groups in .env:"
+          echo "       1) DOCKER_HUB_USER + IMAGE_NAME"
+          echo "       2) DOCKERHUB_NS + IMAGE_REPO"
           exit 1
         fi
 
-        REPO="$$HUB_USER/$$IMAGE_NAME_EFFECTIVE"
-        TAG="$${SNAPSHOT_TAG:-$$(TZ=Asia/Shanghai date +%Y%m%d-%H%M)}"
-        TARGET="$$TARGET_CONTAINER"
+        REPO="$$HUB_USER/$$IMG_NAME"
+        TAG="$$(TZ=UTC-8 date +%Y%m%d%H%M)"
+        TARGET="$${TARGET_CONTAINER:-gxu2026-nav-laptop}"
 
         if ! docker container inspect "$$TARGET" >/dev/null 2>&1; then
-          echo "[错误] 找不到目标容器: $$TARGET"
-          echo "[提示] 先用 docker ps 确认容器名，或设置 TARGET_CONTAINER=xxx"
+          if docker container inspect docker-nav-1 >/dev/null 2>&1; then
+            TARGET="docker-nav-1"
+          fi
+        fi
+
+        if ! docker container inspect "$$TARGET" >/dev/null 2>&1; then
+          echo "[ERROR] Target container not found: $$TARGET"
+          echo "[HINT] Use 'docker ps' to check container name, or set TARGET_CONTAINER=xxx"
           exit 1
         fi
 
@@ -61,4 +66,4 @@ services:
         docker push "$$REPO:latest"
 
         echo "$$TAG" > /workspace/.last_snapshot_tag
-        echo "[完成] 已推送 $$REPO:$$TAG 和 $$REPO:latest"
+        echo "[DONE] Pushed $$REPO:$$TAG and $$REPO:latest"

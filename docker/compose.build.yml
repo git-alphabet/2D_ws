@@ -52,3 +52,13 @@ services:
     # !! 任务会自动用日期 tag，不会产生 <none>；直接 Compose Up 会覆盖 latest 产生 <none>
     image: ${DOCKERHUB_NS:-alphabet2006}/${IMAGE_REPO:-gxu2026-nav-env}:${IMAGE_TAG:-latest}
     # 本文件仅用于构建，不定义 command/ports，up 后容器会立即退出
+
+  neupan-runtime:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.neupan
+      network: host
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
+        PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST:-pypi.tuna.tsinghua.edu.cn}
+    image: ${DOCKERHUB_NS:-alphabet2006}/${IMAGE_REPO_NEUPAN:-gxu2026-neupan-runtime}:${IMAGE_TAG:-latest}
