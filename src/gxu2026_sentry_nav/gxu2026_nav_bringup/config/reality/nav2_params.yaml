@@ -44,6 +44,15 @@ pb_navigation_switches:
     behavior_tree: "config/RMUL_2026/new_rmul_2026.xml"
 
 
+    # 标定辅助节点模式：
+    #   off     关闭
+    #   slam    仅 SLAM 时启动（默认）
+    #   always  任何时候都启动（含纯导航）
+    calib_helper_mode: "always"
+    # 是否不保存 CSV 文件（true 表示跳过 CSV 写入）
+    calib_no_csv: false
+
+
     enable_gimbal_yaw_bridge: true             #是否启用 gimbal_yaw_bridge 通路。
 
 
