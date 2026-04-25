@@ -201,7 +201,14 @@ def generate_launch_description():
     ld.add_action(joy_teleop_cmd)
     ld.add_action(rviz_cmd)
 
-    # ── 标定辅助节点 (仅 SLAM 模式) ──
+    # ── 标定辅助节点 ──
+    # CALIB_HELPER_MODE:
+    #   off/false/0   -> 关闭
+    #   slam          -> 仅 SLAM 模式启用
+    #   always/nav    -> 导航与 SLAM 都启用
+    calib_mode = os.environ.get("CALIB_HELPER_MODE", "slam").strip().lower()
+    calib_enabled = calib_mode not in ("0", "false", "no", "off", "disable", "disabled")
+
     # 查找 calib_point_helper.py: 优先用环境变量，其次尝试工作区 scripts/ 目录
     calib_script = os.environ.get("CALIB_HELPER_SCRIPT", "")
     if not calib_script:
@@ -213,16 +220,22 @@ def generate_launch_description():
             if _candidate.exists():
                 calib_script = str(_candidate)
                 break
-    if calib_script and os.path.isfile(calib_script):
+    if calib_enabled and calib_script and os.path.isfile(calib_script):
         calib_args = ["python3", calib_script]
         # 默认启用 CSV (直接写到 rmuc_calibration.csv)，设置 CALIB_NO_CSV=1 才关闭
         if os.environ.get("CALIB_NO_CSV", "").strip() in ("1", "true", "yes"):
             calib_args.append("--no-csv")
-        start_calib_helper = ExecuteProcess(
-            cmd=calib_args,
-            output="screen",
-            condition=IfCondition(slam),
-        )
+        if calib_mode in ("always", "all", "nav"):
+            start_calib_helper = ExecuteProcess(
+                cmd=calib_args,
+                output="screen",
+            )
+        else:
+            start_calib_helper = ExecuteProcess(
+                cmd=calib_args,
+                output="screen",
+                condition=IfCondition(slam),
+            )
         ld.add_action(start_calib_helper)
 
     return ld
