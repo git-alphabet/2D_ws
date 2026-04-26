@@ -11,7 +11,7 @@ RMUC 标定点辅助节点 —— 单个 PublishPoint 工具 + 自动轮转模�
   5. 发布 /calib/prev 或 /calib/next (std_msgs/Empty) 可上翻/下翻
 
 话题:
-    订阅: /calib/control_point, /calib/clicked_point (geometry_msgs/msg/PointStamped) — rviz 点击
+  订阅: /calib/clicked_point  (geometry_msgs/msg/PointStamped) — rviz 点击
   订阅: /calib/select          (std_msgs/msg/String) — 跳到指定标定点
   订阅: /calib/prev, /calib/next (std_msgs/msg/Empty) — 上翻/下翻
   发布: /calibrated_points     (visualization_msgs/msg/MarkerArray) — 十字标志+标签
@@ -36,17 +36,17 @@ from visualization_msgs.msg import Marker, MarkerArray
 # (key, display_name, color_rgba)
 CALIB_POINTS: list[tuple[str, str, tuple[float, float, float, float]]] = [
     ("supply_zone",            "1-补给区 Supply",            (0.0, 0.6, 1.0, 1.0)),
+    # ("base",                   "2-基地 Base",                (1.0, 0.5, 0.2, 1.0)),
     # ── 以下暂时隐藏，需要时取消注释即可 ──
-    # ("outpost_buff",           "2-前哨增益 OutpostBuff",     (0.8, 0.0, 0.8, 1.0)),
-    # ("base_buff",              "3-基地增益 BaseBuff",        (1.0, 0.8, 0.0, 1.0)),
-    # ("fortress_ally",          "4-堡垒区 Fortress",          (1.0, 0.0, 0.0, 1.0)),
-    ("central_highland",       "5-中央高地 CentralHL",       (1.0, 1.0, 0.0, 1.0)),
-    ("ladder_highland",        "6-梯形高地 LadderHL",        (0.0, 1.0, 1.0, 1.0)),
-    # ("defend_anchor",          "7-防御锚点 Defend",          (1.0, 0.4, 0.4, 1.0)),
+    # ("outpost_buff",           "3-前哨增益 OutpostBuff",     (0.8, 0.0, 0.8, 1.0)),
+    # ("fortress_ally",          "5-堡垒区 Fortress",          (1.0, 0.0, 0.0, 1.0)),
+    ("central_highland",       "6-中央高地 CentralHL",       (1.0, 1.0, 0.0, 1.0)),
+    # ("ladder_highland",        "7-梯形高地 LadderHL",        (0.0, 1.0, 1.0, 1.0)),
+    # ("defend_anchor",          "8-防御锚点 Defend",          (1.0, 0.4, 0.4, 1.0)),
     # ── 巡逻点（前哨站被毁后，在梯形高地附近巡逻的路点）──
-    ("patrol_1",               "P1-巡逻点1 Patrol1",        (0.4, 1.0, 0.4, 1.0)),
-    ("patrol_2",               "P2-巡逻点2 Patrol2",        (0.4, 1.0, 0.6, 1.0)),
-    ("patrol_3",               "P3-巡逻点3 Patrol3",        (0.4, 1.0, 0.8, 1.0)),
+    # ("patrol_1",               "P1-巡逻点1 Patrol1",        (0.4, 1.0, 0.4, 1.0)),
+    # ("patrol_2",               "P2-巡逻点2 Patrol2",        (0.4, 1.0, 0.6, 1.0)),
+    # ("patrol_3",               "P3-巡逻点3 Patrol3",        (0.4, 1.0, 0.8, 1.0)),
 ]
 
 # ── rmuc_calibration.csv 默认路径 ──
@@ -80,7 +80,6 @@ class CalibPointHelper(Node):
         self.hint_pub = self.create_publisher(MarkerArray, "/calib/current_label", latching_qos)
 
         # 订阅 rviz 点击
-        self.create_subscription(PointStamped, "/calib/control_point", self._on_click, 10)
         self.create_subscription(PointStamped, "/calib/clicked_point", self._on_click, 10)
         # 订阅控制话题
         self.create_subscription(String, "/calib/select", self._on_select, 10)

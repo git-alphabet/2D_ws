@@ -16,7 +16,6 @@ public:
   {
     return {
       BT::InputPort<std::string>("zone", "SUPPLY", "区域类型"),
-      // Keep legacy port names for BT XML compatibility.
       BT::InputPort<std::string>("rfid_status"),
       BT::InputPort<std::string>("robot_status")};
   }

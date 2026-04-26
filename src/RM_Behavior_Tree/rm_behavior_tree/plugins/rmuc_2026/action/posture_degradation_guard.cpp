@@ -13,6 +13,18 @@ BT::NodeStatus PostureDegradationGuard::tick()
   int desired = 3;
   getInput("desired_posture", desired);
 
+  bool base_threat = false;
+  getInput("base_threat", base_threat);
+
+  double pose_x = 0.0, pose_y = 0.0;
+  double defend_anchor_x = 0.0, defend_anchor_y = 0.0;
+  double arrive_radius = 0.8;
+  getInput("pose_x", pose_x);
+  getInput("pose_y", pose_y);
+  getInput("defend_anchor_x", defend_anchor_x);
+  getInput("defend_anchor_y", defend_anchor_y);
+  getInput("arrive_radius", arrive_radius);
+
   int threshold_s = 180;
   getInput("degradation_threshold_s", threshold_s);
 
@@ -24,12 +36,20 @@ BT::NodeStatus PostureDegradationGuard::tick()
 
   auto now = std::chrono::steady_clock::now();
 
+  int effective_desired = desired;
+  if (base_threat) {
+    const double dx = pose_x - defend_anchor_x;
+    const double dy = pose_y - defend_anchor_y;
+    const double dist = std::hypot(dx, dy);
+    effective_desired = (dist <= arrive_radius) ? 1 : 3;
+  }
+
   // 首次初始化
   if (!initialized_) {
     initialized_ = true;
-    active_posture_ = desired;
+    active_posture_ = effective_desired;
     last_tick_time_ = now;
-    setOutput("final_posture", desired);
+    setOutput("final_posture", effective_desired);
     return BT::NodeStatus::SUCCESS;
   }
 
@@ -50,10 +70,10 @@ BT::NodeStatus PostureDegradationGuard::tick()
     if (elapsed_ms >= forced_duration_ms_) {
       // 强制切换结束，放行正常姿态
       in_forced_switch_ = false;
-      active_posture_ = desired;
-      setOutput("final_posture", desired);
+      active_posture_ = effective_desired;
+      setOutput("final_posture", effective_desired);
       std::cout << "[PostureDegradationGuard] 强制姿态 " << forced_posture_
-                << " 结束，恢复姿态 " << desired << std::endl;
+                << " 结束，恢复姿态 " << effective_desired << std::endl;
     } else {
       // 仍在强制切换中
       active_posture_ = forced_posture_;
@@ -64,15 +84,15 @@ BT::NodeStatus PostureDegradationGuard::tick()
 
   // ── 检查降级 ──
   int64_t threshold_ms = static_cast<int64_t>(threshold_s) * 1000;
-  if (desired >= 1 && desired <= kPostureCount &&
-      cumulative_ms_[desired - 1] >= threshold_ms)
+  if (effective_desired >= 1 && effective_desired <= kPostureCount &&
+      cumulative_ms_[effective_desired - 1] >= threshold_ms)
   {
     // 重置该姿态的累计计时器
-    cumulative_ms_[desired - 1] = 0;
+    cumulative_ms_[effective_desired - 1] = 0;
 
     // 特殊情况：防御(2)超时 → 强制移动(3)
     // 普通情况：攻击(1)/移动(3)超时 → 强制防御(2)
-    if (desired == 2) {
+    if (effective_desired == 2) {
       forced_posture_ = 3;  // 移动
       forced_duration_ms_ = movement_s * 1000;
     } else {
@@ -82,12 +102,12 @@ BT::NodeStatus PostureDegradationGuard::tick()
 
     in_forced_switch_ = true;
     forced_switch_start_ = now;
-    degraded_posture_ = desired;
+    degraded_posture_ = effective_desired;
 
     active_posture_ = forced_posture_;
     setOutput("final_posture", forced_posture_);
 
-    std::cout << "[PostureDegradationGuard] 姿态 " << desired
+    std::cout << "[PostureDegradationGuard] 姿态 " << effective_desired
               << " 累计超过 " << threshold_s << "s，强制切换到姿态 "
               << forced_posture_ << " 持续 "
               << (forced_duration_ms_ / 1000) << "s，计时器已重置" << std::endl;
@@ -95,8 +115,8 @@ BT::NodeStatus PostureDegradationGuard::tick()
   }
 
   // ── 正常放行 ──
-  active_posture_ = desired;
-  setOutput("final_posture", desired);
+  active_posture_ = effective_desired;
+  setOutput("final_posture", effective_desired);
   return BT::NodeStatus::SUCCESS;
 }
 

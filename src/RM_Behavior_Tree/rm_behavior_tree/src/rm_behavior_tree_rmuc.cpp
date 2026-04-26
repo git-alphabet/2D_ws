@@ -27,6 +27,9 @@
 #include "behaviortree_cpp/utils/shared_library.h"
 #include "behaviortree_ros2/plugins.hpp"
 
+#include <string>
+#include <utility>
+#include <vector>
 
 int main(int argc, char ** argv)
 {
@@ -281,13 +284,18 @@ int main(int argc, char ** argv)
                   vec.size() / 2, wpts_str.c_str());
     }
     // calibration_csv_path (string)
+    for (const auto & [key, def] : std::vector<std::pair<std::string, std::string>>{
+        {"calibration_csv_path", ""},
+        {"semantic_zones_file",
+          "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"},
+        {"semantic_ignore_enemy_zone_type", "speed_bump"}})
     {
-      auto pn = prefix + "calibration_csv_path";
-      if (!node->has_parameter(pn)) node->declare_parameter<std::string>(pn, "");
+      auto pn = prefix + key;
+      if (!node->has_parameter(pn)) node->declare_parameter<std::string>(pn, def);
       std::string v = node->get_parameter(pn).as_string();
-      bb->set("cfg.calibration_csv_path", v);
+      bb->set("cfg." + key, v);
       if (!v.empty()) {
-        RCLCPP_INFO(node->get_logger(), "Calibration CSV path: %s", v.c_str());
+        RCLCPP_INFO(node->get_logger(), "%s: %s", key.c_str(), v.c_str());
       }
     }
   }
