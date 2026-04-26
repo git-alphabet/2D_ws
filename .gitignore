@@ -25,3 +25,5 @@ __pycache__/
 launch_logs/
 maps/
 bags/
+
+/chat.instructions.md
