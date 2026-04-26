@@ -1,7 +1,10 @@
 <class_libraries>
-  <library path="pb_layers">
+  <library path="layers">
     <class type="pb_nav2_costmap_2d::IntensityVoxelLayer"     base_class_type="nav2_costmap_2d::Layer">
       <description>Similar to obstacle costmap, but uses 3D voxel grid to store data.</description>
+    </class>
+    <class type="pb_nav2_costmap_2d::SemanticZoneLayer" base_class_type="nav2_costmap_2d::Layer">
+      <description>Applies semantic zone costs (keepout, high_cost, etc.) from a YAML polygon file.</description>
     </class>
   </library>
 </class_libraries>

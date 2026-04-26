@@ -18,6 +18,8 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "example_interfaces/msg/float32.hpp"
 #include "geometry_msgs/msg/twist.hpp"
@@ -29,6 +31,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sp_msgs/msg/rmuc_robot_control.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2_ros/transform_listener.h"
 #include "visualization_msgs/msg/marker_array.hpp"
@@ -76,6 +79,8 @@ private:
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr speed_bump_marker_pub_;
 
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+  std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
   rclcpp::TimerBase::SharedPtr timer_;
 
@@ -99,6 +104,7 @@ private:
   bool cmd_spin_override_logged_{false};
 
   bool enable_speed_bump_min_speed_{true};
+  bool enable_speed_bump_zero_angular_z_{true};
   double speed_bump_min_linear_speed_{1.5};
   std::string speed_bump_map_frame_{"map"};
   bool publish_speed_bump_marker_{true};
@@ -111,8 +117,11 @@ private:
   bool was_in_speed_bump_zone_{false};
 
   std::mutex cmd_vel_mutex_;
+  std::mutex pose_mutex_;
   geometry_msgs::msg::Twist::SharedPtr latest_cmd_vel_;
   double current_robot_base_angle_;
+  double current_robot_x_{0.0};
+  double current_robot_y_{0.0};
   rclcpp::Time last_controller_activate_time_;
 
   rclcpp::Time last_cmd_vel_rx_time_;

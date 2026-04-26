@@ -16,6 +16,7 @@
 
 #include <vector>
 
+#include "nav2_util/node_utils.hpp"
 #include "sensor_msgs/point_cloud2_iterator.hpp"
 
 #define VOXEL_BITS 16
@@ -41,15 +42,32 @@ void IntensityVoxelLayer::onInitialize()
   max_obstacle_height_ = node->get_parameter(name_ + ".max_obstacle_height").as_double();
   combination_method_ = node->get_parameter(name_ + ".combination_method").as_int();
 
-  size_z_ = node->declare_parameter(name_ + ".z_voxels", 16);
-  origin_z_ = node->declare_parameter(name_ + ".origin_z", 16.0);
-  min_obstacle_intensity_ = node->declare_parameter(name_ + ".min_obstacle_intensity", 0.1);
-  max_obstacle_intensity_ = node->declare_parameter(name_ + ".max_obstacle_intensity", 2.0);
-  z_resolution_ = node->declare_parameter(name_ + ".z_resolution", 0.05);
+  // 使用 declare_parameter_if_not_declared 避免 lifecycle reset 时第二次调用 onInitialize
+  // 导致 "parameter has already been declared" FATAL 错误
+  nav2_util::declare_parameter_if_not_declared(node, name_ + ".z_voxels", rclcpp::ParameterValue(16));
+  nav2_util::declare_parameter_if_not_declared(node, name_ + ".origin_z", rclcpp::ParameterValue(16.0));
+  nav2_util::declare_parameter_if_not_declared(
+    node, name_ + ".min_obstacle_intensity", rclcpp::ParameterValue(0.1));
+  nav2_util::declare_parameter_if_not_declared(
+    node, name_ + ".max_obstacle_intensity", rclcpp::ParameterValue(2.0));
+  nav2_util::declare_parameter_if_not_declared(
+    node, name_ + ".z_resolution", rclcpp::ParameterValue(0.05));
+  nav2_util::declare_parameter_if_not_declared(
+    node, name_ + ".unknown_threshold", rclcpp::ParameterValue(15));
+  nav2_util::declare_parameter_if_not_declared(
+    node, name_ + ".mark_threshold", rclcpp::ParameterValue(0));
+  nav2_util::declare_parameter_if_not_declared(
+    node, name_ + ".publish_voxel_map", rclcpp::ParameterValue(false));
+
+  size_z_ = node->get_parameter(name_ + ".z_voxels").as_int();
+  origin_z_ = node->get_parameter(name_ + ".origin_z").as_double();
+  min_obstacle_intensity_ = node->get_parameter(name_ + ".min_obstacle_intensity").as_double();
+  max_obstacle_intensity_ = node->get_parameter(name_ + ".max_obstacle_intensity").as_double();
+  z_resolution_ = node->get_parameter(name_ + ".z_resolution").as_double();
   unknown_threshold_ =
-    node->declare_parameter(name_ + ".unknown_threshold", 15) + (VOXEL_BITS - size_z_);
-  mark_threshold_ = node->declare_parameter(name_ + ".mark_threshold", 0);
-  publish_voxel_ = node->declare_parameter(name_ + ".publish_voxel_map", false);
+    node->get_parameter(name_ + ".unknown_threshold").as_int() + (VOXEL_BITS - size_z_);
+  mark_threshold_ = node->get_parameter(name_ + ".mark_threshold").as_int();
+  publish_voxel_ = node->get_parameter(name_ + ".publish_voxel_map").as_bool();
 
   if (publish_voxel_) {
     voxel_pub_ = node->create_publisher<nav2_msgs::msg::VoxelGrid>("voxel_grid", 1);
@@ -118,13 +136,6 @@ void IntensityVoxelLayer::updateBounds(
 
   // get the marking observations
   bool current = true;
-  std::vector<Observation> clearing_observations;
-  current = getClearingObservations(clearing_observations) && current;
-
-  for (const auto & obs : clearing_observations) {
-    raytraceFreespace(obs, min_x, min_y, max_x, max_y);
-  }
-
   std::vector<Observation> observations;
   current = getMarkingObservations(observations) && current;
 

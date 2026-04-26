@@ -26,6 +26,7 @@ ament_auto_find_build_dependencies()
 ament_auto_add_library(${PROJECT_NAME} SHARED
   src/fake_vel_transform.cpp
 )
+target_link_libraries(${PROJECT_NAME} yaml-cpp)
 
 ament_auto_add_executable(nonlinear_spin_publisher
   src/nonlinear_spin_publisher.cpp
@@ -55,7 +56,6 @@ endif()
 #############
 
 ament_auto_package(
-  USE_SCOPED_HEADER_INSTALL_DIR
   INSTALL_TO_SHARE
   launch
 )
