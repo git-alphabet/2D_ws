@@ -16,3 +16,5 @@ bags/
 __pycache__/
 *.pyc
 *.pyo
+
+/chat.instructions.md
