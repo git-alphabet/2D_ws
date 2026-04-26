@@ -22,6 +22,7 @@ import math
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
+from action_msgs.msg import GoalStatus, GoalStatusArray
 from tf2_ros import Buffer, TransformListener
 from sp_msgs.msg import RMUCRobotPosition
 
@@ -37,6 +38,7 @@ class RobotPositionBridge(Node):
         rate = self.get_parameter('publish_rate').value
         self.map_frame = self.get_parameter('map_frame').value
         self.base_frame = self.get_parameter('base_frame').value
+        self.is_at_nav_goal = True
 
         # TF
         self.tf_buffer = Buffer()
@@ -45,10 +47,23 @@ class RobotPositionBridge(Node):
         # 发布 robot_position (相对话题名，跟随 namespace)
         qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE)
         self.pub = self.create_publisher(RMUCRobotPosition, 'robot_position', qos)
+        self.nav_status_sub = self.create_subscription(
+            GoalStatusArray,
+            'navigate_to_pose/_action/status',
+            self._nav_status_cb,
+            10)
 
         self.timer = self.create_timer(1.0 / rate, self._timer_cb)
         self.get_logger().info(
             f'[Bridge] TF: {self.map_frame} → {self.base_frame} | rate: {rate} Hz')
+
+    def _nav_status_cb(self, msg):
+        active_states = {
+            GoalStatus.STATUS_ACCEPTED,
+            GoalStatus.STATUS_EXECUTING,
+            GoalStatus.STATUS_CANCELING,
+        }
+        self.is_at_nav_goal = not any(status.status in active_states for status in msg.status_list)
 
     def _timer_cb(self):
         try:
@@ -67,6 +82,7 @@ class RobotPositionBridge(Node):
         msg.header.frame_id = self.map_frame
         msg.pose_x = float(t.transform.translation.x)
         msg.pose_y = float(t.transform.translation.y)
+        msg.is_at_nav_goal = bool(self.is_at_nav_goal)
         self.pub.publish(msg)
 
 

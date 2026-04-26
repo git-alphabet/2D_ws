@@ -15,7 +15,8 @@
             <!-- 持续订阅机器人位置与导航到达状态 -->
             <RmucSubRobotPosition topic_name="robot_position"
                                   pose_x="{pose.x}"
-                                  pose_y="{pose.y}"/>
+                                  pose_y="{pose.y}"
+                                  is_at_nav_goal="{is_at_nav_goal}"/>
 
             <!-- 底盘旋转控制 -->
             <ReactiveFallback>

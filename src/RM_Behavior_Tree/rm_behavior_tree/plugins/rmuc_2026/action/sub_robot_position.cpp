@@ -16,6 +16,7 @@ BT::NodeStatus RmucSubRobotPositionAction::onTick(
   if (last_msg) {
     setOutput("pose_x", static_cast<double>(last_msg->pose_x));
     setOutput("pose_y", static_cast<double>(last_msg->pose_y));
+    setOutput("is_at_nav_goal", last_msg->is_at_nav_goal);
   }
   return BT::NodeStatus::SUCCESS;
 }
