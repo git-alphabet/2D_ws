@@ -230,6 +230,8 @@ class RosNodeControlInterface {
         virtual int getDtofSubframeODR() const = 0;
         virtual void setSendOdomBaseLinkTF(bool send_odom_baselink_tf) = 0;
         virtual bool sendOdomBaseLinkTF() const = 0;
+        virtual void setOdomBaseFrameId(const std::string& odom_base_frame_id) = 0;
+        virtual const std::string& odomBaseFrameId() const = 0;
         virtual void setCloudRawConfidenceThreshold(int threshold) = 0;
         virtual int cloudRawConfidenceThreshold() const = 0;
     };
@@ -547,7 +549,7 @@ void process_pair(const ImageConstPtr &rgb_msg, const PointCloud2ConstPtr &pcd_m
          
         // Create and publish RGB point cloud
         PointCloud2Msg output_msg;
-        output_msg.header.frame_id = "odin1_base_link";
+        output_msg.header.frame_id = getRosNodeControl()->odomBaseFrameId();
         output_msg.header.stamp = rgb_msg->header.stamp; // Use original image timestamp
         output_msg.height = 1;
         output_msg.width = valid_point_num;
@@ -616,7 +618,7 @@ void publishIntensityCloud(capture_Image_List_t* stream, int idx)
     #endif
 
     // Set message header
-    msg->header.frame_id = "odin1_base_link";
+    msg->header.frame_id = getRosNodeControl()->odomBaseFrameId();
     #ifdef ROS2
         msg->header.stamp = make_aligned_stamp(cloud.timestamp, node_);
     #else
@@ -1214,7 +1216,7 @@ void publishRgb(capture_Image_List_t *stream) {
 #endif
         
             msg.header.frame_id = "odom";
-            msg.child_frame_id = "odin1_base_link";
+            msg.child_frame_id = getRosNodeControl()->odomBaseFrameId();
 
             //RCLCPP_INFO(rclcpp::get_logger("device_cb"), "odom %ld",odom_data->timestamp_ns);
 
@@ -1392,7 +1394,7 @@ void publishRgb(capture_Image_List_t *stream) {
                         geometry_msgs::msg::TransformStamped transformStamped;
                         transformStamped.header.stamp = msg.header.stamp;
                         transformStamped.header.frame_id = "odom";
-                        transformStamped.child_frame_id = "odin1_base_link";
+                        transformStamped.child_frame_id = getRosNodeControl()->odomBaseFrameId();
                         transformStamped.transform.translation.x = msg.pose.pose.position.x;
                         transformStamped.transform.translation.y = msg.pose.pose.position.y;
                         transformStamped.transform.translation.z = msg.pose.pose.position.z;
@@ -1489,7 +1491,7 @@ void publishRgb(capture_Image_List_t *stream) {
                         geometry_msgs::TransformStamped transformStamped;
                         transformStamped.header.stamp = msg.header.stamp;
                         transformStamped.header.frame_id = "odom";
-                        transformStamped.child_frame_id = "odin1_base_link";
+                        transformStamped.child_frame_id = getRosNodeControl()->odomBaseFrameId();
                         transformStamped.transform.translation.x = msg.pose.pose.position.x;
                         transformStamped.transform.translation.y = msg.pose.pose.position.y;
                         transformStamped.transform.translation.z = msg.pose.pose.position.z;

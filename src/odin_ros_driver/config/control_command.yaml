@@ -60,6 +60,10 @@ register_keys:
   # 注意：这对 rviz 显示 cloud_raw 至关重要
   send_odom_baselink_tf: 1 # 0: off; 1: on.
 
+  # Child frame id used by odometry/TF and related cloud headers.
+  # 里程计/TF 以及相关点云 header 使用的子坐标系名称
+  odom_base_frame_id: "base_footprint"
+
   # raw dtof data
   # 原始 DTOF 数据
   senddtof: 1             # 0: off; 1: on
