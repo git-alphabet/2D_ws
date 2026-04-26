@@ -24,3 +24,5 @@ __pycache__/
 .github/
 launch_logs/
 maps/
+
+/chat.instructions.md
