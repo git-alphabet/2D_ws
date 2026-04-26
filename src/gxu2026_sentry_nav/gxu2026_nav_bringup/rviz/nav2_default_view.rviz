@@ -420,17 +420,17 @@ Visualization Manager:
       Class: rviz_default_plugins/PointStamped
       Color: 255; 0; 0
       Enabled: true
-      Name: Calib Hint
-      Namespaces:
-        {}
+      History Length: 1
+      Name: Clicked Calib Point
+      Radius: 0.18
       Topic:
         Depth: 5
-        Durability Policy: Transient Local
+        Durability Policy: Volatile
+        Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /calib/current_label
+        Value: /calib/clicked_point
       Value: true
-
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -455,7 +455,7 @@ Visualization Manager:
         Value: initialpose
     - Class: nav2_rviz_plugins/GoalTool
     - Class: rviz_default_plugins/PublishPoint
-      Name: "标定点 Calib"
+      Name: Calib Point
       Single click: true
       Topic:
         Depth: 5
