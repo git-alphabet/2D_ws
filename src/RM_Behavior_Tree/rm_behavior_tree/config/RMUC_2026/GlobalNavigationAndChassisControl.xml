@@ -75,7 +75,8 @@
                 <IsBaseThreatened base_threat="{threat.base}"/>
                 <!-- 无敌人 → 放行 -->
                 <Inverter>
-                    <RmucIsDetectEnemy message="{robot_status}"/>
+                    <RmucIsDetectEnemy message="{robot_status}"
+                                       is_detect_enemy="{is_detect_enemy}"/>
                 </Inverter>
                 <!-- 当前 Nav2 目标 = 补给区 → 放行（无视敌人，继续导航回家） -->
                 <IsNavTargetSupply goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"

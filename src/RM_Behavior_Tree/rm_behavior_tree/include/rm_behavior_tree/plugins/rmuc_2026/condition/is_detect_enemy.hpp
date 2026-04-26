@@ -19,7 +19,8 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
-      BT::InputPort<std::shared_ptr<sp_msgs::msg::RMUCRobotStatus>>("message")
+      BT::InputPort<std::shared_ptr<sp_msgs::msg::RMUCRobotStatus>>("message"),
+      BT::InputPort<bool>("is_detect_enemy")
     };
   }
 };

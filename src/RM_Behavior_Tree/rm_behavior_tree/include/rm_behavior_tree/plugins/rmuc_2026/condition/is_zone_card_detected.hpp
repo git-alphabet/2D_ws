@@ -3,8 +3,6 @@
 
 #include <string>
 #include "behaviortree_cpp/condition_node.h"
-#include "sp_msgs/msg/rmucrfid_status.hpp"
-#include "sp_msgs/msg/rmuc_robot_status.hpp"
 
 namespace rm_behavior_tree
 {
@@ -18,8 +16,8 @@ public:
   {
     return {
       BT::InputPort<std::string>("zone", "SUPPLY", "区域类型"),
-      BT::InputPort<sp_msgs::msg::RMUCRFIDStatus>("rfid_status"),
-      BT::InputPort<std::shared_ptr<sp_msgs::msg::RMUCRobotStatus>>("robot_status")};
+      BT::InputPort<std::string>("rfid_status"),
+      BT::InputPort<std::string>("robot_status")};
   }
 
   BT::NodeStatus tick() override;

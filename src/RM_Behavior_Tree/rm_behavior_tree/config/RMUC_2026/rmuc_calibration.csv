@@ -17,10 +17,10 @@
 # fortress_ally,2.7600,-1.9300
 # outpost_buff,3.5489,-4.2745
 # base,-2.3532,-2.0007
-supply_zone,3.4239,-6.1222
-central_highland,3.8882,-4.9462
-ladder_highland,0.7524,-3.6890
-defend_anchor,0.0968,-0.4008
-patrol_1,5.4593,2.5318
-patrol_2,4.1185,0.3385
-patrol_3,0.0596,-6.6217
+# ladder_highland,0.7524,-3.6890
+# defend_anchor,0.0968,-0.4008
+# patrol_1,5.4593,2.5318
+# patrol_2,4.1185,0.3385
+# patrol_3,0.0596,-6.6217
+supply_zone,4.6087,-3.1324
+central_highland,2.0105,-6.2369

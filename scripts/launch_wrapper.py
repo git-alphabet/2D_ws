@@ -416,6 +416,26 @@ def _log_start_status(script_name: str, title: str, command: str, log_file: Path
     print(f"[{script_name}] LOG {title} -> {log_file}", file=sys.stderr)
 
 
+def _output_filter_cmd(ws_dir: Path) -> str:
+    interval = os.environ.get("MULTICAST_WARNING_THROTTLE_SEC", "30").strip() or "30"
+    try:
+        if float(interval) <= 0.0:
+            return "cat"
+    except ValueError:
+        interval = "30"
+
+    throttle_script = ws_dir / "scripts/tools/throttle_output.py"
+    if not throttle_script.exists():
+        return "cat"
+
+    pattern = r"Exception sending a multicast message:Network is unreachable"
+    return (
+        f"python3 {shlex.quote(str(throttle_script))} "
+        f"--interval {shlex.quote(interval)} "
+        f"--pattern {shlex.quote(pattern)}"
+    )
+
+
 def _pid_gone(pid: int) -> bool:
     try:
         os.kill(pid, 0)
@@ -640,7 +660,8 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
     if extra_env:
         full_cmd += f"; {extra_env}"
     full_cmd += f"; {command}"
-    wrap_cmd = f"export PYTHONUNBUFFERED=1; stdbuf -oL -eL bash -c {shlex.quote(full_cmd)} 2>&1 | tee {shlex.quote(str(log_file))}"
+    output_filter = _output_filter_cmd(cfg.ws_dir)
+    wrap_cmd = f"export PYTHONUNBUFFERED=1; stdbuf -oL -eL bash -c {shlex.quote(full_cmd)} 2>&1 | {output_filter} | tee {shlex.quote(str(log_file))}"
     print(f"[{cfg.script_name}] LaunchCmd[{title}]: {command}", file=sys.stderr)
     _log_start_status(cfg.script_name, title, command, log_file)
 
@@ -738,7 +759,7 @@ def _launch_in_terminal(cfg: CommonConfig, title: str, command: str, extra_env: 
     keep_core = full_cmd
     if post_command:
         keep_core += f"; {post_command}"
-    keep_shell = f"export PYTHONUNBUFFERED=1; stdbuf -oL -eL bash -c {shlex.quote(keep_core)} 2>&1 | tee {shlex.quote(str(log_file))}; exec bash"
+    keep_shell = f"export PYTHONUNBUFFERED=1; stdbuf -oL -eL bash -c {shlex.quote(keep_core)} 2>&1 | {output_filter} | tee {shlex.quote(str(log_file))}; exec bash"
     if term == "gnome-terminal":
         _run_shell(f"gnome-terminal --title={shlex.quote(title)} -- bash -c {shlex.quote(keep_shell)}")
         print(f"[{cfg.script_name}] STARTED {title} in gnome-terminal", file=sys.stderr)

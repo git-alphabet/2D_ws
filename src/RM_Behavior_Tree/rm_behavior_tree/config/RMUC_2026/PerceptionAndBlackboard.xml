@@ -30,6 +30,8 @@
                                    pose_x="{pose.x}"
                                    pose_y="{pose.y}"
                                    now_ms="{time.now_ms}"
+                                   semantic_zones_file="{cfg.semantic_zones_file}"
+                                   semantic_ignore_enemy_zone_type="{cfg.semantic_ignore_enemy_zone_type}"
                                    radar_tracks="{radar_tracks}"
                                    team_hp="{team_hp}"
                                    stage_remain_time="{game.remain_s}"
@@ -40,6 +42,7 @@
                                    outpost_alive="{outpost.alive}"
                                    is_dead="{state.is_dead}"
                                    has_target="{combat.has_target}"
+                                   is_detect_enemy="{is_detect_enemy}"
                                    base_threat="{threat.base}"
                                    is_disengaged="{state.disengaged}"
                                    />

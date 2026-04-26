@@ -156,6 +156,7 @@ add_target_dependencies(rmuc_sub_team_hp)
 ament_auto_add_library(rmuc_parse_sentry_blackboard SHARED
     plugins/rmuc_2026/action/parse_sentry_blackboard.cpp)
 add_target_dependencies(rmuc_parse_sentry_blackboard)
+target_link_libraries(rmuc_parse_sentry_blackboard yaml-cpp)
 
 ament_auto_add_library(rmuc_sentry_cmd_mux SHARED
     plugins/rmuc_2026/action/sentry_cmd_mux.cpp)

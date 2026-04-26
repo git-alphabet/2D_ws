@@ -38,7 +38,9 @@ public:
       BT::BidirectionalPort<int>("base_threat_calm_timeout_ms"),
       BT::BidirectionalPort<int>("patrol_hold_ms"),
       BT::BidirectionalPort<bool>("patrol_enable"),
-      BT::BidirectionalPort<std::string>("patrol_waypoints")};
+      BT::BidirectionalPort<std::string>("patrol_waypoints"),
+      BT::BidirectionalPort<std::string>("semantic_zones_file"),
+      BT::BidirectionalPort<std::string>("semantic_ignore_enemy_zone_type")};
   }
   BT::NodeStatus tick() override;
 

@@ -25,6 +25,9 @@ ros2 topic echo /red_standard_robot1/robot_status --once
 # 底盘控制（chassis_spin 是否为 True/False）
 ros2 topic echo /red_standard_robot1/robot_control --once
 
+# 注意：/red_standard_robot1/robot_status 是裁判系统/测试脚本发布的原始输入。
+# 语义区“忽略敌人”只覆盖 BT 黑板里的有效 is_detect_enemy，不会反向改写这个原始话题。
+
 # 所有话题列表
 ros2 topic list | grep red_standard_robot1 | sort
 ```
@@ -185,3 +188,27 @@ ros2 topic echo /red_standard_robot1/robot_position --once
 > 1. `sentry_decision_status.current_posture` 先为 3，随后变为 1。
 > 2. 日志出现 `DefendAnchor New goal: [ 0.097, -0.401 ]`。
 > 3. 控制器日志出现 `Reached the goal!`。
+
+## 11. 语义区忽略敌人调试
+
+```bash
+# 1) 确认原始裁判输入：这里为 true 是正常的，说明测试脚本确实模拟“扫到敌人”
+ros2 topic echo /red_standard_robot1/robot_status --once --field is_detect_enemy
+
+# 2) 确认当前位置是否落在 semantic_zones.yaml 的 speed_bump 多边形内
+ros2 topic echo /red_standard_robot1/robot_position --once
+cat /ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml
+
+# 3) 看 BT 是否启用语义敌情覆盖
+grep -h "semantic enemy override" /ws/launch_logs/*.log 2>/dev/null | tail -5
+
+# 4) 观察行为效果：语义区内即使 robot_status.is_detect_enemy=true，
+# EnemyHold 分支也不应因为见敌接管；重点看是否仍持续导航、robot_control 是否被敌情分支强制 spin。
+ros2 topic echo /red_standard_robot1/robot_control --once
+ros2 topic echo /red_standard_robot1/nav_control_cmd --once --timeout 2
+```
+
+> 预期现象:
+> 1. `/red_standard_robot1/robot_status.is_detect_enemy` 仍可为 `true`，这是原始输入。
+> 2. 进入 speed_bump 后日志出现 `semantic enemy override enabled`。
+> 3. 离开 speed_bump 后日志出现 `semantic enemy override disabled`，BT 恢复使用原始 `is_detect_enemy`。
