@@ -58,7 +58,7 @@ register_keys:
   # 发布 odom 到 base_link 的 TF，除非明确需要关闭否则建议保持开启
   # ATTENTION: critical for rviz to show cloud_raw.
   # 注意：这对 rviz 显示 cloud_raw 至关重要
-  send_odom_baselink_tf: 0 # 0: off; 1: on.
+  send_odom_baselink_tf: 1 # 0: off; 1: on.
 
   # raw dtof data
   # 原始 DTOF 数据

@@ -192,9 +192,8 @@ sensor_scan_generation:
     lidar_frame: "front_odin1"
     base_frame: "base_footprint"
     robot_base_frame: "gimbal_yaw"
-    # 当前配置由 sensor_scan_generation 统一发布 odom->base_footprint。
-    # 注意：请在 odin_ros_driver/config/control_command.yaml 里将 send_odom_baselink_tf 设为 0，避免重复 TF。
-    publish_base_tf: true
+    # odin1 实车由 odin_ros_driver 发布 odom->base TF，避免与 sensor_scan_generation 重复发布。
+    publish_base_tf: false
 
     # TF 调试：打印 TF lookup 是否成功，以及推导出来的 yaw(chassis->gimbal_yaw)
     debug_tf: false

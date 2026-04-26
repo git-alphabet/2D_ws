@@ -544,8 +544,8 @@ def _set_navigation_switches(
             sensor_scan_params = target_data.setdefault(
                 "sensor_scan_generation", {}
             ).setdefault("ros__parameters", {})
-            if sensor_scan_params.get("publish_base_tf") is not True:
-                sensor_scan_params["publish_base_tf"] = True
+            if sensor_scan_params.get("publish_base_tf") is not False:
+                sensor_scan_params["publish_base_tf"] = False
                 switch_override_required = True
 
         if not odin1_loam_reframe_enabled:
