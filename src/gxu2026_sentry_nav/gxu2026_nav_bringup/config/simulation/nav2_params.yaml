@@ -10,7 +10,7 @@ ign_sim_pointcloud_tool:
 
 pb_navigation_switches:
   ros__parameters:
-    controller_plugin: "pb_omni_pid_pursuit_controller"   # 控制器插件选择：neupan_nav2_controller / pb_omni_pid_pursuit_controller
+    controller_plugin: "neupan_nav2_controller"   # 控制器插件选择：neupan_nav2_controller / pb_omni_pid_pursuit_controller
     odometry_source: "point_lio"                   #point_lio / small_point_lio / loam_interface
     behavior_tree: "config/RMUC_2026/rmuc_2026.xml"  # .xml or default,none
     calib_helper_mode: "always"                    # off / slam / always(nav+slam)
@@ -68,8 +68,9 @@ auto_aim_yaw_joint_state_bridge:
     stamp_offset_sec: 0.0
 
 
-# NeuPAN 插件参数已迁移到 neupan_nav2_controller/config/simulation/neupan.yaml 维护。
-# 切换为 NeuPAN 控制器时，navigation_launch.py 会自动加载该文件并将 FollowPath 合并到 controller_server。
+# 控制器插件参数统一在本文件维护。
+# 切换 pb_navigation_switches.controller_plugin 后，navigation_launch.py 会从 pb_controller_profiles
+# 取对应 profile 覆盖到 controller_server.FollowPath。
 controller_server:
   ros__parameters:
     use_sim_time: True
@@ -84,15 +85,59 @@ controller_server:
       required_movement_radius: 0.5
       movement_time_allowance: 10.0
     general_goal_checker:
-    
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.2
       yaw_goal_tolerance: 6.28
 
-# 控制器参数集合（传统控制器 profile）：需要切换传统控制器时只改这里即可。
+# 控制器参数集合：需要切换控制器时只改 pb_navigation_switches.controller_plugin。
 pb_controller_profiles:
   ros__parameters:
+    neupan_nav2_controller:
+      plugin: "nav2_neupan_controller::NeuPANController"
+      robot_type: "omni"
+      # planner.yaml 内参数保持 NeuPAN 原名（如 receding/step_time/ref_speed/pan/adjust），不做改名映射。
+      neupan_config_path: ""
+      neupan_config_yaml: |
+        receding: 10
+        step_time: 0.1
+        ref_speed: 4.0
+        device: "cpu"
+        time_print: false
+        collision_threshold: 0.1
+        robot:
+          kinematics: "omni"
+          max_speed: [8.0, 6.28]
+          max_acce: [2.0, 2.0]
+          length: 1.6
+          width: 2.0
+        ipath:
+          waypoints: [[-1.0, 25.0, 0.0], [50.0, 25.0, 0.0]]
+          curve_style: "line"
+          min_radius: 4.0
+          loop: false
+          arrive_threshold: 0.1
+          close_threshold: 0.1
+          ind_range: 10
+          arrive_index_threshold: 1
+        pan:
+          iter_num: 2
+          dune_max_num: 100
+          nrmp_max_num: 10
+          dune_checkpoint: "/ws/src/gxu2026_sentry_nav/neupan_nav2_controller/NeuPAN/example/model/diff_robot_default/model_5000.pth"
+          iter_threshold: 0.1
+        adjust:
+          q_s: 0.5
+          p_u: 1.0
+          eta: 15.0
+          d_max: 1.0
+          d_min: 0.1
+          bk: 1.0
+      dune_model_path: ""
+      max_linear_velocity: 2.5
+      max_angular_velocity: 3.0
+      marker_size: 0.05
+      marker_z: 1.0
     pb_omni_pid_pursuit_controller:
       plugin: "pb_omni_pid_pursuit_controller::OmniPidPursuitController"
       debug_print_control_frequency: true

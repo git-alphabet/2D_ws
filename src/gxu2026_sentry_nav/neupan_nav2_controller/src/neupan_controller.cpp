@@ -68,7 +68,7 @@ void NeuPANController::configure(
     param_handler_->getParams()->robot_type.c_str());
 
   const auto * p = param_handler_->getParams();
-  if (!bridge_->initialize(p->neupan_config_path, p->dune_model_path)) {
+  if (!bridge_->initialize(p->neupan_config_path, p->neupan_config_yaml, p->dune_model_path)) {
     throw ControllerExceptionType("Failed to initialize Python/NeuPAN in configure()");
   }
 }
