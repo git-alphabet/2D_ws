@@ -25,4 +25,4 @@ __pycache__/
 launch_logs/
 maps/
 
-/chat.instructions.md
+.clinerules/
