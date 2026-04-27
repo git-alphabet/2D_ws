@@ -165,13 +165,15 @@ loam_interface_mid360:
     use_sim_time: False
     # 双雷达拼接长期形态：mid360 投影统一使用 odin1 主 odom，避免双里程计漂移导致错层。
     state_estimation_topic: "odin1/odometry_highfreq"
+    # 使用 point_lio 的 body frame 点云，避免把 mid360 自身 lidar_odom 语义错误拼接到 odin 主 odom。
     registered_scan_topic: "mid360/cloud_registered"
     odom_frame: "odom"
     # mid360 当前安装在 gimbal_yaw，下游按 front_mid360 语义消费。
     base_frame: "gimbal_yaw"
     lidar_frame: "front_mid360"
     input_odom_semantics: "odom_to_base"
-    input_cloud_semantics: "lidar_odom"
+    # lidar: 输入点云在 lidar/body 语义，使用 odom->lidar 实时位姿投影到 odom。
+    input_cloud_semantics: "lidar"
     align_odin_axes: false
     freeze_base_to_lidar_tf: true
     tf_lookup_timeout_sec: 0.2

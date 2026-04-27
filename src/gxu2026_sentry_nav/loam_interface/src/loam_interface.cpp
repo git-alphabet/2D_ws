@@ -122,15 +122,19 @@ LoamInterfaceNode::LoamInterfaceNode(const rclcpp::NodeOptions & options)
     input_odom_semantics_ = "lidar_odom_to_lidar";
   }
 
-  if (input_cloud_semantics_ != "lidar_odom" && input_cloud_semantics_ != "odom") {
+  if (
+    input_cloud_semantics_ != "lidar_odom" && input_cloud_semantics_ != "odom" &&
+    input_cloud_semantics_ != "lidar")
+  {
     RCLCPP_WARN(
       this->get_logger(),
-      "Invalid input_cloud_semantics='%s', fallback to 'lidar_odom'",
+      "Invalid input_cloud_semantics='%s', fallback to 'lidar_odom'. Allowed: lidar_odom, odom, lidar",
       input_cloud_semantics_.c_str());
     input_cloud_semantics_ = "lidar_odom";
   }
 
   base_frame_to_lidar_initialized_ = false;
+  latest_odom_to_lidar_initialized_ = false;
   tf_odin_axes_alignment_.setOrigin(tf2::Vector3(0.0, 0.0, 0.0));
   tf2::Quaternion odin_basis_q;
   odin_basis_q.setRPY(0.0, 0.0, 1.5707963267948966);
@@ -172,6 +176,23 @@ void LoamInterfaceNode::pointCloudCallback(const sensor_msgs::msg::PointCloud2::
       *out = *msg;
     }
     out->header.frame_id = odom_frame_;
+  } else if (input_cloud_semantics_ == "lidar") {
+    tf2::Transform tf_odom_to_lidar;
+    {
+      std::lock_guard<std::mutex> lock(latest_odom_to_lidar_mutex_);
+      if (!latest_odom_to_lidar_initialized_) {
+        RCLCPP_WARN_THROTTLE(
+          this->get_logger(),
+          *this->get_clock(),
+          2000,
+          "Skip cloud: input_cloud_semantics=lidar but odom pose not ready yet.");
+        return;
+      }
+      tf_odom_to_lidar = tf_latest_odom_to_lidar_;
+    }
+
+    // New path for odin+mid360 fusion: input cloud is lidar/body frame, use latest odom->lidar.
+    pcl_ros::transformPointCloud(odom_frame_, tf_odom_to_lidar, *msg, *out);
   } else {
     const rclcpp::Time msg_stamp(msg->header.stamp);
     if (freeze_base_to_lidar_tf_) {
@@ -236,6 +257,12 @@ void LoamInterfaceNode::odometryCallback(const nav_msgs::msg::Odometry::ConstSha
   out.pose.pose.position.y = origin.y();
   out.pose.pose.position.z = origin.z();
   out.pose.pose.orientation = tf2::toMsg(tf_odom_to_lidar.getRotation());
+
+  {
+    std::lock_guard<std::mutex> lock(latest_odom_to_lidar_mutex_);
+    tf_latest_odom_to_lidar_ = tf_odom_to_lidar;
+    latest_odom_to_lidar_initialized_ = true;
+  }
 
   odom_pub_->publish(out);
 }

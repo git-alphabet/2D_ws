@@ -16,6 +16,7 @@
 #define LOAM_INTERFACE__LOAM_INTERFACE_HPP_
 
 #include <memory>
+#include <mutex>
 #include <string>
 
 #include "nav_msgs/msg/odometry.hpp"
@@ -64,6 +65,9 @@ private:
   bool base_frame_to_lidar_initialized_;
   tf2::Transform tf_base_frame_to_lidar_;
   tf2::Transform tf_odin_axes_alignment_;
+  bool latest_odom_to_lidar_initialized_;
+  tf2::Transform tf_latest_odom_to_lidar_;
+  std::mutex latest_odom_to_lidar_mutex_;
 };
 
 }  // namespace loam_interface
