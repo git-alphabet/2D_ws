@@ -233,8 +233,8 @@ terrain_analysis:
     noDataBlockSkipNum: 0
     minBlockPointNum: 10
     vehicleHeight: 0.5                  # 小于车辆高度的点才会进行处理
-    voxelPointUpdateThre: 40
-    voxelTimeUpdateThre: 0.2
+    voxelPointUpdateThre: 100
+    voxelTimeUpdateThre: 1.0
     minRelZ: -1.5                       # min_rel_z 以及 max_rel_z 限制了有效点云点的Z值范围，用于对天花板和地板进行处理
     maxRelZ: 0.5
     disRatioZ: 0.2                      # Z 值的最大最小范围由这两个值决定，但是并不等于这两个值，是有一个比例关系的，距离机器人越远，限定范围就越大，这其中考虑了坡度
@@ -377,8 +377,10 @@ pointcloud_to_laserscan:
     transform_tolerance: 0.4
     min_height: -0.5
     max_height: 6.0
-    min_intensity: 0.0
-    max_intensity: 255.0
+    # terrain_analysis 输出的点云 intensity = 相对地面高度(disZ)，单位米。
+    # min_intensity=0.1 过滤地面起伏 <10cm，避免把平整地面误判为障碍物。
+    min_intensity: 0.1
+    max_intensity: 2.0
     angle_min: -3.1415926                   # -M_PI/2
     angle_max: 3.1415926                    # M_PI/2
     angle_increment: 0.00872665             # M_PI/360.0
@@ -396,8 +398,10 @@ pointcloud_to_laserscan_mid360:
     transform_tolerance: 0.4
     min_height: -0.5
     max_height: 6.0
-    min_intensity: 0.0
-    max_intensity: 255.0
+    # terrain_analysis 输出的点云 intensity = 相对地面高度(disZ)，单位米。
+    # 与 odin1 主链路一致：过滤地面起伏 <10cm，避免把平整地面误判为障碍物。
+    min_intensity: 0.1
+    max_intensity: 2.0
     angle_min: -3.1415926
     angle_max: 3.1415926
     angle_increment: 0.00872665
