@@ -1,39 +1,41 @@
-# NeuPAN planner config for reality (omni robot)
-receding: 10
-step_time: 0.1
-ref_speed: 4.0
-device: "cpu"
-time_print: false
-collision_threshold: 0.1
-
+# mpc
+receding: 6
+step_time: 0.25
+ref_speed: 0.5
+device: 'cpu'
+time_print: False
+collision_threshold: 0.01
+# robot
 robot:
-  kinematics: "omni"
-  max_speed: [8.0, 6.28]
-  max_acce: [2.0, 2.0]
-  length: 1.6
-  width: 2.0
+  kinematics: 'omni'
+  max_speed: [3, 6]
+  max_acce: [2, 2]
+  length: 0.57
+  width: 0.57
 
+
+# initial path
 ipath:
-  waypoints: []
-  curve_style: "line"
-  min_radius: 4.0
-  loop: false
-  arrive_threshold: 0.1
-  close_threshold: 0.1
-  ind_range: 10
-  arrive_index_threshold: 1
+  interval: 0.2
+  curve_style: 'line'   # 'dubins' or reeds or line
+  min_radius: 0.05
+  loop: False
+  arrive_threshold: 0.5
+  close_threshold: 0.05
+  arrive_index_threshold: 3
 
+# proximal alternating minimization network
 pan:
   iter_num: 2
-  dune_max_num: 100
+  dune_max_num: 200
   nrmp_max_num: 10
-  dune_checkpoint: "/ws/src/gxu2026_sentry_nav/neupan_nav2_controller/NeuPAN/example/model/diff_robot_default/model_5000.pth"
+  dune_checkpoint: "/ws/src/gxu2026_sentry_nav/neupan_nav2_controller/model/model_8000.pth"
   iter_threshold: 0.1
 
+# adjust parameters
 adjust:
-  q_s: 0.5
-  p_u: 1.0
+  q_s: 0.1
+  p_u: 0.5
   eta: 15.0
-  d_max: 1.0
-  d_min: 0.1
-  bk: 1.0
+  d_max: 0.05
+  d_min: 0.01

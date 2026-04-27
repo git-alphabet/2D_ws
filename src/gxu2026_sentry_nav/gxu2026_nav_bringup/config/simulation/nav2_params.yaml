@@ -98,7 +98,7 @@ pb_controller_profiles:
       robot_type: "omni"
       # NeuPAN planner config 统一从外部文件加载，与 pb_omni_pid_pursuit_controller 同级参数块格式一致。
       neupan_config_path: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/neupan_planner.yaml"
-      
+
     pb_omni_pid_pursuit_controller:
       plugin: "pb_omni_pid_pursuit_controller::OmniPidPursuitController"
       debug_print_control_frequency: true

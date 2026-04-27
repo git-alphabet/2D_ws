@@ -152,13 +152,20 @@ geometry_msgs::msg::TwistStamped NeuPANController::computeVelocityCommands(
   const std::array<double, 3> robot_state = {
     pose.pose.position.x, pose.pose.position.y, tf2::getYaw(pose.pose.orientation)};
 
+  const std::string pose_frame = pose.header.frame_id;
+  const std::string costmap_frame = costmap_ros_->getGlobalFrameID();
   const auto obstacles = extract(*costmap_ros_);
 
-  if (obstacles.empty()) {
-    RCLCPP_WARN_THROTTLE(
-      logger_, *rclcpp::Clock::make_shared(), 1000,
-      "No obstacle points from costmap — path tracking only");
-  }
+  RCLCPP_INFO_THROTTLE(
+    logger_, *rclcpp::Clock::make_shared(), 1000,
+    "NeuPAN diag: pose_frame=%s costmap_frame=%s "
+    "robot_xy=(%.2f,%.2f) obstacles=%lu "
+    "first_obstacle=(%.2f,%.2f)",
+    pose_frame.c_str(), costmap_frame.c_str(),
+    robot_state[0], robot_state[1],
+    (unsigned long)obstacles.size(),
+    obstacles.empty() ? -1.0 : obstacles[0].first,
+    obstacles.empty() ? -1.0 : obstacles[0].second);
 
   PlannerOutput output;
   if (!bridge_->callForward(robot_state, obstacles, params->robot_type, output)) {
