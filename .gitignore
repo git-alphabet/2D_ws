@@ -18,3 +18,5 @@ __pycache__/
 *.pyo
 
 /chat.instructions.md
+
+.clinerules/
