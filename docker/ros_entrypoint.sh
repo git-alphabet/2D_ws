@@ -2,11 +2,17 @@
 set -e
 
 ROS_DISTRO=${ROS_DISTRO:-humble}
+GUI_ENV_SCRIPT="/ws/docker/docker_gui_env.sh"
 
 if [ -z "${HOME:-}" ] || [ ! -d "${HOME:-}" ]; then
   export HOME="/tmp/home"
 fi
 mkdir -p "$HOME" 2>/dev/null || true
+
+if [[ -f "${GUI_ENV_SCRIPT}" ]]; then
+  # shellcheck disable=SC1090
+  source "${GUI_ENV_SCRIPT}"
+fi
 
 if [ -f "/opt/ros/${ROS_DISTRO}/setup.bash" ]; then
   # shellcheck disable=SC1090

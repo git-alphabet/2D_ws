@@ -22,6 +22,7 @@
 #   IMAGE_TAG      镜像 tag（默认 latest）
 #   LOCAL_UID      宿主机用户 UID（默认 1000）
 #   LOCAL_GID      宿主机用户 GID（默认 1000）
+#   DOCKER_GUI_HOST_DIR 宿主机图形提示目录（默认 /tmp/gxu2026-docker-gui）
 #   XAUTH_HOST_FILE 宿主机 Xauthority 文件（默认 /tmp/.docker.xauth）
 # ============================================================
 
@@ -36,6 +37,8 @@ x-base: &base
     HOME: /tmp/home
     DISPLAY: ${DISPLAY:-:0}
     XAUTHORITY: /tmp/.docker.xauth
+    GXU_GUI_DIR: /tmp/gxu2026-docker-gui
+    GXU_GUI_AUTO_DETECT: "1"
     TERM: xterm-256color
     QT_X11_NO_MITSHM: "1"
     ROS_HOME: /tmp/.ros
@@ -45,9 +48,11 @@ x-base: &base
   command: bash
   volumes:
     - ./ros_entrypoint.sh:/ros_entrypoint.sh:ro
+    - ./docker_gui_env.sh:/ws/docker/docker_gui_env.sh:ro
     - ../.git:/ws/.git:ro
     - ../.buildcache:/ws/.buildcache
     - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    - ${DOCKER_GUI_HOST_DIR:-/tmp/gxu2026-docker-gui}:/tmp/gxu2026-docker-gui:ro
     - ${XAUTH_HOST_FILE:-/tmp/.docker.xauth}:/tmp/.docker.xauth:ro
     - ../src:/ws/src                        # 代码挂载（改代码立刻生效）
     - ../scripts:/ws/scripts
@@ -76,6 +81,7 @@ services:
       HOME: /tmp/home
       DISPLAY: ${DISPLAY:-:0}
       XAUTHORITY: /tmp/.docker.xauth
+      GXU_GUI_DIR: /tmp/gxu2026-docker-gui
       QT_X11_NO_MITSHM: "1"
       PYTHONUNBUFFERED: "1"
       MPLBACKEND: TkAgg
@@ -84,6 +90,7 @@ services:
       - ../maps:/ws/maps
       - ../launch_logs:/ws/launch_logs
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${DOCKER_GUI_HOST_DIR:-/tmp/gxu2026-docker-gui}:/tmp/gxu2026-docker-gui:ro
       - ${XAUTH_HOST_FILE:-/tmp/.docker.xauth}:/tmp/.docker.xauth:ro
     command: >-
       python /opt/neupan/service/server.py --host 0.0.0.0 --port 18080
@@ -107,6 +114,8 @@ services:
       HOME: /tmp/home
       DISPLAY: ${DISPLAY:-:0}
       XAUTHORITY: /tmp/.docker.xauth
+      GXU_GUI_DIR: /tmp/gxu2026-docker-gui
+      GXU_GUI_AUTO_DETECT: "1"
       TERM: xterm-256color
       QT_X11_NO_MITSHM: "1"
       ROS_HOME: /tmp/.ros
@@ -135,9 +144,11 @@ services:
     # 实车不需要 GPU，但在你目前的配置下由于需要跑 Rviz，保留了 X11 挂载
     volumes:
       - ./ros_entrypoint.sh:/ros_entrypoint.sh:ro
+      - ./docker_gui_env.sh:/ws/docker/docker_gui_env.sh:ro
       - ../.git:/ws/.git:ro
       - ../.buildcache:/ws/.buildcache
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${DOCKER_GUI_HOST_DIR:-/tmp/gxu2026-docker-gui}:/tmp/gxu2026-docker-gui:ro
       - ${XAUTH_HOST_FILE:-/tmp/.docker.xauth}:/tmp/.docker.xauth:ro
       - ../src:/ws/src
       - ../scripts:/ws/scripts
@@ -151,6 +162,8 @@ services:
       HOME: /tmp/home
       DISPLAY: ${DISPLAY:-:0}
       XAUTHORITY: /tmp/.docker.xauth
+      GXU_GUI_DIR: /tmp/gxu2026-docker-gui
+      GXU_GUI_AUTO_DETECT: "1"
       QT_X11_NO_MITSHM: "1"
       TERM: xterm-256color
       ROS_HOME: /tmp/.ros

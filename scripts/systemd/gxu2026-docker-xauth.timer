@@ -1,5 +1,5 @@
 [Unit]
-Description=Refresh Docker X11 auth cookie periodically
+Description=Refresh Docker GUI auth cookie and display hints periodically
 
 [Timer]
 OnBootSec=15s
