@@ -660,34 +660,8 @@ def generate_launch_description():
                 if available_profiles:
                     selected_plugin_key = next(iter(available_profiles))
 
-            # 若选中 neupan_nav2_controller，无条件从 neupan_nav2_controller 包内
-            # 按 sim/reality 加载 neupan.yaml，作为 FollowPath 的配置来源。
-            # bringup nav2_params.yaml 中不应再有 FollowPath NeuPAN 块；即使残留也会被覆盖。
-            if selected_plugin_key and selected_plugin_key.startswith("neupan_nav2_controller"):
-                try:
-                    neupan_pkg_dir = get_package_share_directory("neupan_nav2_controller")
-                    is_sim = str(use_sim_time.perform(context)).strip().lower() in {"true", "1"}
-                    sub_dir = "simulation" if is_sim else "reality"
-                    neupan_yaml_path = os.path.join(neupan_pkg_dir, "config", sub_dir, "neupan.yaml")
-                    with open(neupan_yaml_path, "r") as _f:
-                        _neupan_data = yaml.safe_load(_f) or {}
-                    _cs_params = _neupan_data.get("controller_server", {}).get("ros__parameters", {})
-                    _neupan_profile = _cs_params.get(active_plugin_slot)
-                    if isinstance(_neupan_profile, dict):
-                        available_profiles[selected_plugin_key] = copy.deepcopy(_neupan_profile)
-                        import sys as _sys
-                        print(
-                            f"[navigation_launch] Loaded NeuPAN profile from {neupan_yaml_path}",
-                            file=_sys.stderr,
-                        )
-                except Exception as _e:
-                    import sys as _sys
-                    print(
-                        f"[navigation_launch] Warning: could not load neupan.yaml: {_e}",
-                        file=_sys.stderr,
-                    )
-
-            
+            # 控制器 profile 统一从总参数文件读取（pb_controller_profiles）。
+            # 不再额外加载 neupan_nav2_controller/config/*/neupan.yaml。
 
             frame_override_paths = [
                 ["bt_navigator", "ros__parameters", "robot_base_frame"],

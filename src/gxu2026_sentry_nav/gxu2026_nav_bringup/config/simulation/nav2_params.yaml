@@ -10,9 +10,10 @@ ign_sim_pointcloud_tool:
 
 pb_navigation_switches:
   ros__parameters:
-    controller_plugin: "pb_omni_pid_pursuit_controller"   # 控制器插件选择：neupan_nav2_controller / pb_omni_pid_pursuit_controller
+    controller_plugin: "neupan_nav2_controller"   # 控制器插件选择：neupan_nav2_controller / pb_omni_pid_pursuit_controller
     odometry_source: "point_lio"                   #point_lio / small_point_lio / loam_interface
     behavior_tree: "config/RMUC_2026/rmuc_2026.xml"  # .xml or default,none
+    calib_helper_mode: "always"                    # off / slam / always(nav+slam)
 
 
     enable_gimbal_yaw_bridge: false               # 仿真中 TF 由 Gazebo bringup 的 robot_state_publisher 直接提供，无需此通路。
@@ -67,8 +68,9 @@ auto_aim_yaw_joint_state_bridge:
     stamp_offset_sec: 0.0
 
 
-# NeuPAN 插件参数已迁移到 neupan_nav2_controller/config/simulation/neupan.yaml 维护。
-# 切换为 NeuPAN 控制器时，navigation_launch.py 会自动加载该文件并将 FollowPath 合并到 controller_server。
+# 控制器插件参数统一在本文件维护。
+# 切换 pb_navigation_switches.controller_plugin 后，navigation_launch.py 会从 pb_controller_profiles
+# 取对应 profile 覆盖到 controller_server.FollowPath。
 controller_server:
   ros__parameters:
     use_sim_time: True
@@ -83,15 +85,20 @@ controller_server:
       required_movement_radius: 0.5
       movement_time_allowance: 10.0
     general_goal_checker:
-    
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.2
       yaw_goal_tolerance: 6.28
 
-# 控制器参数集合（传统控制器 profile）：需要切换传统控制器时只改这里即可。
+# 控制器参数集合：需要切换控制器时只改 pb_navigation_switches.controller_plugin。
 pb_controller_profiles:
   ros__parameters:
+    neupan_nav2_controller:
+      plugin: "nav2_neupan_controller::NeuPANController"
+      robot_type: "omni"
+      # NeuPAN planner config 统一从外部文件加载，与 pb_omni_pid_pursuit_controller 同级参数块格式一致。
+      neupan_config_path: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/neupan_planner.yaml"
+
     pb_omni_pid_pursuit_controller:
       plugin: "pb_omni_pid_pursuit_controller::OmniPidPursuitController"
       debug_print_control_frequency: true

@@ -45,6 +45,8 @@ ParameterHandler::ParameterHandler(
   declare_parameter_if_not_declared(
     node, plugin_name_ + ".neupan_config_path", rclcpp::ParameterValue(std::string("")));
   declare_parameter_if_not_declared(
+    node, plugin_name_ + ".neupan_config_yaml", rclcpp::ParameterValue(std::string("")));
+  declare_parameter_if_not_declared(
     node, plugin_name_ + ".dune_model_path", rclcpp::ParameterValue(std::string("")));
 
   // Visualization markers
@@ -57,6 +59,7 @@ ParameterHandler::ParameterHandler(
   node->get_parameter(plugin_name_ + ".max_angular_velocity", params_.max_angular_velocity);
   node->get_parameter(plugin_name_ + ".robot_type", params_.robot_type);
   node->get_parameter(plugin_name_ + ".neupan_config_path", params_.neupan_config_path);
+  node->get_parameter(plugin_name_ + ".neupan_config_yaml", params_.neupan_config_yaml);
   node->get_parameter(plugin_name_ + ".dune_model_path", params_.dune_model_path);
   node->get_parameter(plugin_name_ + ".marker_size", params_.marker_size);
   node->get_parameter(plugin_name_ + ".marker_z", params_.marker_z);
@@ -104,6 +107,8 @@ rcl_interfaces::msg::SetParametersResult ParameterHandler::dynamicParametersCall
         params_.robot_type = parameter.as_string();
       } else if (name == plugin_name_ + ".neupan_config_path") {
         params_.neupan_config_path = parameter.as_string();
+      } else if (name == plugin_name_ + ".neupan_config_yaml") {
+        params_.neupan_config_yaml = parameter.as_string();
       } else if (name == plugin_name_ + ".dune_model_path") {
         params_.dune_model_path = parameter.as_string();
       }

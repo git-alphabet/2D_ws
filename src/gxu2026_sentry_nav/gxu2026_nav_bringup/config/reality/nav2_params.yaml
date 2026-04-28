@@ -42,6 +42,7 @@ pb_navigation_switches:
     enable_small_gicp_relocalization: true
     # 行为树策略入口（default / 其他预设），用于切换导航任务编排逻辑。
     behavior_tree: "config/RMUL_2026/rmul_2026.xml"
+    calib_helper_mode: "always"                  # off / slam / always(nav+slam)
 
 
     enable_gimbal_yaw_bridge: true             #是否启用 gimbal_yaw_bridge 通路。
@@ -71,8 +72,9 @@ auto_aim_yaw_joint_state_bridge:
     stamp_offset_sec: 0.0
 
 
-# NeuPAN 插件参数已迁移到 neupan_nav2_controller/config/reality/neupan.yaml 维护。
-# 切换为 NeuPAN 控制器时，navigation_launch.py 会自动加载该文件并将 FollowPath 合并到 controller_server。
+# 控制器插件参数统一在本文件维护。
+# 切换 pb_navigation_switches.controller_plugin 后，navigation_launch.py 会从 pb_controller_profiles
+# 取对应 profile 覆盖到 controller_server.FollowPath。
 controller_server:
   ros__parameters:
     use_sim_time: False
@@ -97,9 +99,14 @@ controller_server:
       # 终点朝向容差（rad）。6.28≈2π，表示几乎不约束最终朝向。
       yaw_goal_tolerance: 6.28
 
-# 控制器参数集合（传统控制器 profile）：这里的 profile 通常与仿真保持一致，便于复现调参。
+# 控制器参数集合：需要切换控制器时只改 pb_navigation_switches.controller_plugin。
 pb_controller_profiles:
   ros__parameters:
+    neupan_nav2_controller:
+      plugin: "nav2_neupan_controller::NeuPANController"
+      robot_type: "omni"
+      # NeuPAN planner config 统一从外部文件加载，与 pb_omni_pid_pursuit_controller 同级参数块格式一致。
+      neupan_config_path: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/neupan_planner.yaml"
     pb_omni_pid_pursuit_controller:
       plugin: "pb_omni_pid_pursuit_controller::OmniPidPursuitController"
       debug_print_control_frequency: false

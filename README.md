@@ -247,52 +247,38 @@ sudo nvidia-ctk runtime configure --runtime=docker
 sudo systemctl restart docker
 ```
 
-#### 步骤 2：配置 X11 自动授权（一次性，之后重启永久生效）
+#### 步骤 2：配置 X11 自动授权（系统服务，支持 Wayland + NoMachine）
 
-> **为什么需要这步**：`/tmp` 每次重启都会清空，`/tmp/.docker.xauth` 随之消失。若容器先于该文件启动，Docker 的 `create_host_path: true` 会把该路径建成**目录**，导致下次启动时 bind mount 类型冲突（`not a directory` 报错）。
+> **为什么需要这步**：
+> 1) `/tmp` 每次重启会清空，`/tmp/.docker.xauth` 会丢失。  
+> 2) Wayland 和 NoMachine 的授权 cookie 位置不固定，单纯绑定 `~/.Xauthority` 经常不够用。  
+> 3) 旧方案是 user service + 单一 DISPLAY，容易在远程会话切换后失效。
 >
-> 以下方案通过 **systemd user service** 在每次登录桌面时自动重建该文件，时序上早于手动启动容器，一次配置永久生效。
+> 新方案使用 **system service + timer**，周期性汇总 `/home/*/.Xauthority`、`/run/user/*/Xauthority`、`/run/user/*/.mutter-Xwaylandauth.*`，自动生成 `/tmp/.docker.xauth`，容器统一挂载这个文件。
 
 ```bash
-# 1. 创建授权脚本
-mkdir -p ~/.local/bin
-cat > ~/.local/bin/xhost-docker.sh << 'EOF'
-#!/bin/bash
-xhost +local:docker
-xauth nlist "$DISPLAY" | sed -e 's/^..../ffff/' | xauth -f /tmp/.docker.xauth nmerge - 2>/dev/null
-true
-EOF
-chmod +x ~/.local/bin/xhost-docker.sh
-
-# 2. 创建 systemd user service（比 .desktop autostart 更可靠，有明确的依赖顺序）
-mkdir -p ~/.config/systemd/user
-cat > ~/.config/systemd/user/xhost-docker.service << 'EOF'
-[Unit]
-Description=Setup Docker X11 access (xhost + xauth cookie)
-After=graphical-session-pre.target
-Wants=graphical-session-pre.target
-
-[Service]
-Type=oneshot
-ExecStart=%h/.local/bin/xhost-docker.sh
-RemainAfterExit=yes
-
-[Install]
-WantedBy=graphical-session.target
-EOF
-
-# 3. 启用并立即生效（之后每次登录自动执行，无需手动干预）
-systemctl --user daemon-reload
-systemctl --user enable xhost-docker.service
-systemctl --user start xhost-docker.service
+cd ~/ros2_ws
+sudo apt-get install -y xauth
+chmod +x scripts/systemd/install_docker_xauth_service.sh
+sudo bash scripts/systemd/install_docker_xauth_service.sh
 ```
 
 验证：
 
 ```bash
-systemctl --user status xhost-docker.service
+systemctl status gxu2026-docker-xauth.service
+systemctl status gxu2026-docker-xauth.timer
 ls -la /tmp/.docker.xauth   # 应为普通文件，非目录
+xauth -f /tmp/.docker.xauth list | head
 ```
+
+如果你有自定义路径，也可在 `docker/.env` 中设置：
+
+```bash
+XAUTH_HOST_FILE=/tmp/.docker.xauth
+```
+
+> NoMachine 场景下若 `DISPLAY` 不是 `:0`，请在同一个图形会话里启动 `docker compose`，让当前 `DISPLAY` 自动透传到容器；否则可手动导出后再启动：`export DISPLAY=:1001`。
 
 ### 7.3 构建环境镜像
 

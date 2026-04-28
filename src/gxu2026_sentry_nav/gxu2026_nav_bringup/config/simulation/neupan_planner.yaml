@@ -1,0 +1,41 @@
+# mpc
+receding: 6
+step_time: 0.25
+ref_speed: 0.5
+device: 'cpu'
+time_print: False
+collision_threshold: 0.01
+# robot
+robot:
+  kinematics: 'omni'
+  max_speed: [3, 6]
+  max_acce: [2, 2]
+  length: 0.57
+  width: 0.57
+
+
+# initial path
+ipath:
+  interval: 0.2
+  curve_style: 'line'   # 'dubins' or reeds or line
+  min_radius: 0.05
+  loop: False
+  arrive_threshold: 0.5
+  close_threshold: 0.05
+  arrive_index_threshold: 3
+
+# proximal alternating minimization network
+pan:
+  iter_num: 2
+  dune_max_num: 200
+  nrmp_max_num: 10
+  dune_checkpoint: "/ws/src/gxu2026_sentry_nav/neupan_nav2_controller/model/model_8000.pth"
+  iter_threshold: 0.1
+
+# adjust parameters
+adjust:
+  q_s: 0.1
+  p_u: 0.5
+  eta: 15.0
+  d_max: 0.05
+  d_min: 0.01

@@ -118,6 +118,13 @@ def _controller_plugin(params_file: Path) -> str:
     return p.strip() if isinstance(p, str) else ""
 
 
+def _calib_helper_mode(params_file: Path) -> str:
+    if not params_file.exists():
+        return ""
+    p = _read_yaml_params(params_file, "pb_navigation_switches").get("calib_helper_mode", "")
+    return p.strip() if isinstance(p, str) else ""
+
+
 def _current_branch(ws_dir: Path) -> str:
     override = os.environ.get("BUILD_PROFILE", "").strip()
     if override:
@@ -878,6 +885,12 @@ def main(argv: list[str]) -> int:
 
     # NeuPAN 虚拟环境片段
     controller_plugin = _controller_plugin(cfg.params_file)
+    if not os.environ.get("CALIB_HELPER_MODE", "").strip():
+        calib_mode = _calib_helper_mode(cfg.params_file)
+        if calib_mode:
+            os.environ["CALIB_HELPER_MODE"] = calib_mode
+            print(f"[{script_name}] calib_helper_mode='{calib_mode}' (from params)", file=sys.stderr)
+
     if controller_plugin:
         print(f"[{script_name}] controller_plugin='{controller_plugin}'", file=sys.stderr)
     else:
