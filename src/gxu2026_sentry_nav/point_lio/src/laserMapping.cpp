@@ -198,7 +198,7 @@ PointCloudXYZI::Ptr pcl_wait_save(new PointCloudXYZI());
 void publish_frame_world(
   const rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr & pubLaserCloudFullRes)
 {
-  if (scan_pub_en) {
+  if (scan_pub_en && scan_world_pub_en) {
     sensor_msgs::msg::PointCloud2 laserCloudmsg;
     pcl::toROSMsg(*feats_down_world, laserCloudmsg);
 
@@ -1043,7 +1043,9 @@ int main(int argc, char ** argv)
       t5 = omp_get_wtime();
       /******* Publish points *******/
       if (path_en) publish_path(pub_path);
-      if (scan_pub_en || pcd_save_en) publish_frame_world(pub_laser_cloud_full_res);
+      if ((scan_pub_en && scan_world_pub_en) || pcd_save_en) {
+        publish_frame_world(pub_laser_cloud_full_res);
+      }
       if (scan_pub_en && scan_body_pub_en) publish_frame_body(pub_laser_cloud_full_res_body);
 
       /*** Debug variables Logging ***/

@@ -62,7 +62,7 @@ extern bool fix_gravity_direction;
 extern int lidar_type, pcd_save_interval;
 extern std::vector<double> gravity_init, gravity;
 extern bool runtime_pos_log, pcd_save_en, path_en;
-extern bool scan_pub_en, scan_body_pub_en, tf_send_en;
+extern bool scan_pub_en, scan_world_pub_en, scan_body_pub_en, tf_send_en;
 extern shared_ptr<Preprocess> p_pre;
 extern shared_ptr<ImuProcess> p_imu;
 extern bool is_first_frame;

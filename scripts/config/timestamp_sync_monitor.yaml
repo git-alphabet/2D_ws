@@ -5,6 +5,65 @@ max_pair_dt_sec: 0.20
 source_detect_sec: 8.0
 qos: sensor_data
 
+topics:
+  # mid360 driver outputs
+  - name: mid360_driver_pointcloud2
+    topic: /livox/lidar
+    msg_type: sensor_msgs/msg/PointCloud2
+  - name: mid360_driver_custom
+    topic: /livox/lidar/pointcloud
+    msg_type: livox_ros_driver2/msg/CustomMsg
+
+  # point_lio mid360 outputs in odin1 dual-source mode
+  - name: mid360_pointlio_body
+    topic: /mid360/cloud_registered
+    msg_type: sensor_msgs/msg/PointCloud2
+  - name: mid360_loam_registered
+    topic: /mid360/registered_scan
+    msg_type: sensor_msgs/msg/PointCloud2
+  - name: mid360_terrain_local
+    topic: /terrain_map_mid360
+    msg_type: sensor_msgs/msg/PointCloud2
+  - name: mid360_terrain_global
+    topic: /terrain_map_ext_mid360
+    msg_type: sensor_msgs/msg/PointCloud2
+
+  # odin1 reference chain
+  - name: odin1_cloud_slam
+    topic: /odin1/cloud_slam
+    msg_type: sensor_msgs/msg/PointCloud2
+  - name: odin1_terrain_local
+    topic: /terrain_map
+    msg_type: sensor_msgs/msg/PointCloud2
+  - name: odin1_terrain_global
+    topic: /terrain_map_ext
+    msg_type: sensor_msgs/msg/PointCloud2
+
+chains:
+  - name: mid360_local_costmap_input
+    topics:
+      - /livox/lidar/pointcloud
+      - /mid360/cloud_registered
+      - /mid360/registered_scan
+      - /terrain_map_mid360
+
+  - name: mid360_global_costmap_input
+    topics:
+      - /livox/lidar/pointcloud
+      - /mid360/cloud_registered
+      - /mid360/registered_scan
+      - /terrain_map_ext_mid360
+
+  - name: odin1_local_costmap_input
+    topics:
+      - /odin1/cloud_slam
+      - /terrain_map
+
+  - name: odin1_global_costmap_input
+    topics:
+      - /odin1/cloud_slam
+      - /terrain_map_ext
+
 pairs:
   # 1) 优先评估 odin1 单链：驱动输出 vs loam_interface 输出
   - name: odom_odin1_vs_loam_reframe

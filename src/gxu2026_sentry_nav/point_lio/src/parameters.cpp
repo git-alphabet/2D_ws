@@ -31,7 +31,7 @@ bool fix_gravity_direction = true;
 int lidar_type, pcd_save_interval;
 std::vector<double> gravity_init, gravity;
 bool runtime_pos_log, pcd_save_en, path_en, extrinsic_est_en = true;
-bool scan_pub_en, scan_body_pub_en, tf_send_en;
+bool scan_pub_en, scan_world_pub_en, scan_body_pub_en, tf_send_en;
 shared_ptr<Preprocess> p_pre;
 shared_ptr<ImuProcess> p_imu;
 double time_update_last = 0.0, time_current = 0.0, time_predict_last_const = 0.0, t_last = 0.0;
@@ -211,6 +211,9 @@ void readParameters(std::shared_ptr<rclcpp::Node> & nh)
 
     nh->declare_parameter<bool>("publish.scan_publish_en", true);
     nh->get_parameter("publish.scan_publish_en", scan_pub_en);
+
+    nh->declare_parameter<bool>("publish.scan_worldframe_pub_en", true);
+    nh->get_parameter("publish.scan_worldframe_pub_en", scan_world_pub_en);
 
     nh->declare_parameter<bool>("publish.scan_bodyframe_pub_en", true);
     nh->get_parameter("publish.scan_bodyframe_pub_en", scan_body_pub_en);
