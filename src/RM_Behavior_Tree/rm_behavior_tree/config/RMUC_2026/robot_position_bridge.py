@@ -34,10 +34,21 @@ class RobotPositionBridge(Node):
         self.declare_parameter('publish_rate', 50.0)
         self.declare_parameter('map_frame', 'map')
         self.declare_parameter('base_frame', 'base_footprint')
+        self.declare_parameter(
+            'base_frame_fallbacks',
+            ['gimbal_yaw_fake', 'gimbal_yaw', 'chassis'])
 
         rate = self.get_parameter('publish_rate').value
         self.map_frame = self.get_parameter('map_frame').value
         self.base_frame = self.get_parameter('base_frame').value
+        self.base_frame_fallbacks = [
+            str(frame) for frame in self.get_parameter('base_frame_fallbacks').value
+            if str(frame)
+        ]
+        self.lookup_frames = [self.base_frame]
+        for frame in self.base_frame_fallbacks:
+            if frame not in self.lookup_frames:
+                self.lookup_frames.append(frame)
         self.is_at_nav_goal = True
 
         # TF
@@ -55,7 +66,7 @@ class RobotPositionBridge(Node):
 
         self.timer = self.create_timer(1.0 / rate, self._timer_cb)
         self.get_logger().info(
-            f'[Bridge] TF: {self.map_frame} → {self.base_frame} | rate: {rate} Hz')
+            f'[Bridge] TF: {self.map_frame} → {self.lookup_frames} | rate: {rate} Hz')
 
     def _nav_status_cb(self, msg):
         active_states = {
@@ -66,13 +77,19 @@ class RobotPositionBridge(Node):
         self.is_at_nav_goal = not any(status.status in active_states for status in msg.status_list)
 
     def _timer_cb(self):
-        try:
-            t = self.tf_buffer.lookup_transform(
-                self.map_frame, self.base_frame, rclpy.time.Time())
-        except Exception:
+        transform = None
+        for frame in self.lookup_frames:
+            try:
+                transform = self.tf_buffer.lookup_transform(
+                    self.map_frame, frame, rclpy.time.Time())
+                break
+            except Exception:
+                pass
+
+        if transform is None:
             return
 
-        q = t.transform.rotation
+        q = transform.transform.rotation
         siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
         cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
         yaw = math.atan2(siny_cosp, cosy_cosp)
@@ -80,8 +97,8 @@ class RobotPositionBridge(Node):
         msg = RMUCRobotPosition()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = self.map_frame
-        msg.pose_x = float(t.transform.translation.x)
-        msg.pose_y = float(t.transform.translation.y)
+        msg.pose_x = float(transform.transform.translation.x)
+        msg.pose_y = float(transform.transform.translation.y)
         msg.is_at_nav_goal = bool(self.is_at_nav_goal)
         self.pub.publish(msg)
 

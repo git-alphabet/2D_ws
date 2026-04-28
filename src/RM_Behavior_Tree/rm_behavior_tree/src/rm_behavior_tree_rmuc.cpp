@@ -215,7 +215,8 @@ int main(int argc, char ** argv)
       "ladder_highland_x","ladder_highland_y",
       "defend_anchor_x","defend_anchor_y",
       "central_highland_left_x","central_highland_left_y",
-      "ramp_jump_x","ramp_jump_y"
+      "ramp_jump_x","ramp_jump_y",
+      "cap_outpost_x","cap_outpost_y"
     };
     const std::vector<std::pair<std::string, double>> double_keys = {
       {"arrive_radius", 1.0}, {"enemy_near_base_radius", 0.0}

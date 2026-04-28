@@ -33,6 +33,7 @@ public:
       BT::OutputPort<double>("defend_anchor_x"), BT::OutputPort<double>("defend_anchor_y"),
       BT::OutputPort<double>("central_highland_left_x"), BT::OutputPort<double>("central_highland_left_y"),
       BT::OutputPort<double>("ramp_jump_x"), BT::OutputPort<double>("ramp_jump_y"),
+      BT::OutputPort<double>("cap_outpost_x"), BT::OutputPort<double>("cap_outpost_y"),
       // 巡逻航点 (格式: "x1,y1;x2,y2;...")
       BT::OutputPort<std::string>("patrol_waypoints"),
     };

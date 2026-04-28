@@ -47,6 +47,7 @@ CALIB_POINTS: list[tuple[str, str, tuple[float, float, float, float]]] = [
     # ("patrol_1",               "P1-巡逻点1 Patrol1",        (0.4, 1.0, 0.4, 1.0)),
     # ("patrol_2",               "P2-巡逻点2 Patrol2",        (0.4, 1.0, 0.6, 1.0)),
     # ("patrol_3",               "P3-巡逻点3 Patrol3",        (0.4, 1.0, 0.8, 1.0)),
+    ("cap_outpost",            "C-占领前哨 CapOutpost",     (1.0, 0.3, 0.0, 1.0)),
 ]
 
 # ── rmuc_calibration.csv 默认路径 ──

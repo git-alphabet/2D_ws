@@ -24,6 +24,12 @@ public:
 
   BT::NodeStatus onTick(
     const std::shared_ptr<sp_msgs::msg::RMUCRobotPosition> & last_msg) override;
+
+private:
+  bool has_last_position_{false};
+  double last_pose_x_{0.0};
+  double last_pose_y_{0.0};
+  bool last_is_at_nav_goal_{true};
 };
 }  // namespace rm_behavior_tree
 

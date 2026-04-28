@@ -12,7 +12,7 @@ pb_navigation_switches:
   ros__parameters:
     controller_plugin: "pb_omni_pid_pursuit_controller"   # 控制器插件选择：neupan_nav2_controller / pb_omni_pid_pursuit_controller
     odometry_source: "point_lio"                   #point_lio / small_point_lio / loam_interface
-    behavior_tree: "config/RMUC_2026/spin_and_navigate.xml"  # .xml or default,none
+    behavior_tree: "config/RMUC_2026/rmuc_2026.xml"  # .xml or default,none
 
 
     enable_gimbal_yaw_bridge: false               # 仿真中 TF 由 Gazebo bringup 的 robot_state_publisher 直接提供，无需此通路。
@@ -227,6 +227,13 @@ rm_behavior_tree:
 
     # rmuc_sentry_config 已移至 rm_behavior_tree/config/RMUC_2026/rmuc_2026_params.yaml
     # 由 navigation_launch.py 自动加载合并
+
+robot_position_bridge:
+  ros__parameters:
+    use_sim_time: True
+    map_frame: map
+    base_frame: base_footprint
+    base_frame_fallbacks: ["gimbal_yaw_fake", "gimbal_yaw", "chassis"]
 
 # Point-LIO：里程计/定位源之一（注意其 tf_send_en = False 时不会发布 TF）
 point_lio:

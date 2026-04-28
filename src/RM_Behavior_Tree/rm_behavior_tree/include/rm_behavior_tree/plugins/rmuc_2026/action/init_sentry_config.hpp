@@ -29,6 +29,7 @@ public:
       BT::BidirectionalPort<double>("defend_anchor_x"), BT::BidirectionalPort<double>("defend_anchor_y"),
       BT::BidirectionalPort<double>("central_highland_left_x"), BT::BidirectionalPort<double>("central_highland_left_y"),
       BT::BidirectionalPort<double>("ramp_jump_x"), BT::BidirectionalPort<double>("ramp_jump_y"),
+      BT::BidirectionalPort<double>("cap_outpost_x"), BT::BidirectionalPort<double>("cap_outpost_y"),
       BT::BidirectionalPort<double>("arrive_radius"),
       BT::BidirectionalPort<int>("hp_low"),
       BT::BidirectionalPort<int>("hp_safe"),

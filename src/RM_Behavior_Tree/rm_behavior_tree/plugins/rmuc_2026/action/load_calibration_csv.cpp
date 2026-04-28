@@ -55,7 +55,7 @@ BT::NodeStatus LoadCalibrationCSVAction::tick()
     "home", "supply_zone", "base", "base_buff", "outpost_buff",
     "fortress_ally", "central_highland",
     "ladder_highland", "defend_anchor",
-    "central_highland_left", "ramp_jump"
+    "central_highland_left", "ramp_jump", "cap_outpost"
   };
 
   // 辅助: 去除首尾空白

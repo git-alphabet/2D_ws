@@ -14,10 +14,17 @@ BT::NodeStatus RmucSubRobotPositionAction::onTick(
   const std::shared_ptr<sp_msgs::msg::RMUCRobotPosition> & last_msg)
 {
   if (last_msg) {
-    setOutput("pose_x", static_cast<double>(last_msg->pose_x));
-    setOutput("pose_y", static_cast<double>(last_msg->pose_y));
-    setOutput("is_at_nav_goal", last_msg->is_at_nav_goal);
+    last_pose_x_ = static_cast<double>(last_msg->pose_x);
+    last_pose_y_ = static_cast<double>(last_msg->pose_y);
+    last_is_at_nav_goal_ = last_msg->is_at_nav_goal;
+    has_last_position_ = true;
   }
+
+  if (has_last_position_) {
+    setOutput("pose_x", last_pose_x_);
+    setOutput("pose_y", last_pose_y_);
+  }
+  setOutput("is_at_nav_goal", last_is_at_nav_goal_);
   return BT::NodeStatus::SUCCESS;
 }
 
