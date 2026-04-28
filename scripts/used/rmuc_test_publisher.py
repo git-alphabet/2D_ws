@@ -20,7 +20,7 @@ RMUC 2026 裁判系统话题模拟器
         python3 /ws/scripts/used/rmuc_test_publisher.py"
 
 参数:
-  --ns       命名空间 (默认为空，裁判系统话题不带ns)
+    --ns       命名空间。默认 auto，会自动匹配当前导航/行为树所在命名空间
   --phase    比赛阶段 (0-5, 默认 4=比赛中)
   --remain   赛阶段剩余时间，秒 (默认 300)
   --hp       当前血量 (默认 400)
@@ -222,9 +222,66 @@ class RmucTestPublisher(Node):
         self.pub_team_hp.publish(msg)
 
 
+def _normalize_namespace(namespace: str) -> str:
+    namespace = (namespace or "").strip()
+    if not namespace or namespace == "/":
+        return ""
+    if not namespace.startswith("/"):
+        namespace = f"/{namespace}"
+    return namespace.rstrip("/")
+
+
+def _resolve_namespace(namespace_arg: str) -> str:
+    normalized_arg = _normalize_namespace(namespace_arg)
+    if namespace_arg.strip().lower() != "auto":
+        return normalized_arg
+
+    probe = Node("rmuc_test_publisher_probe")
+    try:
+        candidate_names = {
+            "rm_behavior_tree",
+            "bt_navigator",
+            "controller_server",
+            "planner_server",
+            "behavior_server",
+        }
+        candidate_namespaces = []
+        for node_name, node_namespace in probe.get_node_names_and_namespaces():
+            if node_name in candidate_names:
+                normalized_ns = _normalize_namespace(node_namespace)
+                candidate_namespaces.append(normalized_ns)
+
+        unique_candidates = sorted(set(candidate_namespaces))
+        non_root_candidates = [item for item in unique_candidates if item]
+
+        if len(non_root_candidates) == 1:
+            return non_root_candidates[0]
+        if len(unique_candidates) == 1:
+            return unique_candidates[0]
+        if not unique_candidates:
+            return ""
+
+        preferred_candidates = [item for item in non_root_candidates if "red_standard_robot1" in item]
+        if len(preferred_candidates) == 1:
+            return preferred_candidates[0]
+
+        probe.get_logger().warning(
+            "检测到多个候选命名空间 %s，rmuc_test_publisher 将回退到根命名空间；"
+            "如需指定，请显式传入 --ns",
+            unique_candidates,
+        )
+        return ""
+    finally:
+        probe.destroy_node()
+
+
 def main():
     parser = argparse.ArgumentParser(description="RMUC 2026 裁判系统话题模拟器")
-    parser.add_argument("--ns", default="/red_standard_robot1", help="命名空间 (仿真默认 /red_standard_robot1，实车用空字符串)")
+    parser.add_argument(
+        "--ns",
+        default="auto",
+        help="命名空间；默认 auto，自动匹配当前导航/行为树命名空间",
+    )
     parser.add_argument("--phase", type=int, default=4, help="比赛阶段 (0-5, 4=比赛中)")
     parser.add_argument("--remain", type=int, default=420, help="阶段剩余时间 (秒)")
     parser.add_argument("--hp", type=int, default=400, help="当前血量")
@@ -234,12 +291,15 @@ def main():
 
     rclpy.init()
 
+    resolved_namespace = _resolve_namespace(args.ns)
+
     # 使用 namespace 让所有话题自动带前缀 (如 /red_standard_robot1/game_status)
-    node = RmucTestPublisher(args, namespace=args.ns)
+    node = RmucTestPublisher(args, namespace=resolved_namespace)
 
     try:
         node.get_logger().info(
-            f"话题命名空间: {args.ns} (话题如 {args.ns}/game_status)"
+            f"话题命名空间: {resolved_namespace or '/'} "
+            f"(请求值: {args.ns}, 话题如 {(resolved_namespace or '') + '/game_status' if resolved_namespace else '/game_status'})"
         )
         node.get_logger().info("Ctrl+C 停止模拟")
         rclpy.spin(node)
