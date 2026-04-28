@@ -1,41 +1,59 @@
 mid360_driver:
   ros__parameters:
+    # 点云主题名。
     lidar_topic: livox/lidar
+    # 点云坐标系。
     lidar_frame: front_mid360
+    # IMU 主题名。
     imu_topic: livox/imu
+    # IMU 坐标系。
     imu_frame: front_mid360
+    # 是否发布自定义消息。
     publish_custom_msg: true
+    # 自定义点云消息主题。
     custom_msg_topic: livox/lidar/pointcloud
+    # 点云发布周期，单位秒。
     lidar_publish_time_interval: 0.05
+    # 主机地址。
     host_ip: 0.0.0.0
+    # 是否在话题名里拼接雷达 IP。
     is_topic_name_with_lidar_ip: false
 
 # mid360 补盲链路开关：auto 表示 odin1 实车默认启用。
 mid360_runtime:
   ros__parameters:
+    # 是否启用代价地图补盲链路，auto 表示自动判断。
     enable_costmap_additive: "auto"
     # 建图阶段建议单源（odin1）避免装配/时序误差叠加；导航阶段再启用双源补盲。
+    # 建图阶段是否启用补盲链路。
     enable_costmap_additive_in_slam: true
+    # 导航阶段是否启用补盲链路。
     enable_costmap_additive_in_nav: true
 
 
 pb_navigation_switches:
   ros__parameters:
+    # 控制器插件名。
     controller_plugin: "pb_omni_pid_pursuit_controller"
+    # 里程计来源标识。
     odometry_source: "odin1"
+    # 行为树配置名。
     behavior_tree: "none"
 
 # 机器人描述文件基名：对应 gxu2026_robot_description/resource/xmacro/<name>.sdf.xmacro
 robot_description_runtime:
   ros__parameters:
+    # 机器人描述文件名。
     robot_description_file: "gxu2026_sentry_robot"
 
    # 标定辅助节点模式：
     #   off     关闭
     #   slam    仅 SLAM 时启动（默认）
     #   always  任何时候都启动（含纯导航）
+    # 标定辅助节点模式。
     calib_helper_mode: "always"
     # 是否不保存 CSV 文件（true 表示跳过 CSV 写入）
+    # 是否跳过 CSV 输出。
     calib_no_csv: false
 
 # /auto_aim_yaw -> serial/gimbal_joint_state
@@ -44,26 +62,39 @@ robot_description_runtime:
 # - serial/gimbal_joint_state 用相对名，便于在 __ns:=/red_standard_robot1 时自动变成 /red_standard_robot1/serial/gimbal_joint_state
 auto_aim_yaw_joint_state_bridge:
   ros__parameters:
+    # 输入话题。
     input_topic: /auto_aim_yaw
+    # 是否使用带时间戳的消息。
     use_stamped_msg: true
+    # 输出话题。
     output_topic: serial/gimbal_joint_state
+    # 关节名。
     joint_name: gimbal_yaw_joint
 
+    # 输入角度是否为度。
     input_is_degrees: false
+    # 是否反向符号。
     invert_sign: false
+    # 数值缩放系数。
     scale: 1.0
+    # 固定偏置。
     offset: 0.0
 
+    # 是否启动时立即发布一次。
     publish_on_startup: true
+    # 启动时默认 yaw，单位弧度。
     default_yaw_rad: 0.0
     # 建议设置为 >0：当 /auto_aim_yaw 低频或仅在变化时发布时，持续用“当前时间戳”重发 JointState
     # 可以避免 TF 因时间戳过旧而在 tf2 buffer 中失效。
+    # 重发频率，单位 Hz。
     publish_rate_hz: 100.0
+    # 额外时间戳偏移，单位秒。
     stamp_offset_sec: 0.0
 
 # 与 reality_mid360 框架一致：补齐 gimbal_yaw 关节态链路。
 gimbal_yaw_bridge_runtime:
   ros__parameters:
+    # 是否启用 gimbal_yaw 关节态桥接。
     enabled: true
 
 
@@ -71,63 +102,110 @@ gimbal_yaw_bridge_runtime:
 # 切换为 NeuPAN 控制器时，navigation_launch.py 会自动加载该文件并将 FollowPath 合并到 controller_server。
 controller_server:
   ros__parameters:
+    # 是否使用仿真时间。
     use_sim_time: False
+    # 里程计话题。
     odom_topic: odin1/odometry_highfreq
+    # 控制器循环频率，单位 Hz。
     controller_frequency: 20.0
+    # 控制失败容忍时间，单位秒。
     failure_tolerance: 0.3
+    # 进度检查器插件列表。
     progress_checker_plugins: ["progress_checker"]
+    # 目标检查器插件列表。
     goal_checker_plugins: ["general_goal_checker"]
+    # 路径控制器插件列表。
     controller_plugins: ["FollowPath"]
     progress_checker:
+      # 进度检查器插件类型。
       plugin: "nav2_controller::SimpleProgressChecker"
+      # 机器人最小移动半径。
       required_movement_radius: 0.5
+      # 允许的最短时间窗口，单位秒。
       movement_time_allowance: 10.0
     general_goal_checker:
+      # 是否启用状态保持式检查。
       stateful: True
+      # 目标检查器插件类型。
       plugin: "nav2_controller::SimpleGoalChecker"
+      # 位置容差，单位米。
       xy_goal_tolerance: 0.25
+      # 航向容差，单位弧度。
       yaw_goal_tolerance: 6.28
 
 # 控制器参数集合（传统控制器 profile）：这里的 profile 通常与仿真保持一致，便于复现调参。
 pb_controller_profiles:
   ros__parameters:
     pb_omni_pid_pursuit_controller:
+      # 控制器插件类型。
       plugin: "pb_omni_pid_pursuit_controller::OmniPidPursuitController"
+      # 是否打印控制频率调试信息。
       debug_print_control_frequency: false
+      # 平移 PID 的比例系数。
       translation_kp: 3.0
+      # 平移 PID 的积分系数。
       translation_ki: 0.1
+      # 平移 PID 的微分系数。
       translation_kd: 0.3
+      # 是否启用旋转控制。
       enable_rotation: true
+      # 旋转 PID 的比例系数。
       rotation_kp: 3.0
+      # 旋转 PID 的积分系数。
       rotation_ki: 0.1
+      # 旋转 PID 的微分系数。
       rotation_kd: 0.3
+      # 跟踪控制的 TF 容忍窗口，单位秒。
       transform_tolerance: 0.1
+      # 误差积分限幅。
       min_max_sum_error: 1.0
+      # 基础前视距离，单位米。
       lookahead_dist: 2.0
+      # 是否按速度缩放前视距离。
       use_velocity_scaled_lookahead_dist: true
+      # 速度缩放前视时间，单位秒。
       lookahead_time: 1.0
+      # 最小前视距离，单位米。
       min_lookahead_dist: 0.5
+      # 最大前视距离，单位米。
       max_lookahead_dist: 1.0
+      # 是否使用插值。
       use_interpolation: false
+      # 是否使用转向对齐。
       use_rotate_to_heading: false
+      # 转向对齐阈值。
       use_rotate_to_heading_treshold: 0.1
+      # 接近目标时的最小线速度，单位 m/s。
       min_approach_linear_velocity: 0.5
+      # 目标接近阶段的速度缩放距离，单位米。
       approach_velocity_scaling_dist: 1.0
+      # 线速度下限。
       v_linear_min: -1.5
+      # 线速度上限。
       v_linear_max: 1.5
+      # 角速度下限。
       v_angular_min: -3.0
+      # 角速度上限。
       v_angular_max: 3.0
+      # 最小曲率。
       curvature_min: 0.4
+      # 最大曲率。
       curvature_max: 0.7
+      # 高曲率下的缩放比例。
       reduction_ratio_at_high_curvature: 0.5
+      # 前方曲率计算距离，单位米。
       curvature_forward_dist: 0.7
+      # 后方曲率计算距离，单位米。
       curvature_backward_dist: 0.3
+      # 最大速度缩放系数。
       max_velocity_scaling_factor_rate: 0.9
 
 # 行为树相关（RM 侧）：实车不用 sim time
 rm_behavior_tree:
   ros__parameters:
+    # 行为树文件名。
     style: rmuc_01.xml
+    # 是否使用仿真时间。
     use_sim_time: False
 
 # point_lio 参数统一由 navigation_launch.py 的 point_lio_config_file 加载，
@@ -137,68 +215,99 @@ rm_behavior_tree:
 # LOAM 接口：把状态估计/点云里程计转换成 Nav2 期望的 odom/base 等
 loam_interface:
   ros__parameters:
+    # 是否使用仿真时间。
     use_sim_time: False
     # 默认用于 mid360；当 enable_odin1_loam_reframe=true 时，会在 launch 中自动改写为 odin1 输入并输出 lidar_odometry
+    # 状态估计话题。
     state_estimation_topic: "aft_mapped_to_init"
+    # 输入点云话题。
     registered_scan_topic: "cloud_registered"
+    # 输出里程计坐标系。
     odom_frame: "odom"
+    # 机器人底盘坐标系。
     base_frame: "base_footprint"
+    # 激光雷达坐标系。
     lidar_frame: "front_mid360"
     # 输入语义：
     # - lidar_odom_to_lidar: 兼容 point_lio 旧链路
     # - odom_to_base: odin1 输入是 odom->base_footprint
+    # 里程计输入语义。
     input_odom_semantics: "lidar_odom_to_lidar"
     # 点云输入语义：
     # - lidar_odom: 输入点云在 lidar_odom 语义，需要变换到 odom
     # - odom: 输入点云已是 odom 语义（如 odin1/cloud_slam）
+    # 点云输入语义。
     input_cloud_semantics: "lidar_odom"
     # 驱动外坐标对齐：x'=-y, y'=x, z'=z；四元数按同一基变换处理。
+    # 是否启用 odin 坐标轴对齐。
     align_odin_axes: false
     # true: 只缓存一次 base->lidar（适合固定安装）
     # false: 每帧按时间戳更新 base->lidar（适合 front_odin1 挂在 gimbal_yaw 的动态外参）
+    # 是否冻结 base 到 lidar 的 TF 缓存。
     freeze_base_to_lidar_tf: true
+    # TF 查询超时时间，单位秒。
     tf_lookup_timeout_sec: 0.2
 
 # mid360 补盲专用 loam 接口：仅服务 mid360 地形链路，不影响 odin1 主导航重组。
 loam_interface_mid360:
   ros__parameters:
+    # 是否使用仿真时间。
     use_sim_time: False
     # 双雷达拼接长期形态：mid360 投影统一使用 odin1 主 odom，避免双里程计漂移导致错层。
+    # 状态估计话题。
     state_estimation_topic: "odin1/odometry_highfreq"
     # 使用 point_lio 的 body frame 点云，避免把 mid360 自身 lidar_odom 语义错误拼接到 odin 主 odom。
+    # 输入点云话题。
     registered_scan_topic: "mid360/cloud_registered"
+    # 输出里程计坐标系。
     odom_frame: "odom"
     # mid360 当前安装在 gimbal_yaw，下游按 front_mid360 语义消费。
+    # 机器人底盘坐标系。
     base_frame: "gimbal_yaw"
+    # 激光雷达坐标系。
     lidar_frame: "front_mid360"
+    # 里程计输入语义。
     input_odom_semantics: "odom_to_base"
     # lidar: 输入点云在 lidar/body 语义，使用 odom->lidar 实时位姿投影到 odom。
+    # 点云输入语义。
     input_cloud_semantics: "lidar"
+    # 是否启用 odin 坐标轴对齐。
     align_odin_axes: false
+    # 是否冻结 base 到 lidar 的 TF 缓存。
     freeze_base_to_lidar_tf: true
+    # TF 查询超时时间，单位秒。
     tf_lookup_timeout_sec: 0.2
 
 # loam 重组开关：把 odin1 里程计整理为 odom/lidar_frame 语义输出。
 loam_interface_runtime:
   ros__parameters:
+    # 是否启用 odin1 loam 重组。
     enable_odin1_loam_reframe: true
     # 驱动外坐标对齐：用于承接原先在 odin_ros_driver 里的 x'=-y, y'=x 对齐逻辑。
     # auto: 启动时自动检测驱动是否已内置对齐；旧驱动自动开启外部对齐，新驱动自动关闭避免重复旋转。
+    # odin1 外部轴对齐开关。
     enable_odin1_external_axis_alignment: "auto"
 
 # 从点云生成 scan（给 slam_toolbox / obstacle_scan 等使用）
 sensor_scan_generation:
   ros__parameters:
+    # 是否使用仿真时间。
     use_sim_time: False
     # 点云默认仍走 odin1/cloud_slam；若开启 odin1 loam 重组，点云/里程计输入都由 launch 自动切到 loam 输出
+    # 激光雷达坐标系。
     lidar_frame: "front_odin1"
+    # 机器人底盘坐标系。
     base_frame: "base_footprint"
+    # 机器人参考坐标系。
     robot_base_frame: "gimbal_yaw"
     # odin1 实车由 odin_ros_driver 发布 odom->base TF，避免与 sensor_scan_generation 重复发布。
+    # 是否发布 base TF。
     publish_base_tf: false
 
     # TF 调试：打印 TF lookup 是否成功，以及推导出来的 yaw(chassis->gimbal_yaw)
+    # 是否打印 TF 调试信息。
     debug_tf: false
+    # 调试日志节流周期，单位毫秒。
     debug_tf_throttle_ms: 1000
 
 # sensor_scan_generation 输入源：
@@ -206,37 +315,65 @@ sensor_scan_generation:
 # - enable_odin1_loam_reframe=true 时，odometry 会被 launch 自动切到 lidar_odometry
 sensor_scan_generation_runtime:
   ros__parameters:
+    # 输入点云话题。
     registered_scan_topic: "odin1/cloud_slam"
+    # 输入里程计话题。
     lidar_odometry_topic: "odin1/odometry_highfreq"
 
 # 地形分析：输出 terrain_map（用于代价地图的点云观测源）
 terrain_analysis:
   ros__parameters:
+    # 点云体素大小，单位米。
     scanVoxelSize: 0.05                 # 点云下采样
+    # 点云时间衰减阈值，单位秒。
     decayTime: 0.2                      # 点云时间差阈值 大于则不会被处理
+    # 距离衰减阈值，单位米。
     noDecayDis: 0.0                     # 点云距离阈值 小于该阈值不考虑时间差
+    # 清除距离阈值，单位米。
     clearingDis: 0.0                    # 该距离外的点会被清除
+    # 是否启用分位数排序地面估计。
     useSorting: True                    # 这个参数开起来就能上坡了；如果 use_sorting,那么就以周围点中的分位点作为地面点，否则以最低点作为地面点；周围其余点相对于地面点的高度作为通过代价，所以对于坡面，有的点的代价是正，有的是负，就相互抵消了；不要与 consider_drop 同时开启，计算上会有冲突
+    # 地面分位数参数。
     quantileZ: 0.2                      # useful if use_sorting is enabled.
+    # 是否将下凹地形按绝对高度处理。
     considerDrop: False                 # 考虑凹下去的地面,开启则将相对于地面点的高度取绝对值
+    # 是否限制地面抬升。
     limitGroundLift: False
+    # 允许的最大地面抬升，单位米。
     maxGroundLift: 0.3
+    # 是否清除动态物体。
     clearDyObs: True                    # 清除动态物体的话，有动态物体走过的地方就走不了了
+    # 动态物体最小距离阈值，单位米。
     minDyObsDis: 0.3                    # 以下参数都是在 clear_dy_obs 的情况下才有用的
+    # 动态物体最小角度阈值，单位度。
     minDyObsAngle: 0.0
+    # 动态物体相对 Z 下限。
     minDyObsRelZ: -0.3
+    # 动态物体相对 Z 绝对值阈值。
     absDyObsRelZThre: 0.2
+    # 动态物体最小垂直视场角，单位度。
     minDyObsVFOV: -28.0
+    # 动态物体最大垂直视场角，单位度。
     maxDyObsVFOV: 33.0
+    # 动态物体最少点数。
     minDyObsPointNum: 1
+    # 是否把无数据区域当作障碍。
     noDataObstacle: False               # treat no data as obstacle
+    # 无数据块跳过计数。
     noDataBlockSkipNum: 0
+    # 单块最少点数。
     minBlockPointNum: 10
+    # 车辆高度阈值，单位米。
     vehicleHeight: 0.5                  # 小于车辆高度的点才会进行处理
+    # 体素点更新阈值。
     voxelPointUpdateThre: 100
+    # 体素时间更新阈值，单位秒。
     voxelTimeUpdateThre: 1.0
+    # 相对 Z 最小值。
     minRelZ: -1.5                       # min_rel_z 以及 max_rel_z 限制了有效点云点的Z值范围，用于对天花板和地板进行处理
+    # 相对 Z 最大值。
     maxRelZ: 0.5
+    # Z 距离比例系数。
     disRatioZ: 0.2                      # Z 值的最大最小范围由这两个值决定，但是并不等于这两个值，是有一个比例关系的，距离机器人越远，限定范围就越大，这其中考虑了坡度
 
 # 地形分析输入源：
@@ -245,104 +382,174 @@ terrain_analysis:
 # - 若需改源，可在这里改，或 launch 入参覆盖
 terrain_analysis_runtime:
   ros__parameters:
+    # 输入点云话题。
     registered_scan_topic: "odin1/cloud_slam"
+    # 输入里程计话题。
     lidar_odometry_topic: "odin1/odometry_highfreq"
 
 # 地形分析（扩展版）：输出 terrain_map_ext（全局代价地图常用）
 terrain_analysis_ext:
   ros__parameters:
+    # 点云体素大小，单位米。
     scanVoxelSize: 0.1
+    # 点云时间衰减阈值，单位秒。
     decayTime: 0.2
+    # 距离衰减阈值，单位米。
     noDecayDis: 0.0
+    # 清除距离阈值，单位米。
     clearingDis: 20.0
+    # 是否启用分位数排序地面估计。
     useSorting: true
+    # 地面分位数参数。
     quantileZ: 0.2
+    # 车辆高度阈值，单位米。
     vehicleHeight: 1.0
+    # 体素点更新阈值。
     voxelPointUpdateThre: 100
+    # 体素时间更新阈值，单位秒。
     voxelTimeUpdateThre: 2.0
+    # 相对 Z 下限。
     lowerBoundZ: -1.5
+    # 相对 Z 上限。
     upperBoundZ: 0.5
+    # Z 距离比例系数。
     disRatioZ: 0.2
+    # 是否检查地形连通性。
     checkTerrainConn: False
+    # 车体下方地形参考值。
     terrainUnderVehicle: -0.75
+    # 地形连通阈值。
     terrainConnThre: 0.5
+    # 天花板过滤阈值。
     ceilingFilteringThre: 2.0
+    # 局部地形图半径，单位米。
     localTerrainMapRadius: 4.0
 
 terrain_analysis_ext_mid360:
   ros__parameters:
     # 自动跟随 odin1 全局地形图的消息年龄，减少每次重连后手动调偏移。
+    # 参考地形图话题。
     publishStampReferenceTopic: reference_terrain_map_ext
+    # 消息年龄缩放系数。
     publishStampReferenceAgeAlpha: 1.0
+    # 消息年龄下限，单位秒。
     publishStampReferenceAgeClampMinSec: 0.0
+    # 消息年龄上限，单位秒。
     publishStampReferenceAgeClampMaxSec: 1.0
+    # 输出时间戳偏移，单位秒。
     publishStampOffsetSec: 0.03
+    # 点云体素大小，单位米。
     scanVoxelSize: 0.1
+    # 点云时间衰减阈值，单位秒。
     decayTime: 0.2
+    # 距离衰减阈值，单位米。
     noDecayDis: 0.0
+    # 清除距离阈值，单位米。
     clearingDis: 20.0
+    # 是否启用分位数排序地面估计。
     useSorting: true
+    # 地面分位数参数。
     quantileZ: 0.2
+    # 车辆高度阈值，单位米。
     vehicleHeight: 1.0
+    # 体素点更新阈值。
     voxelPointUpdateThre: 100
+    # 体素时间更新阈值，单位秒。
     voxelTimeUpdateThre: 2.0
+    # 相对 Z 下限。
     lowerBoundZ: -1.5
+    # 相对 Z 上限。
     upperBoundZ: 0.5
+    # Z 距离比例系数。
     disRatioZ: 0.2
+    # 是否检查地形连通性。
     checkTerrainConn: False
+    # 车体下方地形参考值。
     terrainUnderVehicle: -0.75
+    # 地形连通阈值。
     terrainConnThre: 0.5
+    # 天花板过滤阈值。
     ceilingFilteringThre: 2.0
+    # 局部地形图半径，单位米。
     localTerrainMapRadius: 4.0
 
 # mid360 局部地形图同样做时间戳对齐，避免 local costmap 双源时序错层。
 terrain_analysis_mid360:
   ros__parameters:
+    # 参考地形图话题。
     publishStampReferenceTopic: reference_terrain_map
+    # 消息年龄缩放系数。
     publishStampReferenceAgeAlpha: 1.0
+    # 消息年龄下限，单位秒。
     publishStampReferenceAgeClampMinSec: 0.0
+    # 消息年龄上限，单位秒。
     publishStampReferenceAgeClampMaxSec: 1.0
+    # 输出时间戳偏移，单位秒。
     publishStampOffsetSec: 0.03
 
 # 假速度/坐标变换：把 Nav2 内部期望的底盘速度/局部路径做一层适配
 fake_vel_transform:
   ros__parameters:
+    # 是否使用仿真时间。
     use_sim_time: False
+    # 里程计话题。
     odom_topic: "odometry"
     # Nav2 内部规划使用 gimbal_yaw，经过该节点转换后对外发布 fake 底盘框架。
+    # 机器人参考坐标系。
     robot_base_frame: "gimbal_yaw"
+    # fake 底盘坐标系。
     fake_robot_base_frame: "gimbal_yaw_fake"
     # 输入是 controller 结果速度，输出是底盘最终执行速度。
+    # 局部规划话题。
     local_plan_topic: "local_plan"
+    # 输入速度话题。
     input_cmd_vel_topic: "cmd_vel_nav2_result"
+    # 输出速度话题。
     output_cmd_vel_topic: "cmd_vel"
+    # 底盘控制话题。
     robot_control_topic: "robot_control"
     # 测试开关：true=移动时关闭小陀螺，false=移动时也保留小陀螺
+    # 是否在移动时关闭小陀螺。
     disable_spin_while_moving: true
+    # 初始小陀螺速度，单位 rad/s。
     init_spin_speed: 3.0
     # 减速带速度下限控制：进入 speed_bump 区域后，线速度低于该值会被抬高
+    # 是否启用减速带最低速度限制。
     enable_speed_bump_min_speed: true
     # 减速带角速度限制：进入 speed_bump 区域后，强制 angular.z=0
+    # 是否启用减速带角速度置零。
     enable_speed_bump_zero_angular_z: true
+    # 减速带最低线速度，单位 m/s。
     speed_bump_min_linear_speed: 1.5
+    # 减速带地图坐标系。
     speed_bump_map_frame: "map"
+    # 减速带区域名。
     speed_bump_zone_name: "speed_bump"
+    # 减速带语义区域文件。
     speed_bump_zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
 
 # 非线性小陀螺（实车）：同仿真，发布 cmd_spin（Float32，单位 rad/s）
 nonlinear_spin_publisher:
   ros__parameters:
+    # 是否使用仿真时间。
     use_sim_time: False
 
     # 总开关：true 才会开始发布 cmd_spin
+    # 是否启用小陀螺输出。
     enabled: false
 
     # 触发策略：收到第一条 Nav2 local_plan 后开始小陀螺，之后不停止
+    # 是否在首次触发后持续发布。
     start_on_first_trigger: true
+    # 触发话题。
     start_trigger_topic: "cmd_vel_nav2_result"
+    # 触发消息类型。
     start_trigger_msg_type: "geometry_msgs/Twist"
+    # 是否要求触发消息非零。
     trigger_require_nonzero: false
+    # 小陀螺输出话题。
     cmd_spin_topic: "cmd_spin"
+    # 小陀螺发布频率，单位 Hz。
     publish_rate_hz: 50.0
 
     # 变频变幅正弦叠加：center_speed + A1*sin(phi1) + A2*sin(phi2 + offset)
@@ -371,85 +578,135 @@ nonlinear_spin_publisher:
 # PointCloud2 -> LaserScan：用于传统 2D 代价地图/SLAM
 pointcloud_to_laserscan:
   ros__parameters:
+    # 是否使用仿真时间。
     use_sim_time: False
+    # 投影目标坐标系。
     target_frame: base_footprint
     # 导航阶段点云链路存在约 0.25~0.30s 滞后，适当放宽 TF 容忍窗口。
+    # TF 容忍窗口，单位秒。
     transform_tolerance: 0.4
+    # 最低高度过滤，单位米。
     min_height: -0.5
+    # 最高高度过滤，单位米。
     max_height: 6.0
     # terrain_analysis 输出的点云 intensity = 相对地面高度(disZ)，单位米。
     # min_intensity=0.1 过滤地面起伏 <10cm，避免把平整地面误判为障碍物。
+    # 最小强度阈值。
     min_intensity: 0.1
+    # 最大强度阈值。
     max_intensity: 2.0
+    # 扫描起始角。
     angle_min: -3.1415926                   # -M_PI/2
+    # 扫描结束角。
     angle_max: 3.1415926                    # M_PI/2
+    # 角度分辨率。
     angle_increment: 0.00872665             # M_PI/360.0
+    # 扫描时间，单位秒。
     scan_time: 0.05
+    # 最小量测距离，单位米。
     range_min: 0.3
+    # 最大量测距离，单位米。
     range_max: 10.0
+    # 是否使用无穷远值表示无回波。
     use_inf: true
 
 # mid360 的 PointCloud2 -> LaserScan 参数必须与主链路保持一致，
 # 否则 scan_additive_adapter 会因角度/分辨率不兼容回退到仅 primary(odin1)。
 pointcloud_to_laserscan_mid360:
   ros__parameters:
+    # 是否使用仿真时间。
     use_sim_time: False
+    # 投影目标坐标系。
     target_frame: base_footprint
+    # TF 容忍窗口，单位秒。
     transform_tolerance: 0.4
+    # 最低高度过滤，单位米。
     min_height: -0.5
+    # 最高高度过滤，单位米。
     max_height: 6.0
     # terrain_analysis 输出的点云 intensity = 相对地面高度(disZ)，单位米。
     # 与 odin1 主链路一致：过滤地面起伏 <10cm，避免把平整地面误判为障碍物。
+    # 最小强度阈值。
     min_intensity: 0.1
+    # 最大强度阈值。
     max_intensity: 2.0
+    # 扫描起始角。
     angle_min: -3.1415926
+    # 扫描结束角。
     angle_max: 3.1415926
+    # 角度分辨率。
     angle_increment: 0.00872665
+    # 扫描时间，单位秒。
     scan_time: 0.05
+    # 最小量测距离，单位米。
     range_min: 0.05
+    # 最大量测距离，单位米。
     range_max: 10.0
+    # 是否使用无穷远值表示无回波。
     use_inf: true
 
 # obstacle_scan 主链路开关（pointcloud_to_laserscan：terrain_map_ext -> scan）。
 obstacle_scan_runtime:
   ros__parameters:
+    # 是否启用 obstacle_scan 生成。
     enabled: true
+    # 输出 scan 话题。
     output_scan_topic: "scan_odin1"
 
 # scan 融合开关：scan_odin1 + scan_mid360 -> obstacle_scan。
 scan_additive_runtime:
   ros__parameters:
+    # 是否启用 scan 融合。
     enabled: true
     # 建图阶段默认关闭，导航阶段默认开启。
+    # 建图阶段是否启用融合。
     enabled_in_slam: true
+    # 导航阶段是否启用融合。
     enabled_in_nav: true
 
 # scan 融合节点参数：可在配置文件调节，不依赖 launch 硬编码。
 scan_additive_adapter:
   ros__parameters:
+    # 主 scan 话题。
     primary_scan_topic: scan_odin1
+    # 次 scan 话题。
     secondary_scan_topic: scan_mid360
+    # 输出 scan 话题。
     output_scan_topic: obstacle_scan
     # mid360 频率低于 odin1 时，适当放宽超时可避免 secondary 被频繁判定 stale。
+    # 次级 scan 超时阈值，单位秒。
     secondary_timeout_sec: 1.0
+    # 主 scan 缺失时是否仍发布次级 scan。
     publish_secondary_when_primary_missing: true
 
 # SLAM Toolbox：mapping 模式时发布 map/odom 等；scan_topic 要与上游生成一致
 slam_toolbox:
   ros__parameters:
     # https://github.com/SteveMacenski/slam_toolbox/tree/humble?#configuration
+    # 求解器插件。
     solver_plugin: solver_plugins::CeresSolver
+    # Ceres 线性求解器类型。
     ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
+    # Ceres 预条件器。
     ceres_preconditioner: SCHUR_JACOBI
+    # Ceres 信赖域策略。
     ceres_trust_strategy: LEVENBERG_MARQUARDT
+    # Ceres dogleg 类型。
     ceres_dogleg_type: TRADITIONAL_DOGLEG
+    # Ceres 损失函数。
     ceres_loss_function: None
 
+    # 里程计坐标系。
     odom_frame: odom
+    # 地图坐标系。
     map_frame: map
+    # 机器人底盘坐标系。
     base_frame: base_footprint
+    # 输入 scan 话题。
     scan_topic: obstacle_scan
+    # 是否启用地图保存器。
     use_map_saver: true
+    # SLAM 模式。
     mode: mapping
 
     # if you'd like to immediately start continuing a map at a given pose
@@ -460,68 +717,117 @@ slam_toolbox:
     # map_start_at_dock: true
 
     debug_logging: false
+    # 扫描节流倍数。
     throttle_scans: 1
+    # 扫描队列长度。
     scan_queue_size: 10
+    # 里程计发布周期，单位秒；为 0 表示不发布。
     transform_publish_period: 0.0                # if 0 never publishes odometry
+    # 地图更新间隔，单位秒。
     map_update_interval: 0.5
+    # 地图分辨率，单位米/格。
     resolution: 0.05
+    # 最小激光量测距离，单位米。
     min_laser_range: 0.3                         # for rastering images
+    # 最大激光量测距离，单位米。
     max_laser_range: 10.0                         # for rastering images
+    # 最小扫描时间间隔，单位秒。
     minimum_time_interval: 0.2
+    # TF 超时时间，单位秒。
     transform_timeout: 0.2
+    # TF 缓存时长，单位秒。
     tf_buffer_duration: 10.
+    # 运行所需堆栈大小。
     stack_size_to_use: 40000000                   # program needs a larger stack size to serialize large maps
+    # 是否启用交互模式。
     enable_interactive_mode: true
 
     # General Parameters
+    # 是否使用 scan matching。
     use_scan_matching: false
+    # 是否使用扫描重心。
     use_scan_barycenter: true
+    # 最小行进距离，单位米。
     minimum_travel_distance: 0.1
+    # 最小行进航向，单位弧度。
     minimum_travel_heading: 0.1
+    # 扫描缓冲长度。
     scan_buffer_size: 10
+    # 扫描最大匹配距离，单位米。
     scan_buffer_maximum_scan_distance: 10.0
+    # fine 级链接最小响应值。
     link_match_minimum_response_fine: 0.1
+    # 链接扫描最大距离，单位米。
     link_scan_maximum_distance: 1.5
+    # 回环搜索最大距离，单位米。
     loop_search_maximum_distance: 3.0
+    # 是否启用回环闭合。
     do_loop_closing: false
+    # 回环链最小长度。
     loop_match_minimum_chain_size: 10
+    # coarse 级回环匹配方差上限。
     loop_match_maximum_variance_coarse: 3.0
+    # coarse 级最小响应值。
     loop_match_minimum_response_coarse: 0.35
+    # fine 级最小响应值。
     loop_match_minimum_response_fine: 0.45
 
     # Correlation Parameters - Correlation Parameters
+    # 相关性搜索空间维度。
     correlation_search_space_dimension: 0.5
+    # 相关性搜索分辨率。
     correlation_search_space_resolution: 0.01
+    # 相关性搜索模糊偏差。
     correlation_search_space_smear_deviation: 0.1
 
     # Correlation Parameters - Loop Closure Parameters
     loop_search_space_dimension: 8.0
+    # 回环搜索空间分辨率。
     loop_search_space_resolution: 0.05
+    # 回环搜索空间模糊偏差。
     loop_search_space_smear_deviation: 0.03
 
     # Scan Matcher Parameters
+    # 距离方差惩罚。
     distance_variance_penalty: 5.5
+    # 角度方差惩罚。
     angle_variance_penalty: 5.0
 
+    # fine 搜索角偏移。
     fine_search_angle_offset: 0.00349
+    # coarse 搜索角偏移。
     coarse_search_angle_offset: 0.349
+    # coarse 搜索角分辨率。
     coarse_angle_resolution: 0.0349
+    # 最小角度惩罚。
     minimum_angle_penalty: 0.9
+    # 最小距离惩罚。
     minimum_distance_penalty: 0.5
+    # 是否启用响应扩展。
     use_response_expansion: true
 
 # Nav2 BT Navigator：行为树导航主入口
 bt_navigator:
   ros__parameters:
+    # 是否使用仿真时间。
     use_sim_time: False
+    # 全局参考坐标系。
     global_frame: map
+    # 机器人底盘基坐标系。
     robot_base_frame: gimbal_yaw_fake
+    # 里程计话题。
     odom_topic: odin1/odometry_highfreq
+    # BT 主循环周期，单位秒。
     bt_loop_duration: 10
+    # 默认服务超时时间，单位秒。
     default_server_timeout: 100
+    # 等待服务可用超时时间，单位毫秒。
     wait_for_service_timeout: 1000
+    # 默认导航到点位 BT 文件。
     default_nav_to_pose_bt_xml: $(find-pkg-share gxu2026_nav_bringup)/behavior_trees/navigate_to_pose_w_replanning_and_recovery.xml
+    # 默认多点导航 BT 文件。
     default_nav_through_poses_bt_xml: $(find-pkg-share gxu2026_nav_bringup)/behavior_trees/navigate_through_poses_w_replanning_and_recovery.xml
+    # BT 插件库列表。
     plugin_lib_names:
       - nav2_compute_path_to_pose_action_bt_node
       - nav2_compute_path_through_poses_action_bt_node
@@ -575,144 +881,255 @@ bt_navigator:
 local_costmap:
   local_costmap:
     ros__parameters:
+      # 是否使用仿真时间。
       use_sim_time: False
+      # 局部代价地图更新频率，单位 Hz。
       update_frequency: 15.0
+      # 局部代价地图发布频率，单位 Hz。
       publish_frequency: 8.0
+      # 局部代价地图使用的全局参考坐标系。
       global_frame: odom
+      # 局部代价地图中的机器人底盘基坐标系。
       robot_base_frame: gimbal_yaw_fake
       # 代价地图查询 TF 的容忍窗口，覆盖链路延迟峰值。
       transform_tolerance: 0.6
+      # 局部代价地图是否采用滚动窗口。
       rolling_window: true
+      # 滚动窗口宽度，单位米。
       width: 5
+      # 滚动窗口高度，单位米。
       height: 5
+      # 代价地图分辨率，单位米/格。
       resolution: 0.05
+      # 机器人外接圆半径，用于 footprint 近似。
       robot_radius: 0.3
+      # 局部代价地图加载的插件顺序。
       plugins: ["static_layer", "intensity_voxel_layer", "inflation_layer"]
       intensity_voxel_layer:
+        # 体素代价层的插件类型。
         plugin: pb_nav2_costmap_2d::IntensityVoxelLayer
+        # 是否启用该层。
         enabled: true
+        # 是否跟踪未知区域。
         track_unknown_space: true
+        # 是否在 footprint 内清除障碍。
         footprint_clearing_enabled: true
         # 观测点云链路存在约 0.3s 处理延迟，放宽 TF 过滤容忍窗口以减少 MessageFilter 丢帧。
         tf_filter_tolerance: 0.40
+        # 是否发布体素地图调试数据。
         publish_voxel_map: false
+        # 多源观测的融合方式。
         combination_method: 1
         # 提高到 1，抑制高速运动时单点噪声闪烁
         mark_threshold: 1
+        # 体素栅格原点的 Z 值。
         origin_z: 0.0
+        # 未知高度阈值。
         unknown_threshold: 5
+        # Z 方向分辨率，单位米。
         z_resolution: 0.05
+        # Z 方向体素层数。
         z_voxels: 16
+        # 障碍物允许的最低高度。
         min_obstacle_height: 0.0
+        # 障碍物允许的最高高度。
         max_obstacle_height: 2.0
+        # 障碍物强度下限。
         min_obstacle_intensity: 0.1
+        # 障碍物强度上限。
         max_obstacle_intensity: 2.0
         # 使用 odin1 + mid360 的地形点云共同作为观测源，mid360 用于补盲
+        # 参与体素层更新的观测源列表。
         observation_sources: terrain_map terrain_map_mid360
         terrain_map:
+          # 该观测源的数据类型。
           data_type: PointCloud2
+          # 该观测源订阅的话题。
           topic: /terrain_map
+          # 是否将该源用于标记障碍。
           marking: true
+          # 是否将该源用于清除障碍。
           clearing: true
           # 仅使用最新观测，配合 terrain_analysis 的 decayTime 实现时间清除
+          # 该观测源的历史缓存时长。
           observation_persistence: 0.0
+          # 期望的更新频率，单位 Hz。
           expected_update_rate: 0.20
+          # 该源允许的最低障碍高度。
           min_obstacle_height: 0.0
+          # 该源允许的最高障碍高度。
           max_obstacle_height: 2.0
+          # 该源用于标记障碍的最大距离。
           obstacle_max_range: 5.0
+          # 该源用于标记障碍的最小距离。
           obstacle_min_range: 0.50
+          # 该源用于射线清除的最大距离。
           raytrace_max_range: 5.0
+          # 该源用于射线清除的最小距离。
           raytrace_min_range: 0.50
         terrain_map_mid360:
+          # 该观测源的数据类型。
           data_type: PointCloud2
+          # 该观测源订阅的话题。
           topic: /terrain_map_mid360
+          # 是否将该源用于标记障碍。
           marking: true
+          # 是否将该源用于清除障碍。
           clearing: true
+          # 该观测源的历史缓存时长。
           observation_persistence: 0.0
+          # 期望的更新频率，单位 Hz。
           expected_update_rate: 0.30
+          # 该源允许的最低障碍高度。
           min_obstacle_height: 0.0
+          # 该源允许的最高障碍高度。
           max_obstacle_height: 2.0
+          # 该源用于标记障碍的最大距离。
           obstacle_max_range: 5.0
+          # 该源用于标记障碍的最小距离。
           obstacle_min_range: 0.50
+          # 该源用于射线清除的最大距离。
           raytrace_max_range: 5.0
+          # 该源用于射线清除的最小距离。
           raytrace_min_range: 0.50
       static_layer:
+        # 静态层插件类型。
         plugin: "nav2_costmap_2d::StaticLayer"
+        # 是否启用静态层。
         enabled: False
+        # 是否订阅 transient local 的地图消息。
         map_subscribe_transient_local: True
       inflation_layer:
+        # 膨胀层插件类型。
         plugin: "nav2_costmap_2d::InflationLayer"
+        # 膨胀代价衰减系数。
         cost_scaling_factor: 4.0
+        # 障碍物膨胀半径，单位米。
         inflation_radius: 0.6
+      # 是否总是发布完整代价地图。
       always_send_full_costmap: False
 
 # 代价地图（global）：通常使用 map 坐标系，观测源常来自 terrain_map_ext
 global_costmap:
   global_costmap:
     ros__parameters:
+      # 是否使用仿真时间。
       use_sim_time: False
+      # 全局代价地图更新频率，单位 Hz。
       update_frequency: 5.0
+      # 全局代价地图发布频率，单位 Hz。
       publish_frequency: 2.0
+      # 全局代价地图使用的参考坐标系。
       global_frame: map
+      # 全局代价地图中的机器人底盘基坐标系。
       robot_base_frame: gimbal_yaw_fake
       # 导航重定位场景下 map->odom 切换与点云延迟叠加，需更宽容忍窗口。
       transform_tolerance: 0.6
+      # 全局代价地图是否采用滚动窗口。
       rolling_window: true
+      # 滚动窗口宽度，单位米。
       width: 20
+      # 滚动窗口高度，单位米。
       height: 20
+      # 机器人外接圆半径，用于 footprint 近似。
       robot_radius: 0.3
+      # 全局代价地图分辨率，单位米/格。
       resolution: 0.05
+      # 是否跟踪未知区域。
       track_unknown_space: true
+      # 全局代价地图加载的插件顺序。
       plugins: ["static_layer", "intensity_voxel_layer", "inflation_layer"]
       intensity_voxel_layer:
+        # 体素代价层的插件类型。
         plugin: pb_nav2_costmap_2d::IntensityVoxelLayer
+        # 是否启用该层。
         enabled: true
+        # 是否跟踪未知区域。
         track_unknown_space: true
+        # 是否在 footprint 内清除障碍。
         footprint_clearing_enabled: true
         # 全局层同样放宽 TF 过滤容忍窗口，避免 terrain_map_ext 链路因时间戳滞后被丢弃。
         tf_filter_tolerance: 0.40
+        # 是否发布体素地图调试数据。
         publish_voxel_map: false
+        # 多源观测的融合方式。
         combination_method: 1
+        # 障碍标记阈值。
         mark_threshold: 0
+        # 体素栅格原点的 Z 值。
         origin_z: 0.0
+        # 未知高度阈值。
         unknown_threshold: 5
+        # Z 方向分辨率，单位米。
         z_resolution: 0.05
+        # Z 方向体素层数。
         z_voxels: 16
+        # 障碍物允许的最低高度。
         min_obstacle_height: 0.0
+        # 障碍物允许的最高高度。
         max_obstacle_height: 2.0
+        # 障碍物强度下限。
         min_obstacle_intensity: 0.1
+        # 障碍物强度上限。
         max_obstacle_intensity: 2.0
         # 使用 odin1 + mid360 的全局地形点云，mid360 提供补盲
+        # 参与体素层更新的观测源列表。
         observation_sources: terrain_map_ext terrain_map_ext_mid360
         terrain_map_ext:
+          # 该观测源的数据类型。
           data_type: PointCloud2
+          # 该观测源订阅的话题。
           topic: /terrain_map_ext
+          # 是否将该源用于标记障碍。
           marking: true
+          # 是否将该源用于清除障碍。
           clearing: true
+          # 该源允许的最低障碍高度。
           min_obstacle_height: 0.0
+          # 该源允许的最高障碍高度。
           max_obstacle_height: 2.0
+          # 该源用于标记障碍的最大距离。
           obstacle_max_range: 10.0
+          # 该源用于标记障碍的最小距离。
           obstacle_min_range: 0.6
+          # 该源用于射线清除的最大距离。
           raytrace_max_range: 10.0
+          # 该源用于射线清除的最小距离。
           raytrace_min_range: 0.6
         terrain_map_ext_mid360:
+          # 该观测源的数据类型。
           data_type: PointCloud2
+          # 该观测源订阅的话题。
           topic: /terrain_map_ext_mid360
+          # 是否将该源用于标记障碍。
           marking: true
+          # 是否将该源用于清除障碍。
           clearing: true
+          # 该源允许的最低障碍高度。
           min_obstacle_height: 0.0
+          # 该源允许的最高障碍高度。
           max_obstacle_height: 2.0
+          # 该源用于标记障碍的最大距离。
           obstacle_max_range: 10.0
+          # 该源用于标记障碍的最小距离。
           obstacle_min_range: 0.50
+          # 该源用于射线清除的最大距离。
           raytrace_max_range: 10.0
+          # 该源用于射线清除的最小距离。
           raytrace_min_range: 0.50
       static_layer:
+        # 静态层插件类型。
         plugin: "nav2_costmap_2d::StaticLayer"
+        # 是否订阅 transient local 的地图消息。
         map_subscribe_transient_local: True
       inflation_layer:
+        # 膨胀层插件类型。
         plugin: "nav2_costmap_2d::InflationLayer"
+        # 膨胀代价衰减系数。
         cost_scaling_factor: 4.0
+        # 障碍物膨胀半径，单位米。
         inflation_radius: 0.6
+      # 是否总是发布完整代价地图。
       always_send_full_costmap: False
 
 # The yaml_filename does not need to be specified since it going to be set by defaults in launch.
@@ -721,104 +1138,168 @@ global_costmap:
 # 地图服务：yaml_filename 留空表示由 launch/CLI 注入
 map_server:
   ros__parameters:
+    # 地图服务加载的 yaml 地图路径。
     yaml_filename: ""
 
 # 地图保存：mapping 时用于保存栅格图
 map_saver:
   ros__parameters:
+    # 是否使用仿真时间。
     use_sim_time: False
+    # 地图保存超时时间，单位秒。
     save_map_timeout: 5.0
+    # 空闲栅格阈值。
     free_thresh_default: 0.25
+    # 占用栅格阈值。
     occupied_thresh_default: 0.65
+    # 是否订阅 transient local 的地图消息。
     map_subscribe_transient_local: True
 
 # 全局规划：Theta*（GridBased）
 planner_server:
   ros__parameters:
+    # 是否使用仿真时间。
     use_sim_time: False
+    # 规划器期望工作频率，单位 Hz。
     expected_planner_frequency: 10.0
+    # 规划器插件列表。
     planner_plugins: ["GridBased"]
     GridBased:
+      # Theta* 规划器插件类型。
       plugin: "nav2_theta_star_planner/ThetaStarPlanner" # In Iron and older versions, "/" was used instead of "::"
+      # 允许拐角数量。
       how_many_corners: 8
+      # 欧式代价权重。
       w_euc_cost: 1.0
+      # 遍历代价权重。
       w_traversal_cost: 10.0
+      # 启发式代价权重。
       w_heuristic_cost: 1.0
 
 # 路径平滑
 smoother_server:
   ros__parameters:
+    # 是否使用仿真时间。
     use_sim_time: False
+    # 平滑器插件列表。
     smoother_plugins: ["simple_smoother"]
     simple_smoother:
+      # 简单平滑器插件类型。
       plugin: "nav2_smoother::SimpleSmoother"
+      # 收敛容忍度。
       tolerance: 1.0e-10
+      # 最大迭代次数。
       max_its: 1000
+      # 是否执行细化优化。
       do_refinement: True
 
 # 行为服务器：Spin/BackUp/Wait 等恢复行为
 behavior_server:
   ros__parameters:
+    # 是否使用仿真时间。
     use_sim_time: False
+    # 局部代价地图话题。
     local_costmap_topic: local_costmap/costmap_raw
+    # 全局代价地图话题。
     global_costmap_topic: global_costmap/costmap_raw
+    # 局部 footprint 话题。
     local_footprint_topic: local_costmap/published_footprint
+    # 全局 footprint 话题。
     global_footprint_topic: global_costmap/published_footprint
+    # 行为服务器循环频率，单位 Hz。
     cycle_frequency: 10.0
+    # 启用的恢复行为插件列表。
     behavior_plugins: ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
     spin:
+      # 原地旋转行为插件类型。
       plugin: "nav2_behaviors/Spin"
     backup:
+      # 倒车避障行为插件类型。
       plugin: "pb_nav2_behaviors/BackUpFreeSpace"
     drive_on_heading:
+      # 沿航向前进行为插件类型。
       plugin: "nav2_behaviors/DriveOnHeading"
     wait:
+      # 等待行为插件类型。
       plugin: "nav2_behaviors/Wait"
     assisted_teleop:
+      # 辅助遥操作行为插件类型。
       plugin: "nav2_behaviors/AssistedTeleop"
+    # 行为服务器局部参考坐标系。
     local_frame: odom
+    # 行为服务器全局参考坐标系。
     global_frame: map
+    # 行为服务器机器人底盘基坐标系。
     robot_base_frame: gimbal_yaw_fake
+    # 行为服务器 TF 容忍窗口，单位秒。
     transform_tolerance: 0.1
+    # 恢复行为向前模拟时长，单位秒。
     simulate_ahead_time: 2.0
+    # 最大角速度，单位 rad/s。
     max_rotational_vel: 1.0
+    # 最小角速度，单位 rad/s。
     min_rotational_vel: 0.4
+    # 角加速度限制，单位 rad/s^2。
     rotational_acc_lim: 3.2
     # params for pb_nav2_behaviors/BackUpFreeSpace
+    # 代价地图服务名称。
     service_name: "global_costmap/get_costmap"
+    # 倒车最大半径，单位米。
     max_radius: 2.0
+    # 是否输出可视化结果。
     visualize: false
 
 # 航点跟随：用于按序执行多个 goal
 waypoint_follower:
   ros__parameters:
+    # 是否使用仿真时间。
     use_sim_time: False
+    # 航点跟随循环频率，单位 Hz。
     loop_rate: 20
+    # 某个航点失败后是否停止后续航点。
     stop_on_failure: false
+    # 航点任务执行器插件名。
     waypoint_task_executor_plugin: "wait_at_waypoint"
     wait_at_waypoint:
+      # 航点等待执行器插件类型。
       plugin: "nav2_waypoint_follower::WaitAtWaypoint"
+      # 是否启用航点等待。
       enabled: True
+      # 每个航点的等待时长，单位毫秒。
       waypoint_pause_duration: 200
 
 # 速度平滑：对 cmd_vel 做限幅/滤波
 velocity_smoother:
   ros__parameters:
+    # 是否使用仿真时间。
     use_sim_time: False
+    # 平滑器工作频率，单位 Hz。
     smoothing_frequency: 20.0
+    # 是否按比例缩放速度。
     scale_velocities: False
+    # 速度反馈模式。
     feedback: "OPEN_LOOP"
+    # 最大线速度和角速度上限。
     max_velocity: [2.5, 2.5, 3.0]
+    # 最小线速度和角速度下限。
     min_velocity: [-2.5, -2.5, -3.0]
+    # 最大加速度限制。
     max_accel: [4.5, 4.5, 5.0]
+    # 最大减速度限制。
     max_decel: [-4.5, -4.5, -5.0]
+    # 里程计话题。
     odom_topic: "odin1/odometry_highfreq"
+    # 里程计缓存时长，单位秒。
     odom_duration: 0.1
+    # 速度死区。
     deadband_velocity: [0.0, 0.0, 0.0]
+    # 速度超时阈值，单位秒。
     velocity_timeout: 1.0
 
 
 lifecycle_manager_navigation:
   ros__parameters:
+    # 生命周期管理器 bond 超时时间，单位秒。
     bond_timeout: 8.0
+    # 是否在 bond 断开后尝试重连。
     attempt_respawn_reconnection: true
