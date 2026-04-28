@@ -488,9 +488,15 @@ sudo systemctl restart docker
 > **为什么需要这步**：
 > 1) `/tmp` 每次重启会清空，`/tmp/.docker.xauth` 会丢失。  
 > 2) Wayland 和 NoMachine 的授权 cookie 位置不固定，单纯绑定 `~/.Xauthority` 经常不够用。  
-> 3) 旧方案是 user service + 单一 DISPLAY，容易在远程会话切换后失效。
+> 3) 旧方案是 user service + 单一 `DISPLAY=:0`，容易在 Wayland / NoMachine / 连屏幕切换后失效。
 >
-> 新方案使用 **system service + timer**，周期性汇总 `/home/*/.Xauthority`、`/run/user/*/Xauthority`、`/run/user/*/.mutter-Xwaylandauth.*`，自动生成 `/tmp/.docker.xauth`，容器统一挂载这个文件。
+> 新方案使用 **system service + timer**，周期性汇总 `/home/*/.Xauthority`、`/run/user/*/Xauthority`、`/run/user/*/.mutter-Xwaylandauth.*`，自动生成：
+> - `/tmp/.docker.xauth`
+> - `/tmp/gxu2026-docker-gui/xauth`
+> - `/tmp/gxu2026-docker-gui/display`
+> - `/tmp/gxu2026-docker-gui/displays`
+>
+> 容器启动时会优先读取这些提示文件并自动选择可用显示号，不再强依赖你启动 `docker compose` 时所在终端的 `DISPLAY`。
 
 ```bash
 cd ~/ros2_ws
@@ -506,15 +512,19 @@ systemctl status gxu2026-docker-xauth.service
 systemctl status gxu2026-docker-xauth.timer
 ls -la /tmp/.docker.xauth   # 应为普通文件，非目录
 xauth -f /tmp/.docker.xauth list | head
+ls -la /tmp/gxu2026-docker-gui
+cat /tmp/gxu2026-docker-gui/display
+cat /tmp/gxu2026-docker-gui/displays
 ```
 
 如果你有自定义路径，也可在 `docker/.env` 中设置：
 
 ```bash
+DOCKER_GUI_HOST_DIR=/tmp/gxu2026-docker-gui
 XAUTH_HOST_FILE=/tmp/.docker.xauth
 ```
 
-> NoMachine 场景下若 `DISPLAY` 不是 `:0`，请在同一个图形会话里启动 `docker compose`，让当前 `DISPLAY` 自动透传到容器；否则可手动导出后再启动：`export DISPLAY=:1001`。
+> 现在即使用 VS Code 右键 `Compose Up`，容器也会在启动时自动选择一个存在 X socket 的显示号。若你想强制固定某个显示号，可在 `docker/.env` 或 compose 环境变量中额外设置 `GXU_DISPLAY_OVERRIDE=:1001`。
 
 ### 7.3 构建环境镜像
 
