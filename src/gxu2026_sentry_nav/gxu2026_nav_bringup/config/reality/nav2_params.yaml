@@ -203,7 +203,6 @@ pb_controller_profiles:
 # 行为树相关（RM 侧）：实车不用 sim time
 rm_behavior_tree:
   ros__parameters:
-    # 行为树文件名。
     style: rmuc_01.xml
     # 是否使用仿真时间。
     use_sim_time: False
@@ -334,7 +333,7 @@ terrain_analysis:
     # 是否启用分位数排序地面估计。
     useSorting: True                    # 这个参数开起来就能上坡了；如果 use_sorting,那么就以周围点中的分位点作为地面点，否则以最低点作为地面点；周围其余点相对于地面点的高度作为通过代价，所以对于坡面，有的点的代价是正，有的是负，就相互抵消了；不要与 consider_drop 同时开启，计算上会有冲突
     # 地面分位数参数。
-    quantileZ: 0.2                      # useful if use_sorting is enabled.
+    quantileZ: 0.4                      # useful if use_sorting is enabled.
     # 是否将下凹地形按绝对高度处理。
     considerDrop: False                 # 考虑凹下去的地面,开启则将相对于地面点的高度取绝对值
     # 是否限制地面抬升。
@@ -344,17 +343,17 @@ terrain_analysis:
     # 是否清除动态物体。
     clearDyObs: True                    # 清除动态物体的话，有动态物体走过的地方就走不了了
     # 动态物体最小距离阈值，单位米。
-    minDyObsDis: 0.3                    # 以下参数都是在 clear_dy_obs 的情况下才有用的
+    minDyObsDis: 0.2                    # 以下参数都是在 clear_dy_obs 的情况下才有用的
     # 动态物体最小角度阈值，单位度。
     minDyObsAngle: 0.0
     # 动态物体相对 Z 下限。
     minDyObsRelZ: -0.3
     # 动态物体相对 Z 绝对值阈值。
-    absDyObsRelZThre: 0.2
+    absDyObsRelZThre: 0.4
     # 动态物体最小垂直视场角，单位度。
-    minDyObsVFOV: -28.0
+    minDyObsVFOV: -45.0
     # 动态物体最大垂直视场角，单位度。
-    maxDyObsVFOV: 33.0
+    maxDyObsVFOV: 45.0
     # 动态物体最少点数。
     minDyObsPointNum: 1
     # 是否把无数据区域当作障碍。
@@ -368,7 +367,7 @@ terrain_analysis:
     # 体素点更新阈值。
     voxelPointUpdateThre: 100
     # 体素时间更新阈值，单位秒。
-    voxelTimeUpdateThre: 1.0
+    voxelTimeUpdateThre: 0.5
     # 相对 Z 最小值。
     minRelZ: -1.5                       # min_rel_z 以及 max_rel_z 限制了有效点云点的Z值范围，用于对天花板和地板进行处理
     # 相对 Z 最大值。
@@ -401,9 +400,9 @@ terrain_analysis_ext:
     # 是否启用分位数排序地面估计。
     useSorting: true
     # 地面分位数参数。
-    quantileZ: 0.2
+    quantileZ: 0.4
     # 车辆高度阈值，单位米。
-    vehicleHeight: 1.0
+    vehicleHeight: 0.8
     # 体素点更新阈值。
     voxelPointUpdateThre: 100
     # 体素时间更新阈值，单位秒。
@@ -427,17 +426,17 @@ terrain_analysis_ext:
 
 terrain_analysis_ext_mid360:
   ros__parameters:
-    # 自动跟随 odin1 全局地形图的消息年龄，减少每次重连后手动调偏移。
+    # mid360 补盲源保留自身观测时间戳；不要跟随 odin1 地形图时间戳。
     # 参考地形图话题。
-    publishStampReferenceTopic: reference_terrain_map_ext
+    publishStampReferenceTopic: ""
     # 消息年龄缩放系数。
     publishStampReferenceAgeAlpha: 1.0
     # 消息年龄下限，单位秒。
     publishStampReferenceAgeClampMinSec: 0.0
     # 消息年龄上限，单位秒。
     publishStampReferenceAgeClampMaxSec: 1.0
-    # 输出时间戳偏移，单位秒。
-    publishStampOffsetSec: 0.03
+    # 输出时间戳偏移，单位秒；时间校准应在驱动或统一时钟层完成。
+    publishStampOffsetSec: 0.0
     # 点云体素大小，单位米。
     scanVoxelSize: 0.1
     # 点云时间衰减阈值，单位秒。
@@ -449,9 +448,9 @@ terrain_analysis_ext_mid360:
     # 是否启用分位数排序地面估计。
     useSorting: true
     # 地面分位数参数。
-    quantileZ: 0.2
+    quantileZ: 0.4
     # 车辆高度阈值，单位米。
-    vehicleHeight: 1.0
+    vehicleHeight: 0.8
     # 体素点更新阈值。
     voxelPointUpdateThre: 100
     # 体素时间更新阈值，单位秒。
@@ -473,19 +472,19 @@ terrain_analysis_ext_mid360:
     # 局部地形图半径，单位米。
     localTerrainMapRadius: 4.0
 
-# mid360 局部地形图同样做时间戳对齐，避免 local costmap 双源时序错层。
+# mid360 局部地形图保留自身观测时间戳，由 costmap/TF 容忍窗口处理真实链路延迟。
 terrain_analysis_mid360:
   ros__parameters:
     # 参考地形图话题。
-    publishStampReferenceTopic: reference_terrain_map
+    publishStampReferenceTopic: ""
     # 消息年龄缩放系数。
     publishStampReferenceAgeAlpha: 1.0
     # 消息年龄下限，单位秒。
     publishStampReferenceAgeClampMinSec: 0.0
     # 消息年龄上限，单位秒。
     publishStampReferenceAgeClampMaxSec: 1.0
-    # 输出时间戳偏移，单位秒。
-    publishStampOffsetSec: 0.03
+    # 输出时间戳偏移，单位秒；时间校准应在驱动或统一时钟层完成。
+    publishStampOffsetSec: 0.0
 
 # 假速度/坐标变换：把 Nav2 内部期望的底盘速度/局部路径做一层适配
 fake_vel_transform:
@@ -584,7 +583,7 @@ pointcloud_to_laserscan:
     target_frame: base_footprint
     # 导航阶段点云链路存在约 0.25~0.30s 滞后，适当放宽 TF 容忍窗口。
     # TF 容忍窗口，单位秒。
-    transform_tolerance: 0.4
+    transform_tolerance: 0.3
     # 最低高度过滤，单位米。
     min_height: -0.5
     # 最高高度过滤，单位米。
@@ -619,7 +618,7 @@ pointcloud_to_laserscan_mid360:
     # 投影目标坐标系。
     target_frame: base_footprint
     # TF 容忍窗口，单位秒。
-    transform_tolerance: 0.4
+    transform_tolerance: 0.3
     # 最低高度过滤，单位米。
     min_height: -0.5
     # 最高高度过滤，单位米。
@@ -892,7 +891,7 @@ local_costmap:
       # 局部代价地图中的机器人底盘基坐标系。
       robot_base_frame: gimbal_yaw_fake
       # 代价地图查询 TF 的容忍窗口，覆盖链路延迟峰值。
-      transform_tolerance: 0.6
+      transform_tolerance: 0.4
       # 局部代价地图是否采用滚动窗口。
       rolling_window: true
       # 滚动窗口宽度，单位米。
