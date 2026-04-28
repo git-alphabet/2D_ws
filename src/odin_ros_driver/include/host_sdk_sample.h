@@ -13,6 +13,7 @@ limitations under the License.
 #pragma once
 
 #include <chrono>
+#include <array>
 #include <csignal>
 #include <cstddef>
 #include <cstdint>
@@ -43,6 +44,7 @@ limitations under the License.
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <filesystem>
+#include <cmath>
 
 #include <yaml-cpp/yaml.h>
 #include "polynomial_camera.hpp"
@@ -87,8 +89,10 @@ double get_ptp_smoothed_offset();
     #include <builtin_interfaces/msg/time.hpp>
     #include <nav_msgs/msg/odometry.hpp>
     #include <nav_msgs/msg/path.hpp>
+    #include "tf2/LinearMath/Matrix3x3.h"
     #include <sensor_msgs/msg/point_field.hpp>
     #include "tf2/LinearMath/Quaternion.h"
+    #include "tf2/LinearMath/Transform.h"
     #include "tf2_ros/transform_broadcaster.h"
     namespace ros {
         using namespace rclcpp;
@@ -118,7 +122,9 @@ double get_ptp_smoothed_offset();
     #include <nav_msgs/Path.h>
     #include <sensor_msgs/Image.h>
     #include <tf2_ros/transform_broadcaster.h>
+    #include <tf2/LinearMath/Matrix3x3.h>
     #include <tf2/LinearMath/Quaternion.h>
+    #include <tf2/LinearMath/Transform.h>
     #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
     namespace ros {
         using namespace ::ros;
@@ -232,6 +238,10 @@ class RosNodeControlInterface {
         virtual bool sendOdomBaseLinkTF() const = 0;
         virtual void setOdomBaseFrameId(const std::string& odom_base_frame_id) = 0;
         virtual const std::string& odomBaseFrameId() const = 0;
+        virtual void setOdomSensorToBaseCorrection(bool enabled) = 0;
+        virtual bool odomSensorToBaseCorrection() const = 0;
+        virtual void setOdomSensorToBaseTransform(const tf2::Transform& sensor_to_base) = 0;
+        virtual const tf2::Transform& odomSensorToBaseTransform() const = 0;
         virtual void setCloudRawConfidenceThreshold(int threshold) = 0;
         virtual int cloudRawConfidenceThreshold() const = 0;
     };
@@ -1327,6 +1337,10 @@ void publishRgb(capture_Image_List_t *stream) {
                 msg.pose.pose.orientation.w = corrected_q.w();
             }
 
+            if (odom_type == OdometryType::STANDARD || odom_type == OdometryType::HIGHFREQ) {
+                applyOdomSensorToBaseCorrection(msg);
+            }
+
 #ifdef ROS2
             switch(odom_type) {
                 case OdometryType::STANDARD:
@@ -1697,6 +1711,56 @@ private:
         0.0, 0.0, 1.0, 0.02174,
         0.0, 0.0, 0.0, 1.0).finished();
     Eigen::Matrix4d T_cl_ = Eigen::Matrix4d::Identity(); // Camera->Lidar from YAML
+
+    void applyOdomSensorToBaseCorrection(ros::Odometry& msg) {
+        const auto* control = getRosNodeControl();
+        if (!control || !control->odomSensorToBaseCorrection()) {
+            return;
+        }
+
+        tf2::Quaternion q_odom_to_sensor(
+            msg.pose.pose.orientation.x,
+            msg.pose.pose.orientation.y,
+            msg.pose.pose.orientation.z,
+            msg.pose.pose.orientation.w);
+        q_odom_to_sensor.normalize();
+
+        tf2::Transform tf_odom_to_sensor(
+            q_odom_to_sensor,
+            tf2::Vector3(
+                msg.pose.pose.position.x,
+                msg.pose.pose.position.y,
+                msg.pose.pose.position.z));
+
+        const tf2::Transform& tf_sensor_to_base = control->odomSensorToBaseTransform();
+        const tf2::Vector3 base_offset_in_odom =
+            tf_odom_to_sensor.getBasis() * tf_sensor_to_base.getOrigin();
+        const tf2::Transform tf_odom_to_base = tf_odom_to_sensor * tf_sensor_to_base;
+        const tf2::Vector3 corrected_position = tf_odom_to_base.getOrigin();
+        tf2::Quaternion corrected_orientation = tf_odom_to_base.getRotation();
+        corrected_orientation.normalize();
+
+        msg.pose.pose.position.x = corrected_position.x();
+        msg.pose.pose.position.y = corrected_position.y();
+        msg.pose.pose.position.z = corrected_position.z();
+        msg.pose.pose.orientation.x = corrected_orientation.x();
+        msg.pose.pose.orientation.y = corrected_orientation.y();
+        msg.pose.pose.orientation.z = corrected_orientation.z();
+        msg.pose.pose.orientation.w = corrected_orientation.w();
+
+        tf2::Vector3 angular_velocity(
+            msg.twist.twist.angular.x,
+            msg.twist.twist.angular.y,
+            msg.twist.twist.angular.z);
+        tf2::Vector3 linear_velocity(
+            msg.twist.twist.linear.x,
+            msg.twist.twist.linear.y,
+            msg.twist.twist.linear.z);
+        linear_velocity += angular_velocity.cross(base_offset_in_odom);
+        msg.twist.twist.linear.x = linear_velocity.x();
+        msg.twist.twist.linear.y = linear_velocity.y();
+        msg.twist.twist.linear.z = linear_velocity.z();
+    }
 #ifdef ROS2
     std::vector<sensor_msgs::msg::PointCloud2> getIntensityCloudQueueSnapshot() {
         std::lock_guard<std::mutex> lock(pcd_queue_mutex_);

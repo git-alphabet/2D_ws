@@ -66,6 +66,7 @@ public:
     bool loadConfig();
     const std::map<std::string, int>& getRegisterKeys() const;
     const std::map<std::string, std::string>& getRegisterKeysStrVal() const;
+    const std::map<std::string, std::vector<double>>& getRegisterKeysDoubleArray() const;
     const std::map<std::string, ParameterValue>& getCustomParameters() const;
     void printConfig() const;
     bool applyCustomParameters(device_handle device);
@@ -85,6 +86,7 @@ private:
     std::string config_file_;
     std::map<std::string, int> register_keys_;
     std::map<std::string, std::string> register_keys_str_val_;
+    std::map<std::string, std::vector<double>> register_keys_double_array_;
     std::map<std::string, ParameterValue> custom_parameters_;
 
     std::unordered_set<std::string> allowed_key_w_str_val = {
@@ -96,6 +98,11 @@ private:
         "overlay_camera_topic",
         "overlay_output_topic",
         "overlay_alpha"
+    };
+
+    std::unordered_set<std::string> allowed_key_w_double_array = {
+        "odom_sensor_to_base_xyz",
+        "odom_sensor_to_base_rpy_deg"
     };
 };
 

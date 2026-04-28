@@ -60,9 +60,17 @@ register_keys:
   # 注意：这对 rviz 显示 cloud_raw 至关重要
   send_odom_baselink_tf: 1 # 0: off; 1: on.
 
-  # Child frame id used by odometry/TF and related cloud headers.
-  # 里程计/TF 以及相关点云 header 使用的子坐标系名称
+  # Child frame id used by odometry/TF. Keep this as the navigation base frame.
+  # 里程计/TF 使用的子坐标系名称；导航基准保持 base_footprint。
   odom_base_frame_id: "base_footprint"
+
+  # Correct odin sensor-center odometry into the configured child frame before publishing odom/TF.
+  # 将 odin 传感器中心位姿先换算到 odom_base_frame_id，再发布 odom/TF。
+  odom_sensor_to_base_correction: 1 # 0: off; 1: on
+  # Transform from the real odin sensor frame to odom_base_frame_id.
+  # 这里按 gxu2026_sentry_robot 的 front_odin1 -> base_footprint 零位姿推导，实车最终以标定值为准。
+  odom_sensor_to_base_xyz: [-0.0496, 0.2871, -0.0936]
+  odom_sensor_to_base_rpy_deg: [90.0, 0.0, 0.0]
 
   # raw dtof data
   # 原始 DTOF 数据
