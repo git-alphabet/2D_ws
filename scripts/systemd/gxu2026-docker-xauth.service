@@ -1,5 +1,5 @@
 [Unit]
-Description=Sync Docker X11 auth cookie file
+Description=Sync Docker GUI auth cookie and display hints
 After=systemd-user-sessions.service
 Wants=systemd-user-sessions.service
 
