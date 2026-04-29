@@ -24,7 +24,7 @@ register_keys:
   # 由设备原始 JPEG 解码得到的 RGB 数据，格式为 bgr8
   # Processed on host device
   # 在主机侧处理
-  sendrgb: 0              # 0: off; 1: on
+  sendrgb: 1              # 0: off; 1: on
 
   # undistort rgb image processed from decoded rgb data.
   # 由解码 RGB 处理得到去畸变图像
