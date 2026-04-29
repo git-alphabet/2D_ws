@@ -15,6 +15,7 @@
 import copy
 import math
 import os
+import sys
 import tempfile
 from pathlib import Path
 
@@ -208,6 +209,68 @@ def _set_navigation_switches(
 
             mid360_source["expected_update_rate"] = rate_value
             return True
+
+        def _set_costmap_observation_source_enabled(
+            costmap_name, observation_layer_name, source_name, enabled
+        ):
+            def _resolve_costmap_params(container):
+                if not isinstance(container, dict):
+                    return None
+
+                candidates = [
+                    [costmap_name, "ros__parameters"],
+                    [costmap_name, costmap_name, "ros__parameters"],
+                ]
+                for path in candidates:
+                    current = container
+                    valid = True
+                    for key in path:
+                        if not isinstance(current, dict):
+                            valid = False
+                            break
+                        current = current.get(key)
+                    if valid and isinstance(current, dict):
+                        return current
+                return None
+
+            def _apply(container):
+                costmap_params = _resolve_costmap_params(container)
+                if costmap_params is None:
+                    return False
+
+                observation_layer = costmap_params.get(observation_layer_name)
+                if not isinstance(observation_layer, dict):
+                    return False
+
+                changed = False
+                raw_sources = observation_layer.get("observation_sources")
+                if isinstance(raw_sources, str):
+                    source_tokens = raw_sources.split()
+                    filtered_tokens = [
+                        token for token in source_tokens if token != source_name
+                    ]
+                    if enabled:
+                        if source_name not in filtered_tokens:
+                            filtered_tokens.append(source_name)
+                    if filtered_tokens != source_tokens:
+                        observation_layer["observation_sources"] = " ".join(
+                            filtered_tokens
+                        )
+                        changed = True
+
+                if enabled:
+                    return changed
+
+                if source_name in observation_layer:
+                    observation_layer.pop(source_name, None)
+                    changed = True
+
+                return changed
+
+            changed = _apply(target_data)
+            if target_data is not raw_yaml:
+                changed = _apply(raw_yaml) or changed
+            return changed
 
         def _normalize_costmap_size_types(container):
             """兼容配置文件里 width/height 写成 20 或 20.0 的情况。"""
@@ -764,6 +827,22 @@ def _set_navigation_switches(
         if _set_mid360_local_expected_update_rate(mid360_expected_rate):
             switch_override_required = True
             override_required = True
+        if _set_costmap_observation_source_enabled(
+            "local_costmap",
+            "intensity_voxel_layer",
+            "terrain_map_mid360",
+            enable_mid360_costmap_additive_value == "true",
+        ):
+            switch_override_required = True
+            override_required = True
+        if _set_costmap_observation_source_enabled(
+            "global_costmap",
+            "intensity_voxel_layer",
+            "terrain_map_ext_mid360",
+            enable_mid360_costmap_additive_value == "true",
+        ):
+            switch_override_required = True
+            override_required = True
 
         # odin1 实车导航（非 slam）需要等待 map 链路就绪，
         # 否则会在重定位成功前提前激活 Nav2，导致持续报 map 帧不存在。
@@ -774,11 +853,48 @@ def _set_navigation_switches(
                 nav2_tf_warmup_source_frame_value = "gimbal_yaw_fake"
 
         if override_required:
+            local_costmap_params = _get_ros_params_with_fallback("local_costmap")
+            local_sources = None
+            if isinstance(local_costmap_params.get("local_costmap"), dict):
+                local_sources = (
+                    local_costmap_params["local_costmap"]
+                    .get("ros__parameters", {})
+                    .get("intensity_voxel_layer", {})
+                    .get("observation_sources")
+                )
+            elif isinstance(local_costmap_params.get("intensity_voxel_layer"), dict):
+                local_sources = (
+                    local_costmap_params.get("intensity_voxel_layer", {}).get("observation_sources")
+                )
+
+            global_costmap_params = _get_ros_params_with_fallback("global_costmap")
+            global_sources = None
+            if isinstance(global_costmap_params.get("global_costmap"), dict):
+                global_sources = (
+                    global_costmap_params["global_costmap"]
+                    .get("ros__parameters", {})
+                    .get("intensity_voxel_layer", {})
+                    .get("observation_sources")
+                )
+            elif isinstance(global_costmap_params.get("intensity_voxel_layer"), dict):
+                global_sources = (
+                    global_costmap_params.get("intensity_voxel_layer", {}).get("observation_sources")
+                )
+
             with tempfile.NamedTemporaryFile(
                 mode="w", delete=False, suffix=".yaml"
             ) as tmp_file:
                 yaml.safe_dump(raw_yaml, tmp_file, default_flow_style=False)
                 processed_file = tmp_file.name
+            print(
+                "[navigation_launch] processed params: "
+                f"slam={slam_enabled} "
+                f"enable_mid360_costmap_additive={enable_mid360_costmap_additive_value} "
+                f"local_sources={local_sources!r} "
+                f"global_sources={global_sources!r} "
+                f"file={processed_file}",
+                file=sys.stderr,
+            )
 
     if terrain_registered_scan_topic_override:
         terrain_registered_scan_topic_value = terrain_registered_scan_topic_override

@@ -23,6 +23,7 @@ from ament_index_python.packages import (
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
+    OpaqueFunction,
     SetEnvironmentVariable,
     SetLaunchConfiguration,
 )
@@ -87,16 +88,6 @@ def generate_launch_description():
 
     # Normalize namespace for YAML root key (strip leading '/'; treat '/' as empty).
     normalized_root_key = PythonExpression(["'", namespace, "'.lstrip('/')"])
-
-    configured_params = ParameterFile(
-        RewrittenYaml(
-            source_file=processed_params_file,
-            root_key=normalized_root_key,
-            param_rewrites=param_substitutions,
-            convert_types=True,
-        ),
-        allow_substs=True,
-    )
 
     stdout_linebuf_envvar = SetEnvironmentVariable(
         "RCUTILS_LOGGING_BUFFERED_STREAM", "1"
@@ -252,37 +243,49 @@ def generate_launch_description():
         nav2_tf_warmup_timeout_sec=nav2_tf_warmup_timeout_sec,
     )
 
-    runtime_actions = build_navigation_runtime_actions(
-        bringup_dir=bringup_dir,
-        namespace=namespace,
-        use_sim_time=use_sim_time,
-        autostart=autostart,
-        use_composition=use_composition,
-        container_name_full=container_name_full,
-        use_respawn=use_respawn,
-        log_level=log_level,
-        configured_params=configured_params,
-        point_lio_config_file=point_lio_config_file,
-        terrain_registered_scan_topic=terrain_registered_scan_topic,
-        terrain_lidar_odometry_topic=terrain_lidar_odometry_topic,
-        sensor_scan_registered_scan_topic=sensor_scan_registered_scan_topic,
-        sensor_scan_lidar_odometry_topic=sensor_scan_lidar_odometry_topic,
-        enable_gimbal_yaw_bridge=enable_gimbal_yaw_bridge,
-        enable_rm_behavior_tree=enable_rm_behavior_tree,
-        rm_behavior_tree_executable=rm_behavior_tree_executable,
-        rm_behavior_tree_style_path=rm_behavior_tree_style_path,
-        enable_obstacle_scan=enable_obstacle_scan,
-        enable_mid360_costmap_additive=enable_mid360_costmap_additive,
-        enable_odin1_loam_reframe=enable_odin1_loam_reframe,
-        enable_scan_additive=enable_scan_additive,
-        obstacle_scan_output_topic=obstacle_scan_output_topic,
-        nav2_tf_warmup_enabled=nav2_tf_warmup_enabled,
-        nav2_tf_warmup_target_frame=nav2_tf_warmup_target_frame,
-        nav2_tf_warmup_source_frame=nav2_tf_warmup_source_frame,
-        nav2_tf_warmup_timeout_sec=nav2_tf_warmup_timeout_sec,
-        nav2_tf_warmup_check_hz=nav2_tf_warmup_check_hz,
-        lifecycle_nodes=lifecycle_nodes,
-    )
+    def _build_runtime_actions(context):
+        resolved_root_key = (namespace.perform(context) or "").lstrip("/")
+        configured_params = ParameterFile(
+            RewrittenYaml(
+                source_file=processed_params_file.perform(context),
+                root_key=resolved_root_key,
+                param_rewrites=param_substitutions,
+                convert_types=True,
+            ),
+            allow_substs=True,
+        )
+
+        return build_navigation_runtime_actions(
+            bringup_dir=bringup_dir,
+            namespace=namespace,
+            use_sim_time=use_sim_time,
+            autostart=autostart,
+            use_composition=use_composition,
+            container_name_full=container_name_full,
+            use_respawn=use_respawn,
+            log_level=log_level,
+            configured_params=configured_params,
+            point_lio_config_file=point_lio_config_file,
+            terrain_registered_scan_topic=terrain_registered_scan_topic,
+            terrain_lidar_odometry_topic=terrain_lidar_odometry_topic,
+            sensor_scan_registered_scan_topic=sensor_scan_registered_scan_topic,
+            sensor_scan_lidar_odometry_topic=sensor_scan_lidar_odometry_topic,
+            enable_gimbal_yaw_bridge=enable_gimbal_yaw_bridge,
+            enable_rm_behavior_tree=enable_rm_behavior_tree,
+            rm_behavior_tree_executable=rm_behavior_tree_executable,
+            rm_behavior_tree_style_path=rm_behavior_tree_style_path,
+            enable_obstacle_scan=enable_obstacle_scan,
+            enable_mid360_costmap_additive=enable_mid360_costmap_additive,
+            enable_odin1_loam_reframe=enable_odin1_loam_reframe,
+            enable_scan_additive=enable_scan_additive,
+            obstacle_scan_output_topic=obstacle_scan_output_topic,
+            nav2_tf_warmup_enabled=nav2_tf_warmup_enabled,
+            nav2_tf_warmup_target_frame=nav2_tf_warmup_target_frame,
+            nav2_tf_warmup_source_frame=nav2_tf_warmup_source_frame,
+            nav2_tf_warmup_timeout_sec=nav2_tf_warmup_timeout_sec,
+            nav2_tf_warmup_check_hz=nav2_tf_warmup_check_hz,
+            lifecycle_nodes=lifecycle_nodes,
+        )
 
     # Create the launch description and populate
     ld = LaunchDescription()
@@ -326,7 +329,6 @@ def generate_launch_description():
     ld.add_action(SetLaunchConfiguration("sensor_scan_lidar_odometry_topic", ""))
     # Set switches before starting nodes
     ld.add_action(set_switches_cmd)
-    for action in runtime_actions:
-        ld.add_action(action)
+    ld.add_action(OpaqueFunction(function=lambda context: _build_runtime_actions(context)))
 
     return ld

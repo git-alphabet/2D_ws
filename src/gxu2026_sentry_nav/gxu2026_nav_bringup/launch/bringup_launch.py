@@ -13,6 +13,9 @@
 # limitations under the License.
 
 import os
+import sys
+import tempfile
+from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -20,7 +23,9 @@ from launch.actions import (
     DeclareLaunchArgument,
     GroupAction,
     IncludeLaunchDescription,
+    OpaqueFunction,
     SetEnvironmentVariable,
+    SetLaunchConfiguration,
 )
 from launch.conditions import (
     IfCondition,
@@ -32,6 +37,7 @@ from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node, PushRosNamespace, SetRemap
 from launch_ros.descriptions import ParameterFile
 from nav2_common.launch import ReplaceString, RewrittenYaml
+import yaml  # type: ignore
 
 
 def generate_launch_description():
@@ -50,6 +56,7 @@ def generate_launch_description():
     use_composition = LaunchConfiguration("use_composition")
     use_respawn = LaunchConfiguration("use_respawn")
     log_level = LaunchConfiguration("log_level")
+    container_params_file = LaunchConfiguration("container_params_file")
     terrain_registered_scan_topic = LaunchConfiguration("terrain_registered_scan_topic")
     terrain_lidar_odometry_topic = LaunchConfiguration("terrain_lidar_odometry_topic")
     sensor_scan_registered_scan_topic = LaunchConfiguration("sensor_scan_registered_scan_topic")
@@ -76,7 +83,7 @@ def generate_launch_description():
 
     configured_params = ParameterFile(
         RewrittenYaml(
-            source_file=params_file,
+            source_file=container_params_file,
             root_key=namespace,
             param_rewrites=param_substitutions,
             convert_types=True,
@@ -178,6 +185,162 @@ def generate_launch_description():
         description="Pass-through to localization_launch: True for odin Mode0, False for Mode1/2",
     )
 
+    def _prepare_container_params(context):
+        params_path = params_file.perform(context)
+        ns_value = (namespace.perform(context) or "").strip()
+        slam_value = (slam.perform(context) or "").strip().lower() in {
+            "true",
+            "1",
+            "yes",
+            "on",
+        }
+
+        try:
+            raw_yaml = yaml.safe_load(Path(params_path).read_text()) or {}
+        except Exception as exc:
+            print(
+                f"[bringup_launch] Warning: failed to load params file for container preprocessing: {exc}",
+                file=sys.stderr,
+            )
+            return [SetLaunchConfiguration("container_params_file", params_path)]
+
+        target_data = raw_yaml
+        if ns_value:
+            maybe_namespaced = raw_yaml.get(ns_value)
+            if isinstance(maybe_namespaced, dict):
+                target_data = maybe_namespaced
+
+        def _get_ros_params(container, key):
+            entry = container.get(key) if isinstance(container, dict) else None
+            if isinstance(entry, dict):
+                params = entry.get("ros__parameters")
+                if isinstance(params, dict):
+                    return params
+            return {}
+
+        def _get_ros_params_with_fallback(key):
+            params = _get_ros_params(target_data, key)
+            if not params and target_data is not raw_yaml:
+                params = _get_ros_params(raw_yaml, key)
+            return params
+
+        def _optional_bool(value):
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, str):
+                normalized = value.strip().lower()
+                if normalized in {"true", "1", "yes", "on"}:
+                    return True
+                if normalized in {"false", "0", "no", "off"}:
+                    return False
+            return None
+
+        def _set_costmap_observation_source_enabled(
+            costmap_name, observation_layer_name, source_name, enabled
+        ):
+            def _resolve_costmap_params(container):
+                if not isinstance(container, dict):
+                    return None
+                candidates = [
+                    [costmap_name, "ros__parameters"],
+                    [costmap_name, costmap_name, "ros__parameters"],
+                ]
+                for path in candidates:
+                    current = container
+                    valid = True
+                    for key in path:
+                        if not isinstance(current, dict):
+                            valid = False
+                            break
+                        current = current.get(key)
+                    if valid and isinstance(current, dict):
+                        return current
+                return None
+
+            changed = False
+            containers = (raw_yaml,) if target_data is raw_yaml else (target_data, raw_yaml)
+            for container in containers:
+                costmap_params = _resolve_costmap_params(container)
+                if costmap_params is None:
+                    continue
+                observation_layer = costmap_params.get(observation_layer_name)
+                if not isinstance(observation_layer, dict):
+                    continue
+
+                raw_sources = observation_layer.get("observation_sources")
+                if isinstance(raw_sources, str):
+                    source_tokens = raw_sources.split()
+                    filtered_tokens = [
+                        token for token in source_tokens if token != source_name
+                    ]
+                    if enabled and source_name not in filtered_tokens:
+                        filtered_tokens.append(source_name)
+                    if filtered_tokens != source_tokens:
+                        observation_layer["observation_sources"] = " ".join(
+                            filtered_tokens
+                        )
+                        changed = True
+
+                if not enabled and source_name in observation_layer:
+                    observation_layer.pop(source_name, None)
+                    changed = True
+            return changed
+
+        mid360_runtime = _get_ros_params_with_fallback("mid360_runtime")
+        mid360_costmap_switch = _optional_bool(
+            mid360_runtime.get("enable_costmap_additive")
+        )
+        mid360_costmap_in_slam_switch = _optional_bool(
+            mid360_runtime.get("enable_costmap_additive_in_slam")
+        )
+        mid360_costmap_in_nav_switch = _optional_bool(
+            mid360_runtime.get("enable_costmap_additive_in_nav")
+        )
+
+        if slam_value:
+            enable_mid360_costmap_additive = (
+                mid360_costmap_in_slam_switch
+                if mid360_costmap_in_slam_switch is not None
+                else False
+            )
+        elif mid360_costmap_in_nav_switch is not None:
+            enable_mid360_costmap_additive = mid360_costmap_in_nav_switch
+        elif mid360_costmap_switch is not None:
+            enable_mid360_costmap_additive = mid360_costmap_switch
+        else:
+            enable_mid360_costmap_additive = True
+
+        changed = False
+        changed = _set_costmap_observation_source_enabled(
+            "local_costmap",
+            "intensity_voxel_layer",
+            "terrain_map_mid360",
+            enable_mid360_costmap_additive,
+        ) or changed
+        changed = _set_costmap_observation_source_enabled(
+            "global_costmap",
+            "intensity_voxel_layer",
+            "terrain_map_ext_mid360",
+            enable_mid360_costmap_additive,
+        ) or changed
+
+        processed_path = params_path
+        if changed:
+            with tempfile.NamedTemporaryFile(
+                mode="w", delete=False, suffix=".yaml"
+            ) as tmp_file:
+                yaml.safe_dump(raw_yaml, tmp_file, default_flow_style=False)
+                processed_path = tmp_file.name
+
+        print(
+            "[bringup_launch] container params: "
+            f"slam={slam_value} "
+            f"enable_mid360_costmap_additive={enable_mid360_costmap_additive} "
+            f"file={processed_path}",
+            file=sys.stderr,
+        )
+        return [SetLaunchConfiguration("container_params_file", processed_path)]
+
     # Specify the actions
     bringup_cmd_group = GroupAction(
         [
@@ -273,6 +436,8 @@ def generate_launch_description():
     ld.add_action(declare_sensor_scan_lidar_odometry_topic_cmd)
     ld.add_action(declare_point_lio_config_file_cmd)
     ld.add_action(declare_publish_static_map_tf_cmd)
+    ld.add_action(SetLaunchConfiguration("container_params_file", params_file))
+    ld.add_action(OpaqueFunction(function=_prepare_container_params))
 
     # Add the actions to launch all of the navigation nodes
     ld.add_action(bringup_cmd_group)

@@ -26,7 +26,7 @@ mid360_runtime:
     enable_costmap_additive: "auto"
     # 建图阶段建议单源（odin1）避免装配/时序误差叠加；导航阶段再启用双源补盲。
     # 建图阶段是否启用补盲链路。
-    enable_costmap_additive_in_slam: true
+    enable_costmap_additive_in_slam: false
     # 导航阶段是否启用补盲链路。
     enable_costmap_additive_in_nav: true
 
@@ -659,7 +659,7 @@ scan_additive_runtime:
     enabled: true
     # 建图阶段默认关闭，导航阶段默认开启。
     # 建图阶段是否启用融合。
-    enabled_in_slam: true
+    enabled_in_slam: false
     # 导航阶段是否启用融合。
     enabled_in_nav: true
 
