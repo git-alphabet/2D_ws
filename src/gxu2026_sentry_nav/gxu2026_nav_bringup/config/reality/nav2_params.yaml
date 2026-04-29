@@ -261,7 +261,6 @@ loam_interface_mid360:
     # 输出里程计坐标系。
     odom_frame: "odom"
     # mid360 当前安装在 gimbal_yaw，下游按 front_mid360 语义消费。
-    # 机器人底盘坐标系。
     base_frame: "gimbal_yaw"
     # 激光雷达坐标系。
     lidar_frame: "front_mid360"
