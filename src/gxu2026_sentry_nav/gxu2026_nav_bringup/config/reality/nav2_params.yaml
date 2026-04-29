@@ -408,8 +408,10 @@ terrain_analysis_ext:
     vehicleHeight: 0.8
     # 体素点更新阈值。
     voxelPointUpdateThre: 100
+    # ext 链路用于 global_costmap / obstacle_scan。
+    # 若该值过大，体素里旧点会在雷达转动后保留过久，表现为全局障碍拖影、scan 发花。
     # 体素时间更新阈值，单位秒。
-    voxelTimeUpdateThre: 2.0
+    voxelTimeUpdateThre: 0.5
     # 相对 Z 下限。
     lowerBoundZ: -1.5
     # 相对 Z 上限。
@@ -424,8 +426,10 @@ terrain_analysis_ext:
     terrainConnThre: 0.5
     # 天花板过滤阈值。
     ceilingFilteringThre: 2.0
+    # obstacle_scan 的有效量程到 10m。
+    # 这里至少覆盖到相同量级，避免 4~10m 区间退回到历史累积 ext 点云，导致转雷达时发花。
     # 局部地形图半径，单位米。
-    localTerrainMapRadius: 4.0
+    localTerrainMapRadius: 10.0
 
 terrain_analysis_ext_mid360:
   ros__parameters:
@@ -456,8 +460,9 @@ terrain_analysis_ext_mid360:
     vehicleHeight: 0.8
     # 体素点更新阈值。
     voxelPointUpdateThre: 100
+    # 与主 ext 链路保持一致，减少补盲全局层在云台转动时的历史拖影。
     # 体素时间更新阈值，单位秒。
-    voxelTimeUpdateThre: 2.0
+    voxelTimeUpdateThre: 0.5
     # 相对 Z 下限。
     lowerBoundZ: -1.5
     # 相对 Z 上限。
@@ -472,8 +477,9 @@ terrain_analysis_ext_mid360:
     terrainConnThre: 0.5
     # 天花板过滤阈值。
     ceilingFilteringThre: 2.0
+    # 与主 ext 链路保持一致，确保 10m 内优先使用当前局部地形而不是历史累积。
     # 局部地形图半径，单位米。
-    localTerrainMapRadius: 4.0
+    localTerrainMapRadius: 10.0
 
 # mid360 局部地形图保留自身观测时间戳，由 costmap/TF 容忍窗口处理真实链路延迟。
 terrain_analysis_mid360:
