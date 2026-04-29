@@ -93,6 +93,12 @@ pairs:
     right_topic: /livox/lidar
     msg_type: sensor_msgs/msg/PointCloud2
 
+  # 0.5) 实际双源地形入口：odin1 SLAM 点云 vs livox 驱动点云
+  - name: cloud_odin1_slam_vs_mid360_driver
+    left_topic: /odin1/cloud_slam
+    right_topic: /livox/lidar
+    msg_type: sensor_msgs/msg/PointCloud2
+
   # 1) 优先评估 odin1 单链：驱动输出 vs loam_interface 输出
   - name: odom_odin1_vs_loam_reframe
     left_topic: /odin1/odometry_highfreq

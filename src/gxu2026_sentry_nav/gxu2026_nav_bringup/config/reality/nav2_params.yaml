@@ -486,6 +486,59 @@ terrain_analysis_mid360:
     publishStampReferenceAgeClampMaxSec: 1.0
     # 输出时间戳偏移，单位秒；时间校准应在驱动或统一时钟层完成。
     publishStampOffsetSec: 0.0
+    # mid360 补盲只服务局部 costmap，使用短衰减和较低高度窗口，避免 terrain_analysis 累积过多历史点造成输出空洞。
+    # 点云体素大小，单位米。
+    scanVoxelSize: 0.08
+    # 点云时间衰减阈值，单位秒。
+    decayTime: 0.2
+    # 距离衰减阈值，单位米。
+    noDecayDis: 0.0
+    # 清除距离阈值，单位米。
+    clearingDis: 0.0
+    # 是否启用分位数排序地面估计。
+    useSorting: true
+    # 地面分位数参数。
+    quantileZ: 0.4
+    # 是否将下凹地形按绝对高度处理。
+    considerDrop: false
+    # 是否限制地面抬升。
+    limitGroundLift: false
+    # 允许的最大地面抬升，单位米。
+    maxGroundLift: 0.3
+    # 补盲链路关闭动态障碍清理，减少局部地形分析的突发计算量。
+    clearDyObs: false
+    # 动态物体最小距离阈值，单位米。
+    minDyObsDis: 0.2
+    # 动态物体最小角度阈值，单位度。
+    minDyObsAngle: 0.0
+    # 动态物体相对 Z 下限。
+    minDyObsRelZ: -0.3
+    # 动态物体相对 Z 绝对值阈值。
+    absDyObsRelZThre: 0.4
+    # 动态物体最小垂直视场角，单位度。
+    minDyObsVFOV: -45.0
+    # 动态物体最大垂直视场角，单位度。
+    maxDyObsVFOV: 45.0
+    # 动态物体最少点数。
+    minDyObsPointNum: 1
+    # 是否把无数据区域当作障碍。
+    noDataObstacle: false
+    # 无数据块跳过计数。
+    noDataBlockSkipNum: 0
+    # 单块最少点数。
+    minBlockPointNum: 10
+    # 车辆高度阈值，单位米。
+    vehicleHeight: 0.5
+    # 体素点更新阈值。
+    voxelPointUpdateThre: 100
+    # 体素时间更新阈值，单位秒。
+    voxelTimeUpdateThre: 0.5
+    # 相对 Z 最小值。
+    minRelZ: -1.5
+    # 相对 Z 最大值。
+    maxRelZ: 0.5
+    # Z 距离比例系数。
+    disRatioZ: 0.2
 
 # 假速度/坐标变换：把 Nav2 内部期望的底盘速度/局部路径做一层适配
 fake_vel_transform:
