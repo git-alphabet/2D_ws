@@ -347,7 +347,7 @@ terrain_analysis:
     noDecayDis: 0.0                     # 近距离免衰减半径（m）；在该距离内不受 decayTime 约束，>0 可增强近场稳定性。
     clearingDis: 0.0                    # 清理距离（m）；超过该距离的旧点可被清除，0 通常表示不按距离强清。
     useSorting: True                    # 地面估计方式开关；True 用分位数地面（坡面更稳），False 用最低点地面（对凹坑/离群点更敏感）。
-    quantileZ: 0.2                      # useSorting=True 时地面分位数（0~1）；越小越贴近低点，越大越“保守抬高地面”。
+    quantileZ: 0.4                      # useSorting=True 时地面分位数（0~1）；越小越贴近低点，越大越“保守抬高地面”。
     considerDrop: False                 # 是否将负高差按绝对值计入代价；True 会把凹陷也当障碍趋势，勿与 useSorting 同时强依赖。
     limitGroundLift: False              # 是否限制地面抬升幅度；用于抑制局部异常导致地面估计突变。
     maxGroundLift: 0.3                  # 地面允许最大抬升（m）；limitGroundLift=True 时生效，调小可抑制突跳。
@@ -377,7 +377,7 @@ terrain_analysis_ext:
     noDecayDis: 0.0                     # 近距离免衰减半径（m）；>0 可增强车体附近地形连续性。
     clearingDis: 20.0                   # 距离清理半径（m）；用于限制地图保留范围，避免远处陈旧点长期占用。
     useSorting: true                    # 地面估计采用分位数策略；对坡地和起伏地形通常更稳。
-    quantileZ: 0.2                      # 地面分位数参数；越小越贴近低点，越大越偏保守。
+    quantileZ: 0.4                      # 地面分位数参数；越小越贴近低点，越大越偏保守。
     vehicleHeight: 1.0                  # 扩展图可接受高度上限（m）；通常高于 local，提升全局环境覆盖。
     voxelPointUpdateThre: 100           # 体素点数更新阈值；控制更新稳定性与实时性平衡。
     voxelTimeUpdateThre: 2.0            # 体素时间更新阈值（s）；扩展图设大一些可降低抖动。
