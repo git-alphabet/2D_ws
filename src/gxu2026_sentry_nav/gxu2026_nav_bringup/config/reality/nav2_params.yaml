@@ -912,8 +912,8 @@ local_costmap:
         track_unknown_space: true
         # 是否在 footprint 内清除障碍。
         footprint_clearing_enabled: true
-        # 观测点云链路存在约 0.3s 处理延迟，放宽 TF 过滤容忍窗口以减少 MessageFilter 丢帧。
-        tf_filter_tolerance: 0.40
+        # 仅保留短 TF 过滤窗口；过大会让 MessageFilter 对未来时间戳额外等待。
+        tf_filter_tolerance: 0.05
         # 是否发布体素地图调试数据。
         publish_voxel_map: false
         # 多源观测的融合方式。
@@ -1046,8 +1046,8 @@ global_costmap:
         track_unknown_space: true
         # 是否在 footprint 内清除障碍。
         footprint_clearing_enabled: true
-        # 全局层同样放宽 TF 过滤容忍窗口，避免 terrain_map_ext 链路因时间戳滞后被丢弃。
-        tf_filter_tolerance: 0.40
+        # 仅保留短 TF 过滤窗口；过大会让 MessageFilter 对未来时间戳额外等待。
+        tf_filter_tolerance: 0.05
         # 是否发布体素地图调试数据。
         publish_voxel_map: false
         # 多源观测的融合方式。
