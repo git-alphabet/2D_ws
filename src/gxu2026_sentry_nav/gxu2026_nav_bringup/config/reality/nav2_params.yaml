@@ -29,6 +29,8 @@ mid360_runtime:
     enable_costmap_additive_in_slam: false
     # 导航阶段是否启用补盲链路。
     enable_costmap_additive_in_nav: true
+    # Nav2 observation buffer 判定 mid360 补盲源 stale 的周期阈值，单位秒；0.0 表示关闭该告警。
+    local_costmap_expected_update_rate: 0.30
 
 
 pb_navigation_switches:
@@ -951,7 +953,7 @@ local_costmap:
           # 仅使用最新观测，配合 terrain_analysis 的 decayTime 实现时间清除
           # 该观测源的历史缓存时长。
           observation_persistence: 0.0
-          # 期望的更新频率，单位 Hz。
+          # 期望更新周期阈值，单位秒；超过该时间未收到有效观测会触发 stale 告警。
           expected_update_rate: 0.20
           # 该源允许的最低障碍高度。
           min_obstacle_height: 0.0
@@ -976,7 +978,7 @@ local_costmap:
           clearing: true
           # 该观测源的历史缓存时长。
           observation_persistence: 0.0
-          # 期望的更新频率，单位 Hz。
+          # 期望更新周期阈值，单位秒。
           expected_update_rate: 0.30
           # 该源允许的最低障碍高度。
           min_obstacle_height: 0.0

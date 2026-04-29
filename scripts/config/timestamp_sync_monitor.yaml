@@ -10,9 +10,13 @@ topics:
   - name: mid360_driver_pointcloud2
     topic: /livox/lidar
     msg_type: sensor_msgs/msg/PointCloud2
+    end_stamp_field: timestamp
+    end_stamp_mode: absolute_sec
   - name: mid360_driver_custom
     topic: /livox/lidar/pointcloud
     msg_type: livox_ros_driver2/msg/CustomMsg
+    end_stamp_field: offset_time
+    end_stamp_mode: livox_custom_offset_ns
 
   # point_lio mid360 outputs in odin1 dual-source mode
   - name: mid360_pointlio_body
@@ -29,9 +33,17 @@ topics:
     msg_type: sensor_msgs/msg/PointCloud2
 
   # odin1 reference chain
+  - name: odin1_cloud_raw
+    topic: /odin1/cloud_raw
+    msg_type: sensor_msgs/msg/PointCloud2
+    end_stamp_field: offset_time
+    end_stamp_mode: relative_sec
   - name: odin1_cloud_slam
     topic: /odin1/cloud_slam
     msg_type: sensor_msgs/msg/PointCloud2
+  - name: odin1_odom_highfreq
+    topic: /odin1/odometry_highfreq
+    msg_type: nav_msgs/msg/Odometry
   - name: odin1_terrain_local
     topic: /terrain_map
     msg_type: sensor_msgs/msg/PointCloud2
@@ -64,7 +76,23 @@ chains:
       - /odin1/cloud_slam
       - /terrain_map_ext
 
+  - name: odin1_raw_vs_slam_processing
+    topics:
+      - /odin1/cloud_raw
+      - /odin1/cloud_slam
+
 pairs:
+  # 0) 原始采集层：先判断是不是设备/主机时钟或原始数据链路问题
+  - name: cloud_odin1_raw_vs_slam
+    left_topic: /odin1/cloud_raw
+    right_topic: /odin1/cloud_slam
+    msg_type: sensor_msgs/msg/PointCloud2
+
+  - name: cloud_odin1_raw_vs_mid360_driver
+    left_topic: /odin1/cloud_raw
+    right_topic: /livox/lidar
+    msg_type: sensor_msgs/msg/PointCloud2
+
   # 1) 优先评估 odin1 单链：驱动输出 vs loam_interface 输出
   - name: odom_odin1_vs_loam_reframe
     left_topic: /odin1/odometry_highfreq

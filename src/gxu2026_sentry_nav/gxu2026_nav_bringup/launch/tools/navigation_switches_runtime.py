@@ -380,6 +380,25 @@ def _set_navigation_switches(
                     return False
             return None
 
+        def _optional_nonnegative_float(raw_value):
+            if isinstance(raw_value, bool):
+                return None
+            if isinstance(raw_value, (int, float)):
+                value = float(raw_value)
+            elif isinstance(raw_value, str):
+                stripped = raw_value.strip()
+                if not stripped:
+                    return None
+                try:
+                    value = float(stripped)
+                except ValueError:
+                    return None
+            else:
+                return None
+            if not math.isfinite(value) or value < 0.0:
+                return None
+            return value
+
         def _detect_odin_internal_axis_alignment():
             markers = (
                 "align_odin_vector_to_vehicle",
@@ -502,6 +521,12 @@ def _set_navigation_switches(
         )
         if obstacle_scan_switch is not None:
             enable_obstacle_scan_value = "true" if obstacle_scan_switch else "false"
+
+        mid360_local_costmap_expected_update_rate = _optional_nonnegative_float(
+            mid360_runtime.get("local_costmap_expected_update_rate", 0.30)
+        )
+        if mid360_local_costmap_expected_update_rate is None:
+            mid360_local_costmap_expected_update_rate = 0.30
 
         scan_additive_switch = _optional_bool(
             scan_additive_runtime.get("enabled", switches.get("enable_scan_additive"))
@@ -822,8 +847,12 @@ def _set_navigation_switches(
             # SLAM 单源建图时，必须把主 scan 直接发布到 obstacle_scan 给 slam_toolbox。
             obstacle_scan_output_topic_value = "obstacle_scan"
 
-        # mid360 costmap 开关关闭时抑制 stale 告警；开启时恢复告警能力。
-        mid360_expected_rate = 0.30 if enable_mid360_costmap_additive_value == "true" else 0.0
+        # mid360 costmap 开关关闭时抑制 stale 告警；开启时使用配置阈值恢复告警能力。
+        mid360_expected_rate = (
+            mid360_local_costmap_expected_update_rate
+            if enable_mid360_costmap_additive_value == "true"
+            else 0.0
+        )
         if _set_mid360_local_expected_update_rate(mid360_expected_rate):
             switch_override_required = True
             override_required = True

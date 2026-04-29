@@ -17,6 +17,7 @@ from typing import Any
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSPresetProfiles
+from sensor_msgs_py import point_cloud2
 import yaml
 
 
@@ -53,12 +54,62 @@ def _percentile(values: list[float], p: float) -> float:
     return arr[lo] * (hi - k) + arr[hi] * (k - lo)
 
 
+def _pointcloud2_max_field(msg: Any, field_name: str) -> float:
+    try:
+        values = point_cloud2.read_points(msg, field_names=[field_name], skip_nans=True)
+        max_value = math.nan
+        for item in values:
+            value = item[0] if isinstance(item, tuple) else item[field_name]
+            value = float(value)
+            if not math.isfinite(value):
+                continue
+            if not math.isfinite(max_value) or value > max_value:
+                max_value = value
+        return max_value
+    except Exception:
+        return math.nan
+
+
+def _end_stamp_to_sec(msg: Any, base_stamp: float, field_name: str, mode: str) -> float:
+    if not field_name or not mode:
+        return math.nan
+
+    mode = mode.strip().lower()
+    if mode == "livox_custom_offset_ns":
+        points = getattr(msg, "points", None)
+        if points is None:
+            return math.nan
+        max_offset_ns = math.nan
+        for point in points:
+            value = float(getattr(point, field_name, math.nan))
+            if not math.isfinite(value):
+                continue
+            if not math.isfinite(max_offset_ns) or value > max_offset_ns:
+                max_offset_ns = value
+        if not math.isfinite(max_offset_ns):
+            return math.nan
+        return base_stamp + max_offset_ns * 1e-9
+
+    max_field = _pointcloud2_max_field(msg, field_name)
+    if not math.isfinite(max_field):
+        return math.nan
+    if mode == "absolute_sec":
+        return max_field
+    if mode == "relative_sec":
+        return base_stamp + max_field
+    if mode == "relative_ns":
+        return base_stamp + max_field * 1e-9
+    return math.nan
+
+
 @dataclass
 class TopicState:
     name: str
     topic: str
     msg_type: str
-    samples: deque[tuple[float, float, float]] = field(default_factory=deque)
+    end_stamp_field: str = ""
+    end_stamp_mode: str = ""
+    samples: deque[tuple[float, float, float, float]] = field(default_factory=deque)
     rx_count: int = 0
     last_rx_mono: float | None = None
 
@@ -113,10 +164,21 @@ class SyncMonitor(Node):
                     topic = str(item["topic"])
                     name = str(item.get("name", topic))
                     msg_type = str(item.get("msg_type", "sensor_msgs/msg/PointCloud2"))
+                    end_stamp_field = str(item.get("end_stamp_field", ""))
+                    end_stamp_mode = str(item.get("end_stamp_mode", ""))
                 else:
                     raise RuntimeError(f"topics[{idx}] must be a string or map")
+                if isinstance(item, str):
+                    end_stamp_field = ""
+                    end_stamp_mode = ""
 
-                state = TopicState(name=name, topic=topic, msg_type=msg_type)
+                state = TopicState(
+                    name=name,
+                    topic=topic,
+                    msg_type=msg_type,
+                    end_stamp_field=end_stamp_field,
+                    end_stamp_mode=end_stamp_mode,
+                )
                 self.topics.append(state)
                 self.topic_by_name_or_topic[name] = state
                 self.topic_by_name_or_topic[topic] = state
@@ -188,7 +250,12 @@ class SyncMonitor(Node):
             f"monitor started: window={self.window_sec:.1f}s report={self.report_every_sec:.1f}s max_pair_dt={self.max_pair_dt_sec:.3f}s"
         )
         for t in self.topics:
-            self.get_logger().info(f"topic={t.name} type={t.msg_type} topic={t.topic}")
+            end_stamp = ""
+            if t.end_stamp_field and t.end_stamp_mode:
+                end_stamp = f" end_stamp={t.end_stamp_field}/{t.end_stamp_mode}"
+            self.get_logger().info(
+                f"topic={t.name} type={t.msg_type} topic={t.topic}{end_stamp}"
+            )
         for p in self.pairs:
             self.get_logger().info(
                 f"pair={p.name} type={p.msg_type} left={p.left_topic} right={p.right_topic}"
@@ -205,10 +272,15 @@ class SyncMonitor(Node):
             if not math.isfinite(ts):
                 return
             now_mono = time.monotonic()
-            age = self._now_sec() - ts
+            now_ros = self._now_sec()
+            age = now_ros - ts
+            end_ts = _end_stamp_to_sec(
+                msg, ts, topic.end_stamp_field, topic.end_stamp_mode
+            )
+            end_age = now_ros - end_ts if math.isfinite(end_ts) else math.nan
             topic.rx_count += 1
             topic.last_rx_mono = now_mono
-            topic.samples.append((now_mono, ts, age))
+            topic.samples.append((now_mono, ts, age, end_age))
 
             old_limit = now_mono - self.window_sec
             while topic.samples and topic.samples[0][0] < old_limit:
@@ -265,14 +337,14 @@ class SyncMonitor(Node):
         if not topic.samples:
             return None
 
-        ages = [age for _, _, age in topic.samples if math.isfinite(age)]
+        ages = [age for _, _, age, _ in topic.samples if math.isfinite(age)]
         if not ages:
             return None
 
-        rx_times = [mono for mono, _, _ in topic.samples]
+        rx_times = [mono for mono, _, _, _ in topic.samples]
         duration = max(rx_times) - min(rx_times) if len(rx_times) >= 2 else 0.0
         rate = (len(rx_times) - 1) / duration if duration > 0.0 else math.nan
-        return {
+        summary = {
             "n": float(len(ages)),
             "rate": rate,
             "mean": statistics.fmean(ages),
@@ -281,6 +353,33 @@ class SyncMonitor(Node):
             "max": max(ages),
             "last": ages[-1],
         }
+        gaps = [
+            rx_times[idx] - rx_times[idx - 1]
+            for idx in range(1, len(rx_times))
+            if rx_times[idx] >= rx_times[idx - 1]
+        ]
+        if gaps:
+            summary.update(
+                {
+                    "gap_mean": statistics.fmean(gaps),
+                    "gap_p95": _percentile(gaps, 95.0),
+                    "gap_max": max(gaps),
+                    "gap_last": gaps[-1],
+                }
+            )
+
+        end_ages = [end_age for _, _, _, end_age in topic.samples if math.isfinite(end_age)]
+        if end_ages:
+            summary.update(
+                {
+                    "end_mean": statistics.fmean(end_ages),
+                    "end_p50": _percentile(end_ages, 50.0),
+                    "end_p95": _percentile(end_ages, 95.0),
+                    "end_max": max(end_ages),
+                    "end_last": end_ages[-1],
+                }
+            )
+        return summary
 
     def _report(self) -> None:
         now = time.monotonic()
@@ -308,6 +407,18 @@ class SyncMonitor(Node):
                 f"age(s): last={summary['last']:.3f} mean={summary['mean']:.3f} "
                 f"p50={summary['p50']:.3f} p95={summary['p95']:.3f} max={summary['max']:.3f}"
             )
+            if "end_mean" in summary:
+                self.get_logger().info(
+                    f"[topic:{topic.name}] end_age(s): last={summary['end_last']:.3f} "
+                    f"mean={summary['end_mean']:.3f} p50={summary['end_p50']:.3f} "
+                    f"p95={summary['end_p95']:.3f} max={summary['end_max']:.3f}"
+                )
+            if "gap_mean" in summary:
+                self.get_logger().info(
+                    f"[topic:{topic.name}] rx_gap(s): last={summary['gap_last']:.3f} "
+                    f"mean={summary['gap_mean']:.3f} p95={summary['gap_p95']:.3f} "
+                    f"max={summary['gap_max']:.3f}"
+                )
 
         for chain in self.chains:
             missing = [topic for topic in chain.topics if topic not in topic_summaries]
