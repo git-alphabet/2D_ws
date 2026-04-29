@@ -59,6 +59,8 @@ def generate_launch_description():
 
     enable_gimbal_yaw_bridge = LaunchConfiguration("enable_gimbal_yaw_bridge")
     enable_rm_behavior_tree = LaunchConfiguration("enable_rm_behavior_tree")
+    rm_behavior_tree_executable = LaunchConfiguration("rm_behavior_tree_executable")
+    rm_behavior_tree_extra_params_file = LaunchConfiguration("rm_behavior_tree_extra_params_file")
     rm_behavior_tree_style_path = LaunchConfiguration("rm_behavior_tree_style_path")
 
     lifecycle_nodes = [
@@ -223,12 +225,16 @@ def generate_launch_description():
 
     start_rm_behavior_tree_cmd = Node(
         package="rm_behavior_tree",
-        executable="rm_behavior_tree",
+        executable=rm_behavior_tree_executable,
         name="rm_behavior_tree",
         output="screen",
         respawn=use_respawn,
         respawn_delay=2.0,
-        parameters=[configured_params, {"style": rm_behavior_tree_style_path}],
+        parameters=[
+            configured_params,
+            rm_behavior_tree_extra_params_file,
+            {"style": rm_behavior_tree_style_path},
+        ],
         arguments=["--ros-args", "--log-level", log_level],
         condition=IfCondition(enable_rm_behavior_tree),
     )
@@ -688,10 +694,22 @@ def generate_launch_description():
                     processed_file = tmp_file.name
 
         style_path = _resolve_bt_style_path(style_file) if enable_rm_bt else style_file
+        style_path_lower = style_path.lower() if isinstance(style_path, str) else ""
+        rm_bt_executable = "rm_behavior_tree_rmuc" if "rmuc" in style_path_lower else "rm_behavior_tree"
+        rm_bt_extra_params = processed_file
+        if rm_bt_executable == "rm_behavior_tree_rmuc":
+            rm_bt_extra_params = os.path.join(
+                get_package_share_directory("rm_behavior_tree"),
+                "config",
+                "RMUC_2026",
+                "rmuc_2026_params.yaml",
+            )
         return [
             SetLaunchConfiguration(
                 "enable_rm_behavior_tree", "true" if enable_rm_bt else "false"
             ),
+            SetLaunchConfiguration("rm_behavior_tree_executable", rm_bt_executable),
+            SetLaunchConfiguration("rm_behavior_tree_extra_params_file", rm_bt_extra_params),
             SetLaunchConfiguration("rm_behavior_tree_style_path", style_path),
             SetLaunchConfiguration("processed_params_file", processed_file),
             SetLaunchConfiguration("enable_obstacle_scan", enable_obstacle_scan_value),
@@ -764,6 +782,8 @@ def generate_launch_description():
     ld.add_action(
         SetLaunchConfiguration("processed_params_file", params_file)
     )
+    ld.add_action(SetLaunchConfiguration("rm_behavior_tree_executable", "rm_behavior_tree"))
+    ld.add_action(SetLaunchConfiguration("rm_behavior_tree_extra_params_file", params_file))
     ld.add_action(SetLaunchConfiguration("enable_obstacle_scan", "false"))
     # Set switches before starting nodes
     ld.add_action(set_switches_cmd)
