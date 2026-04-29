@@ -206,33 +206,6 @@ static fpsHandle slam_cloud_rx_fps;
 static fpsHandle slam_odom_rx_fps;
 static fpsHandle slam_odom_highfreq_rx_fps;
 
-static double deg_to_rad(double degrees) {
-    return degrees * PAI / 180.0;
-}
-
-static tf2::Transform make_transform_from_xyz_rpy_deg(
-    const std::vector<double>& xyz,
-    const std::vector<double>& rpy_deg)
-{
-    tf2::Vector3 translation(0.0, 0.0, 0.0);
-    if (xyz.size() == 3) {
-        translation = tf2::Vector3(xyz[0], xyz[1], xyz[2]);
-    }
-
-    tf2::Quaternion rotation;
-    if (rpy_deg.size() == 3) {
-        rotation.setRPY(
-            deg_to_rad(rpy_deg[0]),
-            deg_to_rad(rpy_deg[1]),
-            deg_to_rad(rpy_deg[2]));
-    } else {
-        rotation.setRPY(0.0, 0.0, 0.0);
-    }
-    rotation.normalize();
-
-    return tf2::Transform(rotation, translation);
-}
-
 class RosNodeControlImpl : public RosNodeControlInterface {
     public:
         void setDtofSubframeODR(int interval) override {
@@ -259,22 +232,6 @@ class RosNodeControlImpl : public RosNodeControlInterface {
             return odom_base_frame_id_;
         }
 
-        void setOdomSensorToBaseCorrection(bool enabled) override {
-            odom_sensor_to_base_correction_ = enabled;
-        }
-
-        bool odomSensorToBaseCorrection() const override {
-            return odom_sensor_to_base_correction_;
-        }
-
-        void setOdomSensorToBaseTransform(const tf2::Transform& sensor_to_base) override {
-            odom_sensor_to_base_transform_ = sensor_to_base;
-        }
-
-        const tf2::Transform& odomSensorToBaseTransform() const override {
-            return odom_sensor_to_base_transform_;
-        }
-
         void setCloudRawConfidenceThreshold(int threshold) {
             cloud_raw_confidence_threshold = threshold;
         }
@@ -286,8 +243,6 @@ class RosNodeControlImpl : public RosNodeControlInterface {
         bool pub_use_host_ros_time = false;
         bool pub_odom_baselink_tf = false;
         std::string odom_base_frame_id_ = "base_footprint";
-        bool odom_sensor_to_base_correction_ = false;
-        tf2::Transform odom_sensor_to_base_transform_ = tf2::Transform::getIdentity();
         int cloud_raw_confidence_threshold = 35;
     };
     
@@ -1913,7 +1868,6 @@ int main(int argc, char *argv[])
 
         auto keys = g_parser->getRegisterKeys();
         auto keys_w_str_val = g_parser->getRegisterKeysStrVal();
-        auto keys_double_array = g_parser->getRegisterKeysDoubleArray();
         g_parser->printConfig();
 
         auto get_key_value = [&](const std::string& key, int default_value) -> int {
@@ -1957,48 +1911,11 @@ int main(int argc, char *argv[])
             return it != keys_w_str_val.end() ? it->second : default_value;
         };
 
-        auto get_key_double_array = [&](const std::string& key, const std::vector<double>& default_value) -> std::vector<double> {
-            auto it = keys_double_array.find(key);
-            return it != keys_double_array.end() ? it->second : default_value;
-        };
-
         g_relocalization_map_abs_path = get_key_str_value("relocalization_map_abs_path", "");
         g_mapping_result_dest_dir = get_key_str_value("mapping_result_dest_dir", "");
         g_mapping_result_file_name = get_key_str_value("mapping_result_file_name", "");
         g_image_mask_abs_path = get_key_str_value("image_mask_abs_path", "");
         g_rosNodeControlImpl.setOdomBaseFrameId(get_key_str_value("odom_base_frame_id", "base_footprint"));
-        g_rosNodeControlImpl.setOdomSensorToBaseCorrection(
-            get_key_value("odom_sensor_to_base_correction", 0) != 0);
-        g_rosNodeControlImpl.setOdomSensorToBaseTransform(make_transform_from_xyz_rpy_deg(
-            get_key_double_array("odom_sensor_to_base_xyz", {0.0, 0.0, 0.0}),
-            get_key_double_array("odom_sensor_to_base_rpy_deg", {0.0, 0.0, 0.0})));
-
-        const auto& sensor_to_base = g_rosNodeControlImpl.odomSensorToBaseTransform();
-        const auto& sensor_to_base_origin = sensor_to_base.getOrigin();
-        double sensor_to_base_roll = 0.0;
-        double sensor_to_base_pitch = 0.0;
-        double sensor_to_base_yaw = 0.0;
-        tf2::Matrix3x3(sensor_to_base.getRotation()).getRPY(
-            sensor_to_base_roll, sensor_to_base_pitch, sensor_to_base_yaw);
-        #ifdef ROS2
-            RCLCPP_INFO(rclcpp::get_logger("init"),
-                "Odom sensor-to-base correction: %s, child_frame_id=%s, xyz=[%.4f, %.4f, %.4f], rpy_deg=[%.2f, %.2f, %.2f]",
-                g_rosNodeControlImpl.odomSensorToBaseCorrection() ? "enabled" : "disabled",
-                g_rosNodeControlImpl.odomBaseFrameId().c_str(),
-                sensor_to_base_origin.x(), sensor_to_base_origin.y(), sensor_to_base_origin.z(),
-                sensor_to_base_roll * 180.0 / PAI,
-                sensor_to_base_pitch * 180.0 / PAI,
-                sensor_to_base_yaw * 180.0 / PAI);
-        #else
-            ROS_INFO(
-                "Odom sensor-to-base correction: %s, child_frame_id=%s, xyz=[%.4f, %.4f, %.4f], rpy_deg=[%.2f, %.2f, %.2f]",
-                g_rosNodeControlImpl.odomSensorToBaseCorrection() ? "enabled" : "disabled",
-                g_rosNodeControlImpl.odomBaseFrameId().c_str(),
-                sensor_to_base_origin.x(), sensor_to_base_origin.y(), sensor_to_base_origin.z(),
-                sensor_to_base_roll * 180.0 / PAI,
-                sensor_to_base_pitch * 180.0 / PAI,
-                sensor_to_base_yaw * 180.0 / PAI);
-        #endif
 
         g_send_image_mask = get_key_value("sendimagemask", 0);
         g_reset_algo = get_key_value("resetalgo", 0);

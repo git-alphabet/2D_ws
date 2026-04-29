@@ -52,7 +52,6 @@ bool YamlParser::loadConfig() {
         YAML::Node register_keys = config["register_keys"];
         register_keys_.clear();
         register_keys_str_val_.clear();
-        register_keys_double_array_.clear();
         custom_parameters_.clear();
 
         // Print number of key-value pairs found
@@ -123,26 +122,6 @@ bool YamlParser::loadConfig() {
                         std::cerr << "Failed to parse custom parameter array " << param_name << ": " << e.what() << std::endl;
                     }
                 }
-            } else if (allowed_key_w_double_array.find(key) != allowed_key_w_double_array.end()) {
-                try {
-                    if (!value_node.IsSequence()) {
-                        throw std::runtime_error("expected YAML sequence");
-                    }
-                    std::vector<double> values;
-                    values.reserve(value_node.size());
-                    for (size_t i = 0; i < value_node.size(); ++i) {
-                        values.push_back(value_node[i].as<double>());
-                    }
-                    register_keys_double_array_[key] = values;
-                    std::cerr << "Loaded key: " << key << " = [";
-                    for (size_t i = 0; i < values.size(); ++i) {
-                        if (i > 0) std::cerr << ", ";
-                        std::cerr << std::fixed << std::setprecision(6) << values[i];
-                    }
-                    std::cerr << "]" << std::endl;
-                } catch (const std::exception& e) {
-                    std::cerr << "Failed to parse key " << key << ": " << e.what() << std::endl;
-                }
             } else if (allowed_key_w_str_val.find(key) != allowed_key_w_str_val.end()) {
                 try {
                     std::string value = value_node.as<std::string>();
@@ -185,10 +164,6 @@ const std::map<std::string, std::string>& YamlParser::getRegisterKeysStrVal() co
     return register_keys_str_val_;
 }
 
-const std::map<std::string, std::vector<double>>& YamlParser::getRegisterKeysDoubleArray() const {
-    return register_keys_double_array_;
-}
-
 void YamlParser::printConfig() const {
     std::cerr << "Configuration Keys:" << std::endl;
     if (register_keys_.empty()) {
@@ -204,19 +179,6 @@ void YamlParser::printConfig() const {
     } else {
         for (const auto& [key, value] : register_keys_str_val_) {
             std::cerr << "  " << key << ": " << value << std::endl;
-        }
-    }
-
-    if (register_keys_double_array_.empty()) {
-        std::cerr << "  (double_array empty)" << std::endl;
-    } else {
-        for (const auto& [key, values] : register_keys_double_array_) {
-            std::cerr << "  " << key << ": [";
-            for (size_t i = 0; i < values.size(); ++i) {
-                if (i > 0) std::cerr << ", ";
-                std::cerr << std::fixed << std::setprecision(6) << values[i];
-            }
-            std::cerr << "]" << std::endl;
         }
     }
 

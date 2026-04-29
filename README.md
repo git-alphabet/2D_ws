@@ -246,7 +246,6 @@ NEUPAN_MODEL_SETUP=/path/to/local_setup.bash ./scripts/nav_sim.sh
 - 定位/里程计主源：`odin1`
   - `pb_navigation_switches.odometry_source=odin1`
   - `odom -> base_footprint` 由 odin 驱动链路负责
-  - odin 驱动先按 `front_odin1 -> base_footprint` 外参把传感器中心位姿校正到导航基准点，再发布里程计/TF
 
 - TF 防抖：避免重复发布 `odom -> base_footprint`
   - `sensor_scan_generation.publish_base_tf=false`
