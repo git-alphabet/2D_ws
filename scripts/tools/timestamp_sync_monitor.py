@@ -428,16 +428,26 @@ class SyncMonitor(Node):
                 )
                 continue
 
-            parts = []
+            mean_parts = []
+            last_parts = []
             prev_topic = chain.topics[0]
             prev_mean = topic_summaries[prev_topic]["mean"]
+            prev_last = topic_summaries[prev_topic]["last"]
             for topic in chain.topics[1:]:
                 mean = topic_summaries[topic]["mean"]
-                parts.append(f"{prev_topic}->{topic}:{mean - prev_mean:+.3f}s")
+                last = topic_summaries[topic]["last"]
+                mean_parts.append(f"{prev_topic}->{topic}:{mean - prev_mean:+.3f}s")
+                last_parts.append(f"{prev_topic}->{topic}:{last - prev_last:+.3f}s")
                 prev_topic = topic
                 prev_mean = mean
+                prev_last = last
 
-            self.get_logger().info(f"[chain:{chain.name}] mean_age_delta {' '.join(parts)}")
+            self.get_logger().info(
+                f"[chain:{chain.name}] mean_age_delta {' '.join(mean_parts)}"
+            )
+            self.get_logger().info(
+                f"[chain:{chain.name}] last_age_delta {' '.join(last_parts)}"
+            )
 
         for pair in self.pairs:
             if not pair.samples:

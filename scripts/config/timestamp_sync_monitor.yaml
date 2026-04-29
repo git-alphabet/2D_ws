@@ -31,6 +31,9 @@ topics:
   - name: mid360_terrain_global
     topic: /terrain_map_ext_mid360
     msg_type: sensor_msgs/msg/PointCloud2
+  - name: mid360_scan
+    topic: /scan_mid360
+    msg_type: sensor_msgs/msg/LaserScan
 
   # odin1 reference chain
   - name: odin1_cloud_raw
@@ -50,6 +53,12 @@ topics:
   - name: odin1_terrain_global
     topic: /terrain_map_ext
     msg_type: sensor_msgs/msg/PointCloud2
+  - name: odin1_scan
+    topic: /scan_odin1
+    msg_type: sensor_msgs/msg/LaserScan
+  - name: fused_obstacle_scan
+    topic: /obstacle_scan
+    msg_type: sensor_msgs/msg/LaserScan
 
 chains:
   - name: mid360_local_costmap_input
@@ -66,6 +75,14 @@ chains:
       - /mid360/registered_scan
       - /terrain_map_ext_mid360
 
+  - name: mid360_scan_input
+    topics:
+      - /livox/lidar/pointcloud
+      - /mid360/cloud_registered
+      - /mid360/registered_scan
+      - /terrain_map_mid360
+      - /scan_mid360
+
   - name: odin1_local_costmap_input
     topics:
       - /odin1/cloud_slam
@@ -75,6 +92,17 @@ chains:
     topics:
       - /odin1/cloud_slam
       - /terrain_map_ext
+
+  - name: odin1_scan_input
+    topics:
+      - /odin1/cloud_slam
+      - /terrain_map_ext
+      - /scan_odin1
+
+  - name: obstacle_scan_fusion
+    topics:
+      - /scan_odin1
+      - /obstacle_scan
 
   - name: odin1_raw_vs_slam_processing
     topics:
@@ -116,3 +144,8 @@ pairs:
     left_topic: /odin1/cloud_slam
     right_topic: /mid360/cloud_registered
     msg_type: sensor_msgs/msg/PointCloud2
+
+  - name: scan_odin1_vs_mid360
+    left_topic: /scan_odin1
+    right_topic: /scan_mid360
+    msg_type: sensor_msgs/msg/LaserScan
