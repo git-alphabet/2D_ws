@@ -83,6 +83,12 @@ if [ -n "${HOME:-}" ] && [ -d "${HOME}" ]; then
     echo 'mkdir -p "$ROS_HOME" "$ROS_LOG_DIR" 2>/dev/null || true' >> "${BASHRC_PATH}"
   fi
 
+  # GUI 环境可能在 NoMachine 启动后变化，确保新 shell 自动刷新 DISPLAY/XAUTHORITY
+  if ! grep -q "GXU_DOCKER_GUI_ENV" "${BASHRC_PATH}" 2>/dev/null; then
+    echo '# GXU_DOCKER_GUI_ENV' >> "${BASHRC_PATH}"
+    echo 'if [ -f /ws/docker/docker_gui_env.sh ]; then source /ws/docker/docker_gui_env.sh; fi' >> "${BASHRC_PATH}"
+  fi
+
   # 兼容 docker exec 常见的 `bash -lc`：登录 shell 会读取 .bash_profile，默认不会读取 .bashrc。
   BASH_PROFILE_PATH="${HOME:-}/.bash_profile"
   if ! grep -q "GXU_BASH_PROFILE_LOAD_BASHRC" "${BASH_PROFILE_PATH}" 2>/dev/null; then
