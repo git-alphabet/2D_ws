@@ -10,7 +10,7 @@ ign_sim_pointcloud_tool:
 
 pb_navigation_switches:
   ros__parameters:
-    controller_plugin: "neupan_nav2_controller"   # 控制器插件选择：neupan_nav2_controller / pb_omni_pid_pursuit_controller
+    controller_plugin: "pb_omni_pid_pursuit_controller"   # 控制器插件选择：neupan_nav2_controller / pb_omni_pid_pursuit_controller
     odometry_source: "point_lio"                   #point_lio / small_point_lio / loam_interface
     behavior_tree: "config/RMUC_2026/rmuc_2026.xml"  # .xml or default,none
     calib_helper_mode: "always"                    # off / slam / always(nav+slam)

@@ -19,11 +19,11 @@ RMUC 2026 裁判系统话题模拟器
      source /ws/.buildcache/Alphabet/install/setup.bash
      python3 /ws/scripts/rmuc_test_publisher.py
 
-     或直接:
+      或直接:
      docker exec gxu2026-nav-laptop bash -c \
        "source /opt/ros/humble/setup.bash && \
         source /ws/.buildcache/Alphabet/install/setup.bash && \
-        python3 /ws/scripts/used/rmuc_test_publisher.py"
+          python3 /ws/scripts/rmuc_test_publisher.py"
 
 参数:
     --ns       命名空间。默认 auto，会自动匹配当前导航/行为树所在命名空间
@@ -46,22 +46,22 @@ RMUC 2026 裁判系统话题模拟器
 
 复合指令示例（按序列模拟多阶段场景，用 --duration 代替 timeout）:
   # 满血2秒 → 自动切换到低血量
-  python3 /ws/scripts/used/rmuc_test_publisher.py --hp=400 --duration=2 && python3 /ws/scripts/used/rmuc_test_publisher.py --hp=80
+    python3 /ws/scripts/rmuc_test_publisher.py --hp=400 --duration=2 && python3 /ws/scripts/rmuc_test_publisher.py --hp=80
 
   # 满血3秒 → 低血量5秒 → 满血+检测到敌人
-  python3 /ws/scripts/used/rmuc_test_publisher.py --hp=400 --duration=3 && python3 /ws/scripts/used/rmuc_test_publisher.py --hp=80 --duration=5 && python3 /ws/scripts/used/rmuc_test_publisher.py --hp=400 --detect-enemy
+    python3 /ws/scripts/rmuc_test_publisher.py --hp=400 --duration=3 && python3 /ws/scripts/rmuc_test_publisher.py --hp=80 --duration=5 && python3 /ws/scripts/rmuc_test_publisher.py --hp=400 --detect-enemy
 
   # 满血2秒 → 前哨站被毁（触发目标切换到梯形高地）
-  python3 /ws/scripts/used/rmuc_test_publisher.py --hp=400 --duration=2 && python3 /ws/scripts/used/rmuc_test_publisher.py --hp=400 --outpost-dead
+    python3 /ws/scripts/rmuc_test_publisher.py --hp=400 --duration=2 && python3 /ws/scripts/rmuc_test_publisher.py --hp=400 --outpost-dead
 
   # 低弹药+10秒后补给到账（测试补给成功路径）
-  python3 /ws/scripts/used/rmuc_test_publisher.py --ammo=50 --supply-delay=10 --supply-amount=100
+    python3 /ws/scripts/rmuc_test_publisher.py --ammo=50 --supply-delay=10 --supply-amount=100
 
   # 低弹药+永不补给（测试30秒超时降级）
-  python3 /ws/scripts/used/rmuc_test_publisher.py --ammo=50 --supply-delay=0
+    python3 /ws/scripts/rmuc_test_publisher.py --ammo=50 --supply-delay=0
 
   # 低弹药+每60秒补给100发（模拟真实免费补给节奏）
-  python3 /ws/scripts/used/rmuc_test_publisher.py --ammo=50 --supply-delay=60 --supply-amount=100 --supply-repeat
+    python3 /ws/scripts/rmuc_test_publisher.py --ammo=50 --supply-delay=60 --supply-amount=100 --supply-repeat
 """
 
 import argparse
