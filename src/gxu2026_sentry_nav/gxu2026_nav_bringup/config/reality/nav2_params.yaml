@@ -1077,15 +1077,15 @@ global_costmap:
       # 是否使用仿真时间。
       use_sim_time: False
       # 全局代价地图更新频率，单位 Hz。
-      update_frequency: 5.0
+      update_frequency: 10.0
       # 全局代价地图发布频率，单位 Hz。
-      publish_frequency: 2.0
+      publish_frequency: 5.0
       # 全局代价地图使用的参考坐标系。
       global_frame: map
       # 全局代价地图中的机器人底盘基坐标系。
       robot_base_frame: gimbal_yaw_fake
       # 导航重定位场景下 map->odom 切换与点云延迟叠加，需更宽容忍窗口。
-      transform_tolerance: 0.6
+      transform_tolerance: 0.3
       # 全局代价地图是否采用滚动窗口。
       rolling_window: true
       # 滚动窗口宽度，单位米。
