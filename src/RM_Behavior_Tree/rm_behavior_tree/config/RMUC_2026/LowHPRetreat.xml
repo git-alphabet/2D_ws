@@ -19,10 +19,9 @@
                 <KeepRunning/>
             </Sequence>
 
-            <!-- B. 低血量：导航到补给区回血 -->
+            <!-- B. 回血恢复锁存态：导航到补给区回血，直到 hp_safe 才释放 -->
             <ReactiveSequence>
-                <!-- 门控：血量低于 hp_low 时才执行 -->
-                <RmucIsHPBelow message="{robot_status}" hp_threshold="{cfg.hp_low}"/>
+                <ScriptCondition code="need_heal_recovery == true"/>
 
                 <ReactiveFallback>
                     <!-- 分支B1：已在补给区 → 原地等待回血到安全线 -->

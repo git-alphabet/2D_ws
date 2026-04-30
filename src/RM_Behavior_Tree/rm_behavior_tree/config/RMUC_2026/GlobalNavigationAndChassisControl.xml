@@ -51,18 +51,22 @@
                                   chassis_spin="False"/>
             </ReactiveFallback>
 
+            <!-- 低血恢复锁存：低于 hp_low 进入恢复态，直到达到 hp_safe 才退出 -->
+            <UpdateHealRecoveryLatch hp_cur="{hp.cur}"
+                                     hp_low="{cfg.hp_low}"
+                                     hp_safe="{cfg.hp_safe}"
+                                     need_heal_recovery="{need_heal_recovery}"/>
+
             <!-- 生存优先：死亡/低血量回补给区 -->
             <ReactiveFallback name="SurvivalGuard">
-                <!-- HP 正常且未死亡 → SUCCESS，放行 -->
+                <!-- 未死亡且未处于回血恢复锁存态 → SUCCESS，放行 -->
                 <Sequence>
                     <Inverter>
                         <RmucIsDead message="{robot_status}"/>
                     </Inverter>
-                    <Inverter>
-                        <RmucIsHPBelow message="{robot_status}" hp_threshold="{cfg.hp_low}"/>
-                    </Inverter>
+                    <ScriptCondition code="need_heal_recovery == false"/>
                 </Sequence>
-                <!-- 死亡或低血量 → LowHPRetreat 接管（返回 RUNNING 阻塞后续） -->
+                <!-- 死亡或处于回血恢复锁存态 → LowHPRetreat 接管（返回 RUNNING 阻塞后续） -->
                 <Sequence>
                     <SetBlackboard output_key="active_subtree" value="LowHPRetreat"/>
                     <SubTree ID="LowHPRetreat" _autoremap="true"/>
