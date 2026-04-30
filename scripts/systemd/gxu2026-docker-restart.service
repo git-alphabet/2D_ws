@@ -1,0 +1,10 @@
+[Unit]
+Description=Restart selected Docker containers at boot
+After=docker.service network-online.target
+Wants=docker.service network-online.target
+ConditionPathExists=/var/run/docker.sock
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/default/gxu2026-docker-restart
+ExecStart=/usr/local/sbin/gxu2026-docker-restart

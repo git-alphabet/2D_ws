@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Docker container restart after boot
+
+[Timer]
+OnBootSec=20s
+Unit=gxu2026-docker-restart.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target
