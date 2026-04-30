@@ -1,11 +1,10 @@
 [Unit]
-Description=Restart selected Docker containers after GDM3 login
-After=docker.service network-online.target graphical-session.target
-Wants=docker.service network-online.target
+Description=Restart selected Docker containers after GUI is ready
+After=docker.service network-online.target gxu2026-docker-xauth.service
+Wants=docker.service network-online.target gxu2026-docker-xauth.service
 ConditionPathExists=/var/run/docker.sock
 
 [Service]
 Type=oneshot
 EnvironmentFile=-/etc/default/gxu2026-docker-restart
-ExecStartPre=/bin/sleep 1
 ExecStart=/usr/local/sbin/gxu2026-docker-restart

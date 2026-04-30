@@ -526,6 +526,25 @@ XAUTH_HOST_FILE=/tmp/.docker.xauth
 
 > 现在即使用 VS Code 右键 `Compose Up`，容器也会在启动时自动选择一个存在 X socket 的显示号。若你想强制固定某个显示号，可在 `docker/.env` 或 compose 环境变量中额外设置 `GXU_DISPLAY_OVERRIDE=:1001`。
 
+#### 步骤 3：配置 GDM3 登录后等待 GUI 就绪再重启开发容器
+
+如果你希望 GDM3 登录后自动重启开发容器，并确保重启发生在 Wayland/Xwayland 的显示号和 cookie 都真正准备好之后，再安装下面这个 system service：
+
+```bash
+sudo bash scripts/systemd/install_docker_restart_service.sh
+```
+
+这个服务不再靠固定延时猜时序，而是由 `gxu2026-docker-xauth.service` 在每次同步完 GUI 授权后触发；只有当 `/tmp/gxu2026-docker-gui/ready` 和 `session_fingerprint` 成功生成，且这是本次开机/会话的新签名时，才会真正执行一次 `docker restart`。
+
+验证：
+
+```bash
+systemctl status gxu2026-docker-restart.service
+cat /tmp/gxu2026-docker-gui/status
+cat /tmp/gxu2026-docker-gui/ready
+cat /tmp/gxu2026-docker-gui/session_fingerprint
+```
+
 ### 7.3 构建环境镜像
 
 ```bash

@@ -6,3 +6,4 @@ Wants=systemd-user-sessions.service
 [Service]
 Type=oneshot
 ExecStart=/usr/local/sbin/gxu2026-docker-xauth-sync
+ExecStartPost=-/bin/systemctl --no-block start gxu2026-docker-restart.service

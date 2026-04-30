@@ -6,7 +6,10 @@ Config:
 
 Check status:
   systemctl status gxu2026-docker-restart.service
-  systemctl status gxu2026-docker-restart.timer
+  systemctl status gxu2026-docker-xauth.service
+  cat /tmp/gxu2026-docker-gui/status
+  cat /tmp/gxu2026-docker-gui/ready
+  cat /tmp/gxu2026-docker-gui/session_fingerprint
 
 Run once:
   sudo systemctl start gxu2026-docker-restart.service
