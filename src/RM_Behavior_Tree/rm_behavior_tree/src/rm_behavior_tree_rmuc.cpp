@@ -163,6 +163,7 @@ int main(int argc, char ** argv)
   regBT("rmuc_init_cmd_state");
   regBT("rmuc_load_calibration_csv");
   regBT("rmuc_select_posture");
+  regBT("rmuc_select_sentry_cmd_rate");
   regBT("rmuc_posture_degradation_guard");
   regBT("rmuc_decide_respawn_cmd");
   regBT("rmuc_parse_sentry_blackboard");

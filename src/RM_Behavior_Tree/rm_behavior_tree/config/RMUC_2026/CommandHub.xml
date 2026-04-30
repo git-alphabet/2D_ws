@@ -26,7 +26,12 @@
                                      forced_movement_s="5"
                                      final_posture="{cmd.final_posture}"/>
 
-            <RateController hz="5">
+            <SelectSentryCmdRate is_dead="{state.is_dead}"
+                                 alive_hz="0.2"
+                                 dead_hz="1.0"
+                                 hz_out="{cmd.sentry_cmd_hz}"/>
+
+            <RateController hz="{cmd.sentry_cmd_hz}">
                 <SentryCmdMux posture="{cmd.final_posture}"
                               confirm_respawn="{cmd.confirm_respawn}"
                               cmd_state="{cmd.state}"/>
