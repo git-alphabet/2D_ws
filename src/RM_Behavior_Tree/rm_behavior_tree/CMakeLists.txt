@@ -183,6 +183,10 @@ ament_auto_add_library(rmuc_select_posture SHARED
     plugins/rmuc_2026/action/select_posture.cpp)
 add_target_dependencies(rmuc_select_posture)
 
+ament_auto_add_library(rmuc_select_sentry_cmd_rate SHARED
+    plugins/rmuc_2026/action/select_sentry_cmd_rate.cpp)
+add_target_dependencies(rmuc_select_sentry_cmd_rate)
+
 ament_auto_add_library(rmuc_posture_degradation_guard SHARED
     plugins/rmuc_2026/action/posture_degradation_guard.cpp)
 add_target_dependencies(rmuc_posture_degradation_guard)
