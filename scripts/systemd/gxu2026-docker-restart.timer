@@ -1,10 +1,11 @@
 [Unit]
-Description=Run Docker container restart after boot
+Description=Run Docker container restart after GDM3 login
+After=graphical-session.target
 
 [Timer]
-OnBootSec=20s
+OnBootSec=0
 Unit=gxu2026-docker-restart.service
 Persistent=true
 
 [Install]
-WantedBy=timers.target
+WantedBy=graphical-session.target
