@@ -108,23 +108,11 @@ nav_msgs::msg::Path PathHandler::transformPath(const nav_msgs::msg::Path & path)
     return path;
   }
 
-  // 若 path 的 frame_id 为空（某些 Nav2 规划器不设置），放弃变换
-  if (path.header.frame_id.empty()) {
-    RCLCPP_WARN(
-      logger_, "Cannot transform path: header.frame_id is empty, using original path");
-    return path;
-  }
-
   nav_msgs::msg::Path transformed_path = path;
   transformed_path.header.frame_id = target_frame_;
 
   try {
     for (auto & pose_stamped : transformed_path.poses) {
-      // 若pose自身frame_id为空，沿用path的frame_id（Nav2规划器通常不设pose级frame_id）
-      if (pose_stamped.header.frame_id.empty()) {
-        pose_stamped.header.frame_id = path.header.frame_id;
-      }
-
       // Skip if already in target frame
       if (pose_stamped.header.frame_id == target_frame_) {
         continue;
