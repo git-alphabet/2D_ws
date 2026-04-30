@@ -40,7 +40,9 @@ public:
   explicit PythonBridge(const rclcpp::Logger & logger);
   ~PythonBridge() = default;
 
-  bool initialize(const std::string & config_path, const std::string & dune_model_path);
+  bool initialize(
+    const std::string & config_path, const std::string & config_yaml,
+    const std::string & dune_model_path);
   void cleanup();
 
   bool isInitialized() const { return initialized_; }
@@ -75,6 +77,7 @@ private:
   RobotInfo robot_info_;
   std::string service_url_;
   long timeout_ms_{500};
+  std::string generated_config_path_;
 };
 
 }  // namespace nav2_neupan_controller

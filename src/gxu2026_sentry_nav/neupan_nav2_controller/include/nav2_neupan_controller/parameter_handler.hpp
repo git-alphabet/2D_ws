@@ -41,6 +41,7 @@ struct Parameters
 
   // NeuPAN config
   std::string neupan_config_path;
+  std::string neupan_config_yaml;
   std::string dune_model_path;
 
   // Visualization marker sizing

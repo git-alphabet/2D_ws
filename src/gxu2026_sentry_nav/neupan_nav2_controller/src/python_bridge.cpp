@@ -19,10 +19,14 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include <unistd.h>
 
 #include "jsoncpp/json/json.h"
 #include "rclcpp/clock.hpp"
@@ -168,19 +172,52 @@ PythonBridge::PythonBridge(const rclcpp::Logger & logger)
   (void)curl_global_init(CURL_GLOBAL_DEFAULT);
 }
 
-bool PythonBridge::initialize(const std::string & config_path, const std::string & dune_model_path)
+bool PythonBridge::initialize(
+  const std::string & config_path, const std::string & config_yaml,
+  const std::string & dune_model_path)
 {
   if (initialized_) {
     return true;
   }
 
-  if (config_path.empty()) {
+  if (!generated_config_path_.empty()) {
+    (void)std::remove(generated_config_path_.c_str());
+    generated_config_path_.clear();
+  }
+
+  std::string effective_config_path = trimCopy(config_path);
+  const std::string inline_yaml = trimCopy(config_yaml);
+
+  if (!inline_yaml.empty()) {
+    char temp_path[] = "/tmp/neupan_inline_XXXXXX";
+    const int fd = ::mkstemp(temp_path);
+    if (fd < 0) {
+      RCLCPP_ERROR(logger_, "Failed to create temporary file for neupan_config_yaml");
+      return false;
+    }
+    ::close(fd);
+
+    std::ofstream out(temp_path, std::ios::out | std::ios::trunc);
+    if (!out.is_open()) {
+      RCLCPP_ERROR(logger_, "Failed to open temporary file for neupan_config_yaml");
+      (void)std::remove(temp_path);
+      return false;
+    }
+    out << config_yaml;
+    out.close();
+
+    generated_config_path_ = temp_path;
+    effective_config_path = generated_config_path_;
+    RCLCPP_INFO(logger_, "Using inline NeuPAN config via temporary file: %s", temp_path);
+  }
+
+  if (effective_config_path.empty()) {
     RCLCPP_ERROR(logger_, "neupan_config_path is empty");
     return false;
   }
 
   Json::Value req(Json::objectValue);
-  req["config_path"] = config_path;
+  req["config_path"] = effective_config_path;
   if (!dune_model_path.empty()) {
     req["dune_model_path"] = dune_model_path;
   }
@@ -207,6 +244,10 @@ bool PythonBridge::initialize(const std::string & config_path, const std::string
 void PythonBridge::cleanup()
 {
   initialized_ = false;
+  if (!generated_config_path_.empty()) {
+    (void)std::remove(generated_config_path_.c_str());
+    generated_config_path_.clear();
+  }
 }
 
 bool PythonBridge::callForward(
