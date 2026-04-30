@@ -26,7 +26,7 @@ mid360_runtime:
     enable_costmap_additive: "auto"
     # 建图阶段建议单源（odin1）避免装配/时序误差叠加；导航阶段再启用双源补盲。
     # 建图阶段是否启用补盲链路。
-    enable_costmap_additive_in_slam: true
+    enable_costmap_additive_in_slam: false
     # 导航阶段是否启用补盲链路。
     enable_costmap_additive_in_nav: true
     # Nav2 observation buffer 判定 mid360 补盲源 stale 的周期阈值，单位秒；0.0 表示关闭该告警。
@@ -426,10 +426,10 @@ terrain_analysis_ext:
     terrainConnThre: 0.5
     # 天花板过滤阈值。
     ceilingFilteringThre: 2.0
-    # obstacle_scan 的有效量程到 10m。
-    # 这里至少覆盖到相同量级，避免 4~10m 区间退回到历史累积 ext 点云，导致转雷达时发花。
+    # obstacle_scan / global_costmap 的有效量程到 10m。
+    # 这里要覆盖到相同量级，避免 4~10m 区间退回到历史累积 ext 点云，导致全局障碍拖影、发花且刷新不跟手。
     # 局部地形图半径，单位米。
-    localTerrainMapRadius: 4.0
+    localTerrainMapRadius: 10.0
 
 terrain_analysis_ext_mid360:
   ros__parameters:
@@ -479,7 +479,7 @@ terrain_analysis_ext_mid360:
     ceilingFilteringThre: 2.0
     # 与主 ext 链路保持一致，确保 10m 内优先使用当前局部地形而不是历史累积。
     # 局部地形图半径，单位米。
-    localTerrainMapRadius: 4.0
+    localTerrainMapRadius: 10.0
 
 # mid360 局部地形图保留自身观测时间戳，由 costmap/TF 容忍窗口处理真实链路延迟。
 terrain_analysis_mid360:
@@ -679,6 +679,9 @@ pointcloud_to_laserscan_mid360:
     use_sim_time: False
     # 投影目标坐标系。
     target_frame: base_footprint
+    # 补盲 scan 只保留最新一帧，避免 TF filter / 执行器抖动时排队旧 terrain_map_mid360。
+    # 输入队列长度。
+    queue_size: 1
     # TF 容忍窗口，单位秒。
     transform_tolerance: 0.3
     # 最低高度过滤，单位米。
@@ -721,7 +724,7 @@ scan_additive_runtime:
     enabled: true
     # 建图阶段默认关闭，导航阶段默认开启。
     # 建图阶段是否启用融合。
-    enabled_in_slam: true
+    enabled_in_slam: false
     # 导航阶段是否启用融合。
     enabled_in_nav: true
 

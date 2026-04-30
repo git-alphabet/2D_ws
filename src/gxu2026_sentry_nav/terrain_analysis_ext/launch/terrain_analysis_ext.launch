@@ -19,7 +19,7 @@
     <param name="terrainConnThre" value="0.5" />
     <param name="terrainUnderVehicle" value="-0.75" />
     <param name="ceilingFilteringThre" value="2.0" />
-    <param name="localTerrainMapRadius" value="4.0" />
+    <param name="localTerrainMapRadius" value="10.0" />
   </node>
 
 </launch>
