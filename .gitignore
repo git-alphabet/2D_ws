@@ -4,6 +4,7 @@ log/
 .buildcache/
 .vscode/
 neupan_env/
+library/
 /tips.txt
 /env.txt
 src/ros2_bag_tools/bags/
