@@ -179,6 +179,10 @@ ament_auto_add_library(rmuc_init_cmd_state SHARED
     plugins/rmuc_2026/action/init_cmd_state.cpp)
 add_target_dependencies(rmuc_init_cmd_state)
 
+ament_auto_add_library(rmuc_update_heal_recovery_latch SHARED
+    plugins/rmuc_2026/action/update_heal_recovery_latch.cpp)
+add_target_dependencies(rmuc_update_heal_recovery_latch)
+
 ament_auto_add_library(rmuc_select_posture SHARED
     plugins/rmuc_2026/action/select_posture.cpp)
 add_target_dependencies(rmuc_select_posture)

@@ -161,6 +161,7 @@ int main(int argc, char ** argv)
   // 动作
   regBT("rmuc_init_sentry_config");
   regBT("rmuc_init_cmd_state");
+  regBT("rmuc_update_heal_recovery_latch");
   regBT("rmuc_load_calibration_csv");
   regBT("rmuc_select_posture");
   regBT("rmuc_select_sentry_cmd_rate");
