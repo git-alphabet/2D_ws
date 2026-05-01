@@ -12,7 +12,6 @@
   <depend>behaviortree_ros2</depend>
   <depend>sp_msgs</depend>
   <depend>rm_decision_interfaces</depend>
-  <depend>auto_aim_interfaces</depend>
   <depend>rclcpp</depend>
   <depend>tf2</depend>
   <depend>tf2_ros</depend>

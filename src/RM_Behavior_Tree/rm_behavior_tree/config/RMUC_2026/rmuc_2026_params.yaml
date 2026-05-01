@@ -64,6 +64,6 @@ rm_behavior_tree:
       base_threat_calm_timeout_ms: 30000  # 基地威胁自动解除平静时间 (毫秒)
 
       # ─────────── 语义区域 ───────────
-      # 由 scripts/tools/semantic_from_label_image.py 生成；speed_bump 区域内禁止旋转并忽略云台见敌
+      # 默认指向仿真语义区文件；参数缺失、空值或文件异常时由 ParseSentryBlackboard 统一节流报错
       semantic_zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
       semantic_ignore_enemy_zone_type: "speed_bump"

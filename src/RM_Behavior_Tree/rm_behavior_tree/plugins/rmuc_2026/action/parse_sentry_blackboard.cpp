@@ -12,6 +12,7 @@ constexpr double kDefaultBaseX = -2.3532;
 constexpr double kDefaultBaseY = -2.0007;
 constexpr double kDefaultBaseThreatEnterDistance = 5.0;
 constexpr int kDefaultBaseThreatCalmTimeoutMs = 30000;
+constexpr char kDefaultSemanticZonesFile[] = "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml";
 }
 
 ParseSentryBlackboardAction::ParseSentryBlackboardAction(
@@ -20,13 +21,36 @@ ParseSentryBlackboardAction::ParseSentryBlackboardAction(
 {
 }
 
+void ParseSentryBlackboardAction::resetSemanticZonesState()
+{
+  semantic_zones_.clear();
+  semantic_zones_loaded_ = false;
+  semantic_zones_load_attempted_ = false;
+  semantic_zones_file_.clear();
+}
+
+void ParseSentryBlackboardAction::logSemanticZonesLoadErrorOnce(
+  const std::string & yaml_path, const std::string & error)
+{
+  const std::string formatted_error = yaml_path + "|" + error;
+  if (semantic_zones_last_error_ == formatted_error) {
+    return;
+  }
+
+  semantic_zones_last_error_ = formatted_error;
+  std::cerr << "[ParseSentryBlackboard] semantic zones load failed: "
+            << yaml_path << " (" << error << ")" << std::endl;
+}
+
 void ParseSentryBlackboardAction::loadSemanticZones(const std::string & yaml_path)
 {
   semantic_zones_.clear();
   semantic_zones_loaded_ = false;
+  semantic_zones_load_attempted_ = true;
   semantic_zones_file_ = yaml_path;
 
   if (yaml_path.empty()) {
+    logSemanticZonesLoadErrorOnce(yaml_path, "semantic_zones_file resolved to an empty path");
     return;
   }
 
@@ -34,12 +58,12 @@ void ParseSentryBlackboardAction::loadSemanticZones(const std::string & yaml_pat
   try {
     config = YAML::LoadFile(yaml_path);
   } catch (const YAML::Exception & e) {
-    std::cerr << "[ParseSentryBlackboard] semantic zones load failed: "
-              << yaml_path << " (" << e.what() << ")" << std::endl;
+    logSemanticZonesLoadErrorOnce(yaml_path, e.what());
     return;
   }
 
   if (!config["zones"]) {
+    logSemanticZonesLoadErrorOnce(yaml_path, "missing 'zones' field");
     return;
   }
 
@@ -108,13 +132,26 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
   bool suppress_enemy_detection = false;
   double pose_x = 0.0;
   double pose_y = 0.0;
-  std::string semantic_zones_file;
+  std::string semantic_zones_file = kDefaultSemanticZonesFile;
   std::string semantic_ignore_zone_type = "speed_bump";
   const bool has_pose = getInput("pose_x", pose_x) && getInput("pose_y", pose_y);
-  getInput("semantic_zones_file", semantic_zones_file);
+  const auto semantic_zones_file_result = getInput("semantic_zones_file", semantic_zones_file);
   getInput("semantic_ignore_enemy_zone_type", semantic_ignore_zone_type);
-  if (has_pose && !semantic_zones_file.empty()) {
-    if (!semantic_zones_loaded_ || semantic_zones_file_ != semantic_zones_file) {
+  if (!semantic_zones_file_result.has_value()) {
+    logSemanticZonesLoadErrorOnce(
+      kDefaultSemanticZonesFile,
+      std::string("cfg.semantic_zones_file read failed: ") + semantic_zones_file_result.error() +
+      ", fallback to default path");
+    semantic_zones_file = kDefaultSemanticZonesFile;
+  } else if (semantic_zones_file.empty()) {
+    logSemanticZonesLoadErrorOnce(
+      kDefaultSemanticZonesFile,
+      "cfg.semantic_zones_file is empty, fallback to default path");
+    semantic_zones_file = kDefaultSemanticZonesFile;
+  }
+
+  if (has_pose) {
+    if (!semantic_zones_load_attempted_ || semantic_zones_file_ != semantic_zones_file) {
       loadSemanticZones(semantic_zones_file);
     }
     suppress_enemy_detection = semantic_zones_loaded_ &&
