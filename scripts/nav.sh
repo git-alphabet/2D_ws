@@ -14,11 +14,12 @@ export __NV_PRIME_RENDER_OFFLOAD=1
 export NAV2_TF_WARMUP_ENABLED="${NAV2_TF_WARMUP_ENABLED:-True}"
 # 重定位阶段 map->odom 可能需要较长收敛时间；默认放宽 warmup 超时，避免 Nav2 过早激活。
 export NAV2_TF_WARMUP_TIMEOUT_SEC="${NAV2_TF_WARMUP_TIMEOUT_SEC:-30.0}"
+export REALITY_USE_SIM_TIME="${REALITY_USE_SIM_TIME:-False}"
 export ENABLE_TIMESTAMP_MONITOR="0"
 export TIMESTAMP_SYNC_MONITOR_CONFIG="${TIMESTAMP_SYNC_MONITOR_CONFIG:-$SCRIPT_DIR/config/timestamp_sync_monitor.yaml}"
 
 # 你想加/改 launch 参数，优先改这行（或运行时用环境变量覆盖 NAVIGATION_CMD）。
-NAVIGATION_CMD=${NAVIGATION_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True nav2_tf_warmup_enabled:=${NAV2_TF_WARMUP_ENABLED} nav2_tf_warmup_timeout_sec:=${NAV2_TF_WARMUP_TIMEOUT_SEC}"}
+NAVIGATION_CMD=${NAVIGATION_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True use_sim_time:=${REALITY_USE_SIM_TIME} nav2_tf_warmup_enabled:=${NAV2_TF_WARMUP_ENABLED} nav2_tf_warmup_timeout_sec:=${NAV2_TF_WARMUP_TIMEOUT_SEC}"}
 export NAVIGATION_CMD
 export KILL_EXISTING="${KILL_EXISTING:-1}"
 

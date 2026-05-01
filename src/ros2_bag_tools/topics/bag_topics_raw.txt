@@ -1,5 +1,11 @@
-# raw 录包话题（原始数据调试用）
-# 当前工作区能从源码确认的原始链路主要是 Mid360 驱动输出。
+# raw 录包话题（原始数据调试/回放建图最小集）
+# 说明：
+# 1) 仅录 /livox/lidar + /livox/imu 不够直接回放本仓库 mapping。
+# 2) 当前 mapping 默认让 point_lio 订阅 /livox/lidar/pointcloud（Livox CustomMsg），
+#    所以这里必须把它一起录下来。
+# 3) /auto_aim_yaw 用于回放时恢复 gimbal_yaw 相关 TF；没有它时桥接节点只能退回默认 0 位姿。
 
 /livox/lidar
+/livox/lidar/pointcloud
 /livox/imu
+/auto_aim_yaw
