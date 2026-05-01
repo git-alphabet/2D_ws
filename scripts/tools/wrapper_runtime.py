@@ -46,21 +46,114 @@ def _auto_map_prefix(ws_dir: Path, branch_safe: str, script_name: str, timestamp
     return maps_dir / f"{Path(script_name).stem}_{ts}"
 
 
+def _normalize_namespace(namespace: str | None) -> str | None:
+    if namespace is None:
+        return None
+    normalized = namespace.strip()
+    if not normalized:
+        return None
+    if not normalized.startswith("/"):
+        normalized = f"/{normalized}"
+    return normalized
+
+
+def _extract_map_saver_namespaces(service_list_text: str) -> list[str | None]:
+    namespaces: list[str | None] = []
+    suffix = "/map_saver/save_map"
+    for raw_line in service_list_text.splitlines():
+        service_name = raw_line.strip()
+        if not service_name.endswith(suffix):
+            continue
+
+        if service_name in {suffix, "map_saver/save_map"}:
+            namespace = None
+        else:
+            namespace = _normalize_namespace(service_name[: -len(suffix)])
+
+        if namespace not in namespaces:
+            namespaces.append(namespace)
+
+    return namespaces
+
+
+def _discover_map_saver_namespaces(base_env: str, script_name: str) -> list[str | None]:
+    probe_cmd = f"{base_env}; ros2 service list"
+    try:
+        result = subprocess.run(
+            ["bash", "-lc", probe_cmd],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except Exception as exc:
+        print(f"[{script_name}] Auto-save probe failed: {exc}", file=sys.stderr)
+        return []
+
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip()
+        if detail:
+            print(f"[{script_name}] Auto-save probe stderr: {detail}", file=sys.stderr)
+        return []
+
+    return _extract_map_saver_namespaces(result.stdout)
+
+
+def _build_map_save_cmd(base_env: str, map_prefix: Path, namespace: str | None) -> str:
+    cmd = f"{base_env}; ros2 run nav2_map_server map_saver_cli -f {shlex.quote(str(map_prefix))}"
+    normalized_namespace = _normalize_namespace(namespace)
+    if normalized_namespace:
+        cmd += f" --ros-args -r __ns:={shlex.quote(normalized_namespace)}"
+    return cmd
+
+
 def save_map_now(cfg: CommonConfig, mode: str, timestamp: str, namespace: str | None = None) -> None:
     branch = current_branch(cfg.ws_dir)
     branch_safe = re.sub(r"[^A-Za-z0-9._-]", "_", branch)
     map_prefix = _auto_map_prefix(cfg.ws_dir, branch_safe, cfg.script_name, timestamp)
     base_env = build_base_env(cfg)
-    cmd = f"{base_env}; ros2 run nav2_map_server map_saver_cli -f {shlex.quote(str(map_prefix))}"
-    if namespace:
-        cmd += f" --ros-args -r __ns:={shlex.quote(namespace)}"
 
     print(f"[{cfg.script_name}] Auto-saving map to {map_prefix}.*", file=sys.stderr)
-    try:
-        run_shell(cmd)
-        print(f"[{cfg.script_name}] Auto-save map done: {map_prefix}.yaml / {map_prefix}.pgm", file=sys.stderr)
-    except Exception as exc:
-        print(f"[{cfg.script_name}] Auto-save map failed: {exc}", file=sys.stderr)
+    requested_namespace = _normalize_namespace(namespace)
+    candidate_namespaces: list[str | None] = []
+    if requested_namespace not in candidate_namespaces:
+        candidate_namespaces.append(requested_namespace)
+
+    for discovered_namespace in _discover_map_saver_namespaces(base_env, cfg.script_name):
+        if discovered_namespace not in candidate_namespaces:
+            candidate_namespaces.append(discovered_namespace)
+
+    if None not in candidate_namespaces:
+        candidate_namespaces.append(None)
+
+    failure_details: list[str] = []
+    for candidate_namespace in candidate_namespaces:
+        cmd = _build_map_save_cmd(base_env, map_prefix, candidate_namespace)
+        label = candidate_namespace or "/"
+        print(
+            f"[{cfg.script_name}] Auto-save attempt namespace={label}",
+            file=sys.stderr,
+        )
+        result = subprocess.run(
+            ["bash", "-lc", cmd],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            if result.stdout.strip():
+                print(result.stdout.strip(), file=sys.stderr)
+            if result.stderr.strip():
+                print(result.stderr.strip(), file=sys.stderr)
+            print(f"[{cfg.script_name}] Auto-save map done: {map_prefix}.yaml / {map_prefix}.pgm", file=sys.stderr)
+            return
+
+        detail = (result.stderr or result.stdout).strip()
+        if not detail:
+            detail = f"exit code {result.returncode}"
+        failure_details.append(f"namespace={label}: {detail}")
+
+    joined_details = " | ".join(failure_details)
+    print(f"[{cfg.script_name}] Auto-save map failed: {joined_details}", file=sys.stderr)
 
 
 def ensure_launch_arg(cmd: str, name: str, value: str) -> str:
