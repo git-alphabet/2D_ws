@@ -23,9 +23,6 @@ rm_behavior_tree:
       outpost_buff_x: 6.53           # 己方前哨站增益区中心 x
       outpost_buff_y: -5.12          # 己方前哨站增益区中心 y
 
-      fortress_ally_x: 2.76          # 己方堡垒区中心 x
-      fortress_ally_y: -1.93         # 己方堡垒区中心 y
-
       central_highland_x: 6.70       # 中央高地中线偏家 x
       central_highland_y: -1.95      # 中央高地中线偏家 y
 
