@@ -11,5 +11,6 @@
 话题白名单在：
 - `topics/bag_topics_basic.txt`
 - `topics/bag_topics_full.txt`
+- `topics/bag_topics_raw.txt`
 
 录包默认目录：`src/ros2_bag_tools/bags/`（已在工作区 .gitignore 里忽略）。

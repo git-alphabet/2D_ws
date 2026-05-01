@@ -29,6 +29,7 @@ from tools.wrapper_runtime import (
     extract_launch_arg,
     launch_in_terminal,
     save_map_now,
+    start_bag_recorders,
     start_timestamp_monitor,
     start_watchdog,
 )
@@ -188,6 +189,7 @@ def main(argv: list[str]) -> int:
     atexit.register(reality_bg.cleanup)
 
     start_timestamp_monitor(cfg, reality_bg)
+    start_bag_recorders(cfg, reality_bg)
 
     if is_truthy(os.environ.get("ENABLE_WATCHDOG")):
         start_watchdog(cfg, [("/registered_scan", 5.0), ("/Odometry", 10.0), ("/scan", 5.0)], reality_bg)

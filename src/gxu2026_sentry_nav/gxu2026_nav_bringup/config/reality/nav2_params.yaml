@@ -55,6 +55,22 @@ pb_navigation_switches:
 
     enable_gimbal_yaw_bridge: true             #是否启用 gimbal_yaw_bridge 通路。
 
+    bag_record:
+      enabled: true
+      profiles:
+        - name: replay_full
+          enabled: true
+          mode: full
+          storage: mcap
+          compress: ""
+          out_dir: "/ws/bags"
+        - name: raw_debug
+          enabled: true
+          mode: raw
+          storage: mcap
+          compress: ""
+          out_dir: "/ws/bags"
+
 
 # /auto_aim_yaw -> serial/gimbal_joint_state
 # 说明：

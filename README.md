@@ -141,7 +141,13 @@ PYTHON_BIN=python3 ./scripts/setup_neupan_env.sh
 ./scripts/start_navigation.sh
 ```
 
-默认会同时启动 ros2 bag 全量录包（`--mode full`）。如需临时关闭：
+默认会同时启动两路 ros2 bag：
+- `full`：全量回放包
+- `raw`：原始数据调试包
+
+录包总参数放在实车启动总参数 `src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/nav2_params.yaml`
+
+如需临时关闭：
 
 ```bash
 AUTO_RECORD_BAG=0 ./scripts/start_navigation.sh
@@ -153,7 +159,13 @@ AUTO_RECORD_BAG=0 ./scripts/start_navigation.sh
 ./scripts/mapping.sh
 ```
 
-默认会同时启动 ros2 bag 全量录包（`--mode full`）。如需临时关闭：
+默认会同时启动两路 ros2 bag：
+- `full`：全量回放包
+- `raw`：原始数据调试包
+
+录包总参数放在实车启动总参数 `src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/nav2_params.yaml`
+
+如需临时关闭：
 
 ```bash
 AUTO_RECORD_BAG=0 ./scripts/mapping.sh
@@ -453,6 +465,4 @@ bash scripts/systemd/service_ctl.sh status all
 journalctl --user -u gxu2026-nav-stack.service -f
 journalctl --user -u gxu2026-auto-aim.service -f
 ```
-
-
 
