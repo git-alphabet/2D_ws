@@ -118,6 +118,38 @@ def _controller_plugin(params_file: Path) -> str:
     return p.strip() if isinstance(p, str) else ""
 
 
+def _controller_profile_plugin(params_file: Path, controller_plugin: str) -> str:
+    if not params_file.exists() or not controller_plugin:
+        return ""
+
+    profiles = _read_yaml_params(params_file, "pb_controller_profiles")
+    if not isinstance(profiles, dict):
+        return ""
+
+    selected = profiles.get(controller_plugin)
+    if not isinstance(selected, dict):
+        return ""
+
+    plugin_value = selected.get("plugin", "")
+    return plugin_value.strip() if isinstance(plugin_value, str) else ""
+
+
+def _follow_path_plugin(params_file: Path) -> str:
+    if not params_file.exists():
+        return ""
+
+    params = _read_yaml_params(params_file, "controller_server")
+    if not isinstance(params, dict):
+        return ""
+
+    follow_path = params.get("FollowPath")
+    if not isinstance(follow_path, dict):
+        return ""
+
+    plugin_value = follow_path.get("plugin", "")
+    return plugin_value.strip() if isinstance(plugin_value, str) else ""
+
+
 def _calib_helper_mode(params_file: Path) -> str:
     if not params_file.exists():
         return ""
@@ -885,16 +917,34 @@ def main(argv: list[str]) -> int:
 
     # NeuPAN 虚拟环境片段
     controller_plugin = _controller_plugin(cfg.params_file)
+    follow_path_plugin = _follow_path_plugin(cfg.params_file)
+    selected_profile_plugin = _controller_profile_plugin(cfg.params_file, controller_plugin)
     if not os.environ.get("CALIB_HELPER_MODE", "").strip():
         calib_mode = _calib_helper_mode(cfg.params_file)
         if calib_mode:
             os.environ["CALIB_HELPER_MODE"] = calib_mode
             print(f"[{script_name}] calib_helper_mode='{calib_mode}' (from params)", file=sys.stderr)
 
+    print(
+        f"[{script_name}] params_file='{cfg.params_file}' exists={cfg.params_file.exists()}",
+        file=sys.stderr,
+    )
     if controller_plugin:
         print(f"[{script_name}] controller_plugin='{controller_plugin}'", file=sys.stderr)
     else:
         print(f"[{script_name}] controller_plugin unset; NeuPAN venv will not be activated.", file=sys.stderr)
+    if follow_path_plugin:
+        print(f"[{script_name}] controller_server.FollowPath.plugin='{follow_path_plugin}'", file=sys.stderr)
+    if selected_profile_plugin:
+        print(
+            f"[{script_name}] pb_controller_profiles.{controller_plugin}.plugin='{selected_profile_plugin}'",
+            file=sys.stderr,
+        )
+    if controller_plugin != "neupan_nav2_controller":
+        print(
+            f"[{script_name}] NeuPAN env skipped because controller_plugin is not 'neupan_nav2_controller'.",
+            file=sys.stderr,
+        )
 
     try:
         neupan_env = _neupan_env(
