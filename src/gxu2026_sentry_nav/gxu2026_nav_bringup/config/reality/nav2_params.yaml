@@ -41,7 +41,7 @@ pb_navigation_switches:
     # - false: 不启动重定位，使用静态 map->odom(0,0,0) + 纯里程计导航
     enable_small_gicp_relocalization: false
     # 行为树策略入口（default / 其他预设），用于切换导航任务编排逻辑。
-    behavior_tree: "config/RMUC_2026/rmuc_2026.xml"
+    behavior_tree: "none"
 
 
     # 标定辅助节点模式：

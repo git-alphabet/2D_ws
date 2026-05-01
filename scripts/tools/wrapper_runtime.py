@@ -111,6 +111,9 @@ def save_map_now(cfg: CommonConfig, mode: str, timestamp: str, namespace: str | 
     branch_safe = re.sub(r"[^A-Za-z0-9._-]", "_", branch)
     map_prefix = _auto_map_prefix(cfg.ws_dir, branch_safe, cfg.script_name, timestamp)
     base_env = build_base_env(cfg)
+    cmd = f"{base_env}; ros2 run nav2_map_server map_saver_cli -f {shlex.quote(str(map_prefix))}"
+    if namespace:
+        cmd += f" --ros-args -r __ns:={shlex.quote(namespace)}"
 
     print(f"[{cfg.script_name}] Auto-saving map to {map_prefix}.*", file=sys.stderr)
     requested_namespace = _normalize_namespace(namespace)
