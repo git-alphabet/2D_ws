@@ -56,6 +56,7 @@ x-base: &base
     - ${XAUTH_HOST_FILE:-/tmp/.docker.xauth}:/tmp/.docker.xauth:ro
     - ../src:/ws/src                        # 代码挂载（改代码立刻生效）
     - ../scripts:/ws/scripts
+    - ../bags:/ws/bags
     - ../build:/ws/build                    # bind mount：宿主机可直接 rm -rf 清除
     - ../install:/ws/install
     - ../log:/ws/log
@@ -152,6 +153,7 @@ services:
       - ${XAUTH_HOST_FILE:-/tmp/.docker.xauth}:/tmp/.docker.xauth:ro
       - ../src:/ws/src
       - ../scripts:/ws/scripts
+      - ../bags:/ws/bags
       - ../build:/ws/build
       - ../install:/ws/install
       - ../log:/ws/log
