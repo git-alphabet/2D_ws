@@ -13,13 +13,16 @@ export __GLX_VENDOR_LIBRARY_NAME=nvidia
 
 # 入口脚本默认覆盖 odin1 驱动模式：2=重定位。
 export ODIN_MODE_PRESET="${ODIN_MODE_PRESET:-2}"
-export NAV2_TF_WARMUP_ENABLED="${NAV2_TF_WARMUP_ENABLED:-True}"
+# Odin mode2 may internally fall back to SLAM before it publishes map->odom, so
+# Nav2 must not wait for map TF before its lifecycle manager starts.
+export NAV2_TF_WARMUP_ENABLED="${NAV2_TF_WARMUP_ENABLED:-False}"
 export NAV2_TF_WARMUP_TIMEOUT_SEC="${NAV2_TF_WARMUP_TIMEOUT_SEC:-12.0}"
 export ENABLE_TIMESTAMP_MONITOR="0"
 export TIMESTAMP_SYNC_MONITOR_CONFIG="${TIMESTAMP_SYNC_MONITOR_CONFIG:-$SCRIPT_DIR/config/timestamp_sync_monitor.yaml}"
 
-# 重定位导航入口：显式使用 odin_map_mode:=2，并在 nav2 侧开启 slam_toolbox 建图。
-NAVIGATION_CMD=${NAVIGATION_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=True use_robot_state_pub:=True odin_map_mode:=2 nav2_tf_warmup_enabled:=${NAV2_TF_WARMUP_ENABLED} nav2_tf_warmup_timeout_sec:=${NAV2_TF_WARMUP_TIMEOUT_SEC}"}
+# 重定位导航入口：显式使用 odin_map_mode:=2，并保持 Nav2 加载已有 2D 地图。
+# odin 初始匹配失败时由 odin 内部回退到 SLAM；成功后由 odin 发布 map->odom。
+NAVIGATION_CMD=${NAVIGATION_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True odin_map_mode:=2 nav2_tf_warmup_enabled:=${NAV2_TF_WARMUP_ENABLED} nav2_tf_warmup_timeout_sec:=${NAV2_TF_WARMUP_TIMEOUT_SEC}"}
 export NAVIGATION_CMD
 export KILL_EXISTING="${KILL_EXISTING:-1}"
 

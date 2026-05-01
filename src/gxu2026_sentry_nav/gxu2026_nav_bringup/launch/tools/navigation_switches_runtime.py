@@ -873,8 +873,9 @@ def _set_navigation_switches(
             switch_override_required = True
             override_required = True
 
-        # odin1 实车导航（非 slam）需要等待 map 链路就绪，
-        # 否则会在重定位成功前提前激活 Nav2，导致持续报 map 帧不存在。
+        # odin1 pure navigation usually needs map TF before Nav2 activation.
+        # Relocalization entries can override nav2_tf_warmup_enabled:=False to keep
+        # the saved map loaded while odin mode2 internally falls back to SLAM.
         if odometry_source == "odin1" and not sim_enabled and not slam_enabled:
             if nav2_tf_warmup_target_frame_value == "odom":
                 nav2_tf_warmup_target_frame_value = "map"

@@ -13,14 +13,15 @@ export __GLX_VENDOR_LIBRARY_NAME=nvidia
 
 # 入口脚本默认覆盖 odin1 驱动模式：2=重定位。
 export ODIN_MODE_PRESET="${ODIN_MODE_PRESET:-2}"
-export NAV2_TF_WARMUP_ENABLED="${NAV2_TF_WARMUP_ENABLED:-True}"
-# 重定位阶段 map->odom 可能需要较长收敛时间；默认放宽 warmup 超时，避免 Nav2 过早激活。
+export NAV2_TF_WARMUP_ENABLED="${NAV2_TF_WARMUP_ENABLED:-False}"
+# Odin mode2 may internally fall back to SLAM before it publishes map->odom.
 export NAV2_TF_WARMUP_TIMEOUT_SEC="${NAV2_TF_WARMUP_TIMEOUT_SEC:-30.0}"
 export ENABLE_TIMESTAMP_MONITOR="0"
 export TIMESTAMP_SYNC_MONITOR_CONFIG="${TIMESTAMP_SYNC_MONITOR_CONFIG:-$SCRIPT_DIR/config/timestamp_sync_monitor.yaml}"
 
 # 你想加/改 launch 参数，优先改这行（或运行时用环境变量覆盖 NAVIGATION_CMD）。
-NAVIGATION_CMD=${NAVIGATION_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True nav2_tf_warmup_enabled:=${NAV2_TF_WARMUP_ENABLED} nav2_tf_warmup_timeout_sec:=${NAV2_TF_WARMUP_TIMEOUT_SEC}"}
+# Keep Nav2 in localization/navigation mode so the saved 2D map is loaded.
+NAVIGATION_CMD=${NAVIGATION_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True odin_map_mode:=2 nav2_tf_warmup_enabled:=${NAV2_TF_WARMUP_ENABLED} nav2_tf_warmup_timeout_sec:=${NAV2_TF_WARMUP_TIMEOUT_SEC}"}
 export NAVIGATION_CMD
 export KILL_EXISTING="${KILL_EXISTING:-1}"
 
