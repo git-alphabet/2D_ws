@@ -58,13 +58,15 @@ pb_navigation_switches:
     bag_record:
       enabled: true
       profiles:
-        - name: replay_full
+        replay_full:
+          name: replay_full
           enabled: true
           mode: full
           storage: mcap
           compress: ""
           out_dir: "/ws/bags"
-        - name: raw_debug
+        raw_debug:
+          name: raw_debug
           enabled: true
           mode: raw
           storage: mcap
