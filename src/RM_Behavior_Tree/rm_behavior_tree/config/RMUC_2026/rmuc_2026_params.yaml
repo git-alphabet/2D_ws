@@ -62,5 +62,5 @@ rm_behavior_tree:
 
       # ─────────── 语义区域 ───────────
       # 默认指向仿真语义区文件；参数缺失、空值或文件异常时由 ParseSentryBlackboard 统一节流报错
-      semantic_zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
+      semantic_zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/semantic_zones.yaml"
       semantic_ignore_enemy_zone_type: "speed_bump"

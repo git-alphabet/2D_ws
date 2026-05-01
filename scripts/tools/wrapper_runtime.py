@@ -212,8 +212,11 @@ def start_bag_recorders(cfg: CommonConfig, bg: BackgroundGroup) -> None:
         return
 
     profiles = root.get("profiles", [])
+    if isinstance(profiles, dict):
+        profiles = list(profiles.values())
+    
     if not isinstance(profiles, list):
-        print(f"[{cfg.script_name}] WARN 'profiles' must be a list in {config_path}", file=sys.stderr)
+        print(f"[{cfg.script_name}] WARN 'profiles' must be a list or dict in {config_path}", file=sys.stderr)
         return
 
     base_env = build_base_env(cfg)

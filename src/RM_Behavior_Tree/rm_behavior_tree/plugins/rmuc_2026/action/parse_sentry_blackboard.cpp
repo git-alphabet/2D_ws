@@ -12,7 +12,7 @@ constexpr double kDefaultBaseX = -2.3532;
 constexpr double kDefaultBaseY = -2.0007;
 constexpr double kDefaultBaseThreatEnterDistance = 5.0;
 constexpr int kDefaultBaseThreatCalmTimeoutMs = 30000;
-constexpr char kDefaultSemanticZonesFile[] = "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml";
+constexpr char kDefaultSemanticZonesFile[] = "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/semantic_zones.yaml";
 }
 
 ParseSentryBlackboardAction::ParseSentryBlackboardAction(
