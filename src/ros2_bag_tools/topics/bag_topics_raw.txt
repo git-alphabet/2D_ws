@@ -1,11 +1,17 @@
 # raw 录包话题（原始数据调试/回放建图最小集）
 # 说明：
-# 1) 仅录 /livox/lidar + /livox/imu 不够直接回放本仓库 mapping。
-# 2) 当前 mapping 默认让 point_lio 订阅 /livox/lidar/pointcloud（Livox CustomMsg），
-#    所以这里必须把它一起录下来。
-# 3) /auto_aim_yaw 用于回放时恢复 gimbal_yaw 相关 TF；没有它时桥接节点只能退回默认 0 位姿。
+# 1) 当前 mapping 不是纯 point_lio 单链路，而是保留 gimbal_yaw -> gimbal_yaw_fake 设计。
+# 2) 启动硬依赖：
+#    - /livox/lidar/pointcloud: point_lio 主输入（Livox CustomMsg）
+#    - /livox/imu: point_lio IMU 输入
+#    - /auto_aim_yaw: 经 bridge + robot_state_publisher 恢复 gimbal_yaw TF
+# 3) /livox/lidar 不是 point_lio 当前默认输入，但保留它便于对照驱动原始输出。
+# 4) /robot_control 和 /cmd_spin 不是“建图能不能起来”的硬依赖，
+#    但保留后更接近实车行为，便于一起调 fake_vel_transform / 小陀螺相关逻辑。
 
 /livox/lidar
 /livox/lidar/pointcloud
 /livox/imu
 /auto_aim_yaw
+/robot_control
+/cmd_spin

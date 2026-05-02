@@ -171,6 +171,30 @@ AUTO_RECORD_BAG=0 ./scripts/start_navigation.sh
 AUTO_RECORD_BAG=0 ./scripts/mapping.sh
 ```
 
+### 4.4.1 bag 回放：建图（SLAM）
+
+```bash
+./scripts/mapping_bag.sh
+```
+
+该脚本固定：
+- `use_sim_time:=True`
+- `AUTO_RECORD_BAG=0`
+
+用于 `ros2 bag play --clock ...` 时直接回放建图，不需要再手改 `mapping.sh`。
+
+### 4.3.1 bag 回放：导航
+
+```bash
+./scripts/nav_bag.sh
+```
+
+该脚本固定：
+- `use_sim_time:=True`
+- `AUTO_RECORD_BAG=0`
+
+用于 `ros2 bag play --clock ...` 时直接回放导航，不需要再手改 `nav.sh`。
+
 
 
 ## 4.5 实车数据录包（ros2 bag）
@@ -465,4 +489,3 @@ bash scripts/systemd/service_ctl.sh status all
 journalctl --user -u gxu2026-nav-stack.service -f
 journalctl --user -u gxu2026-auto-aim.service -f
 ```
-
