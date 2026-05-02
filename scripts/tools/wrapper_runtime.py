@@ -245,8 +245,10 @@ def start_bag_recorders(cfg: CommonConfig, bg: BackgroundGroup) -> None:
         max_bag_size_mb = int(profile.get("max_bag_size_mb", 0))
         out_dir = str(profile.get("out_dir", "")).strip()
 
+        record_bag_script = cfg.ws_dir / "src" / "ros2_bag_tools" / "scripts" / "record_bag"
         bag_cmd = [
-            "./scripts/bag.sh",
+            "python3",
+            str(record_bag_script),
             "--mode",
             mode,
             "--storage",
