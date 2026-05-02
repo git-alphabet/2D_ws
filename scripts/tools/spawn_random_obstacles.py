@@ -27,8 +27,9 @@ OBSTACLE_Z = 0.5
 SPAWN_MIN_DISTANCE = 1.2
 WAYPOINT_REACHED_DISTANCE = 0.4
 LOOKAHEAD_TIME = 1.2
-MIN_LINEAR_SPEED = 0.25
-MAX_LINEAR_SPEED = 0.65
+# 速度提高：最小 0.5 m/s，最大 1.2 m/s
+MIN_LINEAR_SPEED = 0.5
+MAX_LINEAR_SPEED = 1.2
 MAX_ANGULAR_SPEED = 1.5
 
 # 直接在 RMUC 场地中间活动，避免刷到边界外或场地角落。
@@ -37,6 +38,7 @@ SPAWN_HALF_HEIGHT = 2.8
 MOVE_HALF_WIDTH = 5.5
 MOVE_HALF_HEIGHT = 3.4
 
+# 尺寸缩小：边长 0.2 x 0.2 x 0.4
 BOX_SDF = """
 <?xml version="1.0" ?>
 <sdf version="1.8">
@@ -51,10 +53,10 @@ BOX_SDF = """
         </inertia>
       </inertial>
       <collision name="collision">
-        <geometry><box><size>0.4 0.4 0.8</size></box></geometry>
+        <geometry><box><size>0.2 0.2 0.4</size></box></geometry>
       </collision>
       <visual name="visual">
-        <geometry><box><size>0.4 0.4 0.8</size></box></geometry>
+        <geometry><box><size>0.2 0.2 0.4</size></box></geometry>
         <material>
           <ambient>1 0 0 1</ambient>
           <diffuse>1 0 0 1</diffuse>
