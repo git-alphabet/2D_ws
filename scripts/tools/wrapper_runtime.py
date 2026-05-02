@@ -17,6 +17,7 @@ from tools.wrapper_helpers import (
     BEIJING_TZ,
     build_base_env,
     current_branch,
+    slugify,
     run_shell,
     pid_gone,
 )
@@ -227,6 +228,136 @@ def save_odin_bin_now(cfg: CommonConfig) -> None:
         run_shell(cmd)
     except Exception as exc:
         print(f"[{cfg.script_name}] Trigger odin bin save failed: {exc}", file=sys.stderr)
+
+
+def _normalize_bag_out_dir(ws_dir: Path, out_dir: str) -> str:
+    raw = out_dir.strip()
+    if not raw:
+        return ""
+
+    path = Path(raw).expanduser()
+    if path.is_absolute():
+        try:
+            rel_path = path.relative_to("/ws")
+        except ValueError:
+            return str(path)
+        return str(ws_dir / rel_path)
+
+    return str(ws_dir / path)
+
+
+def start_bag_recording(cfg: CommonConfig, bg: BackgroundGroup) -> None:
+    """按 nav2 参数中的 bag_record 配置启动录包。"""
+    params_path = cfg.params_file
+    if not params_path.exists():
+        print(
+            f"[{cfg.script_name}] WARN bag config not found: {params_path}; skip bag recording.",
+            file=sys.stderr,
+        )
+        return
+
+    try:
+        import yaml  # type: ignore
+
+        raw_yaml = yaml.safe_load(params_path.read_text()) or {}
+    except Exception as exc:
+        print(
+            f"[{cfg.script_name}] WARN cannot read bag config from {params_path}: {exc}; skip bag recording.",
+            file=sys.stderr,
+        )
+        return
+
+    robot_runtime = {}
+    if isinstance(raw_yaml, dict):
+        robot_node = raw_yaml.get("robot_description_runtime")
+        if isinstance(robot_node, dict):
+            robot_runtime = robot_node.get("ros__parameters", {}) or {}
+
+    bag_cfg = robot_runtime.get("bag_record") if isinstance(robot_runtime, dict) else None
+    if not isinstance(bag_cfg, dict):
+        print(
+            f"[{cfg.script_name}] bag_record disabled or missing in {params_path}; skip bag recording.",
+            file=sys.stderr,
+        )
+        return
+
+    if not bool(bag_cfg.get("enabled", False)):
+        print(f"[{cfg.script_name}] bag_record enabled=false; skip bag recording.", file=sys.stderr)
+        return
+
+    profiles = bag_cfg.get("profiles", {})
+    if not isinstance(profiles, dict) or not profiles:
+        print(f"[{cfg.script_name}] bag_record profiles empty; skip bag recording.", file=sys.stderr)
+        return
+
+    base_env = build_base_env(cfg)
+    branch = current_branch(cfg.ws_dir)
+    branch_safe = re.sub(r"[^A-Za-z0-9._-]", "_", branch)
+    log_dir = cfg.ws_dir / "launch_logs" / branch_safe
+    log_dir.mkdir(parents=True, exist_ok=True)
+    session_tag = datetime.now(BEIJING_TZ).strftime("%Y%m%d_%H%M%S_%f")
+
+    started = 0
+    for profile_name, profile in profiles.items():
+        if not isinstance(profile, dict):
+            print(
+                f"[{cfg.script_name}] WARN bag profile '{profile_name}' is not a mapping; skip.",
+                file=sys.stderr,
+            )
+            continue
+        if not bool(profile.get("enabled", True)):
+            continue
+
+        mode = str(profile.get("mode", "")).strip()
+        if mode not in {"basic", "full", "raw"}:
+            print(
+                f"[{cfg.script_name}] WARN unsupported bag mode '{mode}' in {params_path}; skip.",
+                file=sys.stderr,
+            )
+            continue
+
+        storage = str(profile.get("storage", "mcap")).strip() or "mcap"
+        compress = str(profile.get("compress", "")).strip()
+        max_bag_size_mb = int(profile.get("max_bag_size_mb", 0))
+        out_dir = _normalize_bag_out_dir(cfg.ws_dir, str(profile.get("out_dir", "")))
+
+        bag_cmd = [
+            "./scripts/bag.sh",
+            "--mode",
+            mode,
+            "--storage",
+            storage,
+            "--session-tag",
+            session_tag,
+        ]
+        if max_bag_size_mb > 0:
+            bag_cmd += ["--max-bag-size-mb", str(max_bag_size_mb)]
+        if compress:
+            bag_cmd += ["--compress", compress]
+        if out_dir:
+            bag_cmd += ["--out-dir", out_dir]
+
+        cmd = (
+            f"cd {shlex.quote(str(cfg.ws_dir))}; "
+            f"{base_env}; "
+            f"{' '.join(shlex.quote(part) for part in bag_cmd)}"
+        )
+        log_file = log_dir / f"{Path(cfg.script_name).stem}_bag_{slugify(str(profile_name))}_{session_tag}.log"
+        print(
+            f"[{cfg.script_name}] (bag) {profile_name} -> {log_file}",
+            file=sys.stderr,
+        )
+        p = subprocess.Popen(
+            ["bash", "-lc", cmd],
+            stdout=open(log_file, "w"),
+            stderr=subprocess.STDOUT,
+            preexec_fn=os.setsid,
+        )
+        bg.add(p.pid)
+        started += 1
+
+    if started == 0:
+        print(f"[{cfg.script_name}] bag_record profiles produced no bag processes.", file=sys.stderr)
 
 
 def start_watchdog(cfg: CommonConfig, topics: list[tuple[str, float]], bg: BackgroundGroup) -> None:

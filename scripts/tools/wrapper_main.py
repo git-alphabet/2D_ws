@@ -30,6 +30,7 @@ from tools.wrapper_runtime import (
     ensure_odin_mode_consistency,
     extract_launch_arg,
     launch_in_terminal,
+    start_bag_recording,
     save_map_now,
     save_odin_bin_now,
     start_timestamp_monitor,
@@ -194,6 +195,7 @@ def main(argv: list[str]) -> int:
     reality_bg = BackgroundGroup(script_name)
     atexit.register(reality_bg.cleanup)
 
+    start_bag_recording(cfg, reality_bg)
     start_timestamp_monitor(cfg, reality_bg)
 
     if is_truthy(os.environ.get("ENABLE_WATCHDOG")):
