@@ -147,6 +147,7 @@ pb_controller_profiles:
       robot_type: "omni"
       marker_size: 0.05
       marker_z: 1.0
+      
     pb_omni_pid_pursuit_controller:
       # 控制器插件类型。
       plugin: "pb_omni_pid_pursuit_controller::OmniPidPursuitController"
