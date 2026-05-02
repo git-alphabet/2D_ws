@@ -59,6 +59,26 @@ def _read_topics(path: Path) -> list[str]:
     return topics
 
 
+def _available_storages() -> set[str]:
+    try:
+        out = subprocess.check_output(
+            ["ros2", "bag", "record", "-h"], text=True, stderr=subprocess.STDOUT
+        )
+    except Exception:
+        return set()
+
+    for line in out.splitlines():
+        if "--storage" not in line:
+            continue
+        lb = line.find("{")
+        rb = line.find("}", lb + 1)
+        if lb == -1 or rb == -1:
+            continue
+        return {item.strip() for item in line[lb + 1 : rb].split(",") if item.strip()}
+
+    return set()
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(
         prog="record_bag",
@@ -67,11 +87,16 @@ def main(argv: list[str]) -> int:
             "建议先 source /opt/ros/humble/setup.bash 和工作空间 install/setup.bash。"
         ),
     )
-    parser.add_argument("--mode", choices=["basic", "full"], default="basic")
+    parser.add_argument("--mode", choices=["basic", "full", "raw"], default="basic")
     parser.add_argument("--out-dir", default="", help="输出根目录（默认工作区 src/ros2_bag_tools/bags）")
-    parser.add_argument("--max-bag-size-mb", type=int, default=2048)
+    parser.add_argument("--max-bag-size-mb", type=int, default=0)
     parser.add_argument("--compress", choices=["", "zstd"], default="")
     parser.add_argument("--storage", choices=["sqlite3", "mcap"], default="mcap")
+    parser.add_argument(
+        "--session-tag",
+        default="",
+        help="可选会话标记；提供后输出目录名使用 <mode>_<session_tag>。",
+    )
     args = parser.parse_args(argv)
 
     if not _ros2_in_path():
@@ -94,10 +119,22 @@ def main(argv: list[str]) -> int:
         print(f"话题列表为空: {topics_file}", file=sys.stderr)
         return 1
 
-    ts = _dt.datetime.now(_BEIJING_TZ).strftime("%F_%H-%M-%S")
-    bag_path = out_dir / ts
+    available_storages = _available_storages()
+    if available_storages and args.storage not in available_storages:
+        joined = ", ".join(sorted(available_storages))
+        print(
+            f"当前环境不支持 storage='{args.storage}'，可用 storage: {joined}",
+            file=sys.stderr,
+        )
+        if args.storage == "mcap":
+            print(
+                "请安装 ros-humble-rosbag2-storage-mcap，或临时改用 --storage sqlite3",
+                file=sys.stderr,
+            )
+        return 2
 
-    max_bag_size_bytes = int(args.max_bag_size_mb) * 1024 * 1024
+    ts = args.session_tag.strip() or _dt.datetime.now(_BEIJING_TZ).strftime("%F_%H-%M-%S")
+    bag_path = out_dir / f"{args.mode}_{ts}"
 
     record_cmd: list[str] = [
         "ros2",
@@ -107,9 +144,10 @@ def main(argv: list[str]) -> int:
         str(bag_path),
         "--storage",
         args.storage,
-        "--max-bag-size",
-        str(max_bag_size_bytes),
     ]
+    if int(args.max_bag_size_mb) > 0:
+        max_bag_size_bytes = int(args.max_bag_size_mb) * 1024 * 1024
+        record_cmd += ["--max-bag-size", str(max_bag_size_bytes)]
 
     if args.compress:
         if args.compress == "zstd":
@@ -121,7 +159,10 @@ def main(argv: list[str]) -> int:
     print(f"话题列表: {topics_file}（{len(topics)} 个）")
     print(f"输出目录: {bag_path}")
     print(f"storage: {args.storage}")
-    print(f"分包大小: {args.max_bag_size_mb} MB")
+    if int(args.max_bag_size_mb) > 0:
+        print(f"分包大小: {args.max_bag_size_mb} MB")
+    else:
+        print("分包大小: unlimited")
     if args.compress:
         print(f"压缩: {args.compress}")
     print("开始录包...（Ctrl+C 停止）")
