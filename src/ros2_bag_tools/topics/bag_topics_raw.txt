@@ -15,3 +15,5 @@
 /auto_aim_yaw
 /robot_control
 /cmd_spin
+/tf
+/tf_static
