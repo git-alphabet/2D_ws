@@ -47,7 +47,7 @@ pb_navigation_switches:
     enable_gimbal_yaw_bridge: true             #是否启用 gimbal_yaw_bridge 通路。
 
     bag_record:
-      enabled: true
+      enabled: false
       profiles:
         replay_full:
           name: replay_full
