@@ -27,7 +27,7 @@ pan:
   iter_num: 2
   dune_max_num: 100
   nrmp_max_num: 10
-  dune_checkpoint: "/ws/src/gxu2026_sentry_nav/neupan_nav2_controller/NeuPAN/example/model/diff_robot_default/model_5000.pth"
+  dune_checkpoint: "/ws/src/gxu2026_sentry_nav/neupan_nav2_controller/model/model_8000.pth"
   iter_threshold: 0.1
 
 adjust:
