@@ -1,5 +1,5 @@
-# basic 录包话题（实车回放验证算法的最小集合）
-# 设计目标：能完整复现“传感器输入 + tf + 里程计 + 控制输出/导航输出”。
+# basic 录包话题（当前 reality/odin1 分支的最小回放集合）
+# 设计目标：保留 odin1 主链、Nav2 关键输入输出，以及当前分支实际还在用的中间 topic。
 # 说明：一行一个 topic；以 # 开头为注释。
 
 # 时间/系统
@@ -12,21 +12,32 @@
 
 # 控制/里程计
 /cmd_vel
+/cmd_vel_nav2_result
+/robot_control
 /odometry
 /lidar_odometry
+/odin1/odometry
+/odin1/odometry_highfreq
 
-# Livox 传感器
+# odin1 主链输入
+/odin1/imu
+/odin1/cloud_slam
+
+# mid360 补盲输入
 /livox/imu
 /livox/lidar/pointcloud
 
-# 若你的链路依赖 scan（例如 slam_toolbox 可视化/调试），可以保留
+# 当前导航链仍会经过这些中间输出
 /sensor_scan
 /registered_scan
+/scan_odin1
+/obstacle_scan
 
 # 导航关键输出（回放时观察规划与控制结果）
 /path
 /plan
 /plan_smoothed
+/local_plan
 /goal_pose
 /initialpose
 /pose

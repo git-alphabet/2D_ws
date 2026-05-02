@@ -322,7 +322,10 @@ def start_bag_recording(cfg: CommonConfig, bg: BackgroundGroup) -> None:
         out_dir = _normalize_bag_out_dir(cfg.ws_dir, str(profile.get("out_dir", "")))
 
         bag_cmd = [
-            "./scripts/bag.sh",
+            "ros2",
+            "run",
+            "ros2_bag_tools",
+            "record_bag",
             "--mode",
             mode,
             "--storage",

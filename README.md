@@ -184,16 +184,17 @@ ROS_DOMAIN_ID=66 ROS_LOCALHOST_ONLY=0 ./scripts/reality_navigation_oneclick.sh
 ./scripts/publish_script.sh
 ```
 
----
-
-## 4.6 实车数据录包（ros2 bag）
+### 4.6 实车数据录包（ros2 bag）
 
 当前阶段建议：**实车每次运行都录包**，用于复现与回放验证算法。
 
-- 最小录包（默认 sqlite3，按时间命名输出目录）：
+- 实车 wrapper 启动时是否自动录包，由
+  `config/reality/nav2_params.yaml` 中
+  `robot_description_runtime.ros__parameters.bag_record.enabled` 控制。
+- 如需手动录包，直接使用：
 
 ```bash
-./scripts/record_bag.sh
+ros2 run ros2_bag_tools record_bag
 ```
 
 - 回放：

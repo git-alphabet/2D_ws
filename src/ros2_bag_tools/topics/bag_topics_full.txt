@@ -1,5 +1,5 @@
-# full 录包话题（排障/复现复杂问题用，数据量更大）
-# 包含 basic + costmap/诊断/行为树日志等。
+# full 录包话题（当前 reality/odin1 分支排障/复现集合）
+# 包含 basic + odin1/mid360 关键链路 + costmap/诊断/行为树日志等。
 
 # basic
 /parameter_events
@@ -7,15 +7,35 @@
 /tf
 /tf_static
 /cmd_vel
+/cmd_vel_nav2_result
+/robot_control
 /odometry
 /lidar_odometry
+/odin1/odometry
+/odin1/odometry_highfreq
+/odin1/imu
+/odin1/cloud_raw
+/odin1/cloud_slam
+/odin1/path
 /livox/imu
+/livox/lidar
 /livox/lidar/pointcloud
 /sensor_scan
 /registered_scan
+/mid360/cloud_registered
+/mid360/registered_scan
+/mid360/lidar_odometry
+/terrain_map
+/terrain_map_ext
+/terrain_map_mid360
+/terrain_map_ext_mid360
+/scan_odin1
+/scan_mid360
+/obstacle_scan
 /path
 /plan
 /plan_smoothed
+/local_plan
 /goal_pose
 /initialpose
 /pose
