@@ -27,10 +27,6 @@ pb_navigation_switches:
     controller_plugin: "pb_omni_pid_pursuit_controller"
     # 里程计来源开关：影响导航链路最终订阅的 odom 源（需与 launch/桥接节点一致）。
     odometry_source: "point_lio"
-    # small_gicp 重定位总开关：
-    # - true: 启动 small_gicp_relocalization，提供 map->odom 动态对齐
-    # - false: 不启动重定位，使用静态 map->odom(0,0,0) + 纯里程计导航
-    enable_small_gicp_relocalization: true
     # 行为树策略入口（default / 其他预设），用于切换导航任务编排逻辑。
     behavior_tree: "config/RMUL_2026/rmul_2026.xml"
     calib_helper_mode: "always"                  # off / slam / always(nav+slam)
