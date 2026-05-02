@@ -8,6 +8,7 @@ library/
 /tips.txt
 /env.txt
 src/ros2_bag_tools/bags/
+bags/
 
 # Odin1 地图文件（私有二进制格式，运行时生成，不进仓库）
 src/odin_ros_driver/map/
