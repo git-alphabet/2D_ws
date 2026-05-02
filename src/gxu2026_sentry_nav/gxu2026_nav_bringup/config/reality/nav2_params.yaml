@@ -104,9 +104,13 @@ pb_controller_profiles:
   ros__parameters:
     neupan_nav2_controller:
       plugin: "nav2_neupan_controller::NeuPANController"
-      robot_type: "omni"
-      # NeuPAN planner config 统一从外部文件加载，与 pb_omni_pid_pursuit_controller 同级参数块格式一致。
+      dune_model_path: "/ws/src/gxu2026_sentry_nav/neupan_nav2_controller/model/model_8000.pth"
       neupan_config_path: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/neupan_planner.yaml"
+      max_linear_velocity: 2.5
+      max_angular_velocity: 3.0
+      robot_type: "omni"
+      marker_size: 0.05
+      marker_z: 1.0
     pb_omni_pid_pursuit_controller:
       plugin: "pb_omni_pid_pursuit_controller::OmniPidPursuitController"
       debug_print_control_frequency: false
