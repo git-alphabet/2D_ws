@@ -138,6 +138,15 @@ controller_server:
 # 控制器参数集合（传统控制器 profile）：这里的 profile 通常与仿真保持一致，便于复现调参。
 pb_controller_profiles:
   ros__parameters:
+    neupan_nav2_controller:
+      plugin: "nav2_neupan_controller::NeuPANController"
+      dune_model_path: "/ws/src/gxu2026_sentry_nav/neupan_nav2_controller/model/model_8000.pth"
+      neupan_config_path: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/neupan_planner.yaml"
+      max_linear_velocity: 2.5
+      max_angular_velocity: 3.0
+      robot_type: "omni"
+      marker_size: 0.05
+      marker_z: 1.0
     pb_omni_pid_pursuit_controller:
       # 控制器插件类型。
       plugin: "pb_omni_pid_pursuit_controller::OmniPidPursuitController"
