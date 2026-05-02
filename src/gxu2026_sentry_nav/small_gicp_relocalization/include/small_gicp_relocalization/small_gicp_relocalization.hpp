@@ -55,6 +55,13 @@ private:
   float global_leaf_size_;
   float registered_leaf_size_;
   float max_dist_sq_;
+  int min_inliers_;
+  double max_acceptable_error_;
+  double max_translation_jump_m_;
+  double max_rotation_jump_rad_;
+  bool publish_only_on_good_registration_;
+  bool has_good_registration_;
+  bool registration_runtime_enabled_;
   std::vector<double> init_pose_;
 
   std::string map_frame_;
