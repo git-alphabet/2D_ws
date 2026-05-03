@@ -40,8 +40,8 @@ rm_behavior_tree:
       central_highland_left_y: 2.30  # 中央高地左侧点坐标
       ramp_jump_x: 7.8
       ramp_jump_y: 5.0               # 梯形高地飞坡坐标
-      cap_outpost_x: 1.0             # 占领前哨点 x（标定缺失/无效时使用）
-      cap_outpost_y: 1.0             # 占领前哨点 y（标定缺失/无效时使用）
+      cap_outpost_x: 11.4251         # 占领前哨点 x（标定缺失/无效时使用）
+      cap_outpost_y: 1.4315          # 占领前哨点 y（标定缺失/无效时使用）
 
       # ─────────── 标定覆盖 ───────────
       # CSV 文件路径，为空则不启用标定覆盖（使用上面的 YAML 默认值）

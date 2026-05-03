@@ -137,6 +137,7 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
     effective_detect_enemy = suppress_enemy_detection ? false : r.is_detect_enemy;
     setOutput("hp_cur", static_cast<int>(r.current_hp));
     setOutput("ammo_allow", static_cast<int>(r.ammo_allow));
+    setOutput("captured_outpost", r.captured_outpost);
     // base_hp_cur: 已改由 team_hp.base_hp 接管 (0x0003 offset 14)
     // outpost_alive 不再使用 robot_status.outpost_alive (bool转换可能有误)
     // 将由 team_hp.outpost_hp > 0 得出（0x0003 offset 12 原始 uint16_t)
@@ -144,6 +145,7 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
     setOutput("has_target", effective_detect_enemy);
     setOutput("is_detect_enemy", effective_detect_enemy);
   } else {
+    setOutput("captured_outpost", false);
     setOutput("has_target", false);
     setOutput("is_detect_enemy", false);
   }

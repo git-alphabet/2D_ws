@@ -41,6 +41,7 @@
                                    ammo_allow="{ammo.allow}"
                                    base_hp_cur="{base.hp.cur}"
                                    outpost_alive="{outpost.alive}"
+                                   captured_outpost="{captured_outpost}"
                                    is_dead="{state.is_dead}"
                                    has_target="{combat.has_target}"
                                    is_detect_enemy="{is_detect_enemy}"

@@ -19,7 +19,6 @@ bool RmucSentryCmdMuxAction::setMessage(sp_msgs::msg::RMUCSentryCmd & msg)
 
   msg.cmd_posture = static_cast<uint8_t>(posture);
   msg.cmd_confirm_respawn = (confirm_respawn != 0);
-  msg.cmd_confirm_instant_respawn = false;  // 不买活
 
   return true;
 }

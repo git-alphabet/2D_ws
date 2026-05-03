@@ -19,6 +19,7 @@ uint16 ammo_allow            # [2B] 剩余允许发弹量
 
 # ── 视觉检测 ──
 bool    is_detect_enemy      # [1B] 是否检测到敌人
+bool    captured_outpost     # [1B] 是否占领敌方前哨站
 
 # ── 状态说明 ──
 # 注意: is_dead 不是裁判系统协议字段，由 BT (ParseSentryBlackboard) 根据 current_hp <= 0 计算。
