@@ -1,14 +1,14 @@
 # mpc
 receding: 6
 step_time: 0.25
-ref_speed: 0.5
+ref_speed: 2.0
 device: 'cpu'
-time_print: False
+time_print: True
 collision_threshold: 0.01
 # robot
 robot:
   kinematics: 'omni'
-  max_speed: [3, 6]
+  max_speed: [4, 6]
   max_acce: [2, 2]
   length: 0.57
   width: 0.57
@@ -34,8 +34,8 @@ pan:
 
 # adjust parameters
 adjust:
-  q_s: 0.1
+  q_s: 1.5
   p_u: 0.5
-  eta: 15.0
-  d_max: 0.05
+  eta: 10.0
+  d_max: 0.1
   d_min: 0.01

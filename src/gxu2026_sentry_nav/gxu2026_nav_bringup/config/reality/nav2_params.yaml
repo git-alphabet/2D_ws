@@ -1,12 +1,3 @@
-## ============================
-## 关键链路速览（实车）
-## 1) 里程计链路：point_lio/small_point_lio -> loam_interface(odometry)
-## 2) 导航控制：planner_server -> controller_server -> fake_vel_transform -> cmd_vel
-## 3) 代价地图观测：terrain_analysis(局部) + terrain_analysis_ext(全局)
-## 4) 坐标系约定：map(全局) / odom(局部连续) / gimbal_yaw_fake(Nav2 规划底盘)
-## 调参建议：优先保证 TF/话题一致，再调频率/容差，最后调控制器增益。
-## ============================
-
 mid360_driver:
   ros__parameters:
     # 说明：这里用相对话题名（不带前导 /），以便在设置 namespace 时能自动跟随命名空间。
@@ -36,10 +27,6 @@ pb_navigation_switches:
     controller_plugin: "pb_omni_pid_pursuit_controller"
     # 里程计来源开关：影响导航链路最终订阅的 odom 源（需与 launch/桥接节点一致）。
     odometry_source: "point_lio"
-    # small_gicp 重定位总开关：
-    # - true: 启动 small_gicp_relocalization，提供 map->odom 动态对齐
-    # - false: 不启动重定位，使用静态 map->odom(0,0,0) + 纯里程计导航
-    enable_small_gicp_relocalization: true
     # 行为树策略入口（default / 其他预设），用于切换导航任务编排逻辑。
     behavior_tree: "config/RMUL_2026/rmul_2026.xml"
     calib_helper_mode: "always"                  # off / slam / always(nav+slam)
@@ -104,9 +91,13 @@ pb_controller_profiles:
   ros__parameters:
     neupan_nav2_controller:
       plugin: "nav2_neupan_controller::NeuPANController"
-      robot_type: "omni"
-      # NeuPAN planner config 统一从外部文件加载，与 pb_omni_pid_pursuit_controller 同级参数块格式一致。
+      dune_model_path: "/ws/src/gxu2026_sentry_nav/neupan_nav2_controller/model/model_8000.pth"
       neupan_config_path: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/neupan_planner.yaml"
+      max_linear_velocity: 2.5
+      max_angular_velocity: 3.0
+      robot_type: "omni"
+      marker_size: 0.05
+      marker_z: 1.0
     pb_omni_pid_pursuit_controller:
       plugin: "pb_omni_pid_pursuit_controller::OmniPidPursuitController"
       debug_print_control_frequency: false
@@ -139,76 +130,6 @@ pb_controller_profiles:
       curvature_forward_dist: 0.7
       curvature_backward_dist: 0.3
       max_velocity_scaling_factor_rate: 0.9
-
-small_point_lio:
-  ros__parameters:
-    # Make outputs compatible with point_lio + loam_interface pipeline
-    state_estimation_topic: "aft_mapped_to_init"
-    registered_scan_topic: "cloud_registered"
-    world_frame: "camera_init"
-    # Keep frame semantics consistent with loam_interface/sensor_scan_generation lidar_frame
-    body_frame: "front_mid360"
-    publish_tf: false
-
-    # 参数对照（思路对齐 point_lio，不追求字段完全一致）：
-    # - 点云/IMU 话题：对齐 point_lio.common.lid_topic / point_lio.common.imu_topic
-    # - 近距离屏蔽：small_point_lio.min_distance 约等价 point_lio.preprocess.blind
-    # - 下采样：small_point_lio.space_downsample_leaf_size 可类比 point_lio.filter_size_surf / filter_size_map
-    # - IMU 单位：small_point_lio.acc_norm 对齐 point_lio.mapping.acc_norm
-    # - 外参：small_point_lio.extrinsic_T/R 对齐 point_lio.mapping.extrinsic_est_en + 外参设置（本工程通常关闭估计）
-
-    lidar_topic: livox/lidar/pointcloud
-    imu_topic: livox/imu
-    lidar_type: livox
-    lidar_frame: front_mid360
-    save_pcd: false
-
-    # 逐点时间戳：
-    # - 实车默认开启（如果上游点云包含可靠的 per-point time，有助于运动去畸变）
-    # - 注意：Livox CustomMsg 路径不使用该参数；该参数主要给 PointCloud2(unilidar/velodyne) 路径用
-    use_point_time: true
-    point_time_scale: 1.0
-
-    # 如果遇到“输出点云太密/下游刷 warning”，可启用输出侧裁剪：
-    # publish_min_distance: 1.5
-    # publish_max_distance: 150.0
-
-    point_filter_num: 1
-    # ~ point_lio.preprocess.blind
-    min_distance: 0.5
-    max_distance: 150.0
-    space_downsample: true
-    # ~ point_lio.filter_size_surf / point_lio.filter_size_map
-    space_downsample_leaf_size: 0.5
-
-    gravity: [0.0, 0.0, -9.81]
-    fix_gravity_direction: true
-    check_satu: true
-    satu_acc: 3.0
-    satu_gyro: 35.0
-    acc_norm: 1.0
-
-    map_resolution: 0.5
-    init_map_size: 10
-
-    extrinsic_est_en: false
-    extrinsic_T: [-0.011, -0.02329, 0.04412]
-    extrinsic_R: [1.0, 0.0, 0.0,
-                 0.0, 1.0, 0.0,
-                 0.0, 0.0, 1.0]
-
-    laser_point_cov: 0.01
-    imu_meas_acc_cov: 0.01
-    imu_meas_omg_cov: 0.01
-    velocity_cov: 20.0
-    acceleration_cov: 500.0
-    omg_cov: 1000.0
-    ba_cov: 0.0001
-    bg_cov: 0.0001
-    plane_threshold: 0.1
-    match_sqaured: 81.0
-
-    publish_odometry_without_downsample: false
 
 # 行为树相关（RM 侧）：实车不用 sim time
 rm_behavior_tree:
@@ -421,7 +342,8 @@ fake_vel_transform:
     speed_bump_min_linear_speed: 1.5
     speed_bump_map_frame: "map"
     speed_bump_zone_name: "speed_bump"
-    speed_bump_zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
+    # 语义区域文件路径，当前留空表示不加载（需要你按实车地图补齐）
+    speed_bump_zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/semantic_zones.yaml"
 
 # 非线性小陀螺（实车）：同仿真，发布 cmd_spin（Float32，单位 rad/s）
 nonlinear_spin_publisher:
@@ -479,6 +401,13 @@ small_gicp_relocalization:
     global_leaf_size: 0.1
     registered_leaf_size: 0.05
     max_dist_sq: 3.0
+    # 质量门控：仅当匹配质量达标时才更新 map->odom，避免错误收敛扰动导航。
+    min_inliers: 200
+    max_acceptable_error: 0.25
+    max_translation_jump_m: 1.0
+    max_rotation_jump_rad: 0.8
+    # false: 未达标时保持当前 map->odom（通常是 init_pose/手动 initialpose），继续后台尝试。
+    publish_only_on_good_registration: false
     map_frame: "map"
     odom_frame: "odom"
     base_frame: "base_footprint"
