@@ -17,7 +17,7 @@ RMUC 2026 裁判系统话题模拟器
   2. 再开另一个终端:
      docker exec -it gxu2026-nav-laptop bash
      source /ws/.buildcache/Alphabet/install/setup.bash
-     python3 /ws/scripts/rmuc_test_publisher.py
+     python3 /ws/scripts/rmuc_test_publisher.py --ns=/red_standard_robot1
 
       或直接:
      docker exec gxu2026-nav-laptop bash -c \
@@ -31,7 +31,8 @@ RMUC 2026 裁判系统话题模拟器
   --remain   赛阶段剩余时间，秒 (默认 300)
   --hp       当前血量 (默认 400，设为 0 模拟战亡)
   --ammo     允许发弹量 (默认 300)
-  --outpost-dead  前哨站是否被毁 (不加=存活)
+    --outpost-dead  我方前哨站是否被毁 (不加=存活)
+    --enemy-outpost-destroyed  敌方前哨站是否被毁 (不加=未被毁)
   --detect-enemy  云台是否检测到敌人 (不加=未检测，用于基地威胁解除判定)
   --base-hp       基地当前血量 (默认 5000)
   --base-hp-drain 每秒基地血量下降速度 (默认 0)
@@ -51,8 +52,11 @@ RMUC 2026 裁判系统话题模拟器
   # 满血3秒 → 低血量5秒 → 满血+检测到敌人
     python3 /ws/scripts/rmuc_test_publisher.py --hp=400 --duration=3 && python3 /ws/scripts/rmuc_test_publisher.py --hp=80 --duration=5 && python3 /ws/scripts/rmuc_test_publisher.py --hp=400 --detect-enemy
 
-  # 满血2秒 → 前哨站被毁（触发目标切换到梯形高地）
-    python3 /ws/scripts/rmuc_test_publisher.py --hp=400 --duration=2 && python3 /ws/scripts/rmuc_test_publisher.py --hp=400 --outpost-dead
+    # 敌方前哨站被毁且我方前哨站存活（触发目标切换到中央高地）
+        python3 /ws/scripts/rmuc_test_publisher.py --hp=400 --duration=2 && python3 /ws/scripts/rmuc_test_publisher.py --hp=400 --enemy-outpost-destroyed
+
+    # 敌方前哨站被毁且我方前哨站也被毁（触发目标切换到梯形高地）
+        python3 /ws/scripts/rmuc_test_publisher.py --hp=400 --enemy-outpost-destroyed --outpost-dead
 
   # 低弹药+10秒后补给到账（测试补给成功路径）
     python3 /ws/scripts/rmuc_test_publisher.py --ammo=50 --supply-delay=10 --supply-amount=100
@@ -89,6 +93,7 @@ class RmucTestPublisher(Node):
     def __init__(self, args, namespace=""):
         super().__init__("rmuc_test_publisher", namespace=namespace)
         self.args = args
+        self.resolved_namespace = _normalize_namespace(namespace)
 
         # ── 发布者 (话题名不带 ns，由 node namespace 自动加前缀) ──
         self.pub_game = self.create_publisher(RMUCGameStatus, "game_status", 10)
@@ -102,7 +107,7 @@ class RmucTestPublisher(Node):
         # ── enable_power: rmua19_robot_base 必须收到此信号才会响应 cmd_vel ──
         # 路径镜像 Gazebo 裁判插件: /referee_system/{ns}/enable_power
         # 空 ns 时退化为 /referee_system/enable_power
-        _ns = args.ns.strip('/')
+        _ns = self.resolved_namespace.strip('/')
         _ep_topic = f"/referee_system/{_ns}/enable_power" if _ns else "/referee_system/enable_power"
         _latch_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.pub_enable_power = self.create_publisher(Bool, _ep_topic, _latch_qos)
@@ -141,7 +146,8 @@ class RmucTestPublisher(Node):
         self.get_logger().info(
             f"RMUC 模拟器启动: phase={args.phase}, remain={args.remain}s, "
             f"hp={args.hp}, ammo={args.ammo}, "
-            f"outpost_dead={args.outpost_dead}, detect_enemy={args.detect_enemy}, "
+            f"outpost_dead={args.outpost_dead}, enemy_outpost_destroyed={args.enemy_outpost_destroyed}, "
+            f"detect_enemy={args.detect_enemy}, "
             f"base_hp={args.base_hp}, base_hp_drain={args.base_hp_drain}/s, "
             f"enemy_near_base={args.enemy_near_base}, "
             f"coins={args.coins}, "
@@ -178,6 +184,8 @@ class RmucTestPublisher(Node):
         msg.current_hp = self.args.hp
         msg.shooter_heat = 30
         msg.ammo_allow = self.current_ammo
+        # 1/2 代表前哨站仍存活；其余状态会被 BT 解释为 destroyed=true。
+        msg.enemy_outpost_status = 4 if self.args.enemy_outpost_destroyed else 1
         # base_hp_cur / outpost_alive 已从 robot_status 删除，改由 team_hp 接管
         msg.is_detect_enemy = self.args.detect_enemy
         self.pub_robot.publish(msg)
@@ -199,7 +207,6 @@ class RmucTestPublisher(Node):
     def _pub_sentry_decision_status(self):
         msg = RMUCSentryDecisionStatus()
         msg.header = self._header()
-        msg.can_instant_respawn = False
         msg.current_posture = self.current_posture
         msg.exchanged_ammo_total = 0
         self.pub_sentry_decision.publish(msg)
@@ -319,7 +326,9 @@ def main():
     parser.add_argument("--remain", type=int, default=420, help="阶段剩余时间 (秒)")
     parser.add_argument("--hp", type=int, default=400, help="当前血量")
     parser.add_argument("--ammo", type=int, default=300, help="允许发弹量")
-    parser.add_argument("--outpost-dead", action="store_true", help="前哨站被毁")
+    parser.add_argument("--outpost-dead", action="store_true", help="我方前哨站被毁")
+    parser.add_argument("--enemy-outpost-destroyed", action="store_true",
+                        help="敌方前哨站被毁")
     parser.add_argument("--detect-enemy", action="store_true", help="检测到敌人")
     parser.add_argument("--base-hp", type=int, default=5000, help="基地当前血量 (默认5000)")
     parser.add_argument("--base-hp-drain", type=float, default=0,
