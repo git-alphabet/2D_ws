@@ -11,12 +11,18 @@ SelectObjectiveAction::SelectObjectiveAction(
 BT::NodeStatus SelectObjectiveAction::tick()
 {
   bool outpost_alive = true;
+  bool enemy_outpost_destroyed = true;
   getInput("outpost_alive", outpost_alive);
+  getInput("enemy_outpost_destroyed", enemy_outpost_destroyed);
 
   std::string objective;
   double gx = 0, gy = 0;
 
-  if (outpost_alive) {
+  if (!enemy_outpost_destroyed) {
+    objective = "CAP_OUTPOST";
+    getInput("cap_outpost_x", gx);
+    getInput("cap_outpost_y", gy);
+  } else if (outpost_alive) {
     objective = "CENTRAL_HIGHLAND";
     getInput("central_highland_x", gx);
     getInput("central_highland_y", gy);
@@ -28,8 +34,8 @@ BT::NodeStatus SelectObjectiveAction::tick()
 
   static std::string last_obj;
   if (objective != last_obj) {
-    fprintf(stderr, "[SelectObjective] outpost_alive=%d → %s (%.2f, %.2f)\n",
-            outpost_alive, objective.c_str(), gx, gy);
+    fprintf(stderr, "[SelectObjective] enemy_outpost_destroyed=%d, outpost_alive=%d → %s (%.2f, %.2f)\n",
+      enemy_outpost_destroyed, outpost_alive, objective.c_str(), gx, gy);
     last_obj = objective;
   }
 

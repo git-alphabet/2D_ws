@@ -69,9 +69,15 @@
                             <SubTree ID="SustainAndEconomy" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 2) 目标控制：中央高地/梯形高地/堡垒/隧道等 -->
+                        <!-- 2) 目标控制：进入 ObjectivePlanner 前先决定当前是前哨站争夺还是普通目标规划 -->
                         <Sequence>
-                            <SetBlackboard output_key="active_subtree" value="ObjectivePlanner"/>
+                            <ReactiveFallback>
+                                <Sequence>
+                                    <ScriptCondition code="enemy_outpost_destroyed == false"/>
+                                    <SetBlackboard output_key="active_subtree" value="CapOutpostPlanner"/>
+                                </Sequence>
+                                <SetBlackboard output_key="active_subtree" value="ObjectivePlanner"/>
+                            </ReactiveFallback>
                             <SubTree ID="ObjectivePlanner" _autoremap="true"/>
                         </Sequence>
 

@@ -12,6 +12,9 @@
                              stage_remain_time="{game.remain_s}"
                              hp_cur="{hp.cur}" hp_max="{hp.max}"
                              outpost_alive="{outpost.alive}"
+                             enemy_outpost_destroyed="{enemy_outpost_destroyed}"
+                             cap_outpost_x="{cfg.cap_outpost_x}"
+                             cap_outpost_y="{cfg.cap_outpost_y}"
                              central_highland_x="{cfg.central_highland_x}"
                              central_highland_y="{cfg.central_highland_y}"
                              ladder_highland_x="{cfg.ladder_highland_x}"
@@ -30,16 +33,16 @@
                              arrive_radius="{cfg.arrive_radius}"
                              goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"/>
 
-            <!-- 发送导航目标给 Nav2（RateController 限制重发频率） -->
+            <!-- 发送导航目标给 Nav2（同一目标默认只发一次，避免密集重发导致崩溃） -->
             <!-- ForceSuccess: 即使 Nav2 导航失败/中止，ObjectivePlanner 也保持活跃 -->
-            <!-- max_dedup_ms=20000: 同一目标 20s 后允许重发，避免首次失败后永久卡死 -->
+            <!-- max_dedup_ms=0: 同一目标永久去重；只有目标变化或 CancelNavGoal 清缓存后才重发 -->
             <!-- 底盘旋转由全局 GlobalRobotControl 根据 is_at_nav_goal 控制 -->
             <ForceSuccess>
                 <RateController hz="1">
                     <SendGoal name="{nav.objective}"
                               goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
                               frame_id="map" action_name="navigate_to_pose"
-                              max_dedup_ms="20000"/>
+                              max_dedup_ms="0"/>
                 </RateController>
             </ForceSuccess>
             <KeepRunning/>

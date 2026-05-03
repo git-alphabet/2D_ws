@@ -17,9 +17,17 @@ uint16 shooter_heat          # [2B] 当前枪口热量
 # ── 弹丸与允许发弹量 ──
 uint16 ammo_allow            # [2B] 剩余允许发弹量
 
+# ── 状态标志位 ──
+uint32   enemy_outpost_status   # [1B] 敌方前哨站状态 (outpost_status)
+                                # 0: 无敌
+                                # 1: 存活, 解除无敌, 中部装甲旋转
+                                # 2: 存活, 解除无敌, 中部装甲停转
+                                # 3: 被击毁, 不可重建
+                                # 4: 被击毁, 可重建
+                                # 5: 被击毁, 重建中
+
 # ── 视觉检测 ──
 bool    is_detect_enemy      # [1B] 是否检测到敌人
-bool    captured_outpost     # [1B] 是否占领敌方前哨站
 
 # ── 状态说明 ──
 # 注意: is_dead 不是裁判系统协议字段，由 BT (ParseSentryBlackboard) 根据 current_hp <= 0 计算。
