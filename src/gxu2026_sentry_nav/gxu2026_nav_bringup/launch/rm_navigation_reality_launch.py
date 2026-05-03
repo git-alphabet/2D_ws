@@ -143,6 +143,7 @@ def generate_launch_description():
     rviz_config_file = LaunchConfiguration("rviz_config_file")
     use_robot_state_pub = LaunchConfiguration("use_robot_state_pub")
     use_rviz = LaunchConfiguration("use_rviz")
+    use_mid360_driver = LaunchConfiguration("use_mid360_driver")
 
     # Declare the launch arguments
     declare_namespace_cmd = DeclareLaunchArgument(
@@ -231,6 +232,12 @@ def generate_launch_description():
         "use_rviz", default_value="True", description="Whether to start RVIZ"
     )
 
+    declare_use_mid360_driver_cmd = DeclareLaunchArgument(
+        "use_mid360_driver",
+        default_value="True",
+        description="Whether to start mid360 driver. Set False during bag replay to avoid duplicate publisher.",
+    )
+
     # Create our own temporary YAML files that include substitutions
 
     configured_params = ParameterFile(
@@ -263,6 +270,7 @@ def generate_launch_description():
         output="screen",
         namespace=namespace,
         parameters=[configured_params],
+        condition=IfCondition(use_mid360_driver),
     )
 
     rviz_cmd = IncludeLaunchDescription(
@@ -305,6 +313,7 @@ def generate_launch_description():
     ld.add_action(declare_rviz_config_file_cmd)
     ld.add_action(declare_use_robot_state_pub_cmd)
     ld.add_action(declare_use_rviz_cmd)
+    ld.add_action(declare_use_mid360_driver_cmd)
     ld.add_action(declare_use_respawn_cmd)
 
     # Add the actions to launch all of the navigation nodes
