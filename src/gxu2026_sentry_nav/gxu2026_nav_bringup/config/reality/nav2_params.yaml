@@ -582,6 +582,8 @@ fake_vel_transform:
   ros__parameters:
     # 是否使用仿真时间。
     use_sim_time: False
+    # 是否发布 gimbal_yaw->gimbal_yaw_fake TF（bag 回放时关闭，避免重复）
+    publish_tf: true
     # 里程计话题。
     odom_topic: "odometry"
     # Nav2 内部规划使用 gimbal_yaw，经过该节点转换后对外发布 fake 底盘框架。
