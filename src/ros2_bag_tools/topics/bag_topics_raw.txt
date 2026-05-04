@@ -1,5 +1,9 @@
-# raw 录包话题（odin1 分支：odin 闭源算法输出 + 调试上下文）
-# 设计目标：录 odin 设备内部闭源算法处理后的里程计和点云
+# raw 录包话题（odin1 分支：odin 闭源算法输出 + 完整 tf 树）
+# 设计目标：录 odin 设备内部闭源算法处理后的里程计、点云和 tf
+# 回放时关闭 odin_driver，用 bag 里的数据
+
+/tf
+/tf_static
 
 /livox/lidar
 /livox/lidar/pointcloud
