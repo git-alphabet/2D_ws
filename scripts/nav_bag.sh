@@ -8,4 +8,56 @@ export REALITY_USE_SIM_TIME="True"
 export AUTO_RECORD_BAG="0"
 unset NAVIGATION_CMD
 
+# ── 参数解析 ──────────────────────────────────────────────────────
+# 用法: nav_bag.sh <bag目录> [nav.sh 参数...]
+#       nav_bag.sh                    # 不回放 bag，只启动导航程序
+BAG_DIR="${1:-}"
+if [ -n "$BAG_DIR" ]; then
+    shift  # 消耗第一个参数，剩余的传给 nav.sh
+fi
+
+BAG_RATE="${BAG_RATE:-1.0}"
+BAG_LOOP="${BAG_LOOP:-1}"
+
+_bag_pid=""
+
+_cleanup() {
+    if [ -n "$_bag_pid" ] && kill -0 "$_bag_pid" 2>/dev/null; then
+        echo "[nav_bag] Stopping bag replay (PID $_bag_pid)..."
+        kill "$_bag_pid" 2>/dev/null || true
+        wait "$_bag_pid" 2>/dev/null || true
+    fi
+}
+trap _cleanup EXIT INT TERM
+
+if [ -n "$BAG_DIR" ]; then
+    if [ ! -d "$BAG_DIR" ]; then
+        candidate="$SCRIPT_DIR/../bags/$BAG_DIR"
+        if [ -d "$candidate" ]; then
+            BAG_DIR="$candidate"
+        fi
+    fi
+
+    if [ ! -d "$BAG_DIR" ]; then
+        echo "[nav_bag] ERROR: bag directory not found: $BAG_DIR" >&2
+        exit 1
+    fi
+
+    BAG_CMD="python3 $SCRIPT_DIR/../src/ros2_bag_tools/scripts/play_bag $BAG_DIR --raw --rate $BAG_RATE"
+    if [ "$BAG_LOOP" = "1" ]; then
+        BAG_CMD="$BAG_CMD --loop"
+    fi
+
+    echo "[nav_bag] Starting bag replay (raw mode, rate=$BAG_RATE, loop=$BAG_LOOP): $BAG_DIR"
+    # 获取当前分支对应的 install 路径
+    _branch="$(git -C "$SCRIPT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo default)"
+    _branch_safe="$(echo "$_branch" | sed 's#[^A-Za-z0-9._-]#_#g')"
+    _install_setup="$SCRIPT_DIR/../.buildcache/$_branch_safe/install/setup.bash"
+    [ -f "$_install_setup" ] || _install_setup="$SCRIPT_DIR/../install/setup.bash"
+    bash -c "source /opt/ros/humble/setup.bash && source $_install_setup 2>/dev/null; $BAG_CMD" &
+    _bag_pid=$!
+    echo "[nav_bag] Bag replay PID: $_bag_pid"
+    sleep 2
+fi
+
 exec "$SCRIPT_DIR/nav.sh" "$@"

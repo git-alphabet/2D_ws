@@ -144,6 +144,7 @@ def generate_launch_description():
     use_robot_state_pub = LaunchConfiguration("use_robot_state_pub")
     use_rviz = LaunchConfiguration("use_rviz")
     use_mid360_driver = LaunchConfiguration("use_mid360_driver")
+    use_static_tf_map2odom = LaunchConfiguration("use_static_tf_map2odom")
 
     # Declare the launch arguments
     declare_namespace_cmd = DeclareLaunchArgument(
@@ -238,6 +239,12 @@ def generate_launch_description():
         description="Whether to start mid360 driver. Set False during bag replay to avoid duplicate publisher.",
     )
 
+    declare_use_static_tf_map2odom_cmd = DeclareLaunchArgument(
+        "use_static_tf_map2odom",
+        default_value="True",
+        description="Publish static tf map->odom. Set False when SLAM handles map->odom or during bag replay to avoid duplicate publishers.",
+    )
+
     # Create our own temporary YAML files that include substitutions
 
     configured_params = ParameterFile(
@@ -295,6 +302,7 @@ def generate_launch_description():
             "autostart": autostart,
             "use_composition": use_composition,
             "use_respawn": use_respawn,
+            "use_static_tf_map2odom": use_static_tf_map2odom,
         }.items(),
     )
 
@@ -314,6 +322,7 @@ def generate_launch_description():
     ld.add_action(declare_use_robot_state_pub_cmd)
     ld.add_action(declare_use_rviz_cmd)
     ld.add_action(declare_use_mid360_driver_cmd)
+    ld.add_action(declare_use_static_tf_map2odom_cmd)
     ld.add_action(declare_use_respawn_cmd)
 
     # Add the actions to launch all of the navigation nodes

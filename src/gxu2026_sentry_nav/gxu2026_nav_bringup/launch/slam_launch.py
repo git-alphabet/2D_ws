@@ -97,6 +97,12 @@ def generate_launch_description():
         description="Override odometry source (point_lio or small_point_lio). Empty means read from pb_navigation_switches.odometry_source.",
     )
 
+    declare_use_static_tf_map2odom_cmd = DeclareLaunchArgument(
+        "use_static_tf_map2odom",
+        default_value="True",
+        description="Publish static tf map->odom. Set False when SLAM handles map->odom or during bag replay to avoid duplicate publishers.",
+    )
+
     def _set_slam_switches(
         context, *, params_file, namespace, odometry_source
     ):
@@ -222,11 +228,14 @@ def generate_launch_description():
         ),
     )
 
+    use_static_tf_map2odom = LaunchConfiguration("use_static_tf_map2odom")
+
     start_static_transform_node = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
         name="static_transform_publisher_map2odom",
         output="screen",
+        condition=IfCondition(use_static_tf_map2odom),
         arguments=[
             "--x",
             "0.0",
@@ -257,6 +266,7 @@ def generate_launch_description():
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_log_level_cmd)
     ld.add_action(declare_odometry_source_cmd)
+    ld.add_action(declare_use_static_tf_map2odom_cmd)
 
     # Set switches before starting nodes
     ld.add_action(set_switches_cmd)

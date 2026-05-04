@@ -135,6 +135,12 @@ def generate_launch_description():
         "log_level", default_value="info", description="log level"
     )
 
+    declare_use_static_tf_map2odom_cmd = DeclareLaunchArgument(
+        "use_static_tf_map2odom",
+        default_value="True",
+        description="Publish static tf map->odom. Set False when SLAM handles map->odom or during bag replay.",
+    )
+
     # Specify the actions
     bringup_cmd_group = GroupAction(
         [
@@ -161,6 +167,7 @@ def generate_launch_description():
                     "autostart": autostart,
                     "use_respawn": use_respawn,
                     "params_file": params_file,
+                    "use_static_tf_map2odom": LaunchConfiguration("use_static_tf_map2odom"),
                 }.items(),
             ),
             IncludeLaunchDescription(
@@ -216,6 +223,7 @@ def generate_launch_description():
     ld.add_action(declare_use_composition_cmd)
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_log_level_cmd)
+    ld.add_action(declare_use_static_tf_map2odom_cmd)
 
     # Add the actions to launch all of the navigation nodes
     ld.add_action(bringup_cmd_group)

@@ -19,6 +19,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--rate", default="1.0", help="回放倍率（默认 1.0）")
     parser.add_argument("--loop", action="store_true", help="循环回放")
     parser.add_argument("--no-clock", action="store_true", help="不发布 /clock")
+    parser.add_argument("--raw", action="store_true", help="只回放 bag_topics_raw.txt 中未被注释的话题（过滤掉可能造成冲突的过时下游话题）")
     args = parser.parse_args(argv)
 
     if shutil.which("ros2") is None:
@@ -67,6 +68,20 @@ def main(argv: list[str]) -> int:
         cmd.append("--clock")
     if args.loop:
         cmd.append("--loop")
+    
+    if args.raw:
+        # 读取 topics/bag_topics_raw.txt 中的未注释话题
+        topics_file = Path(__file__).resolve().parent.parent / "topics" / "bag_topics_raw.txt"
+        if topics_file.is_file():
+            print(f"使用 RAW 模式，仅回放 {topics_file.name} 中定义的话题...")
+            with open(topics_file, "r") as f:
+                topics = [line.split()[0] for line in f if line.strip() and not line.strip().startswith('#')]
+            if topics:
+                cmd.extend(["--topics"] + topics)
+            else:
+                print("警告：bag_topics_raw.txt 中未找到任何有效话题", file=sys.stderr)
+        else:
+            print(f"警告：未找到 {topics_file}", file=sys.stderr)
 
     print("开始回放...")
     os.execvp(cmd[0], cmd)
