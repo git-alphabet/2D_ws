@@ -23,7 +23,7 @@ from launch_ros.descriptions import ComposableNode
 
 
 def _build_lifecycle_manager_node(
-    *, use_sim_time, autostart, log_level, lifecycle_nodes, condition=None
+    *, use_sim_time, autostart, log_level, lifecycle_nodes, configured_params, condition=None
 ):
     return Node(
         condition=condition,
@@ -33,6 +33,7 @@ def _build_lifecycle_manager_node(
         output="screen",
         arguments=["--ros-args", "--log-level", log_level],
         parameters=[
+            configured_params,
             {"use_sim_time": use_sim_time},
             {"autostart": autostart},
             {"node_names": lifecycle_nodes},
@@ -544,6 +545,7 @@ def build_navigation_runtime_actions(
         autostart=autostart,
         log_level=log_level,
         lifecycle_nodes=lifecycle_nodes,
+        configured_params=configured_params,
         condition=UnlessCondition(nav2_tf_warmup_enabled),
     )
 
@@ -556,6 +558,7 @@ def build_navigation_runtime_actions(
                     autostart=autostart,
                     log_level=log_level,
                     lifecycle_nodes=lifecycle_nodes,
+                    configured_params=configured_params,
                 )
             ],
         )

@@ -177,6 +177,7 @@ def generate_launch_description():
                     {"use_sim_time": use_sim_time},
                     {"autostart": autostart},
                     {"node_names": lifecycle_nodes},
+                    {"bond_timeout": 7.0},
                 ],
             ),
         ],
@@ -201,6 +202,7 @@ def generate_launch_description():
                         "use_sim_time": use_sim_time,
                         "autostart": autostart,
                         "node_names": lifecycle_nodes,
+                        "bond_timeout": 7.0,
                     }
                 ],
             ),
