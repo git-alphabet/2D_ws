@@ -1398,9 +1398,11 @@ velocity_smoother:
     velocity_timeout: 1.0
 
 
+
 lifecycle_manager_navigation:
   ros__parameters:
-    # 生命周期管理器 bond 超时时间，单位秒。
-    bond_timeout: 8.0
+    # 生命周期管理器 bond 超时时间，单位秒。启动时系统负载高，需要足够余量。
+    bond_timeout: 7.0
     # 是否在 bond 断开后尝试重连。
     attempt_respawn_reconnection: true
+
