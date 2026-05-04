@@ -95,7 +95,8 @@ private:
         "overlay_reprojected_topic",
         "overlay_camera_topic",
         "overlay_output_topic",
-        "overlay_alpha"
+        "overlay_alpha",
+        "odom_base_frame_id"
     };
 };
 
