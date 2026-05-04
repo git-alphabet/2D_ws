@@ -16,7 +16,8 @@ export MAPPING_CMD="ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch
     use_sim_time:=True \
     use_odin_driver:=False \
     use_mid360_driver:=False \
-    publish_static_map_tf:=False"
+    publish_static_map_tf:=False \
+    enable_fake_vel_transform_tf:=False"
 
 # ── 参数解析 ──────────────────────────────────────────────────────
 # 用法: odin1_mapping_bag.sh <bag目录> [odin1_mapping.sh 参数...]
