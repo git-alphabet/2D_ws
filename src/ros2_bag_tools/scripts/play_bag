@@ -19,6 +19,10 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--rate", default="1.0", help="回放倍率（默认 1.0）")
     parser.add_argument("--loop", action="store_true", help="循环回放")
     parser.add_argument("--no-clock", action="store_true", help="不发布 /clock")
+    parser.add_argument(
+        "--exclude-topics", nargs="*", default=[],
+        help="回放时排除这些话题（避免和程序发布者冲突）",
+    )
     args = parser.parse_args(argv)
 
     if shutil.which("ros2") is None:
@@ -67,6 +71,24 @@ def main(argv: list[str]) -> int:
         cmd.append("--clock")
     if args.loop:
         cmd.append("--loop")
+
+    if args.exclude_topics:
+        exclude_set = set(args.exclude_topics)
+        # Read topics from metadata.yaml
+        import yaml
+        meta = yaml.safe_load((bag_dir / "metadata.yaml").read_text())
+        all_topics = [
+            t["topic_metadata"]["name"]
+            for t in meta.get("rosbag2_bagfile_information", {}).get("topics_with_message_count", [])
+        ]
+        play_topics = [t for t in all_topics if t not in exclude_set]
+        if not play_topics:
+            print("排除后没有剩余话题可回放", file=sys.stderr)
+            return 1
+        print(f"排除话题: {sorted(exclude_set)}")
+        print(f"回放话题: {play_topics}")
+        cmd.append("--topics")
+        cmd.extend(play_topics)
 
     print("开始回放...")
     os.execvp(cmd[0], cmd)
