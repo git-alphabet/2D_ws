@@ -14,8 +14,6 @@
             <Sequence name="IfDead_StopAndWait">
                 <RmucIsDead message="{robot_status}"/>
                 <!-- 底盘旋转/云台由全局 GlobalRobotControl 控制 -->
-                <RmucNavControlCmd cmd_type="3"
-                                   emergency_stop="False"/>
                 <KeepRunning/>
             </Sequence>
 

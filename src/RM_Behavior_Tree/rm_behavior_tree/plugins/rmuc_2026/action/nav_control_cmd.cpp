@@ -14,10 +14,8 @@ RmucNavControlCmdAction::RmucNavControlCmdAction(
 bool RmucNavControlCmdAction::setMessage(sp_msgs::msg::RMUCNavControlCmd & msg)
 {
   msg.cmd_type = 0;
-  msg.emergency_stop = false;
 
   getInput("cmd_type", msg.cmd_type);
-  getInput("emergency_stop", msg.emergency_stop);
 
   return true;
 }

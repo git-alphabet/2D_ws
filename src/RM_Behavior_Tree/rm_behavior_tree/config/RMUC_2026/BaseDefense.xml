@@ -6,8 +6,6 @@
             <!-- 基地威胁锁存判定：基地掉血+敌人进入 enemy_near_base_radius → 触发；云台未检测敌人且基地不掉血持续 base_threat_calm_timeout_ms → 解除 -->
             <IsBaseThreatened base_threat="{threat.base}"/>
 
-            <!-- 姿态强制转换由 CommandHub 统一处理：
-                 未到锚点→强制移动(3)，到锚点后→强制攻击(1) -->
             <RateController hz="1">
                 <SendGoal name="DefendAnchor"
                           goal_x="{cfg.defend_anchor_x}"
@@ -22,14 +20,21 @@
                     <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
                               goal_x="{cfg.defend_anchor_x}" goal_y="{cfg.defend_anchor_y}"
                               arrive_radius="{cfg.arrive_radius}"/>
+                    <SelectPosture posture_value="1"
+                                   posture_out="{cmd.posture}"
+                                   is_allow_select_posture="{cmd.allow_posture_send}"/>
                     <RmucIsDetectEnemy message="{robot_status}"
                                        is_detect_enemy="{is_detect_enemy}"/>
-                    <RmucNavControlCmd cmd_type="3" emergency_stop="False"/>
                     <KeepRunning/>
                 </ReactiveSequence>
 
                 <!-- 否则：继续赶路/驻守 -->
-                <KeepRunning/>
+                <Sequence>
+                    <SelectPosture posture_value="3"
+                                   posture_out="{cmd.posture}"
+                                   is_allow_select_posture="{cmd.allow_posture_send}"/>
+                    <KeepRunning/>
+                </Sequence>
             </ReactiveFallback>
         </ReactiveSequence>
     </BehaviorTree>

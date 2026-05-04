@@ -27,12 +27,6 @@ public:
   {
     return {
       BT::InputPort<int>("desired_posture", "3", "期望姿态 (来自战术子树 SelectPosture)"),
-      BT::InputPort<bool>("base_threat", "false", "基地威胁锁存状态"),
-      BT::InputPort<double>("pose_x", "0.0", "当前 x"),
-      BT::InputPort<double>("pose_y", "0.0", "当前 y"),
-      BT::InputPort<double>("defend_anchor_x", "0.0", "基地防御锚点 x"),
-      BT::InputPort<double>("defend_anchor_y", "0.0", "基地防御锚点 y"),
-      BT::InputPort<double>("arrive_radius", "0.8", "到达防御锚点判定半径"),
       BT::InputPort<int>("degradation_threshold_s", "180", "姿态降级阈值 (秒，默认3分钟)"),
       BT::InputPort<int>("forced_defense_s", "5", "强制防御持续时间 (秒，匹配裁判系统冷却)"),
       BT::InputPort<int>("forced_movement_s", "5", "防御超时→强制移动持续时间 (秒)"),

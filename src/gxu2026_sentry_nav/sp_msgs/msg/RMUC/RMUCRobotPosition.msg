@@ -3,7 +3,7 @@
 # =============================================================================
 # 话题: /robot_position        频率: 50 Hz
 # 来源: 定位系统 (LiDAR SLAM)
-# 订阅: RmucSubRobotPosition → 写入黑板 {pose.x} / {pose.y} / {is_at_nav_goal}
+# 订阅: 导航发我 -> RmucSubRobotPosition → 写入黑板 {pose.x} / {pose.y} / {is_at_nav_goal}
 # 引用: SelectBestTarget, SelectObjective, SelectNearestDispelCard,
 #       SelectNearestResupplyStation, SelectSafeRetreatGoal, IsAtGoal,
 #       IsAtNavGoal, WaypointPatrol, MoveAround

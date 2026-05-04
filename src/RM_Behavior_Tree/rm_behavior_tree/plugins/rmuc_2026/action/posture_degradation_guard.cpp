@@ -13,18 +13,6 @@ BT::NodeStatus PostureDegradationGuard::tick()
   int desired = 3;
   getInput("desired_posture", desired);
 
-  bool base_threat = false;
-  getInput("base_threat", base_threat);
-
-  double pose_x = 0.0, pose_y = 0.0;
-  double defend_anchor_x = 0.0, defend_anchor_y = 0.0;
-  double arrive_radius = 0.8;
-  getInput("pose_x", pose_x);
-  getInput("pose_y", pose_y);
-  getInput("defend_anchor_x", defend_anchor_x);
-  getInput("defend_anchor_y", defend_anchor_y);
-  getInput("arrive_radius", arrive_radius);
-
   int threshold_s = 180;
   getInput("degradation_threshold_s", threshold_s);
 
@@ -37,12 +25,6 @@ BT::NodeStatus PostureDegradationGuard::tick()
   auto now = std::chrono::steady_clock::now();
 
   int effective_desired = desired;
-  if (base_threat) {
-    const double dx = pose_x - defend_anchor_x;
-    const double dy = pose_y - defend_anchor_y;
-    const double dist = std::hypot(dx, dy);
-    effective_desired = (dist <= arrive_radius) ? 1 : 3;
-  }
 
   // 首次初始化
   if (!initialized_) {
