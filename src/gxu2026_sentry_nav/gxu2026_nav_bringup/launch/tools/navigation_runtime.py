@@ -65,6 +65,7 @@ def build_navigation_runtime_actions(
     enable_odin1_loam_reframe,
     enable_scan_additive,
     obstacle_scan_output_topic,
+    enable_fake_vel_transform_tf,
     nav2_tf_warmup_enabled,
     nav2_tf_warmup_target_frame,
     nav2_tf_warmup_source_frame,
@@ -334,7 +335,10 @@ def build_navigation_runtime_actions(
                 output="screen",
                 respawn=use_respawn,
                 respawn_delay=2.0,
-                parameters=[configured_params],
+                parameters=[
+                    configured_params,
+                    {"publish_tf": PythonExpression(["'", enable_fake_vel_transform_tf, "' == 'True'"])},
+                ],
                 arguments=["--ros-args", "--log-level", log_level],
             ),
             Node(

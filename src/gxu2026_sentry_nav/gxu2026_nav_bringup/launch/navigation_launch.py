@@ -61,6 +61,7 @@ def generate_launch_description():
     sensor_scan_registered_scan_topic = LaunchConfiguration("sensor_scan_registered_scan_topic")
     sensor_scan_lidar_odometry_topic = LaunchConfiguration("sensor_scan_lidar_odometry_topic")
     point_lio_config_file = LaunchConfiguration("point_lio_config_file")
+    enable_fake_vel_transform_tf = LaunchConfiguration("enable_fake_vel_transform_tf")
     nav2_tf_warmup_enabled = LaunchConfiguration("nav2_tf_warmup_enabled")
     nav2_tf_warmup_target_frame = LaunchConfiguration("nav2_tf_warmup_target_frame")
     nav2_tf_warmup_source_frame = LaunchConfiguration("nav2_tf_warmup_source_frame")
@@ -187,6 +188,12 @@ def generate_launch_description():
         description="Full path to point_lio config file for mid360 obstacle-only supplement chain",
     )
 
+    declare_enable_fake_vel_transform_tf_cmd = DeclareLaunchArgument(
+        "enable_fake_vel_transform_tf",
+        default_value="True",
+        description="Whether fake_vel_transform publishes gimbal_yaw->gimbal_yaw_fake TF. Set False during bag replay.",
+    )
+
     declare_enable_odin1_loam_reframe_cmd = DeclareLaunchArgument(
         "enable_odin1_loam_reframe",
         default_value="false",
@@ -279,6 +286,7 @@ def generate_launch_description():
             enable_odin1_loam_reframe=enable_odin1_loam_reframe,
             enable_scan_additive=enable_scan_additive,
             obstacle_scan_output_topic=obstacle_scan_output_topic,
+            enable_fake_vel_transform_tf=enable_fake_vel_transform_tf,
             nav2_tf_warmup_enabled=nav2_tf_warmup_enabled,
             nav2_tf_warmup_target_frame=nav2_tf_warmup_target_frame,
             nav2_tf_warmup_source_frame=nav2_tf_warmup_source_frame,
@@ -309,6 +317,7 @@ def generate_launch_description():
     ld.add_action(declare_sensor_scan_registered_scan_topic_cmd)
     ld.add_action(declare_sensor_scan_lidar_odometry_topic_cmd)
     ld.add_action(declare_point_lio_config_file_cmd)
+    ld.add_action(declare_enable_fake_vel_transform_tf_cmd)
     ld.add_action(declare_enable_odin1_loam_reframe_cmd)
     ld.add_action(declare_nav2_tf_warmup_enabled_cmd)
     ld.add_action(declare_nav2_tf_warmup_target_frame_cmd)

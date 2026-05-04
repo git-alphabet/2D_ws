@@ -62,6 +62,7 @@ def generate_launch_description():
     use_mid360_driver = LaunchConfiguration("use_mid360_driver")
     use_odin_driver = LaunchConfiguration("use_odin_driver")
     point_lio_config_file = LaunchConfiguration("point_lio_config_file")
+    enable_fake_vel_transform_tf = LaunchConfiguration("enable_fake_vel_transform_tf")
     terrain_registered_scan_topic = LaunchConfiguration("terrain_registered_scan_topic")
     terrain_lidar_odometry_topic = LaunchConfiguration("terrain_lidar_odometry_topic")
     sensor_scan_registered_scan_topic = LaunchConfiguration("sensor_scan_registered_scan_topic")
@@ -198,6 +199,12 @@ def generate_launch_description():
             bringup_dir, "config", "reality", "point_lio_obstacle_only.yaml"
         ),
         description="Full path to point_lio config file for obstacle-only supplement chain",
+    )
+
+    declare_enable_fake_vel_transform_tf_cmd = DeclareLaunchArgument(
+        "enable_fake_vel_transform_tf",
+        default_value="True",
+        description="Whether fake_vel_transform publishes gimbal_yaw->gimbal_yaw_fake TF. Set False during bag replay.",
     )
 
     declare_terrain_registered_scan_topic_cmd = DeclareLaunchArgument(
@@ -546,6 +553,7 @@ def generate_launch_description():
             "sensor_scan_registered_scan_topic": sensor_scan_registered_scan_topic,
             "sensor_scan_lidar_odometry_topic": sensor_scan_lidar_odometry_topic,
             "point_lio_config_file": point_lio_config_file,
+            "enable_fake_vel_transform_tf": enable_fake_vel_transform_tf,
         }.items(),
     )
 
@@ -571,6 +579,7 @@ def generate_launch_description():
     ld.add_action(declare_use_mid360_driver_cmd)
     ld.add_action(declare_use_odin_driver_cmd)
     ld.add_action(declare_point_lio_config_file_cmd)
+    ld.add_action(declare_enable_fake_vel_transform_tf_cmd)
     ld.add_action(declare_terrain_registered_scan_topic_cmd)
     ld.add_action(declare_terrain_lidar_odometry_topic_cmd)
     ld.add_action(declare_sensor_scan_registered_scan_topic_cmd)
