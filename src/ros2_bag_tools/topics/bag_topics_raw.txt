@@ -1,10 +1,5 @@
-# raw 录包话题（当前 reality/odin1 分支原始链路调试集合）
-# 设计目标：保留双源原始输入，并补齐 odin1 当前分支真正使用的调试上下文。
-
-/parameter_events
-/rosout
-/tf
-/tf_static
+# raw 录包话题（odin1 分支：odin 闭源算法输出 + 调试上下文）
+# 设计目标：录 odin 设备内部闭源算法处理后的里程计和点云
 
 /livox/lidar
 /livox/lidar/pointcloud
@@ -18,4 +13,3 @@
 /goal_pose
 /initialpose
 /pose
-/map
