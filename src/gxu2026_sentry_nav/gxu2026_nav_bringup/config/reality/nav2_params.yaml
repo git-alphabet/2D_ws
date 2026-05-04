@@ -60,7 +60,7 @@ robot_description_runtime:
 
 
     bag_record:
-      enabled: true
+      enabled: false
       profiles:
         replay_full:
           name: replay_full
