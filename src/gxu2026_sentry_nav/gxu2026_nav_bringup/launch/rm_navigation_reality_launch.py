@@ -60,6 +60,7 @@ def generate_launch_description():
     odin_config_file = LaunchConfiguration("odin_config_file")
     mid360_config_file = LaunchConfiguration("mid360_config_file")
     use_mid360_driver = LaunchConfiguration("use_mid360_driver")
+    use_odin_driver = LaunchConfiguration("use_odin_driver")
     point_lio_config_file = LaunchConfiguration("point_lio_config_file")
     terrain_registered_scan_topic = LaunchConfiguration("terrain_registered_scan_topic")
     terrain_lidar_odometry_topic = LaunchConfiguration("terrain_lidar_odometry_topic")
@@ -183,6 +184,12 @@ def generate_launch_description():
             "Whether to start mid360_driver in reality entry launch. "
             "Set true/false to force, or auto for source-driven mode"
         ),
+    )
+
+    declare_use_odin_driver_cmd = DeclareLaunchArgument(
+        "use_odin_driver",
+        default_value="True",
+        description="Whether to start odin_ros_driver. Set False during bag replay to avoid duplicate publisher.",
     )
 
     declare_point_lio_config_file_cmd = DeclareLaunchArgument(
@@ -498,6 +505,7 @@ def generate_launch_description():
         output="screen",
         namespace=namespace,
         parameters=[{"config_file": odin_config_file}],
+        condition=IfCondition(use_odin_driver),
     )
 
     start_mid360_driver_node = Node(
@@ -561,6 +569,7 @@ def generate_launch_description():
     ld.add_action(declare_odin_config_file_cmd)
     ld.add_action(declare_mid360_config_file_cmd)
     ld.add_action(declare_use_mid360_driver_cmd)
+    ld.add_action(declare_use_odin_driver_cmd)
     ld.add_action(declare_point_lio_config_file_cmd)
     ld.add_action(declare_terrain_registered_scan_topic_cmd)
     ld.add_action(declare_terrain_lidar_odometry_topic_cmd)
