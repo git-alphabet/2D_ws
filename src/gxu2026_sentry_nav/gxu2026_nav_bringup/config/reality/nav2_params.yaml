@@ -812,6 +812,12 @@ slam_toolbox:
     # map_start_at_dock: true
 
     debug_logging: false
+    # QoS override: pointcloud_to_laserscan 用 BEST_EFFORT 发布 scan，
+    # SLAM toolbox 默认 RELIABLE 订阅会导致收不到数据。
+    qos_overrides:
+      /obstacle_scan:
+        subscriber:
+          reliability: BEST_EFFORT
     # 扫描节流倍数。
     throttle_scans: 1
     # 扫描队列长度。
