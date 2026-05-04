@@ -108,6 +108,7 @@ private:
   double speed_bump_min_linear_speed_{1.5};
   std::string speed_bump_map_frame_{"map"};
   bool publish_speed_bump_marker_{true};
+  bool publish_tf_{true};
   std::string speed_bump_marker_topic_{"speed_bump_zone_markers"};
   std::string speed_bump_zone_name_;
   std::string speed_bump_zones_file_;

@@ -167,6 +167,7 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->declare_parameter<double>("speed_bump_min_linear_speed", 1.5);
   this->declare_parameter<std::string>("speed_bump_map_frame", "map");
   this->declare_parameter<bool>("publish_speed_bump_marker", true);
+  this->declare_parameter<bool>("publish_tf", true);
   this->declare_parameter<std::string>("speed_bump_marker_topic", "speed_bump_zone_markers");
   this->declare_parameter<std::string>("speed_bump_zone_name", "speed_bump");
   this->declare_parameter<std::string>("speed_bump_zones_file", "");
@@ -188,6 +189,7 @@ FakeVelTransform::FakeVelTransform(const rclcpp::NodeOptions & options)
   this->get_parameter("speed_bump_min_linear_speed", speed_bump_min_linear_speed_);
   this->get_parameter("speed_bump_map_frame", speed_bump_map_frame_);
   this->get_parameter("publish_speed_bump_marker", publish_speed_bump_marker_);
+  this->get_parameter("publish_tf", publish_tf_);
   this->get_parameter("speed_bump_marker_topic", speed_bump_marker_topic_);
   this->get_parameter("speed_bump_zone_name", speed_bump_zone_name_);
   this->get_parameter("speed_bump_zones_file", speed_bump_zones_file_);
@@ -373,14 +375,17 @@ void FakeVelTransform::syncCallback(
 void FakeVelTransform::publishTransform()
 {
   const auto now = this->get_clock()->now();
-  geometry_msgs::msg::TransformStamped t;
-  t.header.stamp = now;
-  t.header.frame_id = robot_base_frame_;
-  t.child_frame_id = fake_robot_base_frame_;
-  tf2::Quaternion q;
-  q.setRPY(0, 0, -current_robot_base_angle_);
-  t.transform.rotation = tf2::toMsg(q);
-  tf_broadcaster_->sendTransform(t);
+
+  if (publish_tf_) {
+    geometry_msgs::msg::TransformStamped t;
+    t.header.stamp = now;
+    t.header.frame_id = robot_base_frame_;
+    t.child_frame_id = fake_robot_base_frame_;
+    tf2::Quaternion q;
+    q.setRPY(0, 0, -current_robot_base_angle_);
+    t.transform.rotation = tf2::toMsg(q);
+    tf_broadcaster_->sendTransform(t);
+  }
 
   if (
     publish_speed_bump_marker_ && speed_bump_zone_loaded_ && speed_bump_marker_pub_ &&
