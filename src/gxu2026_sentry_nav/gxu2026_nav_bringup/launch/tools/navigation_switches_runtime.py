@@ -516,6 +516,10 @@ def _set_navigation_switches(
                 # and rely on actual mid360 source availability for outputs.
                 enable_mid360_costmap_additive_value = "true"
 
+        # bag 回放时可通过环境变量强制启用 SLAM 模式的 mid360 链路
+        if os.environ.get("BAG_MID360_IN_SLAM", "0") == "1" and slam_enabled:
+            enable_mid360_costmap_additive_value = "true"
+
         obstacle_scan_switch = _optional_bool(
             obstacle_scan_runtime.get("enabled", switches.get("enable_obstacle_scan"))
         )

@@ -316,6 +316,10 @@ def generate_launch_description():
         else:
             enable_mid360_costmap_additive = True
 
+        # bag 回放时可通过环境变量强制启用 SLAM 模式的 mid360 链路
+        if os.environ.get("BAG_MID360_IN_SLAM", "0") == "1" and slam_value:
+            enable_mid360_costmap_additive = True
+
         changed = False
         changed = _set_costmap_observation_source_enabled(
             "local_costmap",
