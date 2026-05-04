@@ -28,5 +28,7 @@ bags/
 
 /chat.instructions.md
 /.codex
-
+.codex/
+CLAUDE.md/
 .clinerules/
+/CLAUDE.md
