@@ -242,7 +242,12 @@ done < <(find /proc -maxdepth 2 -path '/proc/[0-9]*/environ' -readable -print0 2
 while IFS= read -r -d '' socket_path; do
   socket_name="${socket_path##*/}"
   display_num="${socket_name#X}"
-  record_display_candidate ":${display_num}" 10
+  # :0 直连屏幕给予高优先级，防止 NoMachine 启动中间态导致 display 跳变
+  if [[ "$display_num" == "0" ]]; then
+    record_display_candidate ":${display_num}" 510
+  else
+    record_display_candidate ":${display_num}" 10
+  fi
 done < <(find /tmp/.X11-unix -maxdepth 1 -type s -name 'X*' -print0 2>/dev/null)
 
 add_precise_display_cookies

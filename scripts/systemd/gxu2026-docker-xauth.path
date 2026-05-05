@@ -1,0 +1,10 @@
+[Unit]
+Description=Watch for X11 display socket to trigger Docker GUI sync
+
+[Path]
+# 只在 "无 socket → 有 socket" 状态转换时触发，不是每次目录变动
+PathExistsGlob=/tmp/.X11-unix/X*
+Unit=gxu2026-docker-xauth.service
+
+[Install]
+WantedBy=paths.target
