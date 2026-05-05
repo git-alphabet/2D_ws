@@ -18,6 +18,7 @@
                 defend_anchor_x="{cfg.defend_anchor_x}" defend_anchor_y="{cfg.defend_anchor_y}"
                 central_highland_left_x="{cfg.central_highland_left_x}" central_highland_left_y="{cfg.central_highland_left_y}"
                 ramp_jump_x="{cfg.ramp_jump_x}" ramp_jump_y="{cfg.ramp_jump_y}"
+                cap_outpost_x="{cfg.cap_outpost_x}" cap_outpost_y="{cfg.cap_outpost_y}"
 
                 arrive_radius="{cfg.arrive_radius}"
                 hp_low="{cfg.hp_low}"
@@ -45,6 +46,7 @@
                 defend_anchor_x="{cfg.defend_anchor_x}" defend_anchor_y="{cfg.defend_anchor_y}"
                 central_highland_left_x="{cfg.central_highland_left_x}" central_highland_left_y="{cfg.central_highland_left_y}"
                 ramp_jump_x="{cfg.ramp_jump_x}" ramp_jump_y="{cfg.ramp_jump_y}"
+                cap_outpost_x="{cfg.cap_outpost_x}" cap_outpost_y="{cfg.cap_outpost_y}"
                 patrol_waypoints="{cfg.patrol_waypoints}"
                 />
             <InitCmdState cmd_state="{cmd.state}"/>

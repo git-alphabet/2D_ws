@@ -58,6 +58,10 @@ int main(int argc, char ** argv)
   params_robot_status.nh = std::make_shared<rclcpp::Node>("rmuc_robot_status_io");
   params_robot_status.default_port_value = "robot_status";
 
+  BT::RosNodeParams params_robot_buff;
+  params_robot_buff.nh = std::make_shared<rclcpp::Node>("rmuc_robot_buff_io");
+  params_robot_buff.default_port_value = "robot_buff";
+
   BT::RosNodeParams params_robot_position;
   params_robot_position.nh = std::make_shared<rclcpp::Node>("rmuc_robot_position_io");
   params_robot_position.default_port_value = "robot_position";
@@ -122,6 +126,9 @@ int main(int argc, char ** argv)
   // ── B. 订阅者：robot_status (/robot_status → RMUCRobotStatus) ──
   regRos("rmuc_sub_robot_status",               params_robot_status);
 
+  // ── B2. 订阅者：robot_buff (/robot_buff → RMUCRobotBuff) ──
+  regRos("rmuc_sub_robot_buff",                 params_robot_buff);
+
   // ── C. 订阅者：robot_position (/robot_position → RMUCRobotPosition) ──
   regRos("rmuc_sub_robot_position",             params_robot_position);
 
@@ -181,6 +188,7 @@ int main(int argc, char ** argv)
   // rmuc_is_at_goal 已移至 K2（需要 costmap 订阅）
   regBT("rmuc_is_zone_card_detected");
   regBT("rmuc_is_base_threatened");
+  regBT("rmuc_is_vulnerable");
   regBT("rmuc_is_detect_enemy");
   regBT("rmuc_is_ammo_below");
 
@@ -217,7 +225,8 @@ int main(int argc, char ** argv)
       "ladder_highland_x","ladder_highland_y",
       "defend_anchor_x","defend_anchor_y",
       "central_highland_left_x","central_highland_left_y",
-      "ramp_jump_x","ramp_jump_y"
+      "ramp_jump_x","ramp_jump_y",
+      "cap_outpost_x","cap_outpost_y"
     };
     const std::vector<std::pair<std::string, double>> double_keys = {
       {"arrive_radius", 1.0}, {"enemy_near_base_radius", 0.0}

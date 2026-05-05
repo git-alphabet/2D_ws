@@ -57,6 +57,8 @@ public:
       BT::OutputPort<int>("ammo_allow"),
       BT::OutputPort<int>("base_hp_cur"),
       BT::OutputPort<bool>("outpost_alive"),
+      BT::OutputPort<int>("enemy_outpost_status"),
+      BT::OutputPort<bool>("enemy_outpost_destroyed"),
       BT::OutputPort<bool>("is_dead"),
       BT::OutputPort<bool>("has_target"),
       BT::OutputPort<bool>("is_detect_enemy"),
@@ -72,8 +74,6 @@ public:
 
 private:
   void loadSemanticZones(const std::string & yaml_path);
-  void resetSemanticZonesState();
-  void logSemanticZonesLoadErrorOnce(const std::string & yaml_path, const std::string & error);
   bool pointInPolygon(
     double x, double y,
     const std::vector<std::pair<double, double>> & poly) const;
@@ -99,9 +99,7 @@ private:
 
   std::vector<RmucSemanticZone> semantic_zones_;
   bool semantic_zones_loaded_{false};
-  bool semantic_zones_load_attempted_{false};
   std::string semantic_zones_file_;
-  std::string semantic_zones_last_error_;
   bool semantic_enemy_override_active_{false};
 };
 }  // namespace rm_behavior_tree

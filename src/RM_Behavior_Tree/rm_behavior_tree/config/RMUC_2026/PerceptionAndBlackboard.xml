@@ -8,6 +8,8 @@
                                now_ms="{time.now_ms}"/>
             <RmucSubRobotStatus topic_name="robot_status"
                                 robot_status="{robot_status}"/>
+            <RmucSubRobotBuff topic_name="robot_buff"
+                              robot_buff="{robot_buff}"/>
             <RmucSubRobotPosition topic_name="robot_position"
                                   pose_x="{pose.x}"
                                   pose_y="{pose.y}"
@@ -41,6 +43,8 @@
                                    ammo_allow="{ammo.allow}"
                                    base_hp_cur="{base.hp.cur}"
                                    outpost_alive="{outpost.alive}"
+                                   enemy_outpost_status="{enemy_outpost_status}"
+                                   enemy_outpost_destroyed="{enemy_outpost_destroyed}"
                                    is_dead="{state.is_dead}"
                                    has_target="{combat.has_target}"
                                    is_detect_enemy="{is_detect_enemy}"

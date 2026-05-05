@@ -14,13 +14,14 @@
 #
 # ─────────── 地图坐标 ───────────
 
-# base,-0.5574,-0.7745
-# outpost_buff,1.8893,0.6877
-# fortress_ally,1.6021,0.1657
-# ladder_highland,-0.9381,-2.1791
-# defend_anchor,-1.4419,-1.3619
-# patrol_1,-1.7628,-1.9086
-# patrol_2,-2.1255,-2.3371
-# patrol_3,-2.3705,-2.7155
-supply_zone,5.3496,-1.4321
-central_highland,4.3532,-1.4789
+# fortress_ally,2.7600,-1.9300
+# outpost_buff,3.5489,-4.2745
+# base,-2.3532,-2.0007
+# defend_anchor,0.0968,-0.4008
+# patrol_3,0.0596,-6.6217
+supply_zone,5.2133,-3.5088
+central_highland,4.3247,-4.0767
+ladder_highland,3.2866,-4.1304
+patrol_1,5.1546,-1.5698
+patrol_2,4.5796,-0.0708
+cap_outpost,2.0596,-2.8232

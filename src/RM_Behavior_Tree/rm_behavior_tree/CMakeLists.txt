@@ -131,6 +131,10 @@ ament_auto_add_library(rmuc_sub_robot_status SHARED
     plugins/rmuc_2026/action/sub_robot_status.cpp)
 add_target_dependencies(rmuc_sub_robot_status)
 
+ament_auto_add_library(rmuc_sub_robot_buff SHARED
+    plugins/rmuc_2026/action/sub_robot_buff.cpp)
+add_target_dependencies(rmuc_sub_robot_buff)
+
 ament_auto_add_library(rmuc_sub_robot_position SHARED
     plugins/rmuc_2026/action/sub_robot_position.cpp)
 add_target_dependencies(rmuc_sub_robot_position)
@@ -233,6 +237,10 @@ add_target_dependencies(rmuc_is_ammo_below)
 ament_auto_add_library(rmuc_is_base_threatened SHARED
     plugins/rmuc_2026/condition/is_base_threatened.cpp)
 add_target_dependencies(rmuc_is_base_threatened)
+
+ament_auto_add_library(rmuc_is_vulnerable SHARED
+    plugins/rmuc_2026/condition/is_vulnerable.cpp)
+add_target_dependencies(rmuc_is_vulnerable)
 
 ament_auto_add_library(rmuc_is_at_goal SHARED
     plugins/rmuc_2026/condition/is_at_goal.cpp)

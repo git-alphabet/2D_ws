@@ -10,17 +10,8 @@
             <DecideRespawnCmd is_dead="{state.is_dead}"
                               confirm_respawn="{cmd.confirm_respawn}"/>
 
-            <!-- 姿态降级守卫：
-                 - 常态：对 {cmd.posture} 做累计降级
-                 - 基地威胁：未到防御锚点时将有效期望姿态改写为移动(3)，到锚点后改写为攻击(1)
-                   但仍然继续走同一套累计降级逻辑，避免基地威胁模式绕开姿态衰减策略 -->
+            <!-- 姿态降级守卫：仅负责累计时间降级，不处理基地威胁/补弹等业务姿态 -->
             <PostureDegradationGuard desired_posture="{cmd.posture}"
-                                     base_threat="{threat.base}"
-                                     pose_x="{pose.x}"
-                                     pose_y="{pose.y}"
-                                     defend_anchor_x="{cfg.defend_anchor_x}"
-                                     defend_anchor_y="{cfg.defend_anchor_y}"
-                                     arrive_radius="{cfg.arrive_radius}"
                                      degradation_threshold_s="180"
                                      forced_defense_s="5"
                                      forced_movement_s="5"

@@ -12,7 +12,6 @@ constexpr double kDefaultBaseX = -2.3532;
 constexpr double kDefaultBaseY = -2.0007;
 constexpr double kDefaultBaseThreatEnterDistance = 5.0;
 constexpr int kDefaultBaseThreatCalmTimeoutMs = 30000;
-constexpr char kDefaultSemanticZonesFile[] = "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml";
 }
 
 ParseSentryBlackboardAction::ParseSentryBlackboardAction(
@@ -21,36 +20,13 @@ ParseSentryBlackboardAction::ParseSentryBlackboardAction(
 {
 }
 
-void ParseSentryBlackboardAction::resetSemanticZonesState()
-{
-  semantic_zones_.clear();
-  semantic_zones_loaded_ = false;
-  semantic_zones_load_attempted_ = false;
-  semantic_zones_file_.clear();
-}
-
-void ParseSentryBlackboardAction::logSemanticZonesLoadErrorOnce(
-  const std::string & yaml_path, const std::string & error)
-{
-  const std::string formatted_error = yaml_path + "|" + error;
-  if (semantic_zones_last_error_ == formatted_error) {
-    return;
-  }
-
-  semantic_zones_last_error_ = formatted_error;
-  std::cerr << "[ParseSentryBlackboard] semantic zones load failed: "
-            << yaml_path << " (" << error << ")" << std::endl;
-}
-
 void ParseSentryBlackboardAction::loadSemanticZones(const std::string & yaml_path)
 {
   semantic_zones_.clear();
   semantic_zones_loaded_ = false;
-  semantic_zones_load_attempted_ = true;
   semantic_zones_file_ = yaml_path;
 
   if (yaml_path.empty()) {
-    logSemanticZonesLoadErrorOnce(yaml_path, "semantic_zones_file resolved to an empty path");
     return;
   }
 
@@ -58,12 +34,12 @@ void ParseSentryBlackboardAction::loadSemanticZones(const std::string & yaml_pat
   try {
     config = YAML::LoadFile(yaml_path);
   } catch (const YAML::Exception & e) {
-    logSemanticZonesLoadErrorOnce(yaml_path, e.what());
+    std::cerr << "[ParseSentryBlackboard] semantic zones load failed: "
+              << yaml_path << " (" << e.what() << ")" << std::endl;
     return;
   }
 
   if (!config["zones"]) {
-    logSemanticZonesLoadErrorOnce(yaml_path, "missing 'zones' field");
     return;
   }
 
@@ -132,26 +108,13 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
   bool suppress_enemy_detection = false;
   double pose_x = 0.0;
   double pose_y = 0.0;
-  std::string semantic_zones_file = kDefaultSemanticZonesFile;
+  std::string semantic_zones_file;
   std::string semantic_ignore_zone_type = "speed_bump";
   const bool has_pose = getInput("pose_x", pose_x) && getInput("pose_y", pose_y);
-  const auto semantic_zones_file_result = getInput("semantic_zones_file", semantic_zones_file);
+  getInput("semantic_zones_file", semantic_zones_file);
   getInput("semantic_ignore_enemy_zone_type", semantic_ignore_zone_type);
-  if (!semantic_zones_file_result.has_value()) {
-    logSemanticZonesLoadErrorOnce(
-      kDefaultSemanticZonesFile,
-      std::string("cfg.semantic_zones_file read failed: ") + semantic_zones_file_result.error() +
-      ", fallback to default path");
-    semantic_zones_file = kDefaultSemanticZonesFile;
-  } else if (semantic_zones_file.empty()) {
-    logSemanticZonesLoadErrorOnce(
-      kDefaultSemanticZonesFile,
-      "cfg.semantic_zones_file is empty, fallback to default path");
-    semantic_zones_file = kDefaultSemanticZonesFile;
-  }
-
-  if (has_pose) {
-    if (!semantic_zones_load_attempted_ || semantic_zones_file_ != semantic_zones_file) {
+  if (has_pose && !semantic_zones_file.empty()) {
+    if (!semantic_zones_loaded_ || semantic_zones_file_ != semantic_zones_file) {
       loadSemanticZones(semantic_zones_file);
     }
     suppress_enemy_detection = semantic_zones_loaded_ &&
@@ -172,8 +135,12 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
   if (robot_ptr) {
     const auto & r = **robot_ptr;
     effective_detect_enemy = suppress_enemy_detection ? false : r.is_detect_enemy;
+    const bool enemy_outpost_destroyed =
+      !(r.enemy_outpost_status == 1 || r.enemy_outpost_status == 2);
     setOutput("hp_cur", static_cast<int>(r.current_hp));
     setOutput("ammo_allow", static_cast<int>(r.ammo_allow));
+    setOutput("enemy_outpost_status", static_cast<int>(r.enemy_outpost_status));
+    setOutput("enemy_outpost_destroyed", enemy_outpost_destroyed);
     // base_hp_cur: 已改由 team_hp.base_hp 接管 (0x0003 offset 14)
     // outpost_alive 不再使用 robot_status.outpost_alive (bool转换可能有误)
     // 将由 team_hp.outpost_hp > 0 得出（0x0003 offset 12 原始 uint16_t)
@@ -181,6 +148,8 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
     setOutput("has_target", effective_detect_enemy);
     setOutput("is_detect_enemy", effective_detect_enemy);
   } else {
+    setOutput("enemy_outpost_status", 1);
+    setOutput("enemy_outpost_destroyed", false);
     setOutput("has_target", false);
     setOutput("is_detect_enemy", false);
   }
