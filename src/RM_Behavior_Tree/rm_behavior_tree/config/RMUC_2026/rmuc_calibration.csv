@@ -7,14 +7,13 @@
 # 使用方法:
 #   1. 启动 sim_mapping.sh, 标定辅助节点会自动启动
 #   2. 在 rviz 工具栏选择 "标定点 Calib", 点击地图标定, 自动轮转下一个点
-#   3. 跳到指定标定点: ros2 topic pub --once /calib/select std_msgs/msg/String "data: fortress_ally"
+#   3. 跳到指定标定点: ros2 topic pub --once /calib/select std_msgs/msg/String "data: central_highland"
 #   4. 上/下翻: ros2 topic pub --once /calib/next std_msgs/msg/Empty '{}'
 #              ros2 topic pub --once /calib/prev std_msgs/msg/Empty '{}'
 #   5. 重复点击可更新坐标, 只影响当前标定点, 其余不变
 #
 # ─────────── 地图坐标 ───────────
 
-# fortress_ally,2.7600,-1.9300
 # outpost_buff,3.5489,-4.2745
 # base,-2.3532,-2.0007
 # defend_anchor,0.0968,-0.4008
