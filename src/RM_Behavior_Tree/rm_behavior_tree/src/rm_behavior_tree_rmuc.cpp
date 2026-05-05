@@ -220,7 +220,6 @@ int main(int argc, char ** argv)
       "home_x","home_y","supply_zone_x","supply_zone_y",
       "base_x","base_y",
       "base_buff_x","base_buff_y","outpost_buff_x","outpost_buff_y",
-      "fortress_ally_x","fortress_ally_y",
       "central_highland_x","central_highland_y",
       "ladder_highland_x","ladder_highland_y",
       "defend_anchor_x","defend_anchor_y",
@@ -298,7 +297,7 @@ int main(int argc, char ** argv)
     for (const auto & [key, def] : std::vector<std::pair<std::string, std::string>>{
         {"calibration_csv_path", ""},
         {"semantic_zones_file",
-          "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"},
+          "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/semantic_zones.yaml"},
         {"semantic_ignore_enemy_zone_type", "speed_bump"}})
     {
       auto pn = prefix + key;

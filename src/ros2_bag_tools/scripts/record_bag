@@ -87,11 +87,16 @@ def main(argv: list[str]) -> int:
             "建议先 source /opt/ros/humble/setup.bash 和工作空间 install/setup.bash。"
         ),
     )
-    parser.add_argument("--mode", choices=["basic", "full"], default="basic")
+    parser.add_argument("--mode", choices=["basic", "full", "raw"], default="basic")
     parser.add_argument("--out-dir", default="", help="输出根目录（默认工作区 src/ros2_bag_tools/bags）")
-    parser.add_argument("--max-bag-size-mb", type=int, default=2048)
+    parser.add_argument("--max-bag-size-mb", type=int, default=0)
     parser.add_argument("--compress", choices=["", "zstd"], default="")
     parser.add_argument("--storage", choices=["sqlite3", "mcap"], default="mcap")
+    parser.add_argument(
+        "--session-tag",
+        default="",
+        help="可选会话标记；提供后输出目录名使用 <mode>_<session_tag>。",
+    )
     args = parser.parse_args(argv)
 
     if not _ros2_in_path():
@@ -128,10 +133,8 @@ def main(argv: list[str]) -> int:
             )
         return 2
 
-    ts = _dt.datetime.now(_BEIJING_TZ).strftime("%F_%H-%M-%S")
-    bag_path = out_dir / ts
-
-    max_bag_size_bytes = int(args.max_bag_size_mb) * 1024 * 1024
+    ts = args.session_tag.strip() or _dt.datetime.now(_BEIJING_TZ).strftime("%F_%H-%M-%S")
+    bag_path = out_dir / f"{args.mode}_{ts}"
 
     record_cmd: list[str] = [
         "ros2",
@@ -141,9 +144,10 @@ def main(argv: list[str]) -> int:
         str(bag_path),
         "--storage",
         args.storage,
-        "--max-bag-size",
-        str(max_bag_size_bytes),
     ]
+    if int(args.max_bag_size_mb) > 0:
+        max_bag_size_bytes = int(args.max_bag_size_mb) * 1024 * 1024
+        record_cmd += ["--max-bag-size", str(max_bag_size_bytes)]
 
     if args.compress:
         if args.compress == "zstd":
@@ -155,7 +159,10 @@ def main(argv: list[str]) -> int:
     print(f"话题列表: {topics_file}（{len(topics)} 个）")
     print(f"输出目录: {bag_path}")
     print(f"storage: {args.storage}")
-    print(f"分包大小: {args.max_bag_size_mb} MB")
+    if int(args.max_bag_size_mb) > 0:
+        print(f"分包大小: {args.max_bag_size_mb} MB")
+    else:
+        print("分包大小: unlimited")
     if args.compress:
         print(f"压缩: {args.compress}")
     print("开始录包...（Ctrl+C 停止）")

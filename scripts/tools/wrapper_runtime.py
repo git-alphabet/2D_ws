@@ -10,15 +10,18 @@ import sys
 import time
 from datetime import timedelta, timezone, datetime
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from tools.wrapper_helpers import (
     AUTO_MAP_DIR_NAME,
     BEIJING_TZ,
     build_base_env,
     current_branch,
+    is_truthy,
+    read_yaml_params,
     run_shell,
     pid_gone,
+    slugify,
 )
 from tools.wrapper_models import BackgroundGroup, CommonConfig
 
@@ -174,6 +177,113 @@ def extract_launch_arg(cmd: str, name: str) -> Optional[str]:
     except Exception:
         pass
     return None
+
+
+def _load_bag_record_config(cfg: CommonConfig) -> tuple[Path, dict[str, Any]] | None:
+    config_path = cfg.params_file
+    if not config_path.exists():
+        print(f"[{cfg.script_name}] WARN params file not found: {config_path}; skip auto record.", file=sys.stderr)
+        return None
+
+    root = read_yaml_params(config_path, "pb_navigation_switches").get("bag_record")
+    if not isinstance(root, dict):
+        print(f"[{cfg.script_name}] WARN missing pb_navigation_switches.ros__parameters.bag_record in {config_path}", file=sys.stderr)
+        return None
+
+    return config_path, root
+
+
+def start_bag_recorders(cfg: CommonConfig, bg: BackgroundGroup) -> None:
+    auto_record_env = os.environ.get("AUTO_RECORD_BAG")
+    if auto_record_env is not None and not is_truthy(auto_record_env):
+        print(f"[{cfg.script_name}] Auto bag record disabled by AUTO_RECORD_BAG={auto_record_env!r}", file=sys.stderr)
+        return
+
+    loaded = _load_bag_record_config(cfg)
+    if loaded is None:
+        return
+    config_path, root = loaded
+
+    enabled = bool(root.get("enabled", True))
+    if auto_record_env is not None:
+        enabled = is_truthy(auto_record_env)
+    if not enabled:
+        print(f"[{cfg.script_name}] Auto bag record disabled by config: {config_path}", file=sys.stderr)
+        return
+
+    profiles = root.get("profiles", [])
+    if isinstance(profiles, dict):
+        profiles = list(profiles.values())
+    
+    if not isinstance(profiles, list):
+        print(f"[{cfg.script_name}] WARN 'profiles' must be a list or dict in {config_path}", file=sys.stderr)
+        return
+
+    base_env = build_base_env(cfg)
+    branch = current_branch(cfg.ws_dir)
+    branch_safe = re.sub(r"[^A-Za-z0-9._-]", "_", branch)
+    log_dir = cfg.ws_dir / "launch_logs" / branch_safe
+    log_dir.mkdir(parents=True, exist_ok=True)
+    session_tag = datetime.now(BEIJING_TZ).strftime("%Y%m%d_%H%M%S")
+
+    started = 0
+    for index, profile in enumerate(profiles):
+        if not isinstance(profile, dict):
+            print(f"[{cfg.script_name}] WARN bag profile #{index} is not a mapping; skip.", file=sys.stderr)
+            continue
+        if not bool(profile.get("enabled", True)):
+            continue
+
+        mode = str(profile.get("mode", "")).strip()
+        if mode not in {"basic", "full", "raw"}:
+            print(f"[{cfg.script_name}] WARN unsupported bag mode '{mode}' in {config_path}; skip.", file=sys.stderr)
+            continue
+
+        profile_name = str(profile.get("name", mode)).strip() or mode
+        storage = str(profile.get("storage", "mcap")).strip() or "mcap"
+        compress = str(profile.get("compress", "")).strip()
+        max_bag_size_mb = int(profile.get("max_bag_size_mb", 0))
+        out_dir = str(profile.get("out_dir", "")).strip()
+
+        record_bag_script = cfg.ws_dir / "src" / "ros2_bag_tools" / "scripts" / "record_bag"
+        bag_cmd = [
+            "python3",
+            str(record_bag_script),
+            "--mode",
+            mode,
+            "--storage",
+            storage,
+            "--session-tag",
+            session_tag,
+        ]
+        if max_bag_size_mb > 0:
+            bag_cmd += ["--max-bag-size-mb", str(max_bag_size_mb)]
+        if compress:
+            bag_cmd += ["--compress", compress]
+        if out_dir:
+            bag_cmd += ["--out-dir", out_dir]
+
+        cmd = (
+            f"cd {shlex.quote(str(cfg.ws_dir))}; "
+            f"{base_env}; "
+            f"{' '.join(shlex.quote(part) for part in bag_cmd)}"
+        )
+        log_file = log_dir / f"{Path(cfg.script_name).stem}_bag_{slugify(profile_name)}_{session_tag}.log"
+        print(
+            f"[{cfg.script_name}] (bag-record) {profile_name}: mode={mode}, storage={storage}, config={config_path} -> {log_file}",
+            file=sys.stderr,
+        )
+        proc = subprocess.Popen(
+            ["bash", "-lc", cmd],
+            stdout=open(log_file, "w"),
+            stderr=subprocess.STDOUT,
+            preexec_fn=os.setsid,
+        )
+        bg.add(proc.pid)
+        started += 1
+
+    if started == 0:
+        print(f"[{cfg.script_name}] WARN no bag profiles started from {config_path}", file=sys.stderr)
 
 
 def start_watchdog(cfg: CommonConfig, topics: list[tuple[str, float]], bg: BackgroundGroup) -> None:

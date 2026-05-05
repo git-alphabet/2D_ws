@@ -23,7 +23,6 @@ public:
       BT::BidirectionalPort<double>("base_x"), BT::BidirectionalPort<double>("base_y"),
       BT::BidirectionalPort<double>("base_buff_x"), BT::BidirectionalPort<double>("base_buff_y"),
       BT::BidirectionalPort<double>("outpost_buff_x"), BT::BidirectionalPort<double>("outpost_buff_y"),
-      BT::BidirectionalPort<double>("fortress_ally_x"), BT::BidirectionalPort<double>("fortress_ally_y"),
       BT::BidirectionalPort<double>("central_highland_x"), BT::BidirectionalPort<double>("central_highland_y"),
       BT::BidirectionalPort<double>("ladder_highland_x"), BT::BidirectionalPort<double>("ladder_highland_y"),
       BT::BidirectionalPort<double>("defend_anchor_x"), BT::BidirectionalPort<double>("defend_anchor_y"),

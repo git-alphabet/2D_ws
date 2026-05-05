@@ -141,7 +141,13 @@ PYTHON_BIN=python3 ./scripts/setup_neupan_env.sh
 ./scripts/start_navigation.sh
 ```
 
-默认会同时启动 ros2 bag 全量录包（`--mode full`）。如需临时关闭：
+默认会同时启动两路 ros2 bag：
+- `full`：全量回放包
+- `raw`：原始数据调试包
+
+录包总参数放在实车启动总参数 `src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/nav2_params.yaml`
+
+如需临时关闭：
 
 ```bash
 AUTO_RECORD_BAG=0 ./scripts/start_navigation.sh
@@ -153,11 +159,41 @@ AUTO_RECORD_BAG=0 ./scripts/start_navigation.sh
 ./scripts/mapping.sh
 ```
 
-默认会同时启动 ros2 bag 全量录包（`--mode full`）。如需临时关闭：
+默认会同时启动两路 ros2 bag：
+- `full`：全量回放包
+- `raw`：原始数据调试包
+
+录包总参数放在实车启动总参数 `src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/nav2_params.yaml`
+
+如需临时关闭：
 
 ```bash
 AUTO_RECORD_BAG=0 ./scripts/mapping.sh
 ```
+
+### 4.4.1 bag 回放：建图（SLAM）
+
+```bash
+./scripts/mapping_bag.sh
+```
+
+该脚本固定：
+- `use_sim_time:=True`
+- `AUTO_RECORD_BAG=0`
+
+用于 `ros2 bag play --clock ...` 时直接回放建图，不需要再手改 `mapping.sh`。
+
+### 4.3.1 bag 回放：导航
+
+```bash
+./scripts/nav_bag.sh
+```
+
+该脚本固定：
+- `use_sim_time:=True`
+- `AUTO_RECORD_BAG=0`
+
+用于 `ros2 bag play --clock ...` 时直接回放导航，不需要再手改 `nav.sh`。
 
 
 
@@ -453,6 +489,3 @@ bash scripts/systemd/service_ctl.sh status all
 journalctl --user -u gxu2026-nav-stack.service -f
 journalctl --user -u gxu2026-auto-aim.service -f
 ```
-
-
-

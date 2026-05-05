@@ -319,8 +319,8 @@ Visualization Manager:
           Head Length: 0.019999999552965164
           Length: 0.30000001192092896
           Line Style: Billboards
-          Line Width: 0.07000000029802322
-          Name: NeuPAN Trajectory
+          Line Width: 0.05
+          Name: NeuPAN Plan
           Offset:
             X: 0
             Y: 0
@@ -336,7 +336,7 @@ Visualization Manager:
             Filter size: 10
             History Policy: Keep Last
             Reliability Policy: Reliable
-            Value: neupan_trajectory
+            Value: neupan_plan
           Value: true
         - Alpha: 0.800000011920929
           Class: rviz_default_plugins/PointStamped
