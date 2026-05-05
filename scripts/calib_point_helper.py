@@ -19,6 +19,7 @@ RMUC 标定点辅助节点 —— 单个 PublishPoint 工具 + 自动轮转模�
 """
 
 import argparse
+import ast
 import csv
 import os
 import sys
@@ -26,10 +27,11 @@ from collections import OrderedDict
 from pathlib import Path
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, DurabilityPolicy
 from geometry_msgs.msg import Point, PointStamped
-from std_msgs.msg import String, Empty
+from std_msgs.msg import Bool, String, Empty
 from visualization_msgs.msg import Marker, MarkerArray
 
 # ── 标定点定义 ──────────────────────────────────────────────
@@ -42,11 +44,12 @@ CALIB_POINTS: list[tuple[str, str, tuple[float, float, float, float]]] = [
     # ("fortress_ally",          "5-堡垒区 Fortress",          (1.0, 0.0, 0.0, 1.0)),
     ("central_highland",       "6-中央高地 CentralHL",       (1.0, 1.0, 0.0, 1.0)),
     ("ladder_highland",        "7-梯形高地 LadderHL",        (0.0, 1.0, 1.0, 1.0)),
-    ("defend_anchor",          "8-防御锚点 Defend",          (1.0, 0.4, 0.4, 1.0)),
+    # ("defend_anchor",          "8-防御锚点 Defend",          (1.0, 0.4, 0.4, 1.0)),
     # ── 巡逻点（前哨站被毁后，在梯形高地附近巡逻的路点）──
     ("patrol_1",               "P1-巡逻点1 Patrol1",        (0.4, 1.0, 0.4, 1.0)),
     ("patrol_2",               "P2-巡逻点2 Patrol2",        (0.4, 1.0, 0.6, 1.0)),
-    ("patrol_3",               "P3-巡逻点3 Patrol3",        (0.4, 1.0, 0.8, 1.0)),
+    # ("patrol_3",               "P3-巡逻点3 Patrol3",        (0.4, 1.0, 0.8, 1.0)),
+    ("cap_outpost",            "C-占领前哨 CapOutpost",     (1.0, 0.3, 0.0, 1.0)),
 ]
 
 # ── rmuc_calibration.csv 默认路径 ──
@@ -54,6 +57,27 @@ DEFAULT_CSV_PATH = os.path.join(
     os.path.dirname(__file__), "..", "src", "RM_Behavior_Tree",
     "rm_behavior_tree", "config", "RMUC_2026", "rmuc_calibration.csv"
 )
+DEFAULT_PARAMS_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "src", "RM_Behavior_Tree",
+    "rm_behavior_tree", "config", "RMUC_2026", "rmuc_2026_params.yaml"
+)
+
+CALIB_POINT_PARAM_MAP: dict[str, tuple[str, str]] = {
+    "supply_zone": ("supply_zone_x", "supply_zone_y"),
+    "base": ("base_x", "base_y"),
+    "outpost_buff": ("outpost_buff_x", "outpost_buff_y"),
+    "fortress_ally": ("fortress_ally_x", "fortress_ally_y"),
+    "central_highland": ("central_highland_x", "central_highland_y"),
+    "ladder_highland": ("ladder_highland_x", "ladder_highland_y"),
+    "defend_anchor": ("defend_anchor_x", "defend_anchor_y"),
+    "cap_outpost": ("cap_outpost_x", "cap_outpost_y"),
+}
+
+PATROL_WAYPOINT_INDEX_MAP: dict[str, tuple[int, int]] = {
+    "patrol_1": (0, 1),
+    "patrol_2": (2, 3),
+    "patrol_3": (4, 5),
+}
 
 MAP_FRAME = "map"
 CROSS_HALF_SIZE = 0.4
@@ -68,16 +92,22 @@ class CalibPointHelper(Node):
         super().__init__("calib_point_helper")
 
         self.calibrated: OrderedDict[str, tuple[float, float]] = OrderedDict()
+        self.default_points: OrderedDict[str, tuple[float, float]] = OrderedDict()
         self.csv_path = csv_path
         self.current_idx = 0
+        self.show_hint = True
+        self.show_points = True
 
         # 启动时从 CSV 加载已有的标定数据
         self._load_csv()
+        self.default_points = self._load_yaml_defaults()
 
         # 发布标记
         latching_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.marker_pub = self.create_publisher(MarkerArray, "/calibrated_points", latching_qos)
         self.hint_pub = self.create_publisher(MarkerArray, "/calib/current_label", latching_qos)
+        self.marker_state_pub = self.create_publisher(Bool, "/calib/show_points/state", latching_qos)
+        self.hint_state_pub = self.create_publisher(Bool, "/calib/show_hint/state", latching_qos)
 
         # 订阅 rviz 点击
         self.create_subscription(PointStamped, "/calib/clicked_point", self._on_click, 10)
@@ -85,12 +115,15 @@ class CalibPointHelper(Node):
         self.create_subscription(String, "/calib/select", self._on_select, 10)
         self.create_subscription(Empty, "/calib/next", self._on_next, 10)
         self.create_subscription(Empty, "/calib/prev", self._on_prev, 10)
+        self.create_subscription(Bool, "/calib/show_points/set", self._on_show_points, 10)
+        self.create_subscription(Bool, "/calib/show_hint/set", self._on_show_hint, 10)
 
         # 如果有已标定的点，跳到第一个未标定的
         self._advance_to_first_uncalibrated()
-        if self.calibrated:
-            self._publish_all_markers()
+        self._publish_marker_state()
+        self._publish_all_markers()
         self._print_current_hint()
+        self._publish_hint_state()
         self._publish_hint_marker()
 
         # 等待数据的周期提示
@@ -101,10 +134,20 @@ class CalibPointHelper(Node):
         total = len(CALIB_POINTS)
         if loaded > 0:
             loaded_keys = ", ".join(self.calibrated.keys())
+            fallback_count = sum(1 for key, _, _ in CALIB_POINTS
+                                 if key not in self.calibrated and key in self.default_points)
             self.get_logger().info(
                 f"[CALIB] 标定辅助节点已启动 | 从 CSV 加载了 {loaded}/{total} 个旧坐标\n"
                 f"  已有: {loaded_keys}\n"
+                f"  YAML 回退显示: {fallback_count} 个\n"
                 f"  点击地图可覆盖更新对应坐标\n"
+                f"  CSV: {csv_path}"
+            )
+        elif self.default_points:
+            self.get_logger().info(
+                f"[CALIB] 标定辅助节点已启动 | CSV 不可用，使用 YAML 默认值显示 {len(self.default_points)}/{total} 个坐标\n"
+                f"  YAML: {DEFAULT_PARAMS_PATH}\n"
+                f"  点击地图可覆盖更新并写入 CSV\n"
                 f"  CSV: {csv_path}"
             )
         else:
@@ -130,6 +173,9 @@ class CalibPointHelper(Node):
         if key in self.calibrated:
             cx, cy = self.calibrated[key]
             status = f"  当前值: ({cx:.3f}, {cy:.3f})  ← 点击地图可覆盖更新"
+        elif key in self.default_points:
+            dx, dy = self.default_points[key]
+            status = f"  默认值: ({dx:.3f}, {dy:.3f})  ← 点击地图可覆盖更新"
         else:
             status = "  ← 未标定，在地图上点击标定位置"
         self.get_logger().info(
@@ -199,11 +245,75 @@ class CalibPointHelper(Node):
         self._print_current_hint()
         self._publish_hint_marker()
 
+    def _on_show_points(self, msg: Bool):
+        show_points = bool(msg.data)
+        if show_points == self.show_points:
+            self._publish_marker_state()
+            return
+        self.show_points = show_points
+        self.get_logger().info(
+            f"[CALIB] 地图十字标识已{'开启' if self.show_points else '隐藏'}"
+        )
+        self._publish_marker_state()
+        self._publish_all_markers()
+
+    def _on_show_hint(self, msg: Bool):
+        show_hint = bool(msg.data)
+        if show_hint == self.show_hint:
+            self._publish_hint_state()
+            return
+        self.show_hint = show_hint
+        self.get_logger().info(
+            f"[CALIB] 中央提示大字已{'开启' if self.show_hint else '隐藏'}"
+        )
+        self._publish_hint_state()
+        self._publish_hint_marker()
+
+    def _publish_hint_state(self):
+        msg = Bool()
+        msg.data = self.show_hint
+        self.hint_state_pub.publish(msg)
+
+    def _publish_marker_state(self):
+        msg = Bool()
+        msg.data = self.show_points
+        self.marker_state_pub.publish(msg)
+
+    def _display_point(self, key: str):
+        if key in self.calibrated:
+            return self.calibrated[key], "calibrated"
+        if key in self.default_points:
+            return self.default_points[key], "default"
+        return None, None
+
+    def _clear_all_markers(self):
+        ma = MarkerArray()
+        delete_all = Marker()
+        delete_all.action = Marker.DELETEALL
+        ma.markers.append(delete_all)
+        self.marker_pub.publish(ma)
+
+    def _clear_hint_marker(self):
+        ma = MarkerArray()
+        delete_all = Marker()
+        delete_all.action = Marker.DELETEALL
+        ma.markers.append(delete_all)
+        self.hint_pub.publish(ma)
+
     def _publish_hint_marker(self):
         """在 rviz 地图正上方显示当前待标定点名称。"""
+        if not self.show_hint:
+            self._clear_hint_marker()
+            return
+
         key, name, color = self._current_point()
         r, g, b, a = color
-        status = "✓ 已标定" if key in self.calibrated else "← 待标定"
+        if key in self.calibrated:
+            status = "✓ 已标定"
+        elif key in self.default_points:
+            status = "≈ YAML 默认"
+        else:
+            status = "← 待标定"
 
         ma = MarkerArray()
         hint = Marker()
@@ -228,6 +338,10 @@ class CalibPointHelper(Node):
 
     def _publish_all_markers(self):
         """发布所有已标定点的十字标志 + 名称标签。"""
+        if not self.show_points:
+            self._clear_all_markers()
+            return
+
         ma = MarkerArray()
 
         delete_all = Marker()
@@ -237,10 +351,13 @@ class CalibPointHelper(Node):
         now = self.get_clock().now().to_msg()
 
         for idx, (key, display_name, color) in enumerate(CALIB_POINTS):
-            if key not in self.calibrated:
+            point, source = self._display_point(key)
+            if point is None:
                 continue
-            cx, cy = self.calibrated[key]
+            cx, cy = point
             r, g, b, a = color
+            marker_alpha = a if source == "calibrated" else min(a, 0.45)
+            label_suffix = "" if source == "calibrated" else "\n[YAML默认]"
 
             # ── 十字标志 ──
             cross = Marker()
@@ -255,7 +372,7 @@ class CalibPointHelper(Node):
             cross.color.r = r
             cross.color.g = g
             cross.color.b = b
-            cross.color.a = a
+            cross.color.a = marker_alpha
             cross.points.append(Point(x=cx - CROSS_HALF_SIZE, y=cy, z=MARKER_Z))
             cross.points.append(Point(x=cx + CROSS_HALF_SIZE, y=cy, z=MARKER_Z))
             cross.points.append(Point(x=cx, y=cy - CROSS_HALF_SIZE, z=MARKER_Z))
@@ -278,16 +395,85 @@ class CalibPointHelper(Node):
             label.color.r = 1.0
             label.color.g = 1.0
             label.color.b = 1.0
-            label.color.a = 1.0
-            label.text = f"({cx:.2f}, {cy:.2f})\n{display_name}"
+            label.color.a = 1.0 if source == "calibrated" else 0.8
+            label.text = f"({cx:.2f}, {cy:.2f})\n{display_name}{label_suffix}"
             ma.markers.append(label)
 
         self.marker_pub.publish(ma)
+
+    def _load_yaml_defaults(self) -> OrderedDict[str, tuple[float, float]]:
+        defaults: OrderedDict[str, tuple[float, float]] = OrderedDict()
+        path = Path(DEFAULT_PARAMS_PATH)
+        if not path.exists():
+            self.get_logger().warn(f"[CALIB] YAML 默认参数文件不存在: {path}")
+            return defaults
+
+        try:
+            cfg = self._parse_default_config(path)
+
+            for key, _, _ in CALIB_POINTS:
+                point = self._yaml_default_point(cfg, key)
+                if point is not None:
+                    defaults[key] = point
+        except Exception as e:
+            self.get_logger().warn(f"[CALIB] 读取 YAML 默认坐标失败: {e}")
+
+        return defaults
+
+    def _parse_default_config(self, path: Path) -> dict:
+        wanted_keys = {axis for axes in CALIB_POINT_PARAM_MAP.values() for axis in axes}
+        wanted_keys.add("patrol_waypoints")
+        values: dict[str, object] = {}
+
+        with open(path, "r") as f:
+            for raw_line in f:
+                line = raw_line.split("#", 1)[0].strip()
+                if not line or ":" not in line:
+                    continue
+                key, raw_value = line.split(":", 1)
+                key = key.strip()
+                if key not in wanted_keys:
+                    continue
+                raw_value = raw_value.strip()
+                if key == "patrol_waypoints":
+                    try:
+                        values[key] = ast.literal_eval(raw_value)
+                    except (SyntaxError, ValueError):
+                        continue
+                    continue
+                try:
+                    values[key] = float(raw_value)
+                except ValueError:
+                    continue
+
+        return values
+
+    def _yaml_default_point(self, cfg: dict, key: str):
+        if key in CALIB_POINT_PARAM_MAP:
+            x_key, y_key = CALIB_POINT_PARAM_MAP[key]
+            try:
+                return float(cfg[x_key]), float(cfg[y_key])
+            except (KeyError, TypeError, ValueError):
+                return None
+
+        if key in PATROL_WAYPOINT_INDEX_MAP:
+            indices = PATROL_WAYPOINT_INDEX_MAP[key]
+            waypoints = cfg.get("patrol_waypoints", [])
+            if not isinstance(waypoints, list) or len(waypoints) <= max(indices):
+                return None
+            try:
+                return float(waypoints[indices[0]]), float(waypoints[indices[1]])
+            except (TypeError, ValueError):
+                return None
+
+        return None
 
     # ── CSV 读写 ──────────────────────────────────────────
 
     def _load_csv(self):
         """启动时从 CSV 加载已有标定坐标。"""
+        if not self.csv_path:
+            return
         path = Path(self.csv_path)
         if not path.exists():
             self.get_logger().info(f"[CALIB] CSV 文件不存在，从空白开始: {path}")
@@ -323,6 +509,8 @@ class CalibPointHelper(Node):
 
     def _save_csv(self):
         """直接覆写 rmuc_calibration.csv，保留原有注释头。"""
+        if not self.csv_path:
+            return
         try:
             path = Path(self.csv_path)
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -400,11 +588,12 @@ def main(args=None):
     node = CalibPointHelper(csv_path=csv_path if not known.no_csv else "")
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":
