@@ -5,6 +5,8 @@
 #include <memory>
 #include <cmath>
 #include <chrono>
+#include <utility>
+#include <vector>
 #include "behaviortree_cpp/action_node.h"
 #include "sp_msgs/msg/rmuc_game_status.hpp"
 #include "sp_msgs/msg/rmuc_robot_status.hpp"
@@ -13,6 +15,13 @@
 
 namespace rm_behavior_tree
 {
+struct RmucSemanticZone
+{
+  std::string name;
+  std::string type;
+  std::vector<std::pair<double, double>> vertices;
+};
+
 /// 从黑板读取 RMUC 原始消息，解析出派生状态变量写入黑板
 class ParseSentryBlackboardAction : public BT::SyncActionNode
 {
@@ -36,6 +45,8 @@ public:
       BT::InputPort<double>("pose_x"),
       BT::InputPort<double>("pose_y"),
       BT::InputPort<std::uint64_t>("now_ms"),
+      BT::InputPort<std::string>("semantic_zones_file"),
+      BT::InputPort<std::string>("semantic_ignore_enemy_zone_type", "speed_bump"),
 
       // ── outputs: GameStatus 派生 ──
       BT::OutputPort<int>("stage_remain_time"),
@@ -46,8 +57,11 @@ public:
       BT::OutputPort<int>("ammo_allow"),
       BT::OutputPort<int>("base_hp_cur"),
       BT::OutputPort<bool>("outpost_alive"),
+      BT::OutputPort<int>("enemy_outpost_status"),
+      BT::OutputPort<bool>("enemy_outpost_destroyed"),
       BT::OutputPort<bool>("is_dead"),
       BT::OutputPort<bool>("has_target"),
+      BT::OutputPort<bool>("is_detect_enemy"),
 
       // ── outputs: 占位/兼容 ──
       BT::OutputPort<bool>("base_threat"),
@@ -59,11 +73,19 @@ public:
   BT::NodeStatus tick() override;
 
 private:
+  void loadSemanticZones(const std::string & yaml_path);
+  bool pointInPolygon(
+    double x, double y,
+    const std::vector<std::pair<double, double>> & poly) const;
+  bool isInSemanticZone(double x, double y, const std::string & zone_type);
+
   bool base_threat_latched_{false};
   int last_base_hp_{-1};
   bool logged_missing_base_config_{false};
   bool logged_missing_base_radius_{false};
   bool logged_missing_base_calm_timeout_{false};
+  std::chrono::steady_clock::time_point last_base_threat_trigger_log_{};
+  bool has_base_threat_trigger_log_{false};
 
   // 基地威胁自动解除：危机模式下连续无敌人+基地不掉血超过30s→自动解除
   std::chrono::steady_clock::time_point base_threat_calm_start_{};
@@ -74,6 +96,11 @@ private:
   uint16_t last_current_hp_{0};
   uint64_t last_activity_ms_{0};
   bool disengage_initialized_{false};
+
+  std::vector<RmucSemanticZone> semantic_zones_;
+  bool semantic_zones_loaded_{false};
+  std::string semantic_zones_file_;
+  bool semantic_enemy_override_active_{false};
 };
 }  // namespace rm_behavior_tree
 

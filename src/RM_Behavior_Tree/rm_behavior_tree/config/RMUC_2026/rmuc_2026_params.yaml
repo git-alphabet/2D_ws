@@ -20,14 +20,8 @@ rm_behavior_tree:
       base_x: -2.3532                # 基地坐标 x（独立点位；默认值与当前 CSV 标定值一致）
       base_y: -2.0007                # 基地坐标 y（独立点位；默认值与当前 CSV 标定值一致）
 
-      base_buff_x: -0.06             # 己方基地增益区中心 x
-      base_buff_y: -2.49             # 己方基地增益区中心 y
-
       outpost_buff_x: 6.53           # 己方前哨站增益区中心 x
       outpost_buff_y: -5.12          # 己方前哨站增益区中心 y
-
-      fortress_ally_x: 2.76          # 己方堡垒区中心 x
-      fortress_ally_y: -1.93         # 己方堡垒区中心 y
 
       central_highland_x: 6.70       # 中央高地中线偏家 x
       central_highland_y: -1.95      # 中央高地中线偏家 y
@@ -38,6 +32,9 @@ rm_behavior_tree:
       defend_anchor_x: 2.76          # 防御锚点 x（基地前守卫位置）
       defend_anchor_y: -1.93         # 防御锚点 y
 
+      cap_outpost_x: 11.4251         # 占领前哨点 x（标定缺失/无效时使用）
+      cap_outpost_y: 1.4315          # 占领前哨点 y（标定缺失/无效时使用）
+      
       # 可能有用的预设点（目前未启用）
       central_highland_left_x: 9.00
       central_highland_left_y: 2.30  # 中央高地左侧点坐标
@@ -65,3 +62,8 @@ rm_behavior_tree:
       arrive_radius: 0.8              # 统一到达判定半径 (米)
       enemy_near_base_radius: 5.0     # 敌人距基地威胁半径 (米)
       base_threat_calm_timeout_ms: 30000  # 基地威胁自动解除平静时间 (毫秒)
+
+      # ─────────── 语义区域 ───────────
+      # 由 scripts/tools/semantic_from_label_image.py 生成；speed_bump 区域内禁止旋转并忽略云台见敌
+      semantic_zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
+      semantic_ignore_enemy_zone_type: "speed_bump"

@@ -564,7 +564,6 @@ Sequence (幂等)
 | `{cfg.supply_zone_x/y}` | HealPlan, SelectNearestDispelCard, CriticalSurvival 等 | ✅ |
 | `{cfg.base_buff_x/y}` | SelectNearestDispelCard 等 | ✅ |
 | `{cfg.outpost_buff_x/y}` | SelectNearestDispelCard 等 | ✅ |
-| `{cfg.fortress_ally_x/y}` | SelectObjective | ✅ |
 | `{cfg.fortress_enemy_x/y}` | SelectObjective | ✅ |
 | `{cfg.central_highland_x/y}` | SelectObjective | ✅ |
 | `{cfg.ladder_highland_x/y}` | SelectObjective | ✅ |

@@ -22,8 +22,7 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
-      BT::InputPort<int>("cmd_type"),
-      BT::InputPort<bool>("emergency_stop")
+      BT::InputPort<int>("cmd_type")
     };
   }
 };

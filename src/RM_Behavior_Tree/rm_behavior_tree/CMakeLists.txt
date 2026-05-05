@@ -131,6 +131,10 @@ ament_auto_add_library(rmuc_sub_robot_status SHARED
     plugins/rmuc_2026/action/sub_robot_status.cpp)
 add_target_dependencies(rmuc_sub_robot_status)
 
+ament_auto_add_library(rmuc_sub_robot_buff SHARED
+    plugins/rmuc_2026/action/sub_robot_buff.cpp)
+add_target_dependencies(rmuc_sub_robot_buff)
+
 ament_auto_add_library(rmuc_sub_robot_position SHARED
     plugins/rmuc_2026/action/sub_robot_position.cpp)
 add_target_dependencies(rmuc_sub_robot_position)
@@ -156,6 +160,7 @@ add_target_dependencies(rmuc_sub_team_hp)
 ament_auto_add_library(rmuc_parse_sentry_blackboard SHARED
     plugins/rmuc_2026/action/parse_sentry_blackboard.cpp)
 add_target_dependencies(rmuc_parse_sentry_blackboard)
+target_link_libraries(rmuc_parse_sentry_blackboard yaml-cpp)
 
 ament_auto_add_library(rmuc_sentry_cmd_mux SHARED
     plugins/rmuc_2026/action/sentry_cmd_mux.cpp)
@@ -178,9 +183,17 @@ ament_auto_add_library(rmuc_init_cmd_state SHARED
     plugins/rmuc_2026/action/init_cmd_state.cpp)
 add_target_dependencies(rmuc_init_cmd_state)
 
+ament_auto_add_library(rmuc_update_heal_recovery_latch SHARED
+    plugins/rmuc_2026/action/update_heal_recovery_latch.cpp)
+add_target_dependencies(rmuc_update_heal_recovery_latch)
+
 ament_auto_add_library(rmuc_select_posture SHARED
     plugins/rmuc_2026/action/select_posture.cpp)
 add_target_dependencies(rmuc_select_posture)
+
+ament_auto_add_library(rmuc_select_sentry_cmd_rate SHARED
+    plugins/rmuc_2026/action/select_sentry_cmd_rate.cpp)
+add_target_dependencies(rmuc_select_sentry_cmd_rate)
 
 ament_auto_add_library(rmuc_posture_degradation_guard SHARED
     plugins/rmuc_2026/action/posture_degradation_guard.cpp)
@@ -224,6 +237,10 @@ add_target_dependencies(rmuc_is_ammo_below)
 ament_auto_add_library(rmuc_is_base_threatened SHARED
     plugins/rmuc_2026/condition/is_base_threatened.cpp)
 add_target_dependencies(rmuc_is_base_threatened)
+
+ament_auto_add_library(rmuc_is_vulnerable SHARED
+    plugins/rmuc_2026/condition/is_vulnerable.cpp)
+add_target_dependencies(rmuc_is_vulnerable)
 
 ament_auto_add_library(rmuc_is_at_goal SHARED
     plugins/rmuc_2026/condition/is_at_goal.cpp)

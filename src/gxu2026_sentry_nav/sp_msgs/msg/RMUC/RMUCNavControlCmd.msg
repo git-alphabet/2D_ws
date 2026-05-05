@@ -9,4 +9,3 @@
 std_msgs/Header header
 
 int32  cmd_type              # [4B] 导航控制指令: 0=无操作 1=开始导航 2=终止导航 3=原地不动
-bool   emergency_stop        # [1B] 紧急停止

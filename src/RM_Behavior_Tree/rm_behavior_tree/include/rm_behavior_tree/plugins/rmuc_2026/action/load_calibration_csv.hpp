@@ -27,12 +27,12 @@ public:
       BT::OutputPort<double>("base_x"), BT::OutputPort<double>("base_y"),
       BT::OutputPort<double>("base_buff_x"), BT::OutputPort<double>("base_buff_y"),
       BT::OutputPort<double>("outpost_buff_x"), BT::OutputPort<double>("outpost_buff_y"),
-      BT::OutputPort<double>("fortress_ally_x"), BT::OutputPort<double>("fortress_ally_y"),
       BT::OutputPort<double>("central_highland_x"), BT::OutputPort<double>("central_highland_y"),
       BT::OutputPort<double>("ladder_highland_x"), BT::OutputPort<double>("ladder_highland_y"),
       BT::OutputPort<double>("defend_anchor_x"), BT::OutputPort<double>("defend_anchor_y"),
       BT::OutputPort<double>("central_highland_left_x"), BT::OutputPort<double>("central_highland_left_y"),
       BT::OutputPort<double>("ramp_jump_x"), BT::OutputPort<double>("ramp_jump_y"),
+      BT::OutputPort<double>("cap_outpost_x"), BT::OutputPort<double>("cap_outpost_y"),
       // 巡逻航点 (格式: "x1,y1;x2,y2;...")
       BT::OutputPort<std::string>("patrol_waypoints"),
     };

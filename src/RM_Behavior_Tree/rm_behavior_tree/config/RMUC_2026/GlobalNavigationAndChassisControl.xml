@@ -29,6 +29,15 @@
                     <RmucRobotControl stop_gimbal_scan="False"
                                       chassis_spin="False"/>
                 </Sequence>
+                <!-- 基地威胁且已到防御锚点 → 持续自转 -->
+                <Sequence>
+                    <IsBaseThreatened base_threat="{threat.base}"/>
+                    <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
+                              goal_x="{cfg.defend_anchor_x}" goal_y="{cfg.defend_anchor_y}"
+                              arrive_radius="{cfg.arrive_radius}"/>
+                    <RmucRobotControl stop_gimbal_scan="False"
+                                      chassis_spin="True"/>
+                </Sequence>
                 <!-- 到达当前导航目标 → 旋转 -->
                 <Sequence>
                     <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
@@ -42,18 +51,22 @@
                                   chassis_spin="False"/>
             </ReactiveFallback>
 
+            <!-- 低血恢复锁存：低于 hp_low 进入恢复态，直到达到 hp_safe 才退出 -->
+            <UpdateHealRecoveryLatch hp_cur="{hp.cur}"
+                                     hp_low="{cfg.hp_low}"
+                                     hp_safe="{cfg.hp_safe}"
+                                     need_heal_recovery="{need_heal_recovery}"/>
+
             <!-- 生存优先：死亡/低血量回补给区 -->
             <ReactiveFallback name="SurvivalGuard">
-                <!-- HP 正常且未死亡 → SUCCESS，放行 -->
+                <!-- 未死亡且未处于回血恢复锁存态 → SUCCESS，放行 -->
                 <Sequence>
                     <Inverter>
                         <RmucIsDead message="{robot_status}"/>
                     </Inverter>
-                    <Inverter>
-                        <RmucIsHPBelow message="{robot_status}" hp_threshold="{cfg.hp_low}"/>
-                    </Inverter>
+                    <ScriptCondition code="need_heal_recovery == false"/>
                 </Sequence>
-                <!-- 死亡或低血量 → LowHPRetreat 接管（返回 RUNNING 阻塞后续） -->
+                <!-- 死亡或处于回血恢复锁存态 → LowHPRetreat 接管（返回 RUNNING 阻塞后续） -->
                 <Sequence>
                     <SetBlackboard output_key="active_subtree" value="LowHPRetreat"/>
                     <SubTree ID="LowHPRetreat" _autoremap="true"/>
@@ -62,9 +75,23 @@
 
             <!-- 敌情门禁：检测到敌人 → 取消导航、原地停车，阻塞后续战术 -->
             <ReactiveFallback name="EnemyDetectionGuard">
+                <!-- 低弹补给优先级高于普通见敌，放行给 SustainAndEconomy 接管 -->
+                <IsAmmoBelow ammo_allow="{ammo.allow}" ammo_low="{cfg.ammo_low}"/>
+                <!-- 基地威胁模式 → 放行，优先回基地防御锚点，不受普通见敌阻塞打断 -->
+                <IsBaseThreatened base_threat="{threat.base}"/>
+                <!-- 易伤时切防御姿态，直到 vulnerability_pct 清零；优先级低于基地威胁，高于普通见敌 -->
+                <Sequence>
+                    <SetBlackboard output_key="active_subtree" value="VulnerableDefense"/>
+                    <IsVulnerable robot_buff="{robot_buff}"/>
+                    <SelectPosture posture_value="2"
+                                   posture_out="{cmd.posture}"
+                                   is_allow_select_posture="{cmd.allow_posture_send}"/>
+                    <KeepRunning/>
+                </Sequence>
                 <!-- 无敌人 → 放行 -->
                 <Inverter>
-                    <RmucIsDetectEnemy message="{robot_status}"/>
+                    <RmucIsDetectEnemy message="{robot_status}"
+                                       is_detect_enemy="{is_detect_enemy}"/>
                 </Inverter>
                 <!-- 当前 Nav2 目标 = 补给区 → 放行（无视敌人，继续导航回家） -->
                 <IsNavTargetSupply goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
@@ -78,7 +105,6 @@
                     <CancelNavGoal action_name="navigate_to_pose"/>
                     <RmucRobotControl stop_gimbal_scan="False"
                                       chassis_spin="True"/>
-                    <RmucNavControlCmd cmd_type="3" emergency_stop="False"/>
                     <KeepRunning/>
                 </Sequence>
             </ReactiveFallback>

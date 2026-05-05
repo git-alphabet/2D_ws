@@ -27,6 +27,9 @@
 #include "behaviortree_cpp/utils/shared_library.h"
 #include "behaviortree_ros2/plugins.hpp"
 
+#include <string>
+#include <utility>
+#include <vector>
 
 int main(int argc, char ** argv)
 {
@@ -54,6 +57,10 @@ int main(int argc, char ** argv)
   BT::RosNodeParams params_robot_status;
   params_robot_status.nh = std::make_shared<rclcpp::Node>("rmuc_robot_status_io");
   params_robot_status.default_port_value = "robot_status";
+
+  BT::RosNodeParams params_robot_buff;
+  params_robot_buff.nh = std::make_shared<rclcpp::Node>("rmuc_robot_buff_io");
+  params_robot_buff.default_port_value = "robot_buff";
 
   BT::RosNodeParams params_robot_position;
   params_robot_position.nh = std::make_shared<rclcpp::Node>("rmuc_robot_position_io");
@@ -119,6 +126,9 @@ int main(int argc, char ** argv)
   // ── B. 订阅者：robot_status (/robot_status → RMUCRobotStatus) ──
   regRos("rmuc_sub_robot_status",               params_robot_status);
 
+  // ── B2. 订阅者：robot_buff (/robot_buff → RMUCRobotBuff) ──
+  regRos("rmuc_sub_robot_buff",                 params_robot_buff);
+
   // ── C. 订阅者：robot_position (/robot_position → RMUCRobotPosition) ──
   regRos("rmuc_sub_robot_position",             params_robot_position);
 
@@ -158,8 +168,10 @@ int main(int argc, char ** argv)
   // 动作
   regBT("rmuc_init_sentry_config");
   regBT("rmuc_init_cmd_state");
+  regBT("rmuc_update_heal_recovery_latch");
   regBT("rmuc_load_calibration_csv");
   regBT("rmuc_select_posture");
+  regBT("rmuc_select_sentry_cmd_rate");
   regBT("rmuc_posture_degradation_guard");
   regBT("rmuc_decide_respawn_cmd");
   regBT("rmuc_parse_sentry_blackboard");
@@ -176,6 +188,7 @@ int main(int argc, char ** argv)
   // rmuc_is_at_goal 已移至 K2（需要 costmap 订阅）
   regBT("rmuc_is_zone_card_detected");
   regBT("rmuc_is_base_threatened");
+  regBT("rmuc_is_vulnerable");
   regBT("rmuc_is_detect_enemy");
   regBT("rmuc_is_ammo_below");
 
@@ -207,12 +220,12 @@ int main(int argc, char ** argv)
       "home_x","home_y","supply_zone_x","supply_zone_y",
       "base_x","base_y",
       "base_buff_x","base_buff_y","outpost_buff_x","outpost_buff_y",
-      "fortress_ally_x","fortress_ally_y",
       "central_highland_x","central_highland_y",
       "ladder_highland_x","ladder_highland_y",
       "defend_anchor_x","defend_anchor_y",
       "central_highland_left_x","central_highland_left_y",
-      "ramp_jump_x","ramp_jump_y"
+      "ramp_jump_x","ramp_jump_y",
+      "cap_outpost_x","cap_outpost_y"
     };
     const std::vector<std::pair<std::string, double>> double_keys = {
       {"arrive_radius", 1.0}, {"enemy_near_base_radius", 0.0}
@@ -281,13 +294,18 @@ int main(int argc, char ** argv)
                   vec.size() / 2, wpts_str.c_str());
     }
     // calibration_csv_path (string)
+    for (const auto & [key, def] : std::vector<std::pair<std::string, std::string>>{
+        {"calibration_csv_path", ""},
+        {"semantic_zones_file",
+          "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"},
+        {"semantic_ignore_enemy_zone_type", "speed_bump"}})
     {
-      auto pn = prefix + "calibration_csv_path";
-      if (!node->has_parameter(pn)) node->declare_parameter<std::string>(pn, "");
+      auto pn = prefix + key;
+      if (!node->has_parameter(pn)) node->declare_parameter<std::string>(pn, def);
       std::string v = node->get_parameter(pn).as_string();
-      bb->set("cfg.calibration_csv_path", v);
+      bb->set("cfg." + key, v);
       if (!v.empty()) {
-        RCLCPP_INFO(node->get_logger(), "Calibration CSV path: %s", v.c_str());
+        RCLCPP_INFO(node->get_logger(), "%s: %s", key.c_str(), v.c_str());
       }
     }
   }

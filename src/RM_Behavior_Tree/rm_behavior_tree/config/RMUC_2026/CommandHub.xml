@@ -10,14 +10,19 @@
             <DecideRespawnCmd is_dead="{state.is_dead}"
                               confirm_respawn="{cmd.confirm_respawn}"/>
 
-            <!-- 姿态降级守卫：累计超过3分钟 → 攻击/移动→强制防御5s, 防御→强制移动10s -->
+            <!-- 姿态降级守卫：仅负责累计时间降级，不处理基地威胁/补弹等业务姿态 -->
             <PostureDegradationGuard desired_posture="{cmd.posture}"
                                      degradation_threshold_s="180"
                                      forced_defense_s="5"
                                      forced_movement_s="5"
                                      final_posture="{cmd.final_posture}"/>
 
-            <RateController hz="5">
+            <SelectSentryCmdRate is_dead="{state.is_dead}"
+                                 alive_hz="0.2"
+                                 dead_hz="1.0"
+                                 hz_out="{cmd.sentry_cmd_hz}"/>
+
+            <RateController hz="{cmd.sentry_cmd_hz}">
                 <SentryCmdMux posture="{cmd.final_posture}"
                               confirm_respawn="{cmd.confirm_respawn}"
                               cmd_state="{cmd.state}"/>

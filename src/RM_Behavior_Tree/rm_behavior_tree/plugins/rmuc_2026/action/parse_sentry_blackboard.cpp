@@ -1,6 +1,8 @@
 #include "rm_behavior_tree/plugins/rmuc_2026/action/parse_sentry_blackboard.hpp"
 #include <iostream>
 
+#include "yaml-cpp/yaml.h"
+
 namespace rm_behavior_tree
 {
 
@@ -18,6 +20,82 @@ ParseSentryBlackboardAction::ParseSentryBlackboardAction(
 {
 }
 
+void ParseSentryBlackboardAction::loadSemanticZones(const std::string & yaml_path)
+{
+  semantic_zones_.clear();
+  semantic_zones_loaded_ = false;
+  semantic_zones_file_ = yaml_path;
+
+  if (yaml_path.empty()) {
+    return;
+  }
+
+  YAML::Node config;
+  try {
+    config = YAML::LoadFile(yaml_path);
+  } catch (const YAML::Exception & e) {
+    std::cerr << "[ParseSentryBlackboard] semantic zones load failed: "
+              << yaml_path << " (" << e.what() << ")" << std::endl;
+    return;
+  }
+
+  if (!config["zones"]) {
+    return;
+  }
+
+  for (const auto & z : config["zones"]) {
+    if (!z["name"] || !z["type"] || !z["vertices"]) {
+      continue;
+    }
+
+    RmucSemanticZone zone;
+    zone.name = z["name"].as<std::string>();
+    zone.type = z["type"].as<std::string>();
+    for (const auto & v : z["vertices"]) {
+      if (v.size() < 2) {
+        continue;
+      }
+      zone.vertices.emplace_back(v[0].as<double>(), v[1].as<double>());
+    }
+
+    if (zone.vertices.size() >= 3) {
+      semantic_zones_.push_back(std::move(zone));
+    }
+  }
+
+  semantic_zones_loaded_ = true;
+}
+
+bool ParseSentryBlackboardAction::pointInPolygon(
+  double x, double y,
+  const std::vector<std::pair<double, double>> & poly) const
+{
+  bool inside = false;
+  const size_t n = poly.size();
+  for (size_t i = 0, j = n - 1; i < n; j = i++) {
+    const double xi = poly[i].first;
+    const double yi = poly[i].second;
+    const double xj = poly[j].first;
+    const double yj = poly[j].second;
+    if (((yi > y) != (yj > y)) &&
+      (x < (xj - xi) * (y - yi) / (yj - yi) + xi))
+    {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+bool ParseSentryBlackboardAction::isInSemanticZone(double x, double y, const std::string & zone_type)
+{
+  for (const auto & zone : semantic_zones_) {
+    if (zone.type == zone_type && pointInPolygon(x, y, zone.vertices)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 BT::NodeStatus ParseSentryBlackboardAction::tick()
 {
   // ── 比赛阶段 (GameStatus) ──
@@ -27,17 +105,53 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
     setOutput("stage_elapsed_time", 420 - static_cast<int>(game_msg->stage_remain_time));
   }
 
+  bool suppress_enemy_detection = false;
+  double pose_x = 0.0;
+  double pose_y = 0.0;
+  std::string semantic_zones_file;
+  std::string semantic_ignore_zone_type = "speed_bump";
+  const bool has_pose = getInput("pose_x", pose_x) && getInput("pose_y", pose_y);
+  getInput("semantic_zones_file", semantic_zones_file);
+  getInput("semantic_ignore_enemy_zone_type", semantic_ignore_zone_type);
+  if (has_pose && !semantic_zones_file.empty()) {
+    if (!semantic_zones_loaded_ || semantic_zones_file_ != semantic_zones_file) {
+      loadSemanticZones(semantic_zones_file);
+    }
+    suppress_enemy_detection = semantic_zones_loaded_ &&
+      isInSemanticZone(pose_x, pose_y, semantic_ignore_zone_type);
+  }
+  if (suppress_enemy_detection != semantic_enemy_override_active_) {
+    semantic_enemy_override_active_ = suppress_enemy_detection;
+    std::cout << "[ParseSentryBlackboard] semantic enemy override "
+              << (semantic_enemy_override_active_ ? "enabled" : "disabled")
+              << " (zone_type=" << semantic_ignore_zone_type << ")"
+              << std::endl;
+  }
+
+  bool effective_detect_enemy = false;
+
   // ── 机器人状态 (RobotStatus) ──
   auto robot_ptr = getInput<std::shared_ptr<sp_msgs::msg::RMUCRobotStatus>>("robot_status");
   if (robot_ptr) {
     const auto & r = **robot_ptr;
+    effective_detect_enemy = suppress_enemy_detection ? false : r.is_detect_enemy;
+    const bool enemy_outpost_destroyed =
+      !(r.enemy_outpost_status == 1 || r.enemy_outpost_status == 2);
     setOutput("hp_cur", static_cast<int>(r.current_hp));
     setOutput("ammo_allow", static_cast<int>(r.ammo_allow));
+    setOutput("enemy_outpost_status", static_cast<int>(r.enemy_outpost_status));
+    setOutput("enemy_outpost_destroyed", enemy_outpost_destroyed);
     // base_hp_cur: 已改由 team_hp.base_hp 接管 (0x0003 offset 14)
     // outpost_alive 不再使用 robot_status.outpost_alive (bool转换可能有误)
     // 将由 team_hp.outpost_hp > 0 得出（0x0003 offset 12 原始 uint16_t)
     setOutput("is_dead", r.current_hp <= 0);
-    setOutput("has_target", r.is_detect_enemy);
+    setOutput("has_target", effective_detect_enemy);
+    setOutput("is_detect_enemy", effective_detect_enemy);
+  } else {
+    setOutput("enemy_outpost_status", 1);
+    setOutput("enemy_outpost_destroyed", false);
+    setOutput("has_target", false);
+    setOutput("is_detect_enemy", false);
   }
 
   auto radar_tracks = getInput<sp_msgs::msg::RMUCEnemyTracks>("radar_tracks");
@@ -125,26 +239,30 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
 
   // 进入条件：雷达扫到敌人在基地附近 + 基地掉血
   bool base_hp_is_dropping = false;
+  auto now = std::chrono::steady_clock::now();
   if (th) {
     base_hp_is_dropping = (last_base_hp_ >= 0 && th->base_hp < static_cast<uint16_t>(last_base_hp_));
     if (base_hp_is_dropping && any_enemy_near) {
       base_threat = true;
-      std::cout << "[ParseSentryBlackboard] 基地威胁触发：雷达扫到敌人在基地 "
-                << base_threat_enter_distance << "m 内且基地掉血"
-                << std::endl;
+      const bool should_log_trigger = !base_threat_latched_ ||
+        !has_base_threat_trigger_log_ ||
+        (now - last_base_threat_trigger_log_) >= std::chrono::seconds(5);
+      if (should_log_trigger) {
+        std::cout << "[ParseSentryBlackboard] 基地威胁触发：雷达扫到敌人在基地 "
+                  << base_threat_enter_distance << "m 内且基地掉血"
+                  << std::endl;
+        last_base_threat_trigger_log_ = now;
+        has_base_threat_trigger_log_ = true;
+      }
     }
     last_base_hp_ = static_cast<int>(th->base_hp);
   }
 
   // 退出条件：云台没扫到敌人 + 基地不掉血，持续 base_threat_calm_timeout_ms 自动解除
-  bool gimbal_detects_enemy = false;
-  if (robot_ptr) {
-    gimbal_detects_enemy = (**robot_ptr).is_detect_enemy;
-  }
+  const bool gimbal_detects_enemy = effective_detect_enemy;
 
   if (base_threat) {
     bool is_calm = !gimbal_detects_enemy && !base_hp_is_dropping;
-    auto now = std::chrono::steady_clock::now();
     if (is_calm) {
       if (!base_threat_calm_tracking_) {
         base_threat_calm_tracking_ = true;

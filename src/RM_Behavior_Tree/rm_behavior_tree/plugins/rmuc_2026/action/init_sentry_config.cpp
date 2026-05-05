@@ -27,12 +27,12 @@ BT::NodeStatus InitSentryConfigAction::tick()
   for (auto * k : {"home_x","home_y","supply_zone_x","supply_zone_y",
                     "base_x","base_y",
                     "base_buff_x","base_buff_y","outpost_buff_x","outpost_buff_y",
-                    "fortress_ally_x","fortress_ally_y",
                     "central_highland_x","central_highland_y",
                     "ladder_highland_x","ladder_highland_y",
                     "defend_anchor_x","defend_anchor_y",
                     "central_highland_left_x","central_highland_left_y",
-                    "ramp_jump_x","ramp_jump_y"})
+                    "ramp_jump_x","ramp_jump_y",
+                    "cap_outpost_x","cap_outpost_y"})
   {
     double v = 0.0;
     getInput(k, v);
@@ -69,6 +69,9 @@ BT::NodeStatus InitSentryConfigAction::tick()
   std::string patrol_waypoints;
   getInput("patrol_waypoints", patrol_waypoints);
   setOutput("patrol_waypoints", patrol_waypoints);
+
+  setStr("semantic_zones_file", "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml");
+  setStr("semantic_ignore_enemy_zone_type", "speed_bump");
 
   loaded_once_ = true;
   return BT::NodeStatus::SUCCESS;
