@@ -70,7 +70,7 @@ BT::NodeStatus InitSentryConfigAction::tick()
   getInput("patrol_waypoints", patrol_waypoints);
   setOutput("patrol_waypoints", patrol_waypoints);
 
-  setStr("semantic_zones_file", "");
+  setStr("semantic_zones_file", "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml");
   setStr("semantic_ignore_enemy_zone_type", "speed_bump");
 
   loaded_once_ = true;

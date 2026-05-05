@@ -297,7 +297,7 @@ int main(int argc, char ** argv)
     for (const auto & [key, def] : std::vector<std::pair<std::string, std::string>>{
         {"calibration_csv_path", ""},
         {"semantic_zones_file",
-          "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/semantic_zones.yaml"},
+          "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"},
         {"semantic_ignore_enemy_zone_type", "speed_bump"}})
     {
       auto pn = prefix + key;
