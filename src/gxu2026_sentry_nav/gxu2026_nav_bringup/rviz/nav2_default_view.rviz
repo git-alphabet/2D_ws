@@ -382,7 +382,7 @@ Visualization Manager:
       Value: true
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
-      Name: Semantic Zones
+      Name: Speed Bump Zone
       Namespaces:
         {}
       Topic:
@@ -390,7 +390,7 @@ Visualization Manager:
         Durability Policy: Transient Local
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: semantic_zone_markers
+        Value: speed_bump_zone_markers
       Value: true
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
@@ -406,7 +406,7 @@ Visualization Manager:
       Value: true
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
-      Name: Calib Current Label
+      Name: Calib Hint
       Namespaces:
         {}
       Topic:
@@ -416,21 +416,7 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /calib/current_label
       Value: true
-    - Alpha: 1
-      Class: rviz_default_plugins/PointStamped
-      Color: 255; 0; 0
-      Enabled: true
-      History Length: 1
-      Name: Clicked Calib Point
-      Radius: 0.18
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        Filter size: 10
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /calib/clicked_point
-      Value: true
+
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -454,8 +440,10 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: initialpose
     - Class: nav2_rviz_plugins/GoalTool
+    - Class: gxu2026_rviz_tools/ToggleCalibHint
+    - Class: gxu2026_rviz_tools/ToggleCalibMarkers
     - Class: rviz_default_plugins/PublishPoint
-      Name: Calib Point
+      Name: "标定点 Calib"
       Single click: true
       Topic:
         Depth: 5
