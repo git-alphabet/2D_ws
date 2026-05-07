@@ -415,7 +415,7 @@ while True:
 
 
 def start_timestamp_monitor(cfg: CommonConfig, bg: BackgroundGroup) -> None:
-    """启动时间戳同步监控。默认关闭，可通过 ENABLE_TIMESTAMP_MONITOR=1 开启。"""
+    """启动时间戳同步监控。默认关闭，可通过 ENABLE_TIMESTAMP_MONITOR=1 开启。输出静默，退出时自动保存 JSON。"""
     from tools.wrapper_helpers import is_truthy
 
     if not is_truthy(os.environ.get("ENABLE_TIMESTAMP_MONITOR", "0")):
@@ -435,21 +435,14 @@ def start_timestamp_monitor(cfg: CommonConfig, bg: BackgroundGroup) -> None:
         return
 
     base_env = build_base_env(cfg)
-    branch = current_branch(cfg.ws_dir)
-    branch_safe = re.sub(r"[^A-Za-z0-9._-]", "_", branch)
-    log_dir = cfg.ws_dir / "launch_logs" / branch_safe
-    log_dir.mkdir(parents=True, exist_ok=True)
-    bj_tz = timezone(timedelta(hours=8))
-    ts = datetime.now(bj_tz).strftime("%Y%m%d_%H%M%S_%f")
-    log_file = log_dir / f"{Path(cfg.script_name).stem}_timestamp_sync_{ts}.log"
 
     cmd = (
         f"{base_env}; "
         f"export TIMESTAMP_SYNC_MONITOR_CONFIG={shlex.quote(str(config_path))}; "
-        f"python3 -m tools.timestamp_sync_monitor 2>&1 | tee -a {shlex.quote(str(log_file))}"
+        f"python3 -m tools.timestamp_sync_monitor >/dev/null 2>&1"
     )
     print(
-        f"[{cfg.script_name}] (timestamp-monitor) using {config_path} -> {log_file}",
+        f"[{cfg.script_name}] (timestamp-monitor) running silently, JSON auto-saved periodically + on exit",
         file=sys.stderr,
     )
     p = subprocess.Popen(["bash", "-lc", cmd], preexec_fn=os.setsid)
