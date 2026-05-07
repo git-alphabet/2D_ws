@@ -541,6 +541,8 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: initialpose
     - Class: nav2_rviz_plugins/GoalTool
+    - Class: gxu2026_rviz_tools/ToggleCalibHint
+    - Class: gxu2026_rviz_tools/ToggleCalibMarkers
     - Class: rviz_default_plugins/PublishPoint
       Name: 标定点 Calib
       Single click: true
