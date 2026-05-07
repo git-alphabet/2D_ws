@@ -160,11 +160,10 @@ Sequence
 ├── RmucSubFieldStatus       (/field_status)         → SUCCESS  [P0 NEW]
 ├── RmucSubEnemyMark         (/enemy_mark)           → SUCCESS  [P0 NEW]
 ├── RmucSubTeamPositions     (/team_positions)       → SUCCESS  [P0 NEW]
-├── RmucSubTeamHP            (/team_hp)              → SUCCESS  [P0 NEW]
 └── ParseSentryBlackboard    → SUCCESS (~70+ 输出)
 ```
 
-- ✅ 全部 12 个订阅节点 + 1 个解析节点，均为非阻塞 `SyncActionNode`
+- ✅ 当前 live RMUC 树保留已接入的订阅节点 + 1 个解析节点，均为非阻塞 `SyncActionNode`
 - ✅ 话题名全部使用绝对路径 (例如 `/game_status`, `/robot_status`)
 
 #### CommandHub.xml
@@ -450,7 +449,6 @@ Sequence (幂等)
 | `{field_status}` | `RmucSubFieldStatus` | `/field_status` | P0 NEW |
 | `{enemy_mark}` | `RmucSubEnemyMark` | `/enemy_mark` | P0 NEW |
 | `{team_positions}` | `RmucSubTeamPositions` | `/team_positions` | P0 NEW |
-| `{team_hp}` | `RmucSubTeamHP` | `/team_hp` | P0 NEW |
 
 ### 3.3 ParseSentryBlackboard 输出（二级衍生数据，~70+ key）
 
@@ -644,9 +642,9 @@ Sequence (幂等)
 
 ```
 帧 N:
-  1. PerceptionAndBlackboard → 12 个 Sub + ParseSentryBlackboard
+  1. PerceptionAndBlackboard → Sub 节点 + ParseSentryBlackboard
      写入: game_status, robot_status, hp.cur, hp.max, heat.cur, ammo.allow, ...
-     写入(P0 NEW): sentry_decision_status, robot_buff, projectile_allowance, field_status, enemy_mark, team_positions, team_hp
+     写入(P0 NEW): sentry_decision_status, robot_buff, projectile_allowance, field_status, enemy_mark, team_positions
      写入(P1 NEW): respawn_invincible, power_boosted, cum_instant_count, ...
   2. InitOnce → 跳过（已执行）
   3. WhileDoElse → RmucIsGameTime
@@ -748,7 +746,6 @@ Sequence (幂等)
 | `RmucSubFieldStatus` | ✅ | P0 NEW |
 | `RmucSubEnemyMark` | ✅ | P0 NEW |
 | `RmucSubTeamPositions` | ✅ | P0 NEW |
-| `RmucSubTeamHP` | ✅ | P0 NEW |
 
 ### 6.3 配置/解析节点
 

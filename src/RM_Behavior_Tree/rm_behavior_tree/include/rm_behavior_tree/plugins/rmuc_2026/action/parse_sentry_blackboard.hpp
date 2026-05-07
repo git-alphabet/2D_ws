@@ -11,7 +11,6 @@
 #include "sp_msgs/msg/rmuc_game_status.hpp"
 #include "sp_msgs/msg/rmuc_robot_status.hpp"
 #include "sp_msgs/msg/rmuc_enemy_tracks.hpp"
-#include "sp_msgs/msg/rmuc_team_hp.hpp"
 
 namespace rm_behavior_tree
 {
@@ -35,7 +34,6 @@ public:
       BT::InputPort<sp_msgs::msg::RMUCGameStatus>("game_status"),
       BT::InputPort<std::shared_ptr<sp_msgs::msg::RMUCRobotStatus>>("robot_status"),
       BT::InputPort<sp_msgs::msg::RMUCEnemyTracks>("radar_tracks"),
-      BT::InputPort<sp_msgs::msg::RMUCTeamHP>("team_hp"),
       BT::InputPort<double>("base_x"),
       BT::InputPort<double>("base_y"),
       BT::InputPort<double>("defend_anchor_x"),

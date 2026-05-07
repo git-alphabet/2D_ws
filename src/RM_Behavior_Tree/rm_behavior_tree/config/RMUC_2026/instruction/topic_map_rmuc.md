@@ -11,11 +11,10 @@
 | BT XML ID | 话题名 | 消息类型 | 黑板输出 | 当前用途 |
 |---|---|---|---|---|
 | `RmucSubGameStatus` | `game_status` | `sp_msgs/msg/RMUCGameStatus` | `{game_status}`, `{time.now_ms}` | 比赛阶段与剩余时间；`RmucIsGameTime` 和 `ParseSentryBlackboard` 消费 |
-| `RmucSubRobotStatus` | `robot_status` | `sp_msgs/msg/RMUCRobotStatus` | `{robot_status}` | 血量、热量、允许发弹量、敌方前哨站状态、是否见敌 |
+| `RmucSubRobotStatus` | `robot_status` | `sp_msgs/msg/RMUCRobotStatus` | `{robot_status}` | 血量、热量、允许发弹量、己方前哨站/基地血量、敌方前哨站状态、是否见敌 |
 | `RmucSubRobotBuff` | `robot_buff` | `sp_msgs/msg/RMUCRobotBuff` | `{robot_buff}` | 易伤状态；`IsVulnerable` 消费 `vulnerability_pct` |
 | `RmucSubRobotPosition` | `robot_position` | `sp_msgs/msg/RMUCRobotPosition` | `{pose.x}`, `{pose.y}`, `{is_at_nav_goal}` | 机器人位置与 Nav2 到达状态 |
 | `SubRadarTracks` | `radar/enemy_tracks` | `sp_msgs/msg/RMUCEnemyTracks` | `{radar_tracks}` | 雷达敌人坐标；当前只用于基地威胁进入判断 |
-| `RmucSubTeamHP` | `team_hp` | `sp_msgs/msg/RMUCTeamHP` | `{team_hp}` | 己方前哨站/基地血量；基地威胁、前哨站存活判断 |
 | `IsNavTargetSupply` | `goal_pose` | `geometry_msgs/msg/PoseStamped` | 内部缓存 | 判断当前 Nav2 目标是否为补给区 |
 | `IsAtGoal` | `global_costmap/costmap` | `nav_msgs/msg/OccupancyGrid` | 内部缓存 | 到点判断时做视线检查；无 costmap 时退化为距离判断 |
 
@@ -49,14 +48,14 @@
 
 | 插件 | 类型 | 输入 | 关键输出 |
 |---|---|---|---|
-| `ParseSentryBlackboard` | `SyncAction` | `{game_status}`, `{robot_status}`, `{radar_tracks}`, `{team_hp}`, `{pose.x/y}`, `cfg.*` | `game.*`, `hp.*`, `ammo.*`, `base.hp.*`, `outpost.*`, `enemy_outpost_*`, `state.*`, `combat.has_target`, `is_detect_enemy`, `threat.base` |
+| `ParseSentryBlackboard` | `SyncAction` | `{game_status}`, `{robot_status}`, `{radar_tracks}`, `{pose.x/y}`, `cfg.*` | `game.*`, `hp.*`, `ammo.*`, `base.hp.*`, `outpost.*`, `enemy_outpost_*`, `state.*`, `combat.has_target`, `is_detect_enemy`, `threat.base` |
 
 ### 关键派生逻辑
 
 - `state.is_dead`：由 `robot_status.current_hp <= 0` 得出。
 - `is_detect_enemy`：来自 `robot_status.is_detect_enemy`，但机器人位于配置的语义忽略区域时会被压成 `false`。
-- `outpost.alive`：由 `team_hp.outpost_hp > 0` 得出。
-- `base.hp.cur`：由 `team_hp.base_hp` 得出。
+- `outpost.alive`：由 `robot_status.outpost_hp > 0` 得出。
+- `base.hp.cur`：由 `robot_status.base_hp` 得出。
 - `enemy_outpost_destroyed`：敌方前哨站状态不是 `1/2` 时视为已摧毁。
 - `threat.base`：基地威胁锁存。进入条件是雷达敌人靠近基地且基地掉血；解除条件是云台未见敌且基地不掉血持续 `base_threat_calm_timeout_ms`。
 - `state.disengaged`：存活状态下连续 6 秒未发射且未掉血。
@@ -105,7 +104,6 @@
 | `robot_buff` | SUB | 启用 | `RmucSubRobotBuff`, `IsVulnerable` |
 | `robot_position` | SUB | 启用 | `RmucSubRobotPosition` |
 | `radar/enemy_tracks` | SUB | 启用 | `SubRadarTracks`, `ParseSentryBlackboard` |
-| `team_hp` | SUB | 启用 | `RmucSubTeamHP`, `ParseSentryBlackboard` |
 | `goal_pose` | PUB/SUB | 启用 | `SendGoal` 发布，`IsNavTargetSupply` 订阅 |
 | `global_costmap/costmap` | SUB | 启用 | `IsAtGoal` |
 | `sentry_cmd` | PUB | 启用 | `SentryCmdMux` |
@@ -152,7 +150,6 @@ rmuc_2026 (ReactiveSequence)
 |  +- RmucSubRobotBuff
 |  +- RmucSubRobotPosition
 |  +- SubRadarTracks
-|  +- RmucSubTeamHP
 |  +- ParseSentryBlackboard
 |
 +- WhileDoElse(IsMatchStage: game_progress=4, remain 0..420s)
@@ -208,11 +205,12 @@ rmuc_2026 (ReactiveSequence)
 | 组件 | 类型 | 发布/消费 | 说明 |
 |---|---|---|---|
 | `robot_position_bridge.py` | ROS2 节点 | 发布 `robot_position` | 仿真用：从 TF 和 Nav2 状态合成 `RMUCRobotPosition` |
-| `rmuc_test_publisher.py` | 测试脚本 | 发布 `game_status`, `robot_status`, `team_hp` 等 | 仿真裁判系统数据源；具体字段随测试脚本实现变化 |
+| `rmuc_test_publisher.py` | 测试脚本 | 发布 `game_status`, `robot_status`, `radar/enemy_tracks` 等 | 仿真裁判系统数据源；具体字段随测试脚本实现变化 |
 
 ## 已删除或未接入项
 
 - `RMUCNavControlCmd.emergency_stop` 已删除。
+- `RMUCTeamHP` / `team_hp` 话题已废弃删除；己方前哨站和基地血量并入 `RMUCRobotStatus`。
 - 当前 RMUC XML 不再调用 `RmucNavControlCmd`；导航停止由 `CancelNavGoal` 完成。
 - `RMUCSentryDecisionStatus` 消息仍存在，但当前 BT 不订阅，不作为姿态反馈闭环。
 - `RMUCEnemyTracks.enemy_count/enemy_x/enemy_y` 仍为多目标格式；当前消费者只在基地威胁判断里遍历 `enemy_x/enemy_y`。
