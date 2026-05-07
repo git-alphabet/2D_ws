@@ -178,7 +178,17 @@ void LoamInterfaceNode::pointCloudCallback(const sensor_msgs::msg::PointCloud2::
     out->header.frame_id = odom_frame_;
   } else if (input_cloud_semantics_ == "lidar") {
     tf2::Transform tf_odom_to_lidar;
-    {
+    const rclcpp::Time cloud_stamp(msg->header.stamp);
+
+    // Look up odom→lidar at the cloud's own timestamp so the gimbal
+    // orientation matches the actual sensor data during rotation.
+    try {
+      auto tf_odom_to_lidar_msg = tf_buffer_->lookupTransform(
+        odom_frame_, lidar_frame_, cloud_stamp,
+        tf2::durationFromSec(tf_lookup_timeout_sec_));
+      tf2::fromMsg(tf_odom_to_lidar_msg.transform, tf_odom_to_lidar);
+    } catch (const tf2::TransformException & ex) {
+      // Fallback: use the cached transform from odometry callback.
       std::lock_guard<std::mutex> lock(latest_odom_to_lidar_mutex_);
       if (!latest_odom_to_lidar_initialized_) {
         RCLCPP_WARN_THROTTLE(
@@ -191,7 +201,6 @@ void LoamInterfaceNode::pointCloudCallback(const sensor_msgs::msg::PointCloud2::
       tf_odom_to_lidar = tf_latest_odom_to_lidar_;
     }
 
-    // New path for odin+mid360 fusion: input cloud is lidar/body frame, use latest odom->lidar.
     pcl_ros::transformPointCloud(odom_frame_, tf_odom_to_lidar, *msg, *out);
   } else {
     const rclcpp::Time msg_stamp(msg->header.stamp);
