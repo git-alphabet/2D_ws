@@ -213,4 +213,4 @@ rmuc_2026 (ReactiveSequence)
 - `RMUCTeamHP` / `team_hp` 话题已废弃删除；己方前哨站和基地血量并入 `RMUCRobotStatus`。
 - 当前 RMUC XML 不再调用 `RmucNavControlCmd`；导航停止由 `CancelNavGoal` 完成。
 - `RMUCSentryDecisionStatus` 消息仍存在，但当前 BT 不订阅，不作为姿态反馈闭环。
-- `RMUCEnemyTracks.enemy_count/enemy_x/enemy_y` 仍为多目标格式；当前消费者只在基地威胁判断里遍历 `enemy_x/enemy_y`。
+- `RMUCEnemyTracks.enemy_x/enemy_y` 仍为多目标格式；当前消费者只在基地威胁判断里遍历 `enemy_x/enemy_y`。

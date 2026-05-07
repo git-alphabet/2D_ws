@@ -15,7 +15,7 @@ BT::NodeStatus SubRadarTracksAction::onTick(
   if (last_msg) {
     RCLCPP_DEBUG(
       logger(), "[%s] radar_tracks: count=%u",
-      name().c_str(), last_msg->enemy_count);
+      name().c_str(), static_cast<unsigned>(last_msg->enemy_x.size()));
     setOutput("radar_tracks", *last_msg);
   }
   return BT::NodeStatus::SUCCESS;
