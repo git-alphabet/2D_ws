@@ -586,6 +586,11 @@ void process_pair(const ImageConstPtr &rgb_msg, const PointCloud2ConstPtr &pcd_m
 
 void publishIntensityCloud(capture_Image_List_t* stream, int idx)
 {
+    static int64_t _raw_cb_count = 0;
+    static int64_t _raw_pub_count = 0;
+    static auto _raw_last_log = std::chrono::steady_clock::now();
+    _raw_cb_count++;
+
     // Check index validity
     if (idx < 0 || idx >= 10) {
         #ifndef ROS2
@@ -602,10 +607,10 @@ void publishIntensityCloud(capture_Image_List_t* stream, int idx)
         #endif
         return;
     }
- 
+
     if (cloud.width <= 0 || cloud.height <= 0) {
         #ifndef ROS2
-            ROS_ERROR("Invalid point cloud dimensions: %dx%d at index %d", 
+            ROS_ERROR("Invalid point cloud dimensions: %dx%d at index %d",
                      cloud.width, cloud.height, idx);
         #endif
         return;
@@ -739,6 +744,20 @@ void publishIntensityCloud(capture_Image_List_t* stream, int idx)
     #else
         cloud_pub_.publish(msg);
     #endif
+
+    _raw_pub_count++;
+    auto _now = std::chrono::steady_clock::now();
+    double _elapsed = std::chrono::duration<double>(_now - _raw_last_log).count();
+    if (_elapsed >= 10.0) {
+        double _rate = _raw_pub_count / _elapsed;
+        RCLCPP_INFO(rclcpp::get_logger("odin_cloud_raw"),
+            "cloud_raw: cb=%ld pub=%ld (%.1f%%) rate=%.2fHz",
+            _raw_cb_count, _raw_pub_count,
+            _raw_cb_count > 0 ? 100.0 * _raw_pub_count / _raw_cb_count : 0.0,
+            _rate);
+        _raw_last_log = _now;
+        _raw_pub_count = 0;
+    }
 }
 
 void publishGrayUInt8(capture_Image_List_t *stream, int idx) {
