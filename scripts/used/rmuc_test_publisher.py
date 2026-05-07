@@ -9,7 +9,6 @@ RMUC 2026 裁判系统话题模拟器
 活跃发布话题:
   /game_status       — RMUCGameStatus (1 Hz)
   /robot_status      — RMUCRobotStatus (10 Hz)
-  /team_hp           — RMUCTeamHP (1 Hz) — 含 outpost_hp, base_hp
   /radar/enemy_tracks — RMUCEnemyTracks (10 Hz)
 
 使用方式:
@@ -82,7 +81,6 @@ from sp_msgs.msg import (
     RMUCRobotStatus,
     RMUCEnemyTracks,
     RMUCSentryDecisionStatus,
-    RMUCTeamHP,
     RMUCSentryCmd,
 )
 
@@ -99,7 +97,6 @@ class RmucTestPublisher(Node):
         self.pub_game = self.create_publisher(RMUCGameStatus, "game_status", 10)
         self.pub_robot = self.create_publisher(RMUCRobotStatus, "robot_status", 10)
         # robot_position 由 robot_position_bridge.py 发布（从 TF + Nav2 状态获取），此处不再重复发布
-        self.pub_team_hp = self.create_publisher(RMUCTeamHP, "team_hp", 10)
         self.pub_sentry_decision = self.create_publisher(
             RMUCSentryDecisionStatus, "sentry_decision_status", 10
         )
@@ -184,9 +181,10 @@ class RmucTestPublisher(Node):
         msg.current_hp = self.args.hp
         msg.shooter_heat = 30
         msg.ammo_allow = self.current_ammo
+        msg.outpost_hp = 0 if self.args.outpost_dead else 1500
+        msg.base_hp = int(self.base_hp)
         # 1/2 代表前哨站仍存活；其余状态会被 BT 解释为 destroyed=true。
         msg.enemy_outpost_status = 4 if self.args.enemy_outpost_destroyed else 1
-        # base_hp_cur / outpost_alive 已从 robot_status 删除，改由 team_hp 接管
         msg.is_detect_enemy = self.args.detect_enemy
         self.pub_robot.publish(msg)
 
@@ -215,7 +213,6 @@ class RmucTestPublisher(Node):
 
     def tick_1hz(self):
         self._pub_game_status()
-        self._pub_team_hp()
         # 持续发布 enable_power=True，确保 rmua19_robot_base 持续响应 cmd_vel
         _ep = Bool()
         _ep.data = True
@@ -253,13 +250,6 @@ class RmucTestPublisher(Node):
         msg.game_progress = self.args.phase
         msg.stage_remain_time = self.remain_time
         self.pub_game.publish(msg)
-
-    def _pub_team_hp(self):
-        msg = RMUCTeamHP()
-        msg.header = self._header()
-        msg.outpost_hp = 0 if self.args.outpost_dead else 1500
-        msg.base_hp = int(self.base_hp)
-        self.pub_team_hp.publish(msg)
 
 
 def _normalize_namespace(namespace: str) -> str:

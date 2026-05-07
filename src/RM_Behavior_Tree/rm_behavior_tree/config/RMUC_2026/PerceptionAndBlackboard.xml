@@ -17,10 +17,6 @@
             <SubRadarTracks topic_name="radar/enemy_tracks"
                             radar_tracks="{radar_tracks}"/> 
 
-            <!-- 裁判系统话题订阅 -->
-            <RmucSubTeamHP topic_name="team_hp"
-                           team_hp="{team_hp}"/>
-
             <!-- Parse/derive common fields used by tactics -->
             <ParseSentryBlackboard game_status="{game_status}"
                                    robot_status="{robot_status}"
@@ -36,7 +32,6 @@
                                    semantic_zones_file="{cfg.semantic_zones_file}"
                                    semantic_ignore_enemy_zone_type="{cfg.semantic_ignore_enemy_zone_type}"
                                    radar_tracks="{radar_tracks}"
-                                   team_hp="{team_hp}"
                                    stage_remain_time="{game.remain_s}"
                                    stage_elapsed_time="{game.elapsed_s}"
                                    hp_cur="{hp.cur}"
