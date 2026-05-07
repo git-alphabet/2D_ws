@@ -260,10 +260,9 @@ def generate_launch_description():
     ld.add_action(rviz_cmd)
 
     # CALIB_HELPER_MODE:
-    #   off/false/0  
-    #   slam          
-    #   always/nav    
-    calib_mode = os.environ.get("CALIB_HELPER_MODE", "slam").strip().lower()
+    #   off/false/0   -> disabled
+    #   any other value -> enabled for both SLAM and navigation modes
+    calib_mode = os.environ.get("CALIB_HELPER_MODE", "always").strip().lower()
     calib_enabled = calib_mode not in ("0", "false", "no", "off", "disable", "disabled")
 
     calib_script = os.environ.get("CALIB_HELPER_SCRIPT", "")
@@ -280,17 +279,10 @@ def generate_launch_description():
         calib_args = ["python3", calib_script]
         if os.environ.get("CALIB_NO_CSV", "").strip() in ("1", "true", "yes"):
             calib_args.append("--no-csv")
-        if calib_mode in ("always", "all", "nav"):
-            start_calib_helper = ExecuteProcess(
-                cmd=calib_args,
-                output="screen",
-            )
-        else:
-            start_calib_helper = ExecuteProcess(
-                cmd=calib_args,
-                output="screen",
-                condition=IfCondition(slam),
-            )
+        start_calib_helper = ExecuteProcess(
+            cmd=calib_args,
+            output="screen",
+        )
         ld.add_action(start_calib_helper)
 
     return ld
