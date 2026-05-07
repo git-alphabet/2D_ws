@@ -9,7 +9,6 @@
 
 std_msgs/Header header
 
-uint8     enemy_count        # [1B] 当前有效跟踪目标数量 (0~7)
 float32[] enemy_x            # [4B×N] 敌方位置 x (meter, map 坐标系)
 float32[] enemy_y            # [4B×N] 敌方位置 y (meter, map 坐标系)
 

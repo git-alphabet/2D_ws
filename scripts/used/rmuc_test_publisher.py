@@ -193,11 +193,9 @@ class RmucTestPublisher(Node):
         msg.header = self._header()
         if self.args.enemy_near_base:
             # 模拟一个敌人在当前活动基地坐标附近，确保命中基地威胁判定。
-            msg.enemy_count = 1
             msg.enemy_x = [self.args.base_x + 2.0]  # ~2m 偏移，在 5m 阈值内
             msg.enemy_y = [self.args.base_y + 1.0]
         else:
-            msg.enemy_count = 0
             msg.enemy_x = []
             msg.enemy_y = []
         self.pub_radar_tracks.publish(msg)
