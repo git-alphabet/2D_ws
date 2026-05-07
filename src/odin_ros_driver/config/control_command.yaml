@@ -44,7 +44,7 @@ register_keys:
   # 启用后，SDK 会以精确间隔发送 IMU 数据（默认 400Hz）
   # using a dedicated high-priority thread to reduce jitter and timing variance
   # 使用专用高优先级线程以降低抖动和时间方差
-  enable_imu_smooth: 0    # 0: disable SDK IMU smooth sending; 1: enable
+  enable_imu_smooth: 1    # 0: disable SDK IMU smooth sending; 1: enable
 
   # SDK IMU smooth sending frequency in Hz (only effective when enable_imu_smooth = 1)
   # SDK IMU 平滑发送频率（Hz），仅在 enable_imu_smooth = 1 时生效

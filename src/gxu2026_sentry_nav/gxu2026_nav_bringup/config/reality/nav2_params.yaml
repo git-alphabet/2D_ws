@@ -26,7 +26,7 @@ mid360_runtime:
     enable_costmap_additive: "auto"
     # 建图阶段建议单源（odin1）避免装配/时序误差叠加；导航阶段再启用双源补盲。
     # 建图阶段是否启用补盲链路。
-    enable_costmap_additive_in_slam: false
+    enable_costmap_additive_in_slam: true
     # 导航阶段是否启用补盲链路。
     enable_costmap_additive_in_nav: true
     # Nav2 observation buffer 判定 mid360 补盲源 stale 的周期阈值，单位秒；0.0 表示关闭该告警。
@@ -436,11 +436,11 @@ terrain_analysis_ext:
     # 车辆高度阈值，单位米。
     vehicleHeight: 0.8
     # 体素点更新阈值。
-    voxelPointUpdateThre: 100
+    voxelPointUpdateThre: 50
     # ext 链路用于 global_costmap / obstacle_scan。
-    # 若该值过大，体素里旧点会在雷达转动后保留过久，表现为全局障碍拖影、scan 发花。
+    # voxelTimeUpdateThre 必须 <= decayTime，否则 decayTime 形同虚设。
     # 体素时间更新阈值，单位秒。
-    voxelTimeUpdateThre: 0.5
+    voxelTimeUpdateThre: 0.2
     # 相对 Z 下限。
     lowerBoundZ: -1.5
     # 相对 Z 上限。
@@ -488,10 +488,10 @@ terrain_analysis_ext_mid360:
     # 车辆高度阈值，单位米。
     vehicleHeight: 0.8
     # 体素点更新阈值。
-    voxelPointUpdateThre: 100
-    # 与主 ext 链路保持一致，减少补盲全局层在云台转动时的历史拖影。
+    voxelPointUpdateThre: 50
+    # 与主 ext 链路保持一致。
     # 体素时间更新阈值，单位秒。
-    voxelTimeUpdateThre: 0.5
+    voxelTimeUpdateThre: 0.2
     # 相对 Z 下限。
     lowerBoundZ: -1.5
     # 相对 Z 上限。
@@ -710,9 +710,8 @@ pointcloud_to_laserscan_mid360:
     use_sim_time: False
     # 投影目标坐标系。
     target_frame: base_footprint
-    # 补盲 scan 只保留最新一帧，避免 TF filter / 执行器抖动时排队旧 terrain_map_mid360。
-    # 输入队列长度。
-    queue_size: 1
+    # 输入队列长度。过小会因 TF lookup 延迟导致丢帧。
+    queue_size: 2
     # TF 容忍窗口，单位秒。
     transform_tolerance: 0.3
     # 最低高度过滤，单位米。
@@ -755,7 +754,7 @@ scan_additive_runtime:
     enabled: true
     # 建图阶段默认关闭，导航阶段默认开启。
     # 建图阶段是否启用融合。
-    enabled_in_slam: false
+    enabled_in_slam: true
     # 导航阶段是否启用融合。
     enabled_in_nav: true
 
@@ -773,6 +772,11 @@ scan_additive_adapter:
     secondary_timeout_sec: 1.0
     # 主 scan 缺失时是否仍发布次级 scan。
     publish_secondary_when_primary_missing: true
+    # odin1 原生 FOV 在 base_footprint 帧中的角度范围（弧度）。
+    # 由 URDF 计算：odin1 安装 yaw=-pi/2，原生水平 FOV=+/-60deg。
+    # 重叠区域 [-80deg, -30deg] 内只信 odin1。
+    primary_fov_angle_min: -2.61799387  # -150deg = -5pi/6
+    primary_fov_angle_max: -0.52359878  # -30deg  = -pi/6
 
 # SLAM Toolbox：mapping 模式时发布 map/odom 等；scan_topic 要与上游生成一致
 slam_toolbox:
@@ -1055,7 +1059,7 @@ local_costmap:
           # 该观测源的历史缓存时长。
           observation_persistence: 0.0
           # 期望更新周期阈值，单位秒；超过该时间未收到有效观测会触发 stale 告警。
-          expected_update_rate: 0.20
+          expected_update_rate: 0.30
           # 该源允许的最低障碍高度。
           min_obstacle_height: 0.0
           # 该源允许的最高障碍高度。
