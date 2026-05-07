@@ -139,15 +139,16 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
       !(r.enemy_outpost_status == 1 || r.enemy_outpost_status == 2);
     setOutput("hp_cur", static_cast<int>(r.current_hp));
     setOutput("ammo_allow", static_cast<int>(r.ammo_allow));
+    setOutput("outpost_alive", r.outpost_hp > 0);
+    setOutput("base_hp_cur", static_cast<int>(r.base_hp));
     setOutput("enemy_outpost_status", static_cast<int>(r.enemy_outpost_status));
     setOutput("enemy_outpost_destroyed", enemy_outpost_destroyed);
-    // base_hp_cur: 已改由 team_hp.base_hp 接管 (0x0003 offset 14)
-    // outpost_alive 不再使用 robot_status.outpost_alive (bool转换可能有误)
-    // 将由 team_hp.outpost_hp > 0 得出（0x0003 offset 12 原始 uint16_t)
     setOutput("is_dead", r.current_hp <= 0);
     setOutput("has_target", effective_detect_enemy);
     setOutput("is_detect_enemy", effective_detect_enemy);
   } else {
+    setOutput("outpost_alive", false);
+    setOutput("base_hp_cur", 0);
     setOutput("enemy_outpost_status", 1);
     setOutput("enemy_outpost_destroyed", false);
     setOutput("has_target", false);
@@ -156,14 +157,6 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
 
   auto radar_tracks = getInput<sp_msgs::msg::RMUCEnemyTracks>("radar_tracks");
   // 注意: 雷达仅用于基地威胁判断，不参与 has_target (战斗仅依赖云台视觉 is_detect_enemy)
-
-  // ── 队伍血量 (TeamHP) ──
-  auto th = getInput<sp_msgs::msg::RMUCTeamHP>("team_hp");
-  if (th) {
-    // 引用原始 uint16_t 字段 (0x0003 offset 12/14)，避免 robot_status bool转换失真
-    setOutput("outpost_alive", th->outpost_hp > 0);
-    setOutput("base_hp_cur", static_cast<int>(th->base_hp));  // 0x0003 offset 14 接管
-  }
 
   // 基地危机锁存：
   // 进入条件：雷达扫描到敌人在基地坐标附近 enemy_near_base_radius 内 + 基地 HP 下降
@@ -240,8 +233,9 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
   // 进入条件：雷达扫到敌人在基地附近 + 基地掉血
   bool base_hp_is_dropping = false;
   auto now = std::chrono::steady_clock::now();
-  if (th) {
-    base_hp_is_dropping = (last_base_hp_ >= 0 && th->base_hp < static_cast<uint16_t>(last_base_hp_));
+  if (robot_ptr) {
+    const auto & r = **robot_ptr;
+    base_hp_is_dropping = (last_base_hp_ >= 0 && r.base_hp < static_cast<uint16_t>(last_base_hp_));
     if (base_hp_is_dropping && any_enemy_near) {
       base_threat = true;
       const bool should_log_trigger = !base_threat_latched_ ||
@@ -255,7 +249,7 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
         has_base_threat_trigger_log_ = true;
       }
     }
-    last_base_hp_ = static_cast<int>(th->base_hp);
+    last_base_hp_ = static_cast<int>(r.base_hp);
   }
 
   // 退出条件：云台没扫到敌人 + 基地不掉血，持续 base_threat_calm_timeout_ms 自动解除

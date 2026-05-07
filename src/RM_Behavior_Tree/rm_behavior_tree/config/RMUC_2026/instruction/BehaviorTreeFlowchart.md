@@ -84,7 +84,7 @@ Sequence
     ├─→ RmucSubRobotPosition       (/robot_position)      → pose_x/y/yaw, is_at_nav_goal, pose
     ├─→ SubRadarTracks             (/radar/enemy_tracks)   → radar_tracks
     │
-    │   ─── 以下 7 个为 P0 新增裁判系统话题 ───
+    │   ─── 以下 P0 裁判系统话题按当前 live 树接入 ───
     │
     ├─→ RmucSubSentryDecisionStatus (/sentry_decision_status) → 复活/姿态/兑换状态
     ├─→ RmucSubRobotBuff            (/robot_buff)             → 回血/冷却/防御/易伤/攻击加成
@@ -92,9 +92,8 @@ Sequence
     ├─→ RmucSubFieldStatus          (/field_status)           → 7个场地点占领状态
     ├─→ RmucSubEnemyMark            (/enemy_mark)             → 5个敌方易伤标记
     ├─→ RmucSubTeamPositions        (/team_positions)         → 队友位置
-    ├─→ RmucSubTeamHP               (/team_hp)                → 前哨站/基地血量
     │
-    └─→ ParseSentryBlackboard      (集中解析 → ~70+ 个黑板变量)
+    └─→ ParseSentryBlackboard      (集中解析 → 前哨站/基地血量来自 robot_status)
 ```
 
 ---

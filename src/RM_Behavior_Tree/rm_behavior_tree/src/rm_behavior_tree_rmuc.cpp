@@ -88,11 +88,6 @@ int main(int argc, char ** argv)
   params_utility.nh = std::make_shared<rclcpp::Node>("rmuc_utility");
   params_utility.default_port_value = "";
 
-  // ── 裁判系统话题对应的 RosNodeParams ──
-  BT::RosNodeParams params_team_hp;
-  params_team_hp.nh = std::make_shared<rclcpp::Node>("rmuc_team_hp_io");
-  params_team_hp.default_port_value = "team_hp";
-
   // ── SendGoal (共享 RMUL 通用导航话题，PoseStamped 类型) ──
   BT::RosNodeParams params_send_goal;
   params_send_goal.nh = std::make_shared<rclcpp::Node>("send_goal");
@@ -134,9 +129,6 @@ int main(int argc, char ** argv)
 
   // ── D2. 订阅者：radar_tracks (/radar/enemy_tracks → RMUCEnemyTracks) ──
   regRos("rmuc_sub_radar_tracks",               params_radar_tracks);
-
-  // ── E. 裁判系统订阅者 ──
-  regRos("rmuc_sub_team_hp",                    params_team_hp);
 
   // ── F. 发布者：sentry_cmd (/sentry_cmd → RMUCSentryCmd) ──
   regRos("rmuc_sentry_cmd_mux",                 params_sentry_cmd);

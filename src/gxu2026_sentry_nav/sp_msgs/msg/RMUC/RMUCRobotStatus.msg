@@ -17,6 +17,10 @@ uint16 shooter_heat          # [2B] 当前枪口热量
 # ── 弹丸与允许发弹量 ──
 uint16 ammo_allow            # [2B] 剩余允许发弹量
 
+# ── 己方建筑血量 (原 0x0003 /team_hp，现并入 robot_status) ──
+uint16 outpost_hp            # [2B] offset 12: 前哨站血量 (0=被击毁)
+uint16 base_hp               # [2B] offset 14: 基地血量
+
 # ── 状态标志位 ──
 uint32   enemy_outpost_status   # [1B] 敌方前哨站状态 (outpost_status)
                                 # 0: 无敌
