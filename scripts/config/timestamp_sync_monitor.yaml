@@ -60,6 +60,9 @@ topics:
   - name: fused_obstacle_scan
     topic: /obstacle_scan
     msg_type: sensor_msgs/msg/LaserScan
+  - name: scan_fusion_correction_diag
+    topic: /scan_additive_adapter/correction_diag
+    msg_type: std_msgs/msg/Float64MultiArray
 
 chains:
   - name: mid360_local_costmap_input
@@ -149,4 +152,9 @@ pairs:
   - name: scan_odin1_vs_mid360
     left_topic: /scan_odin1
     right_topic: /scan_mid360
+    msg_type: sensor_msgs/msg/LaserScan
+
+  - name: scan_odin1_vs_fused
+    left_topic: /scan_odin1
+    right_topic: /obstacle_scan
     msg_type: sensor_msgs/msg/LaserScan
