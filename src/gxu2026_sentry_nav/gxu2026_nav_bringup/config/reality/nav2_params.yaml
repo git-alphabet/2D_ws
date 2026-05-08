@@ -123,27 +123,12 @@ gimbal_yaw_bridge_runtime:
 
 # NeuPAN 插件参数已迁移到 neupan_nav2_controller/config/reality/neupan.yaml 维护。
 # 切换为 NeuPAN 控制器时，navigation_launch.py 会自动加载该文件并将 FollowPath 合并到 controller_server。
-# odom 时间戳对齐：将 odin SDK 的 odom 时间戳替换为 odom→map tf 的最新时间戳。
-# 解决 odin SDK 重定位 odom→map tf 延迟导致 controller_server extrapolation 失败。
-odom_map_tf_republisher:
-  ros__parameters:
-    # 是否使用仿真时间。
-    use_sim_time: False
-    # odom 坐标系名。
-    odom_frame: "odom"
-    # map 坐标系名。
-    map_frame: "map"
-    # 输入 odom 话题（odin SDK 原始输出）。
-    input_odom_topic: "odin1/odometry_highfreq"
-    # 输出 odom 话题（时间戳对齐后）。
-    output_odom_topic: "odometry_retimed"
-
 controller_server:
   ros__parameters:
     # 是否使用仿真时间。
     use_sim_time: False
-    # 里程计话题：使用时间戳对齐后的 odom。
-    odom_topic: odometry_retimed
+    # 里程计话题。
+    odom_topic: odin1/odometry_highfreq
     # 控制器循环频率，单位 Hz。
     controller_frequency: 20.0
     # 控制失败容忍时间，单位秒。
@@ -364,7 +349,7 @@ sensor_scan_generation_runtime:
     # 输入点云话题。
     registered_scan_topic: "odin1/cloud_slam"
     # 输入里程计话题。
-    lidar_odometry_topic: "odometry_retimed"
+    lidar_odometry_topic: "odin1/odometry_highfreq"
 
 # 地形分析：输出 terrain_map（用于代价地图的点云观测源）
 terrain_analysis:
@@ -431,7 +416,7 @@ terrain_analysis_runtime:
     # 输入点云话题。
     registered_scan_topic: "odin1/cloud_slam"
     # 输入里程计话题。
-    lidar_odometry_topic: "odometry_retimed"
+    lidar_odometry_topic: "odin1/odometry_highfreq"
 
 # 地形分析（扩展版）：输出 terrain_map_ext（全局代价地图常用）
 terrain_analysis_ext:
@@ -592,8 +577,8 @@ fake_vel_transform:
     use_sim_time: False
     # 是否发布 gimbal_yaw->gimbal_yaw_fake TF（bag 回放时关闭，避免重复）
     publish_tf: true
-    # 里程计话题（使用时间戳对齐后的 odom，避免 odom→map tf extrapolation）。
-    odom_topic: "odometry_retimed"
+    # 里程计话题。
+    odom_topic: "odometry"
     # Nav2 内部规划使用 gimbal_yaw，经过该节点转换后对外发布 fake 底盘框架。
     # 机器人参考坐标系。
     robot_base_frame: "gimbal_yaw"
@@ -928,8 +913,8 @@ bt_navigator:
     global_frame: map
     # 机器人底盘基坐标系。
     robot_base_frame: gimbal_yaw_fake
-    # 里程计话题（使用时间戳对齐后的 odom）。
-    odom_topic: odometry_retimed
+    # 里程计话题。
+    odom_topic: odin1/odometry_highfreq
     # BT 主循环周期，单位秒。
     bt_loop_duration: 10
     # 默认服务超时时间，单位秒。
@@ -1400,8 +1385,8 @@ velocity_smoother:
     max_accel: [4.5, 4.5, 5.0]
     # 最大减速度限制。
     max_decel: [-4.5, -4.5, -5.0]
-    # 里程计话题（使用时间戳对齐后的 odom）。
-    odom_topic: "odometry_retimed"
+    # 里程计话题。
+    odom_topic: "odin1/odometry_highfreq"
     # 里程计缓存时长，单位秒。
     odom_duration: 0.1
     # 速度死区。
