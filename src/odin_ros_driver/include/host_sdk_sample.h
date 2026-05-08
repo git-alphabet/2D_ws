@@ -30,6 +30,7 @@ limitations under the License.
 #include <thread>
 #include <Eigen/Dense>
 #include <atomic>
+#include <optional>
 #include <unordered_map>
 #include "data_logger.h"
 #include "lidar_api.h"
@@ -1423,6 +1424,12 @@ void publishRgb(capture_Image_List_t *stream) {
                         transformStamped.transform.rotation.w = msg.pose.pose.orientation.w;
                         tf_broadcaster->sendTransform(transformStamped);
                     }
+                    // 顺便发布缓存的 map→odom TF，避免 Nav2 因低频 TF 外推失败
+                    if (cached_map_odom_tf_.has_value()) {
+                        auto map_odom_tf = cached_map_odom_tf_.value();
+                        map_odom_tf.header.stamp = msg.header.stamp;
+                        tf_broadcaster->sendTransform(map_odom_tf);
+                    }
                     odom_highfreq_publisher_->publish(std::move(msg));
                     break;
                 case OdometryType::TRANSFORM:
@@ -1438,6 +1445,7 @@ void publishRgb(capture_Image_List_t *stream) {
                     transformStamped.transform.rotation.y = msg.pose.pose.orientation.y;
                     transformStamped.transform.rotation.z = msg.pose.pose.orientation.z;
                     transformStamped.transform.rotation.w = msg.pose.pose.orientation.w;
+                    cached_map_odom_tf_ = transformStamped;
                     tf_broadcaster->sendTransform(transformStamped);
                     }
                     break;
@@ -1520,6 +1528,12 @@ void publishRgb(capture_Image_List_t *stream) {
                         transformStamped.transform.rotation.w = msg.pose.pose.orientation.w;
                         tf_broadcaster->sendTransform(transformStamped);
                     }
+                    // 顺便发布缓存的 map→odom TF，避免 Nav2 因低频 TF 外推失败
+                    if (cached_map_odom_tf_.has_value()) {
+                        auto map_odom_tf = cached_map_odom_tf_.value();
+                        map_odom_tf.header.stamp = msg.header.stamp;
+                        tf_broadcaster->sendTransform(map_odom_tf);
+                    }
                     odom_highfreq_publisher_.publish(msg);
                     break;
                 case OdometryType::TRANSFORM:
@@ -1535,6 +1549,7 @@ void publishRgb(capture_Image_List_t *stream) {
                     transformStamped.transform.rotation.y = msg.pose.pose.orientation.y;
                     transformStamped.transform.rotation.z = msg.pose.pose.orientation.z;
                     transformStamped.transform.rotation.w = msg.pose.pose.orientation.w;
+                    cached_map_odom_tf_ = transformStamped;
                     tf_broadcaster->sendTransform(transformStamped);
                     }
                     break;
@@ -1806,6 +1821,8 @@ private:
         rclcpp::Publisher<ros::Odometry>::SharedPtr wiwc_publisher_;
         camera_pose_visualization cameraposevisual_;
         std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster;
+        // 缓存 map→odom TF，HIGHFREQ 回调里一并发布，避免 Nav2 因低频 TF 外推失败
+        std::optional<geometry_msgs::msg::TransformStamped> cached_map_odom_tf_;
     #else
         ros::Publisher imu_pub_;
         ros::Publisher rgb_pub_;
@@ -1824,6 +1841,8 @@ private:
         ros::Publisher intensity_gray_pub_;
         ros::Publisher wiwc_publisher_;
         std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster;
+        // 缓存 map→odom TF，HIGHFREQ 回调里一并发布，避免 Nav2 因低频 TF 外推失败
+        std::optional<geometry_msgs::TransformStamped> cached_map_odom_tf_;
     #endif
 };
 
