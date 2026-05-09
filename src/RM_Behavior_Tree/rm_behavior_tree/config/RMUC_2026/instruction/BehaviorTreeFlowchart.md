@@ -84,9 +84,9 @@ Sequence
     ├─→ RmucSubRobotPosition       (/robot_position)      → pose_x/y/yaw, is_at_nav_goal, pose
     ├─→ SubRadarTracks             (/radar/enemy_tracks)   → radar_tracks
     │
-    │   ─── 以下 P0 裁判系统话题按当前 live 树接入 ───
+    │   ─── 以下 P0 裁判系统话题为历史规划/归档链路，当前 live 树以 topic_map_rmuc.md 为准 ───
     │
-    ├─→ RmucSubSentryDecisionStatus (/sentry_decision_status) → 复活/姿态/兑换状态
+    ├─→ RmucSubSentryDecisionStatus (/sentry_decision_status) → 复活/姿态/兑换状态（已废弃）
     ├─→ RmucSubRobotBuff            (/robot_buff)             → 回血/冷却/防御/易伤/攻击加成
     ├─→ RmucSubProjectileAllowance  (/projectile_allowance)   → 堡垒存弹
     ├─→ RmucSubFieldStatus          (/field_status)           → 7个场地点占领状态
