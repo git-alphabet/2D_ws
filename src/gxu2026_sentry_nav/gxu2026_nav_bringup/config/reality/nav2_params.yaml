@@ -603,11 +603,9 @@ pointcloud_merge_sync:
     # 合并输出话题。
     output_topic: "merged_registered_scan"
     # ApproximateTime 最大时间差，单位秒。
-    merge_time_tolerance_sec: 0.1
+    merge_time_tolerance_sec: 0.08
     # 同步队列长度。
     queue_size: 10
-    # 无同步配对时回退发布主点云的定时器周期，单位秒。
-    fallback_timeout_sec: 0.5
 
 # SLAM Toolbox：mapping 模式时发布 map/odom 等；scan_topic 要与上游生成一致
 slam_toolbox:
