@@ -17,6 +17,51 @@ log() {
   echo "[$SCRIPT_NAME] $*" >&2
 }
 
+# 检测建图相关进程是否存在（wrapper_main.py 是主进程，它有 pre_shutdown_hook）
+has_mapping_processes() {
+  local pids
+  # 查找 wrapper_main.py 的建图模式进程
+  pids="$(pgrep -f 'wrapper_main.*reality_mapping|rm_navigation_reality_launch\.py.*slam:=True' 2>/dev/null || true)"
+  [[ -n "$pids" ]]
+}
+
+# 触发建图程序的自动保存（发送 SIGINT 给 wrapper_main.py 让其 pre_shutdown_hook 执行）
+# wrapper_main.py 收到 SIGINT 后会依次执行：save_odin_bin -> save_map_2d -> sleep(grace)
+# 必须等它自然退出，否则 kill_reality 会打断正在进行的地图保存。
+trigger_mapping_save() {
+  local pid
+
+  if ! has_mapping_processes; then
+    log "no mapping processes found, skip auto-save"
+    return 0
+  fi
+
+  pid="$(pgrep -f 'wrapper_main.*reality_mapping' 2>/dev/null | head -1 || true)"
+  if [[ -z "$pid" ]]; then
+    log "wrapper_main mapping process not found, skip auto-save"
+    return 0
+  fi
+
+  log "found wrapper_main mapping (PID=$pid), sending SIGINT to trigger auto-save ..."
+
+  # 只发送 SIGINT 给 wrapper_main.py 主进程本身
+  kill -INT "$pid" 2>/dev/null || true
+
+  # 等待 wrapper_main.py 自然退出（它内部会完成所有保存操作）
+  log "waiting for wrapper_main (PID=$pid) to finish map auto-save ..."
+  local wait_count=0
+  local max_wait=120
+  while kill -0 "$pid" 2>/dev/null; do
+    sleep 1
+    wait_count=$((wait_count + 1))
+    if [[ $wait_count -ge $max_wait ]]; then
+      log "timeout (${max_wait}s) waiting for wrapper_main, force continue"
+      break
+    fi
+  done
+  log "wrapper_main finished (waited ${wait_count}s)"
+}
+
 cleanup_fastdds_shm() {
   local cleaned=0
   shopt -s nullglob
@@ -136,6 +181,8 @@ fi
 # 容器内直接执行，容器外自动转发到目标容器。
 if [[ -f "/.dockerenv" ]]; then
   if [[ "$TARGET" == "all" || "$TARGET" == "reality" ]]; then
+    # 先触发建图程序的自动保存
+    trigger_mapping_save
     log "stopping reality launch group ..."
     kill_reality
   fi

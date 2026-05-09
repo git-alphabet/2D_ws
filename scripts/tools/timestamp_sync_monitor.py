@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import json
 import math
 import os
+import signal
 import statistics
 import sys
 import time
 from collections import deque
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -145,6 +148,7 @@ class SyncMonitor(Node):
         self.report_every_sec = float(config.get("report_every_sec", 5.0))
         self.max_pair_dt_sec = float(config.get("max_pair_dt_sec", 0.2))
         self.source_detect_sec = float(config.get("source_detect_sec", 8.0))
+        self.auto_save_sec = float(config.get("auto_save_sec", 60.0))
         qos_mode = str(config.get("qos", "sensor_data")).strip().lower()
         if qos_mode == "sensor_data":
             qos = QoSPresetProfiles.SENSOR_DATA.value
@@ -245,9 +249,22 @@ class SyncMonitor(Node):
         if not self.topics and not self.pairs:
             raise RuntimeError("config must contain at least one topic or pair")
 
+        self._snapshots: list[dict[str, Any]] = []
+        save_dir = str(config.get("save_dir", "")).strip()
+        if save_dir:
+            self._save_dir = Path(save_dir).expanduser().resolve()
+        else:
+            self._save_dir = Path(__file__).resolve().parent.parent.parent / "launch_logs" / "odin1"
+        self._save_dir.mkdir(parents=True, exist_ok=True)
+
+        self._last_save_mono: float = 0.0
+        self._save_count: int = 0
         self.create_timer(self.report_every_sec, self._report)
+        if self.auto_save_sec > 0:
+            self.create_timer(self.auto_save_sec, self._auto_save)
         self.get_logger().info(
-            f"monitor started: window={self.window_sec:.1f}s report={self.report_every_sec:.1f}s max_pair_dt={self.max_pair_dt_sec:.3f}s"
+            f"monitor started: window={self.window_sec:.1f}s report={self.report_every_sec:.1f}s "
+            f"max_pair_dt={self.max_pair_dt_sec:.3f}s auto_save={self.auto_save_sec:.1f}s"
         )
         for t in self.topics:
             end_stamp = ""
@@ -510,6 +527,91 @@ class SyncMonitor(Node):
                         f"[{pair.name}] mean_signed within +/-10ms; keep {pair.tune_param} unchanged"
                     )
 
+        # accumulate snapshot for later save
+        snap: dict[str, Any] = {"ts": datetime.now().isoformat()}
+        snap_topics: dict[str, Any] = {}
+        for t in self.topics:
+            s = self._topic_summary(t)
+            if s is not None:
+                snap_topics[t.name] = {k: round(v, 6) for k, v in s.items()}
+        snap["topics"] = snap_topics
+
+        snap_chains: dict[str, Any] = {}
+        for chain in self.chains:
+            missing = [tp for tp in chain.topics if tp not in topic_summaries]
+            if missing:
+                continue
+            parts = []
+            prev_topic = chain.topics[0]
+            prev_mean = topic_summaries[prev_topic]["mean"]
+            prev_last = topic_summaries[prev_topic]["last"]
+            for tp in chain.topics[1:]:
+                m = topic_summaries[tp]["mean"]
+                l = topic_summaries[tp]["last"]
+                parts.append({
+                    "from": prev_topic, "to": tp,
+                    "mean_delta": round(m - prev_mean, 6),
+                    "last_delta": round(l - prev_last, 6),
+                })
+                prev_topic = tp
+                prev_mean = m
+                prev_last = l
+            snap_chains[chain.name] = parts
+        snap["chains"] = snap_chains
+
+        snap_pairs: dict[str, Any] = {}
+        for pair in self.pairs:
+            if not pair.samples:
+                continue
+            signed_vals = [v for _, v in pair.samples]
+            abs_vals = [abs(v) for v in signed_vals]
+            snap_pairs[pair.name] = {
+                "n": len(abs_vals),
+                "p50": round(_percentile(abs_vals, 50.0), 6),
+                "p95": round(_percentile(abs_vals, 95.0), 6),
+                "max": round(max(abs_vals), 6),
+                "mean_signed": round(statistics.fmean(signed_vals), 6),
+            }
+        snap["pairs"] = snap_pairs
+
+        self._snapshots.append(snap)
+
+    def _auto_save(self) -> None:
+        if not self._snapshots:
+            return
+        path = self.save()
+        if path:
+            self._save_count += 1
+
+    def save(self) -> Path | None:
+        if not self._snapshots:
+            self.get_logger().warn("no snapshots to save")
+            return None
+
+        # Use a single file per session; first save creates it, subsequent saves overwrite.
+        if not hasattr(self, "_session_file"):
+            ts_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self._session_file = self._save_dir / f"timestamp_sync_{ts_str}.json"
+
+        payload = {
+            "config": {
+                "window_sec": self.window_sec,
+                "report_every_sec": self.report_every_sec,
+                "max_pair_dt_sec": self.max_pair_dt_sec,
+                "auto_save_sec": self.auto_save_sec,
+            },
+            "snapshot_count": len(self._snapshots),
+            "auto_save_count": self._save_count,
+            "snapshots": self._snapshots,
+        }
+        self._session_file.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+        self.get_logger().info(
+            f"saved {len(self._snapshots)} snapshots to {self._session_file}"
+        )
+        return self._session_file
+
 
 def _default_config_path() -> Path:
     cfg_env = os.environ.get("TIMESTAMP_SYNC_MONITOR_CONFIG", "").strip()
@@ -548,13 +650,23 @@ def main() -> int:
     node = None
     try:
         node = SyncMonitor(cfg)
+
+        def _on_signal(signum, _frame):
+            rclpy.shutdown()
+
+        signal.signal(signal.SIGTERM, _on_signal)
+
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
     finally:
         if node is not None:
+            node.save()
             node.destroy_node()
-        rclpy.shutdown()
+        try:
+            rclpy.shutdown()
+        except Exception:
+            pass
 
     return 0
 

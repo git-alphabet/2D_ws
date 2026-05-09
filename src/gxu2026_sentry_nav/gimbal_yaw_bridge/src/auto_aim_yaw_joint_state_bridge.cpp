@@ -32,6 +32,14 @@ public:
     publish_on_startup_ = this->declare_parameter<bool>("publish_on_startup", true);
     stamp_offset_sec_ = this->declare_parameter<double>("stamp_offset_sec", 0.0);
     use_stamped_msg_ = this->declare_parameter<bool>("use_stamped_msg", true);
+    enabled_ = this->declare_parameter<bool>("enabled", true);
+
+    if (!enabled_) {
+      RCLCPP_INFO(
+        this->get_logger(),
+        "Module disabled via 'enabled' parameter, node is idle.");
+      return;
+    }
 
     joint_pub_ = this->create_publisher<sensor_msgs::msg::JointState>(output_topic_, rclcpp::QoS(10));
 
@@ -138,6 +146,7 @@ private:
   bool publish_on_startup_{true};
   double stamp_offset_sec_{0.0};
   bool use_stamped_msg_{false};
+  bool enabled_{true};
 
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_pub_;
   rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr yaw_sub_;

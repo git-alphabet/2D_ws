@@ -83,6 +83,8 @@ robot_description_runtime:
 # - serial/gimbal_joint_state 用相对名，便于在 __ns:=/red_standard_robot1 时自动变成 /red_standard_robot1/serial/gimbal_joint_state
 auto_aim_yaw_joint_state_bridge:
   ros__parameters:
+    # 是否启用该模块，false 时节点启动但不订阅/发布。
+    enabled: false
     # 输入话题。
     input_topic: /auto_aim_yaw
     # 是否使用带时间戳的消息。
@@ -281,11 +283,9 @@ loam_interface:
 # mid360 补盲专用 loam 接口：仅服务 mid360 地形链路，不影响 odin1 主导航重组。
 loam_interface_mid360:
   ros__parameters:
-    # 是否使用仿真时间。
     use_sim_time: False
-    # 双雷达拼接长期形态：mid360 投影统一使用 odin1 主 odom，避免双里程计漂移导致错层。
-    # 状态估计话题。
-    state_estimation_topic: "odin1/odometry_highfreq"
+    # 使用 point_lio 自身 odometry 重投影，避免跨传感器 odometry 引入散点。
+    state_estimation_topic: "aft_mapped_to_init"
     # 使用 point_lio 的 body frame 点云，避免把 mid360 自身 lidar_odom 语义错误拼接到 odin 主 odom。
     # 输入点云话题。
     registered_scan_topic: "mid360/cloud_registered"
@@ -436,11 +436,11 @@ terrain_analysis_ext:
     # 车辆高度阈值，单位米。
     vehicleHeight: 0.8
     # 体素点更新阈值。
-    voxelPointUpdateThre: 100
+    voxelPointUpdateThre: 50
     # ext 链路用于 global_costmap / obstacle_scan。
-    # 若该值过大，体素里旧点会在雷达转动后保留过久，表现为全局障碍拖影、scan 发花。
+    # voxelTimeUpdateThre 必须 <= decayTime，否则 decayTime 形同虚设。
     # 体素时间更新阈值，单位秒。
-    voxelTimeUpdateThre: 0.5
+    voxelTimeUpdateThre: 0.2
     # 相对 Z 下限。
     lowerBoundZ: -1.5
     # 相对 Z 上限。
@@ -459,123 +459,6 @@ terrain_analysis_ext:
     # 这里要覆盖到相同量级，避免 4~10m 区间退回到历史累积 ext 点云，导致全局障碍拖影、发花且刷新不跟手。
     # 局部地形图半径，单位米。
     localTerrainMapRadius: 10.0
-
-terrain_analysis_ext_mid360:
-  ros__parameters:
-    # mid360 补盲源保留自身观测时间戳；不要跟随 odin1 地形图时间戳。
-    # 参考地形图话题。
-    publishStampReferenceTopic: ""
-    # 消息年龄缩放系数。
-    publishStampReferenceAgeAlpha: 1.0
-    # 消息年龄下限，单位秒。
-    publishStampReferenceAgeClampMinSec: 0.0
-    # 消息年龄上限，单位秒。
-    publishStampReferenceAgeClampMaxSec: 1.0
-    # 输出时间戳偏移，单位秒；时间校准应在驱动或统一时钟层完成。
-    publishStampOffsetSec: 0.0
-    # 点云体素大小，单位米。
-    scanVoxelSize: 0.1
-    # 点云时间衰减阈值，单位秒。
-    decayTime: 0.2
-    # 距离衰减阈值，单位米。
-    noDecayDis: 0.0
-    # 清除距离阈值，单位米。
-    clearingDis: 20.0
-    # 是否启用分位数排序地面估计。
-    useSorting: true
-    # 地面分位数参数。
-    quantileZ: 0.4
-    # 车辆高度阈值，单位米。
-    vehicleHeight: 0.8
-    # 体素点更新阈值。
-    voxelPointUpdateThre: 100
-    # 与主 ext 链路保持一致，减少补盲全局层在云台转动时的历史拖影。
-    # 体素时间更新阈值，单位秒。
-    voxelTimeUpdateThre: 0.5
-    # 相对 Z 下限。
-    lowerBoundZ: -1.5
-    # 相对 Z 上限。
-    upperBoundZ: 0.5
-    # Z 距离比例系数。
-    disRatioZ: 0.2
-    # 是否检查地形连通性。
-    checkTerrainConn: False
-    # 车体下方地形参考值。
-    terrainUnderVehicle: -0.75
-    # 地形连通阈值。
-    terrainConnThre: 0.5
-    # 天花板过滤阈值。
-    ceilingFilteringThre: 2.0
-    # 与主 ext 链路保持一致，确保 10m 内优先使用当前局部地形而不是历史累积。
-    # 局部地形图半径，单位米。
-    localTerrainMapRadius: 10.0
-
-# mid360 局部地形图保留自身观测时间戳，由 costmap/TF 容忍窗口处理真实链路延迟。
-terrain_analysis_mid360:
-  ros__parameters:
-    # 参考地形图话题。
-    publishStampReferenceTopic: ""
-    # 消息年龄缩放系数。
-    publishStampReferenceAgeAlpha: 1.0
-    # 消息年龄下限，单位秒。
-    publishStampReferenceAgeClampMinSec: 0.0
-    # 消息年龄上限，单位秒。
-    publishStampReferenceAgeClampMaxSec: 1.0
-    # 输出时间戳偏移，单位秒；时间校准应在驱动或统一时钟层完成。
-    publishStampOffsetSec: 0.0
-    # mid360 补盲只服务局部 costmap，使用短衰减和较低高度窗口，避免 terrain_analysis 累积过多历史点造成输出空洞。
-    # 点云体素大小，单位米。
-    scanVoxelSize: 0.08
-    # 点云时间衰减阈值，单位秒。
-    decayTime: 0.2
-    # 距离衰减阈值，单位米。
-    noDecayDis: 0.0
-    # 清除距离阈值，单位米。
-    clearingDis: 0.0
-    # 是否启用分位数排序地面估计。
-    useSorting: true
-    # 地面分位数参数。
-    quantileZ: 0.4
-    # 是否将下凹地形按绝对高度处理。
-    considerDrop: false
-    # 是否限制地面抬升。
-    limitGroundLift: false
-    # 允许的最大地面抬升，单位米。
-    maxGroundLift: 0.3
-    # 补盲链路关闭动态障碍清理，减少局部地形分析的突发计算量。
-    clearDyObs: false
-    # 动态物体最小距离阈值，单位米。
-    minDyObsDis: 0.2
-    # 动态物体最小角度阈值，单位度。
-    minDyObsAngle: 0.0
-    # 动态物体相对 Z 下限。
-    minDyObsRelZ: -0.3
-    # 动态物体相对 Z 绝对值阈值。
-    absDyObsRelZThre: 0.4
-    # 动态物体最小垂直视场角，单位度。
-    minDyObsVFOV: -45.0
-    # 动态物体最大垂直视场角，单位度。
-    maxDyObsVFOV: 45.0
-    # 动态物体最少点数。
-    minDyObsPointNum: 1
-    # 是否把无数据区域当作障碍。
-    noDataObstacle: false
-    # 无数据块跳过计数。
-    noDataBlockSkipNum: 0
-    # 单块最少点数。
-    minBlockPointNum: 10
-    # 车辆高度阈值，单位米。
-    vehicleHeight: 0.5
-    # 体素点更新阈值。
-    voxelPointUpdateThre: 100
-    # 体素时间更新阈值，单位秒。
-    voxelTimeUpdateThre: 0.5
-    # 相对 Z 最小值。
-    minRelZ: -1.5
-    # 相对 Z 最大值。
-    maxRelZ: 0.5
-    # Z 距离比例系数。
-    disRatioZ: 0.2
 
 # 假速度/坐标变换：把 Nav2 内部期望的底盘速度/局部路径做一层适配
 fake_vel_transform:
@@ -702,44 +585,6 @@ pointcloud_to_laserscan:
     # 是否使用无穷远值表示无回波。
     use_inf: true
 
-# mid360 的 PointCloud2 -> LaserScan 参数必须与主链路保持一致，
-# 否则 scan_additive_adapter 会因角度/分辨率不兼容回退到仅 primary(odin1)。
-pointcloud_to_laserscan_mid360:
-  ros__parameters:
-    # 是否使用仿真时间。
-    use_sim_time: False
-    # 投影目标坐标系。
-    target_frame: base_footprint
-    # 补盲 scan 只保留最新一帧，避免 TF filter / 执行器抖动时排队旧 terrain_map_mid360。
-    # 输入队列长度。
-    queue_size: 1
-    # TF 容忍窗口，单位秒。
-    transform_tolerance: 0.3
-    # 最低高度过滤，单位米。
-    min_height: -0.5
-    # 最高高度过滤，单位米。
-    max_height: 6.0
-    # terrain_analysis 输出的点云 intensity = 相对地面高度(disZ)，单位米。
-    # 与 odin1 主链路一致：过滤地面起伏 <10cm，避免把平整地面误判为障碍物。
-    # 最小强度阈值。
-    min_intensity: 0.1
-    # 最大强度阈值。
-    max_intensity: 2.0
-    # 扫描起始角。
-    angle_min: -3.1415926
-    # 扫描结束角。
-    angle_max: 3.1415926
-    # 角度分辨率。
-    angle_increment: 0.00872665
-    # 扫描时间，单位秒。
-    scan_time: 0.05
-    # 最小量测距离，单位米。
-    range_min: 0.05
-    # 最大量测距离，单位米。
-    range_max: 10.0
-    # 是否使用无穷远值表示无回波。
-    use_inf: true
-
 # obstacle_scan 主链路开关（pointcloud_to_laserscan：terrain_map_ext -> scan）。
 obstacle_scan_runtime:
   ros__parameters:
@@ -748,31 +593,19 @@ obstacle_scan_runtime:
     # 输出 scan 话题。
     output_scan_topic: "scan_odin1"
 
-# scan 融合开关：scan_odin1 + scan_mid360 -> obstacle_scan。
-scan_additive_runtime:
+# PointCloud2 融合节点：将 odin1 和 mid360 的 registered_scan 按时间戳配对合并。
+pointcloud_merge_sync:
   ros__parameters:
-    # 是否启用 scan 融合。
-    enabled: true
-    # 建图阶段默认关闭，导航阶段默认开启。
-    # 建图阶段是否启用融合。
-    enabled_in_slam: false
-    # 导航阶段是否启用融合。
-    enabled_in_nav: true
-
-# scan 融合节点参数：可在配置文件调节，不依赖 launch 硬编码。
-scan_additive_adapter:
-  ros__parameters:
-    # 主 scan 话题。
-    primary_scan_topic: scan_odin1
-    # 次 scan 话题。
-    secondary_scan_topic: scan_mid360
-    # 输出 scan 话题。
-    output_scan_topic: obstacle_scan
-    # mid360 频率低于 odin1 时，适当放宽超时可避免 secondary 被频繁判定 stale。
-    # 次级 scan 超时阈值，单位秒。
-    secondary_timeout_sec: 1.0
-    # 主 scan 缺失时是否仍发布次级 scan。
-    publish_secondary_when_primary_missing: true
+    # 主点云话题（odin1）。
+    primary_topic: "registered_scan"
+    # 次点云话题（mid360）。
+    secondary_topic: "mid360/registered_scan"
+    # 合并输出话题。
+    output_topic: "merged_registered_scan"
+    # ApproximateTime 最大时间差，单位秒。
+    merge_time_tolerance_sec: 0.08
+    # 同步队列长度。
+    queue_size: 10
 
 # SLAM Toolbox：mapping 模式时发布 map/odom 等；scan_topic 要与上游生成一致
 slam_toolbox:
@@ -1039,9 +872,8 @@ local_costmap:
         min_obstacle_intensity: 0.1
         # 障碍物强度上限。
         max_obstacle_intensity: 2.0
-        # 使用 odin1 + mid360 的地形点云共同作为观测源，mid360 用于补盲
-        # 参与体素层更新的观测源列表。
-        observation_sources: terrain_map terrain_map_mid360
+        # 参与体素层更新的观测源列表（双雷达已在上游 pointcloud_merge_sync 合并）。
+        observation_sources: terrain_map
         terrain_map:
           # 该观测源的数据类型。
           data_type: PointCloud2
@@ -1055,31 +887,6 @@ local_costmap:
           # 该观测源的历史缓存时长。
           observation_persistence: 0.0
           # 期望更新周期阈值，单位秒；超过该时间未收到有效观测会触发 stale 告警。
-          expected_update_rate: 0.20
-          # 该源允许的最低障碍高度。
-          min_obstacle_height: 0.0
-          # 该源允许的最高障碍高度。
-          max_obstacle_height: 2.0
-          # 该源用于标记障碍的最大距离。
-          obstacle_max_range: 5.0
-          # 该源用于标记障碍的最小距离。
-          obstacle_min_range: 0.50
-          # 该源用于射线清除的最大距离。
-          raytrace_max_range: 5.0
-          # 该源用于射线清除的最小距离。
-          raytrace_min_range: 0.50
-        terrain_map_mid360:
-          # 该观测源的数据类型。
-          data_type: PointCloud2
-          # 该观测源订阅的话题。
-          topic: /terrain_map_mid360
-          # 是否将该源用于标记障碍。
-          marking: true
-          # 是否将该源用于清除障碍。
-          clearing: true
-          # 该观测源的历史缓存时长。
-          observation_persistence: 0.0
-          # 期望更新周期阈值，单位秒。
           expected_update_rate: 0.30
           # 该源允许的最低障碍高度。
           min_obstacle_height: 0.0
@@ -1173,9 +980,8 @@ global_costmap:
         min_obstacle_intensity: 0.1
         # 障碍物强度上限。
         max_obstacle_intensity: 2.0
-        # 使用 odin1 + mid360 的全局地形点云，mid360 提供补盲
-        # 参与体素层更新的观测源列表。
-        observation_sources: terrain_map_ext terrain_map_ext_mid360
+        # 参与体素层更新的观测源列表（双雷达已在上游 pointcloud_merge_sync 合并）。
+        observation_sources: terrain_map_ext
         terrain_map_ext:
           # 该观测源的数据类型。
           data_type: PointCloud2
@@ -1197,27 +1003,6 @@ global_costmap:
           raytrace_max_range: 10.0
           # 该源用于射线清除的最小距离。
           raytrace_min_range: 0.6
-        terrain_map_ext_mid360:
-          # 该观测源的数据类型。
-          data_type: PointCloud2
-          # 该观测源订阅的话题。
-          topic: /terrain_map_ext_mid360
-          # 是否将该源用于标记障碍。
-          marking: true
-          # 是否将该源用于清除障碍。
-          clearing: true
-          # 该源允许的最低障碍高度。
-          min_obstacle_height: 0.0
-          # 该源允许的最高障碍高度。
-          max_obstacle_height: 2.0
-          # 该源用于标记障碍的最大距离。
-          obstacle_max_range: 10.0
-          # 该源用于标记障碍的最小距离。
-          obstacle_min_range: 0.50
-          # 该源用于射线清除的最大距离。
-          raytrace_max_range: 10.0
-          # 该源用于射线清除的最小距离。
-          raytrace_min_range: 0.50
       static_layer:
         # 静态层插件类型。
         plugin: "nav2_costmap_2d::StaticLayer"

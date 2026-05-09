@@ -30,6 +30,7 @@ limitations under the License.
 #include <thread>
 #include <Eigen/Dense>
 #include <atomic>
+#include <optional>
 #include <unordered_map>
 #include "data_logger.h"
 #include "lidar_api.h"
@@ -586,6 +587,11 @@ void process_pair(const ImageConstPtr &rgb_msg, const PointCloud2ConstPtr &pcd_m
 
 void publishIntensityCloud(capture_Image_List_t* stream, int idx)
 {
+    static int64_t _raw_cb_count = 0;
+    static int64_t _raw_pub_count = 0;
+    static auto _raw_last_log = std::chrono::steady_clock::now();
+    _raw_cb_count++;
+
     // Check index validity
     if (idx < 0 || idx >= 10) {
         #ifndef ROS2
@@ -602,10 +608,10 @@ void publishIntensityCloud(capture_Image_List_t* stream, int idx)
         #endif
         return;
     }
- 
+
     if (cloud.width <= 0 || cloud.height <= 0) {
         #ifndef ROS2
-            ROS_ERROR("Invalid point cloud dimensions: %dx%d at index %d", 
+            ROS_ERROR("Invalid point cloud dimensions: %dx%d at index %d",
                      cloud.width, cloud.height, idx);
         #endif
         return;
@@ -739,6 +745,20 @@ void publishIntensityCloud(capture_Image_List_t* stream, int idx)
     #else
         cloud_pub_.publish(msg);
     #endif
+
+    _raw_pub_count++;
+    auto _now = std::chrono::steady_clock::now();
+    double _elapsed = std::chrono::duration<double>(_now - _raw_last_log).count();
+    if (_elapsed >= 10.0) {
+        double _rate = _raw_pub_count / _elapsed;
+        RCLCPP_INFO(rclcpp::get_logger("odin_cloud_raw"),
+            "cloud_raw: cb=%ld pub=%ld (%.1f%%) rate=%.2fHz",
+            _raw_cb_count, _raw_pub_count,
+            _raw_cb_count > 0 ? 100.0 * _raw_pub_count / _raw_cb_count : 0.0,
+            _rate);
+        _raw_last_log = _now;
+        _raw_pub_count = 0;
+    }
 }
 
 void publishGrayUInt8(capture_Image_List_t *stream, int idx) {
@@ -1404,6 +1424,12 @@ void publishRgb(capture_Image_List_t *stream) {
                         transformStamped.transform.rotation.w = msg.pose.pose.orientation.w;
                         tf_broadcaster->sendTransform(transformStamped);
                     }
+                    // 顺便发布缓存的 map→odom TF，避免 Nav2 因低频 TF 外推失败
+                    if (cached_map_odom_tf_.has_value()) {
+                        auto map_odom_tf = cached_map_odom_tf_.value();
+                        map_odom_tf.header.stamp = msg.header.stamp;
+                        tf_broadcaster->sendTransform(map_odom_tf);
+                    }
                     odom_highfreq_publisher_->publish(std::move(msg));
                     break;
                 case OdometryType::TRANSFORM:
@@ -1419,6 +1445,7 @@ void publishRgb(capture_Image_List_t *stream) {
                     transformStamped.transform.rotation.y = msg.pose.pose.orientation.y;
                     transformStamped.transform.rotation.z = msg.pose.pose.orientation.z;
                     transformStamped.transform.rotation.w = msg.pose.pose.orientation.w;
+                    cached_map_odom_tf_ = transformStamped;
                     tf_broadcaster->sendTransform(transformStamped);
                     }
                     break;
@@ -1501,6 +1528,12 @@ void publishRgb(capture_Image_List_t *stream) {
                         transformStamped.transform.rotation.w = msg.pose.pose.orientation.w;
                         tf_broadcaster->sendTransform(transformStamped);
                     }
+                    // 顺便发布缓存的 map→odom TF，避免 Nav2 因低频 TF 外推失败
+                    if (cached_map_odom_tf_.has_value()) {
+                        auto map_odom_tf = cached_map_odom_tf_.value();
+                        map_odom_tf.header.stamp = msg.header.stamp;
+                        tf_broadcaster->sendTransform(map_odom_tf);
+                    }
                     odom_highfreq_publisher_.publish(msg);
                     break;
                 case OdometryType::TRANSFORM:
@@ -1516,6 +1549,7 @@ void publishRgb(capture_Image_List_t *stream) {
                     transformStamped.transform.rotation.y = msg.pose.pose.orientation.y;
                     transformStamped.transform.rotation.z = msg.pose.pose.orientation.z;
                     transformStamped.transform.rotation.w = msg.pose.pose.orientation.w;
+                    cached_map_odom_tf_ = transformStamped;
                     tf_broadcaster->sendTransform(transformStamped);
                     }
                     break;
@@ -1787,6 +1821,8 @@ private:
         rclcpp::Publisher<ros::Odometry>::SharedPtr wiwc_publisher_;
         camera_pose_visualization cameraposevisual_;
         std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster;
+        // 缓存 map→odom TF，HIGHFREQ 回调里一并发布，避免 Nav2 因低频 TF 外推失败
+        std::optional<geometry_msgs::msg::TransformStamped> cached_map_odom_tf_;
     #else
         ros::Publisher imu_pub_;
         ros::Publisher rgb_pub_;
@@ -1805,6 +1841,8 @@ private:
         ros::Publisher intensity_gray_pub_;
         ros::Publisher wiwc_publisher_;
         std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster;
+        // 缓存 map→odom TF，HIGHFREQ 回调里一并发布，避免 Nav2 因低频 TF 外推失败
+        std::optional<geometry_msgs::TransformStamped> cached_map_odom_tf_;
     #endif
 };
 

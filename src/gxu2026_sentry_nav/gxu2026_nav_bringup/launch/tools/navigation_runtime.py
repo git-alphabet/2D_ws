@@ -107,7 +107,7 @@ def build_navigation_runtime_actions(
         arguments=["--ros-args", "--log-level", log_level],
         remappings=[
             ("cloud_in", "terrain_map_ext"),
-            ("scan", obstacle_scan_output_topic),
+            ("scan", "obstacle_scan"),
         ],
         condition=IfCondition(enable_obstacle_scan),
     )
@@ -133,7 +133,7 @@ def build_navigation_runtime_actions(
                 parameters=[configured_params],
                 remappings=[
                     ("cloud_in", "terrain_map_ext"),
-                    ("scan", obstacle_scan_output_topic),
+                    ("scan", "obstacle_scan"),
                 ],
             )
         ],
@@ -178,81 +178,39 @@ def build_navigation_runtime_actions(
         condition=IfCondition(enable_mid360_costmap_additive),
     )
 
-    start_terrain_analysis_ext_mid360_cmd = Node(
-        package="terrain_analysis_ext",
-        executable="terrainAnalysisExt",
-        name="terrain_analysis_ext_mid360",
+    start_pointcloud_merge_sync_cmd = Node(
+        package="pointcloud_merge_sync",
+        executable="pointcloud_merge_sync_node",
+        name="pointcloud_merge_sync",
         output="screen",
         respawn=use_respawn,
         respawn_delay=2.0,
-        arguments=["--ros-args", "--log-level", log_level],
         parameters=[configured_params],
-        remappings=[
-            ("registered_scan", "mid360/registered_scan"),
-            ("/registered_scan", "mid360/registered_scan"),
-            ("lidar_odometry", "mid360/lidar_odometry"),
-            ("/lidar_odometry", "mid360/lidar_odometry"),
-            ("terrain_map", "terrain_map_mid360"),
-            ("/terrain_map", "terrain_map_mid360"),
-            ("terrain_map_ext", "terrain_map_ext_mid360"),
-            ("reference_terrain_map_ext", "/terrain_map_ext"),
-            # Keep the reference topic absolute path untouched for auto stamp sync.
-            ("/terrain_map_ext", "/terrain_map_ext"),
-        ],
+        arguments=["--ros-args", "--log-level", log_level],
         condition=IfCondition(enable_mid360_costmap_additive),
     )
 
-    start_terrain_analysis_mid360_cmd = Node(
+    # When mid360 merger is active, terrain_analysis reads the merged cloud.
+    start_terrain_analysis_cmd = Node(
         package="terrain_analysis",
         executable="terrainAnalysis",
-        name="terrain_analysis_mid360",
+        name="terrain_analysis",
         output="screen",
         respawn=use_respawn,
         respawn_delay=2.0,
         arguments=["--ros-args", "--log-level", log_level],
         parameters=[configured_params],
         remappings=[
-            ("registered_scan", "mid360/registered_scan"),
-            ("/registered_scan", "mid360/registered_scan"),
-            ("lidar_odometry", "mid360/lidar_odometry"),
-            ("/lidar_odometry", "mid360/lidar_odometry"),
-            ("terrain_map", "terrain_map_mid360"),
-            ("reference_terrain_map", "/terrain_map"),
-            # Keep the reference topic absolute path untouched for auto stamp sync.
-            ("/terrain_map", "/terrain_map"),
+            ("registered_scan", "merged_registered_scan"),
+            ("/registered_scan", "merged_registered_scan"),
+            ("lidar_odometry", terrain_lidar_odometry_topic),
+            ("/lidar_odometry", terrain_lidar_odometry_topic),
         ],
         condition=IfCondition(enable_mid360_costmap_additive),
     )
 
-    start_pointcloud_to_laserscan_mid360_cmd = Node(
-        package="pointcloud_to_laserscan",
-        executable="pointcloud_to_laserscan_node",
-        name="pointcloud_to_laserscan_mid360",
-        output="screen",
-        respawn=use_respawn,
-        respawn_delay=2.0,
-        parameters=[configured_params],
-        arguments=["--ros-args", "--log-level", log_level],
-        remappings=[
-            ("cloud_in", "terrain_map_mid360"),
-            ("scan", "scan_mid360"),
-        ],
-        condition=scan_additive_condition,
-    )
-
-    start_scan_additive_adapter_cmd = Node(
-        package="scan_additive_adapter",
-        executable="scan_additive_adapter_node",
-        name="scan_additive_adapter",
-        output="screen",
-        respawn=use_respawn,
-        respawn_delay=2.0,
-        parameters=[configured_params],
-        arguments=["--ros-args", "--log-level", log_level],
-        condition=scan_additive_condition,
-    )
-
-    start_terrain_analysis_cmd = Node(
+    # Fallback: single-sensor path without merger.
+    start_terrain_analysis_single_cmd = Node(
         package="terrain_analysis",
         executable="terrainAnalysis",
         name="terrain_analysis",
@@ -267,9 +225,28 @@ def build_navigation_runtime_actions(
             ("lidar_odometry", terrain_lidar_odometry_topic),
             ("/lidar_odometry", terrain_lidar_odometry_topic),
         ],
+        condition=UnlessCondition(enable_mid360_costmap_additive),
     )
 
     start_terrain_analysis_ext_cmd = Node(
+        package="terrain_analysis_ext",
+        executable="terrainAnalysisExt",
+        name="terrain_analysis_ext",
+        output="screen",
+        respawn=use_respawn,
+        respawn_delay=2.0,
+        arguments=["--ros-args", "--log-level", log_level],
+        parameters=[configured_params],
+        remappings=[
+            ("registered_scan", "merged_registered_scan"),
+            ("/registered_scan", "merged_registered_scan"),
+            ("lidar_odometry", terrain_lidar_odometry_topic),
+            ("/lidar_odometry", terrain_lidar_odometry_topic),
+        ],
+        condition=IfCondition(enable_mid360_costmap_additive),
+    )
+
+    start_terrain_analysis_ext_single_cmd = Node(
         package="terrain_analysis_ext",
         executable="terrainAnalysisExt",
         name="terrain_analysis_ext",
@@ -284,6 +261,7 @@ def build_navigation_runtime_actions(
             ("lidar_odometry", terrain_lidar_odometry_topic),
             ("/lidar_odometry", terrain_lidar_odometry_topic),
         ],
+        condition=UnlessCondition(enable_mid360_costmap_additive),
     )
 
     start_rm_behavior_tree_cmd = Node(
@@ -519,39 +497,41 @@ def build_navigation_runtime_actions(
         ],
     )
 
-    wait_nav2_tf_warmup_cmd = ExecuteProcess(
-        condition=IfCondition(nav2_tf_warmup_enabled),
+    # Unified startup gate: TF warmup (phase 1, optional) + container readiness (phase 2).
+    # Blocks until all expected composable nodes are verified loaded in the container,
+    # then exits. Lifecycle manager starts only after this gate passes.
+    startup_gate_cmd = ExecuteProcess(
         cmd=[
             "python3",
-            os.path.join(bringup_dir, "launch", "nav2_tf_warmup_wait.py"),
-            "--target-frame",
+            os.path.join(bringup_dir, "launch", "nav2_startup_gate.py"),
+            "--tf-warmup-enabled",
+            nav2_tf_warmup_enabled,
+            "--tf-target-frame",
             nav2_tf_warmup_target_frame,
-            "--source-frame",
+            "--tf-source-frame",
             nav2_tf_warmup_source_frame,
-            "--timeout-sec",
+            "--tf-timeout-sec",
             nav2_tf_warmup_timeout_sec,
-            "--check-hz",
+            "--tf-check-hz",
             nav2_tf_warmup_check_hz,
+            "--container-timeout-sec",
+            "30.0",
+            "--container-check-hz",
+            "2.0",
             "--namespace",
             namespace,
             "--use-sim-time",
             use_sim_time,
+            "--container-name",
+            "nav2_container",
         ],
         output="screen",
     )
 
-    start_lifecycle_manager_cmd_direct = _build_lifecycle_manager_node(
-        use_sim_time=use_sim_time,
-        autostart=autostart,
-        log_level=log_level,
-        lifecycle_nodes=lifecycle_nodes,
-        configured_params=configured_params,
-        condition=UnlessCondition(nav2_tf_warmup_enabled),
-    )
-
-    start_lifecycle_manager_after_warmup_cmd = RegisterEventHandler(
+    # Lifecycle manager starts after startup gate passes
+    start_lifecycle_manager_cmd = RegisterEventHandler(
         OnProcessExit(
-            target_action=wait_nav2_tf_warmup_cmd,
+            target_action=startup_gate_cmd,
             on_exit=[
                 _build_lifecycle_manager_node(
                     use_sim_time=use_sim_time,
@@ -575,20 +555,18 @@ def build_navigation_runtime_actions(
 
     return [
         start_auto_aim_yaw_joint_state_bridge_cmd,
+        start_pointcloud_merge_sync_cmd,
         start_terrain_analysis_cmd,
-        start_terrain_analysis_mid360_cmd,
+        start_terrain_analysis_single_cmd,
         start_terrain_analysis_ext_cmd,
+        start_terrain_analysis_ext_single_cmd,
         start_point_lio_cmd,
         start_loam_interface_mid360_cmd,
-        start_terrain_analysis_ext_mid360_cmd,
-        start_pointcloud_to_laserscan_mid360_cmd,
-        start_scan_additive_adapter_cmd,
         start_rm_behavior_tree_cmd,
         load_nodes,
         load_loam_composable_node,
         load_composable_nodes,
         load_pointcloud_to_laserscan_composable_cmd,
-        wait_nav2_tf_warmup_cmd,
-        start_lifecycle_manager_cmd_direct,
-        start_lifecycle_manager_after_warmup_cmd,
+        startup_gate_cmd,
+        start_lifecycle_manager_cmd,
     ]
