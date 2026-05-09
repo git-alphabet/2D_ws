@@ -241,57 +241,6 @@ def generate_launch_description():
                     return False
             return None
 
-        def _set_costmap_observation_source_enabled(
-            costmap_name, observation_layer_name, source_name, enabled
-        ):
-            def _resolve_costmap_params(container):
-                if not isinstance(container, dict):
-                    return None
-                candidates = [
-                    [costmap_name, "ros__parameters"],
-                    [costmap_name, costmap_name, "ros__parameters"],
-                ]
-                for path in candidates:
-                    current = container
-                    valid = True
-                    for key in path:
-                        if not isinstance(current, dict):
-                            valid = False
-                            break
-                        current = current.get(key)
-                    if valid and isinstance(current, dict):
-                        return current
-                return None
-
-            changed = False
-            containers = (raw_yaml,) if target_data is raw_yaml else (target_data, raw_yaml)
-            for container in containers:
-                costmap_params = _resolve_costmap_params(container)
-                if costmap_params is None:
-                    continue
-                observation_layer = costmap_params.get(observation_layer_name)
-                if not isinstance(observation_layer, dict):
-                    continue
-
-                raw_sources = observation_layer.get("observation_sources")
-                if isinstance(raw_sources, str):
-                    source_tokens = raw_sources.split()
-                    filtered_tokens = [
-                        token for token in source_tokens if token != source_name
-                    ]
-                    if enabled and source_name not in filtered_tokens:
-                        filtered_tokens.append(source_name)
-                    if filtered_tokens != source_tokens:
-                        observation_layer["observation_sources"] = " ".join(
-                            filtered_tokens
-                        )
-                        changed = True
-
-                if not enabled and source_name in observation_layer:
-                    observation_layer.pop(source_name, None)
-                    changed = True
-            return changed
-
         mid360_runtime = _get_ros_params_with_fallback("mid360_runtime")
         mid360_costmap_switch = _optional_bool(
             mid360_runtime.get("enable_costmap_additive")
@@ -320,19 +269,9 @@ def generate_launch_description():
         if os.environ.get("BAG_MID360_IN_SLAM", "0") == "1" and slam_value:
             enable_mid360_costmap_additive = True
 
+        # 双雷达合并后，costmap 只收单源 terrain_map / terrain_map_ext，
+        # 不再动态添加 terrain_map_mid360 / terrain_map_ext_mid360。
         changed = False
-        changed = _set_costmap_observation_source_enabled(
-            "local_costmap",
-            "intensity_voxel_layer",
-            "terrain_map_mid360",
-            enable_mid360_costmap_additive,
-        ) or changed
-        changed = _set_costmap_observation_source_enabled(
-            "global_costmap",
-            "intensity_voxel_layer",
-            "terrain_map_ext_mid360",
-            enable_mid360_costmap_additive,
-        ) or changed
 
         processed_path = params_path
         if changed:
