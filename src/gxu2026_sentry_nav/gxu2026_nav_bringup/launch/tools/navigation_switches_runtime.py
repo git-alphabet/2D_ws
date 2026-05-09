@@ -165,113 +165,6 @@ def _set_navigation_switches(
             if isinstance(current, dict):
                 current[key_path[-1]] = value
 
-        def _set_mid360_local_expected_update_rate(rate_value):
-            def _resolve_local_params(container):
-                if not isinstance(container, dict):
-                    return None
-
-                # 兼容两种结构：
-                # 1) local_costmap.ros__parameters
-                # 2) local_costmap.local_costmap.ros__parameters（当前 nav2_params 结构）
-                candidates = [
-                    ["local_costmap", "ros__parameters"],
-                    ["local_costmap", "local_costmap", "ros__parameters"],
-                ]
-                for path in candidates:
-                    current = container
-                    valid = True
-                    for key in path:
-                        if not isinstance(current, dict):
-                            valid = False
-                            break
-                        current = current.get(key)
-                    if valid and isinstance(current, dict):
-                        return current
-                return None
-
-            local_params = _resolve_local_params(target_data)
-            if local_params is None and target_data is not raw_yaml:
-                local_params = _resolve_local_params(raw_yaml)
-            if local_params is None:
-                return False
-
-            voxel_layer = local_params.get("intensity_voxel_layer")
-            if not isinstance(voxel_layer, dict):
-                return False
-
-            mid360_source = voxel_layer.get("terrain_map_mid360")
-            if not isinstance(mid360_source, dict):
-                return False
-
-            current_value = mid360_source.get("expected_update_rate")
-            if current_value == rate_value:
-                return False
-
-            mid360_source["expected_update_rate"] = rate_value
-            return True
-
-        def _set_costmap_observation_source_enabled(
-            costmap_name, observation_layer_name, source_name, enabled
-        ):
-            def _resolve_costmap_params(container):
-                if not isinstance(container, dict):
-                    return None
-
-                candidates = [
-                    [costmap_name, "ros__parameters"],
-                    [costmap_name, costmap_name, "ros__parameters"],
-                ]
-                for path in candidates:
-                    current = container
-                    valid = True
-                    for key in path:
-                        if not isinstance(current, dict):
-                            valid = False
-                            break
-                        current = current.get(key)
-                    if valid and isinstance(current, dict):
-                        return current
-                return None
-
-            def _apply(container):
-                costmap_params = _resolve_costmap_params(container)
-                if costmap_params is None:
-                    return False
-
-                observation_layer = costmap_params.get(observation_layer_name)
-                if not isinstance(observation_layer, dict):
-                    return False
-
-                changed = False
-                raw_sources = observation_layer.get("observation_sources")
-                if isinstance(raw_sources, str):
-                    source_tokens = raw_sources.split()
-                    filtered_tokens = [
-                        token for token in source_tokens if token != source_name
-                    ]
-                    if enabled:
-                        if source_name not in filtered_tokens:
-                            filtered_tokens.append(source_name)
-                    if filtered_tokens != source_tokens:
-                        observation_layer["observation_sources"] = " ".join(
-                            filtered_tokens
-                        )
-                        changed = True
-
-                if enabled:
-                    return changed
-
-                if source_name in observation_layer:
-                    observation_layer.pop(source_name, None)
-                    changed = True
-
-                return changed
-
-            changed = _apply(target_data)
-            if target_data is not raw_yaml:
-                changed = _apply(raw_yaml) or changed
-            return changed
-
         def _normalize_costmap_size_types(container):
             """兼容配置文件里 width/height 写成 20 或 20.0 的情况。"""
             changed = False
@@ -525,12 +418,6 @@ def _set_navigation_switches(
         )
         if obstacle_scan_switch is not None:
             enable_obstacle_scan_value = "true" if obstacle_scan_switch else "false"
-
-        mid360_local_costmap_expected_update_rate = _optional_nonnegative_float(
-            mid360_runtime.get("local_costmap_expected_update_rate", 0.30)
-        )
-        if mid360_local_costmap_expected_update_rate is None:
-            mid360_local_costmap_expected_update_rate = 0.30
 
         scan_additive_switch = _optional_bool(
             scan_additive_runtime.get("enabled", switches.get("enable_scan_additive"))
@@ -851,31 +738,6 @@ def _set_navigation_switches(
             # SLAM 单源建图时，必须把主 scan 直接发布到 obstacle_scan 给 slam_toolbox。
             obstacle_scan_output_topic_value = "obstacle_scan"
 
-        # mid360 costmap 开关关闭时抑制 stale 告警；开启时使用配置阈值恢复告警能力。
-        mid360_expected_rate = (
-            mid360_local_costmap_expected_update_rate
-            if enable_mid360_costmap_additive_value == "true"
-            else 0.0
-        )
-        if _set_mid360_local_expected_update_rate(mid360_expected_rate):
-            switch_override_required = True
-            override_required = True
-        if _set_costmap_observation_source_enabled(
-            "local_costmap",
-            "intensity_voxel_layer",
-            "terrain_map_mid360",
-            enable_mid360_costmap_additive_value == "true",
-        ):
-            switch_override_required = True
-            override_required = True
-        if _set_costmap_observation_source_enabled(
-            "global_costmap",
-            "intensity_voxel_layer",
-            "terrain_map_ext_mid360",
-            enable_mid360_costmap_additive_value == "true",
-        ):
-            switch_override_required = True
-            override_required = True
 
         # odin1 pure navigation usually needs map TF before Nav2 activation.
         # Relocalization entries can override nav2_tf_warmup_enabled:=False to keep
