@@ -2,7 +2,6 @@
 // Subscribes to two PointCloud2 streams, pairs them via ApproximateTime,
 // concatenates, and publishes a single merged cloud.
 
-#include <mutex>
 #include <string>
 
 #include "message_filters/subscriber.h"
@@ -16,8 +15,7 @@
 
 namespace
 {
-constexpr double kMergeTimeToleranceSec = 0.1;
-constexpr double kFallbackTimeoutSec = 0.5;
+constexpr double kMergeTimeToleranceSec = 0.08;
 constexpr int kQueueSize = 10;
 }  // namespace
 
@@ -36,12 +34,10 @@ public:
         this->declare_parameter<std::string>("secondary_topic", "mid360/registered_scan");
     const auto output_topic =
         this->declare_parameter<std::string>("output_topic", "merged_registered_scan");
-    merge_time_tolerance_sec_ = this->declare_parameter<double>(
+    const double merge_time_tolerance_sec = this->declare_parameter<double>(
         "merge_time_tolerance_sec", kMergeTimeToleranceSec);
     const int queue_size =
         this->declare_parameter<int>("queue_size", kQueueSize);
-    const double fallback_timeout_sec =
-        this->declare_parameter<double>("fallback_timeout_sec", kFallbackTimeoutSec);
 
     const auto qos = rclcpp::SensorDataQoS();
     const auto rmw_qos = qos.get_rmw_qos_profile();
@@ -55,29 +51,10 @@ public:
     sync_ = std::make_shared<message_filters::Synchronizer<SyncPolicy>>(
         SyncPolicy(queue_size), primary_sub_, secondary_sub_);
     sync_->setMaxIntervalDuration(
-        rclcpp::Duration::from_seconds(merge_time_tolerance_sec_));
+        rclcpp::Duration::from_seconds(merge_time_tolerance_sec));
     sync_->registerCallback(std::bind(
         &PointcloudMergeSync::syncCallback, this, std::placeholders::_1,
         std::placeholders::_2));
-
-    primary_raw_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-        primary_topic, qos,
-        [this](sensor_msgs::msg::PointCloud2::ConstSharedPtr msg) {
-          std::lock_guard<std::mutex> lock(mutex_);
-          last_primary_msg_ = std::move(msg);
-        });
-
-    fallback_timer_ = this->create_wall_timer(
-        std::chrono::duration<double>(fallback_timeout_sec), [this]() {
-          std::lock_guard<std::mutex> lock(mutex_);
-          if (last_primary_msg_ && !last_sync_success_) {
-            RCLCPP_WARN_THROTTLE(
-                this->get_logger(), *this->get_clock(), 5000,
-                "No synchronized pair, fallback to primary only.");
-            output_pub_->publish(*last_primary_msg_);
-          }
-          last_sync_success_ = false;
-        });
   }
 
 private:
@@ -85,13 +62,22 @@ private:
       const sensor_msgs::msg::PointCloud2::ConstSharedPtr & primary_msg,
       const sensor_msgs::msg::PointCloud2::ConstSharedPtr & secondary_msg)
   {
-    std::lock_guard<std::mutex> lock(mutex_);
-    last_sync_success_ = true;
-    last_primary_msg_ = primary_msg;
+    if (primary_msg->data.empty()) {
+      return;
+    }
+
+    if (secondary_msg->data.empty()) {
+      output_pub_->publish(*primary_msg);
+      return;
+    }
 
     pcl::PointCloud<pcl::PointXYZI> primary_pcl, secondary_pcl;
     pcl::fromROSMsg(*primary_msg, primary_pcl);
     pcl::fromROSMsg(*secondary_msg, secondary_pcl);
+
+    if (primary_pcl.empty() && secondary_pcl.empty()) {
+      return;
+    }
 
     primary_pcl += secondary_pcl;
 
@@ -102,19 +88,11 @@ private:
     output_pub_->publish(output);
   }
 
-  double merge_time_tolerance_sec_{kMergeTimeToleranceSec};
-  bool last_sync_success_{false};
-
   message_filters::Subscriber<sensor_msgs::msg::PointCloud2> primary_sub_;
   message_filters::Subscriber<sensor_msgs::msg::PointCloud2> secondary_sub_;
   std::shared_ptr<message_filters::Synchronizer<SyncPolicy>> sync_;
 
-  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr primary_raw_sub_;
-  rclcpp::TimerBase::SharedPtr fallback_timer_;
-  sensor_msgs::msg::PointCloud2::ConstSharedPtr last_primary_msg_;
-
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr output_pub_;
-  std::mutex mutex_;
 };
 
 int main(int argc, char ** argv)
