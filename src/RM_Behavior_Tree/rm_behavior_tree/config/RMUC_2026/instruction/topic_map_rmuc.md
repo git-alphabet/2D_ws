@@ -35,6 +35,22 @@
 
 `RMUCNavControlCmd.msg` 当前只剩 `cmd_type`，`emergency_stop` 已删除。
 
+## RMUC 消息字段速查
+
+下面把 `sp_msgs/msg/RMUC/*.msg` 里的消息单独列一遍，方便按“消息定义”查，而不是只看 topic 映射。
+
+| 消息 | 话题 | 关键字段 | 当前 BT 使用情况 |
+|---|---|---|---|
+| `RMUCGameStatus` | `game_status` | `game_progress`, `stage_remain_time` | 已启用；`RmucSubGameStatus`、`RmucIsGameTime`、`ParseSentryBlackboard` 消费 |
+| `RMUCRobotStatus` | `robot_status` | `current_hp`, `shooter_heat`, `ammo_allow`, `outpost_hp`, `base_hp`, `enemy_outpost_status`, `is_detect_enemy` | 已启用；当前是黑板解析主输入 |
+| `RMUCRobotBuff` | `robot_buff` | `vulnerability_pct` | 已启用；`IsVulnerable` 直接消费 |
+| `RMUCRobotPosition` | `robot_position` | `pose_x`, `pose_y`, `is_at_nav_goal` | 已启用；`RmucSubRobotPosition`、`IsAtGoal`、`IsNavTargetSupply` 相关逻辑消费 |
+| `RMUCEnemyTracks` | `radar/enemy_tracks` | `enemy_x`, `enemy_y` | 已启用；`SubRadarTracks`、`ParseSentryBlackboard` 消费 |
+| `RMUCSentryCmd` | `sentry_cmd` | `cmd_posture`, `cmd_confirm_respawn` | 已启用；`SentryCmdMux` 发布最终姿态指令 |
+| `RMUCRobotControl` | `robot_control` | `stop_gimbal_scan`, `chassis_spin` | 已启用；`RmucRobotControl` 发布底盘/云台控制 |
+| `RMUCNavControlCmd` | `nav_control_cmd` | `cmd_type` | 消息仍保留，但当前 RMUC XML 未实例化对应发布插件 |
+| `RMUCSentryDecisionStatus` | `sentry_decision_status` | `current_posture`, `exchanged_ammo_total` | 消息仍保留，但当前 BT 不订阅 |
+
 ## 动作与导航接口
 
 | BT XML ID | 接口名 | 类型 | 用途 |
