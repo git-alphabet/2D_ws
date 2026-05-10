@@ -32,8 +32,8 @@ rm_behavior_tree:
       defend_anchor_x: 2.76          # 防御锚点 x（基地前守卫位置）
       defend_anchor_y: -1.93         # 防御锚点 y
 
-      cap_outpost_x: 11.4251         # 占领前哨点 x（标定缺失/无效时使用）
-      cap_outpost_y: 1.4315          # 占领前哨点 y（标定缺失/无效时使用）
+      cap_outpost_x: 10.5810         # 占领前哨点 x（标定缺失/无效时使用；默认值与当前 CSV 标定值一致）
+      cap_outpost_y: 1.0294          # 占领前哨点 y（标定缺失/无效时使用；默认值与当前 CSV 标定值一致）
       
       # 可能有用的预设点（目前未启用）
       central_highland_left_x: 9.00
