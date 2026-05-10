@@ -8,8 +8,10 @@
                                now_ms="{time.now_ms}"/>
             <RmucSubRobotStatus topic_name="robot_status"
                                 robot_status="{robot_status}"/>
+            <!-- robot_buff 暂停接入：保留原订阅，恢复时取消注释即可。
             <RmucSubRobotBuff topic_name="robot_buff"
                               robot_buff="{robot_buff}"/>
+            -->
             <RmucSubRobotPosition topic_name="robot_position"
                                   pose_x="{pose.x}"
                                   pose_y="{pose.y}"

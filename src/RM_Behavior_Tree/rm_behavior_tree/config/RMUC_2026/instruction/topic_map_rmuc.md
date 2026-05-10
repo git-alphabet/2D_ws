@@ -12,7 +12,7 @@
 |---|---|---|---|---|
 | `RmucSubGameStatus` | `game_status` | `sp_msgs/msg/RMUCGameStatus` | `{game_status}`, `{time.now_ms}` | 比赛阶段与剩余时间；`RmucIsGameTime` 和 `ParseSentryBlackboard` 消费 |
 | `RmucSubRobotStatus` | `robot_status` | `sp_msgs/msg/RMUCRobotStatus` | `{robot_status}` | 血量、热量、允许发弹量、己方前哨站/基地血量、敌方前哨站状态、是否见敌 |
-| `RmucSubRobotBuff` | `robot_buff` | `sp_msgs/msg/RMUCRobotBuff` | `{robot_buff}` | 易伤状态；`IsVulnerable` 消费 `vulnerability_pct` |
+| `RmucSubRobotBuff` | `robot_buff` | `sp_msgs/msg/RMUCRobotBuff` | `{robot_buff}` | 已在 XML 中注释暂停；当前不订阅，不参与决策 |
 | `RmucSubRobotPosition` | `robot_position` | `sp_msgs/msg/RMUCRobotPosition` | `{pose.x}`, `{pose.y}`, `{is_at_nav_goal}` | 机器人位置与 Nav2 到达状态 |
 | `SubRadarTracks` | `radar/enemy_tracks` | `sp_msgs/msg/RMUCEnemyTracks` | `{radar_tracks}` | 雷达敌人坐标；当前只用于基地威胁进入判断 |
 | `IsNavTargetSupply` | `goal_pose` | `geometry_msgs/msg/PoseStamped` | 内部缓存 | 判断当前 Nav2 目标是否为补给区 |
@@ -43,7 +43,7 @@
 |---|---|---|---|
 | `RMUCGameStatus` | `game_status` | `game_progress`, `stage_remain_time` | 已启用；`RmucSubGameStatus`、`RmucIsGameTime`、`ParseSentryBlackboard` 消费 |
 | `RMUCRobotStatus` | `robot_status` | `current_hp`, `shooter_heat`, `ammo_allow`, `outpost_hp`, `base_hp`, `enemy_outpost_status`, `is_detect_enemy` | 已启用；当前是黑板解析主输入 |
-| `RMUCRobotBuff` | `robot_buff` | `vulnerability_pct` | 已启用；`IsVulnerable` 直接消费 |
+| `RMUCRobotBuff` | `robot_buff` | `vulnerability_pct` | 已在 XML 中注释暂停；当前不订阅，也不参与决策 |
 | `RMUCRobotPosition` | `robot_position` | `pose_x`, `pose_y`, `is_at_nav_goal` | 已启用；`RmucSubRobotPosition`、`IsAtGoal`、`IsNavTargetSupply` 相关逻辑消费 |
 | `RMUCEnemyTracks` | `radar/enemy_tracks` | `enemy_x`, `enemy_y` | 已启用；`SubRadarTracks`、`ParseSentryBlackboard` 消费 |
 | `RMUCSentryCmd` | `sentry_cmd` | `cmd_posture`, `cmd_confirm_respawn` | 已启用；`SentryCmdMux` 发布最终姿态指令 |
@@ -106,7 +106,7 @@
 | `RmucIsHPBelow` | `{robot_status}`, `hp_threshold` | 当前 HP 低于阈值 |
 | `IsAmmoBelow` | `{ammo.allow}`, `{cfg.ammo_low}` / `{supply.next_threshold}` | 允许发弹量不足 |
 | `RmucIsDetectEnemy` | `{robot_status}`, `{is_detect_enemy}` | 优先使用解析后的 `is_detect_enemy` |
-| `IsVulnerable` | `{robot_buff}` | `vulnerability_pct >= min_vulnerability_pct`，默认阈值 1 |
+| `IsVulnerable` | `{robot_buff}` | 已在 XML 中注释暂停；原逻辑为 `vulnerability_pct >= min_vulnerability_pct` |
 | `IsBaseThreatened` | `{threat.base}` | 基地威胁锁存是否为 true |
 | `IsNavTargetSupply` | `goal_pose`, `{cfg.supply_zone_x/y}` | 当前导航目标是否落在补给区 |
 | `IsAtGoal` | `{pose.x/y}`, `goal_x/y`, `arrive_radius` | 到点距离判断 + costmap 视线检查 + 滞回 |
@@ -117,7 +117,7 @@
 |---|---|---|---|
 | `game_status` | SUB | 启用 | `RmucSubGameStatus` |
 | `robot_status` | SUB | 启用 | `RmucSubRobotStatus` |
-| `robot_buff` | SUB | 启用 | `RmucSubRobotBuff`, `IsVulnerable` |
+| `robot_buff` | SUB | XML 注释暂停 | `RmucSubRobotBuff` 和 `IsVulnerable` 原链路保留在 XML 注释中 |
 | `robot_position` | SUB | 启用 | `RmucSubRobotPosition` |
 | `radar/enemy_tracks` | SUB | 启用 | `SubRadarTracks`, `ParseSentryBlackboard` |
 | `goal_pose` | PUB/SUB | 启用 | `SendGoal` 发布，`IsNavTargetSupply` 订阅 |
@@ -163,7 +163,7 @@ rmuc_2026 (ReactiveSequence)
 +- PerceptionAndBlackboard
 |  +- RmucSubGameStatus
 |  +- RmucSubRobotStatus
-|  +- RmucSubRobotBuff
+|  +- RmucSubRobotBuff (注释暂停)
 |  +- RmucSubRobotPosition
 |  +- SubRadarTracks
 |  +- ParseSentryBlackboard
@@ -187,7 +187,7 @@ rmuc_2026 (ReactiveSequence)
    |  |  +- EnemyDetectionGuard
    |  |     +- 低弹 -> 放行给 SustainAndEconomy
    |  |     +- 基地威胁 -> 放行给 BaseDefense
-   |  |     +- 易伤 -> SelectPosture(2) + KeepRunning
+   |  |     +- 易伤防御 -> SelectPosture(2) + KeepRunning (注释暂停)
    |  |     +- 未见敌 -> 放行
    |  |     +- 当前目标是补给区 -> 放行
    |  |     +- 普通见敌 -> SelectPosture(1) + CancelNavGoal + robot_control(spin)
@@ -210,11 +210,10 @@ rmuc_2026 (ReactiveSequence)
 1. `SurvivalGuard`：死亡/低血回血恢复锁存最高，进入 `LowHPRetreat` 后阻塞后续战术。
 2. `SustainAndEconomy`：低弹补给高于基地威胁和普通见敌；补弹流程活跃时选择防御姿态。
 3. `BaseDefense`：基地威胁高于普通见敌；基地威胁期间普通见敌拦截不会取消回防目标。
-4. `VulnerableDefense`：易伤高于普通见敌，低于基地威胁；`vulnerability_pct` 未清零时保持防御姿态。
-5. `EnemyHold`：普通见敌时攻击姿态、取消导航、原地旋转。
-6. `ObjectivePlanner`：无高优先级接管时规划/巡逻；到点防御，路上移动。
-7. `DefaultPosture`：兜底姿态；到当前目标防御，否则移动。
-8. `PostureDegradationGuard`：最后对 `{cmd.posture}` 做累计时间降级，输出 `{cmd.final_posture}`。
+4. `EnemyHold`：普通见敌时攻击姿态、取消导航、原地旋转。
+5. `ObjectivePlanner`：无高优先级接管时规划/巡逻；到点防御，路上移动。
+6. `DefaultPosture`：兜底姿态；到当前目标防御，否则移动。
+7. `PostureDegradationGuard`：最后对 `{cmd.posture}` 做累计时间降级，输出 `{cmd.final_posture}`。
 
 ## 外部数据源
 
@@ -230,3 +229,4 @@ rmuc_2026 (ReactiveSequence)
 - 当前 RMUC XML 不再调用 `RmucNavControlCmd`；导航停止由 `CancelNavGoal` 完成。
 - `RMUCSentryDecisionStatus` 已归档到 `msg/pre_msg/`，当前 BT 不订阅，不作为姿态反馈闭环。
 - `RMUCEnemyTracks.enemy_x/enemy_y` 仍为多目标格式；当前消费者只在基地威胁判断里遍历 `enemy_x/enemy_y`。
+- `RMUCRobotBuff` / `robot_buff` 的原订阅和易伤防御分支保留在 XML 注释中；当前暂停接入，不再触发易伤防御姿态。
