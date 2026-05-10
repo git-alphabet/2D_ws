@@ -115,6 +115,37 @@ else
   echo "[ccache] not found, build without compiler cache"
 fi
 
+# CMake 生成器选择：优先 Ninja（仅在新缓存或显式选择时启用）
+BUILD_GENERATOR="${BUILD_GENERATOR:-auto}"
+CMAKE_GENERATOR=""
+if [[ "$BUILD_GENERATOR" == "ninja" ]]; then
+  if command -v ninja >/dev/null 2>&1; then
+    CMAKE_GENERATOR="Ninja"
+  else
+    echo "[build-profile] ninja not found, fallback to default generator"
+  fi
+elif [[ "$BUILD_GENERATOR" == "default" ]]; then
+  CMAKE_GENERATOR=""
+else
+  if command -v ninja >/dev/null 2>&1; then
+    has_cmake_cache=0
+    if find "$BUILD_BASE" -name CMakeCache.txt -print -quit 2>/dev/null | grep -q .; then
+      has_cmake_cache=1
+    fi
+    if [[ $has_cmake_cache -eq 0 ]]; then
+      CMAKE_GENERATOR="Ninja"
+    else
+      echo "[build-profile] build cache detected, keep existing generator; set BUILD_GENERATOR=ninja and clear build cache to switch"
+    fi
+  fi
+fi
+if [[ -n "$CMAKE_GENERATOR" ]]; then
+  CMAKE_ARGS+=(-G "$CMAKE_GENERATOR")
+  echo "[build-profile] cmake_generator=$CMAKE_GENERATOR"
+else
+  echo "[build-profile] cmake_generator=default"
+fi
+
 # Build the full ROS workspace in one pass.
 colcon --log-base "$LOG_BASE" build \
   --build-base "$BUILD_BASE" \
