@@ -26,7 +26,7 @@ mid360_runtime:
     enable_costmap_additive: "auto"
     # 建图阶段建议单源（odin1）避免装配/时序误差叠加；导航阶段再启用双源补盲。
     # 建图阶段是否启用补盲链路。
-    enable_costmap_additive_in_slam: false
+    enable_costmap_additive_in_slam: true
     # 导航阶段是否启用补盲链路。
     enable_costmap_additive_in_nav: true
     # Nav2 observation buffer 判定 mid360 补盲源 stale 的周期阈值，单位秒；0.0 表示关闭该告警。
@@ -605,7 +605,7 @@ pointcloud_merge_sync:
     # ApproximateTime 最大时间差，单位秒。
     merge_time_tolerance_sec: 0.08
     # 同步队列长度。
-    queue_size: 10
+    queue_size: 20
 
 # SLAM Toolbox：mapping 模式时发布 map/odom 等；scan_topic 要与上游生成一致
 slam_toolbox:
@@ -913,7 +913,7 @@ local_costmap:
         # 膨胀代价衰减系数。
         cost_scaling_factor: 4.0
         # 障碍物膨胀半径，单位米。
-        inflation_radius: 0.6
+        inflation_radius: 0.4
       # 是否总是发布完整代价地图。
       always_send_full_costmap: False
 
@@ -991,6 +991,8 @@ global_costmap:
           marking: true
           # 是否将该源用于清除障碍。
           clearing: true
+          # 保留 0.2s 观测覆盖 merge 丢帧间隙。
+          observation_persistence: 0.2
           # 该源允许的最低障碍高度。
           min_obstacle_height: 0.0
           # 该源允许的最高障碍高度。
@@ -1014,7 +1016,7 @@ global_costmap:
         # 膨胀代价衰减系数。
         cost_scaling_factor: 4.0
         # 障碍物膨胀半径，单位米。
-        inflation_radius: 0.6
+        inflation_radius: 0.4
       # 是否总是发布完整代价地图。
       always_send_full_costmap: False
 
@@ -1187,7 +1189,7 @@ velocity_smoother:
 lifecycle_manager_navigation:
   ros__parameters:
     # 生命周期管理器 bond 超时时间，单位秒。启动时系统负载高，需要足够余量。
-    bond_timeout: 7.0
+    bond_timeout: 15.0
     # 是否在 bond 断开后尝试重连。
     attempt_respawn_reconnection: true
 

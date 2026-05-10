@@ -109,6 +109,61 @@ def kill_by_pattern(pattern: str, title: str, script_name: str) -> None:
         print(f"[{script_name}] Warning: {title} pids still alive: {' '.join(map(str, pids))}", file=sys.stderr)
 
 
+def kill_odin_driver(script_name: str, timeout: float = 10.0) -> bool:
+    """Gracefully shutdown odin driver (host_sdk_sample) and wait for it to exit.
+
+    Returns True if driver exited cleanly, False if had to force kill.
+    """
+    pattern = r"(^|/)host_sdk_sample(\s|$)"
+    pids = pgrep(pattern)
+    if not pids:
+        print(f"[{script_name}] No odin driver (host_sdk_sample) found, skip.", file=sys.stderr)
+        return True
+
+    print(f"[{script_name}] Gracefully shutting down odin driver pids: {' '.join(map(str, pids))}", file=sys.stderr)
+
+    # Send SIGTERM for graceful shutdown
+    for pid in list(pids):
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            continue
+        try:
+            os.killpg(os.getpgid(pid), signal.SIGTERM)
+        except Exception:
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except Exception:
+                pass
+
+    # Wait for driver to exit
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        time.sleep(0.5)
+        remaining = pgrep(pattern)
+        if not remaining:
+            print(f"[{script_name}] Odin driver exited cleanly.", file=sys.stderr)
+            return True
+
+    # Timeout - force kill
+    remaining = pgrep(pattern)
+    print(
+        f"[{script_name}] WARNING: Odin driver did not exit after {timeout}s, "
+        f"pids: {' '.join(map(str, remaining))}, force killing.",
+        file=sys.stderr,
+    )
+    for pid in remaining:
+        try:
+            os.killpg(os.getpgid(pid), signal.SIGKILL)
+        except Exception:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except Exception:
+                pass
+    time.sleep(0.5)
+    return False
+
+
 def pid_gone(pid: int) -> bool:
     try:
         os.kill(pid, 0)

@@ -20,6 +20,7 @@ from tools.wrapper_helpers import (
     slugify,
     run_shell,
     pid_gone,
+    kill_odin_driver,
 )
 from tools.wrapper_models import BackgroundGroup, CommonConfig
 
@@ -504,9 +505,13 @@ def launch_in_terminal(
                 pass
         child_pgid = p.pid
 
-        shutdown_timeout = int(os.environ.get("SHUTDOWN_TIMEOUT", "15"))
+        # 驱动之外的进程关闭超时时间（秒）
+        other_shutdown_timeout = int(os.environ.get("OTHER_SHUTDOWN_TIMEOUT", "5"))
+        # odin 驱动关闭超时时间（秒）
+        odin_shutdown_timeout = float(os.environ.get("ODIN_SHUTDOWN_TIMEOUT", "5"))
         shutdown_requested = [False]
         pre_shutdown_done = [False]
+        odin_shutdown_done = [False]
 
         def _force_kill() -> None:
             try:
@@ -520,6 +525,9 @@ def launch_in_terminal(
                 _force_kill()
                 return
 
+            shutdown_requested[0] = True
+
+            # Step 1: Execute pre-shutdown hook (e.g., save maps)
             if pre_shutdown_hook is not None and not pre_shutdown_done[0]:
                 pre_shutdown_done[0] = True
                 try:
@@ -527,9 +535,18 @@ def launch_in_terminal(
                 except Exception as exc:
                     print(f"[{cfg.script_name}] pre-shutdown hook failed: {exc}", file=sys.stderr)
 
-            shutdown_requested[0] = True
+            # Step 2: Gracefully shutdown odin driver first
+            if not odin_shutdown_done[0]:
+                odin_shutdown_done[0] = True
+                print(
+                    f"\n[{cfg.script_name}] Shutting down odin driver first (timeout {odin_shutdown_timeout}s)...",
+                    file=sys.stderr,
+                )
+                kill_odin_driver(cfg.script_name, timeout=odin_shutdown_timeout)
+
+            # Step 3: Send SIGTERM to remaining processes
             print(
-                f"\n[{cfg.script_name}] Shutting down (timeout {shutdown_timeout}s)..."
+                f"[{cfg.script_name}] Shutting down other processes (timeout {other_shutdown_timeout}s)..."
                 " Press Ctrl+C again to force kill.",
                 file=sys.stderr,
             )
@@ -541,21 +558,24 @@ def launch_in_terminal(
         prev_sigint = signal.signal(signal.SIGINT, _forward_signal)  # type: ignore[arg-type]
         prev_sigterm = signal.signal(signal.SIGTERM, _forward_signal)  # type: ignore[arg-type]
         try:
-            deadline = time.monotonic() + shutdown_timeout
+            deadline = None
             while True:
                 try:
                     p.wait(timeout=1.0)
                     break
                 except subprocess.TimeoutExpired:
                     pass
-                if shutdown_requested[0] and time.monotonic() > deadline:
-                    print(
-                        f"[{cfg.script_name}] Shutdown timeout ({shutdown_timeout}s), force killing...",
-                        file=sys.stderr,
-                    )
-                    _force_kill()
-                    p.wait()
-                    break
+                if shutdown_requested[0]:
+                    if deadline is None:
+                        deadline = time.monotonic() + other_shutdown_timeout
+                    if time.monotonic() > deadline:
+                        print(
+                            f"[{cfg.script_name}] Shutdown timeout ({other_shutdown_timeout}s), force killing...",
+                            file=sys.stderr,
+                        )
+                        _force_kill()
+                        p.wait()
+                        break
         finally:
             signal.signal(signal.SIGINT, prev_sigint)
             signal.signal(signal.SIGTERM, prev_sigterm)
