@@ -79,7 +79,7 @@
                 <IsAmmoBelow ammo_allow="{ammo.allow}" ammo_low="{cfg.ammo_low}"/>
                 <!-- 基地威胁模式 → 放行，优先回基地防御锚点，不受普通见敌阻塞打断 -->
                 <IsBaseThreatened base_threat="{threat.base}"/>
-                <!-- 易伤时切防御姿态，直到 vulnerability_pct 清零；优先级低于基地威胁，高于普通见敌 -->
+                <!-- robot_buff 易伤防御分支暂停接入：恢复时取消注释即可。
                 <Sequence>
                     <SetBlackboard output_key="active_subtree" value="VulnerableDefense"/>
                     <IsVulnerable robot_buff="{robot_buff}"/>
@@ -88,6 +88,7 @@
                                    is_allow_select_posture="{cmd.allow_posture_send}"/>
                     <KeepRunning/>
                 </Sequence>
+                -->
                 <!-- 无敌人 → 放行 -->
                 <Inverter>
                     <RmucIsDetectEnemy message="{robot_status}"
