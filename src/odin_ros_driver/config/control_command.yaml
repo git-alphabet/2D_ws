@@ -145,7 +145,7 @@ register_keys:
   # 自定义初始位姿 [x, y, z, qx, qy, qz, qw]
   custom_init_pos: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
   # 重定位模式必须设置地图绝对路径，否则会失败
-  relocalization_map_abs_path: "/ws/.buildcache/odin1/src/odin_ros_driver/map/20260419_202433/map_20260419_202523.bin" # must be set for Relocalization mode or will fail
+  relocalization_map_abs_path: "/ws/.buildcache/odin1/src/odin_ros_driver/map/20260508_111341/map_20260508_112720.bin" # must be set for Relocalization mode or will fail
 
   # To get the mapping result file, please use the set_param.sh script provided: "./set_param.sh save_map 1"
   # 如需导出建图结果，请使用脚本："./set_param.sh save_map 1"

@@ -14,7 +14,7 @@
 
 import os
 
-from launch.actions import ExecuteProcess, GroupAction, RegisterEventHandler
+from launch.actions import ExecuteProcess, GroupAction, RegisterEventHandler, TimerAction
 from launch.conditions import IfCondition, UnlessCondition
 from launch.event_handlers import OnProcessExit
 from launch.substitutions import PythonExpression
@@ -528,17 +528,24 @@ def build_navigation_runtime_actions(
         output="screen",
     )
 
-    # Lifecycle manager starts after startup gate passes
+    # Lifecycle manager starts after startup gate passes + settle delay.
+    # The delay lets DDS discovery complete before lifecycle transitions begin,
+    # preventing service response timeouts under high startup load.
     start_lifecycle_manager_cmd = RegisterEventHandler(
         OnProcessExit(
             target_action=startup_gate_cmd,
             on_exit=[
-                _build_lifecycle_manager_node(
-                    use_sim_time=use_sim_time,
-                    autostart=autostart,
-                    log_level=log_level,
-                    lifecycle_nodes=lifecycle_nodes,
-                    configured_params=configured_params,
+                TimerAction(
+                    period=3.0,
+                    actions=[
+                        _build_lifecycle_manager_node(
+                            use_sim_time=use_sim_time,
+                            autostart=autostart,
+                            log_level=log_level,
+                            lifecycle_nodes=lifecycle_nodes,
+                            configured_params=configured_params,
+                        )
+                    ],
                 )
             ],
         )
