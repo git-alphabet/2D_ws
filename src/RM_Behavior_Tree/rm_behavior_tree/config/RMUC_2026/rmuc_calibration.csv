@@ -18,9 +18,6 @@
 # base,-2.3532,-2.0007
 # defend_anchor,0.0968,-0.4008
 # patrol_3,0.0596,-6.6217
-supply_zone,5.2133,-3.5088
-central_highland,4.3247,-4.0767
-ladder_highland,3.2866,-4.1304
-patrol_1,5.1546,-1.5698
-patrol_2,4.5796,-0.0708
-cap_outpost,2.0596,-2.8232
+# cap_outpost,11.4251,1.4315
+supply_zone,9.6354,1.6121
+central_highland,2.0105,-6.2369
