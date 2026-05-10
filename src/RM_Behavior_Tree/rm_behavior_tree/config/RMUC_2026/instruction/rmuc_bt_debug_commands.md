@@ -92,13 +92,13 @@ colcon build --build-base /ws/.buildcache/Alphabet/build \
 > 姿态值: 1=进攻  2=防御  3=移动
 > 当前 RMUC 2026 主链: 各战术子树/基地威胁逻辑写入 `cmd.posture` → `PostureDegradationGuard` 产出 `cmd.final_posture` → `SentryCmdMux` 发布 `/sentry_cmd`
 
-### 9.1 查看当前姿态反馈（裁判系统 → BT 输入）
+### 9.1 查看旧版姿态反馈（已废弃，当前 BT 不消费）
 
 ```bash
-# 裁判系统反馈的当前姿态 (current_posture 字段)
+# 旧版裁判系统反馈的当前姿态 (current_posture 字段)
 ros2 topic echo /red_standard_robot1/sentry_decision_status --field current_posture
 
-# 完整 sentry_decision_status（含复活/兑换计数等）
+# 完整 sentry_decision_status（旧版链路，含复活/兑换计数等）
 ros2 topic echo /red_standard_robot1/sentry_decision_status --once
 ```
 

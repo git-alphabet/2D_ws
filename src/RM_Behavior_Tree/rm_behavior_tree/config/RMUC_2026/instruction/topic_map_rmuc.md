@@ -1,6 +1,6 @@
 # RMUC 2026 插件与 ROS2 接口映射表
 
-本文档按当前 `sp_msgs/msg/RMUC/*.msg` 和 `config/RMUC_2026/*.xml` 整理。重点看三件事：
+本文档按当前会生成的 `sp_msgs/msg/RMUC/*.msg` 和 `config/RMUC_2026/*.xml` 整理。重点看三件事：
 
 - 行为树真实订阅/发布了哪些 ROS 接口。
 - 原始消息进入黑板后，哪些派生变量被战术子树消费。
@@ -18,7 +18,7 @@
 | `IsNavTargetSupply` | `goal_pose` | `geometry_msgs/msg/PoseStamped` | 内部缓存 | 判断当前 Nav2 目标是否为补给区 |
 | `IsAtGoal` | `global_costmap/costmap` | `nav_msgs/msg/OccupancyGrid` | 内部缓存 | 到点判断时做视线检查；无 costmap 时退化为距离判断 |
 
-> `sentry_decision_status` 当前没有 RMUC 行为树订阅节点；它的 msg 仍保留，但 BT 不消费裁判反馈姿态。
+> `sentry_decision_status` 当前没有 RMUC 行为树订阅节点；`RMUCSentryDecisionStatus.msg` 已移入 `msg/pre_msg/` 归档，不再参与 `rosidl_generate_interfaces`。
 
 ## 发布话题
 
@@ -37,7 +37,7 @@
 
 ## RMUC 消息字段速查
 
-下面把 `sp_msgs/msg/RMUC/*.msg` 里的消息单独列一遍，方便按“消息定义”查，而不是只看 topic 映射。
+下面把当前 RMUC 目录里的消息和已归档的旧消息单独列一遍，方便按“消息定义”查，而不是只看 topic 映射。
 
 | 消息 | 话题 | 关键字段 | 当前 BT 使用情况 |
 |---|---|---|---|
@@ -49,7 +49,7 @@
 | `RMUCSentryCmd` | `sentry_cmd` | `cmd_posture`, `cmd_confirm_respawn` | 已启用；`SentryCmdMux` 发布最终姿态指令 |
 | `RMUCRobotControl` | `robot_control` | `stop_gimbal_scan`, `chassis_spin` | 已启用；`RmucRobotControl` 发布底盘/云台控制 |
 | `RMUCNavControlCmd` | `nav_control_cmd` | `cmd_type` | 消息仍保留，但当前 RMUC XML 未实例化对应发布插件 |
-| `RMUCSentryDecisionStatus` | `sentry_decision_status` | `current_posture`, `exchanged_ammo_total` | 消息仍保留，但当前 BT 不订阅 |
+| `RMUCSentryDecisionStatus` | `sentry_decision_status` | `current_posture`, `exchanged_ammo_total` | 已移入 `msg/pre_msg/` 归档；当前 BT 不订阅，也不生成接口 |
 
 ## 动作与导航接口
 
@@ -125,7 +125,7 @@
 | `sentry_cmd` | PUB | 启用 | `SentryCmdMux` |
 | `robot_control` | PUB | 启用 | `RmucRobotControl` |
 | `navigate_to_pose/_action/cancel_goal` | SERVICE | 启用 | `CancelNavGoal` |
-| `sentry_decision_status` | SUB | 未被当前 BT 消费 | msg 保留，无订阅插件实例 |
+| `sentry_decision_status` | SUB | 未被当前 BT 消费 | msg 已归档到 `pre_msg`，无订阅插件实例 |
 | `nav_control_cmd` | PUB | 当前 BT 未实例化 | `RmucNavControlCmd` 插件保留 |
 
 ## 黑板命名空间
@@ -228,5 +228,5 @@ rmuc_2026 (ReactiveSequence)
 - `RMUCNavControlCmd.emergency_stop` 已删除。
 - `RMUCTeamHP` / `team_hp` 话题已废弃删除；己方前哨站和基地血量并入 `RMUCRobotStatus`。
 - 当前 RMUC XML 不再调用 `RmucNavControlCmd`；导航停止由 `CancelNavGoal` 完成。
-- `RMUCSentryDecisionStatus` 消息仍存在，但当前 BT 不订阅，不作为姿态反馈闭环。
+- `RMUCSentryDecisionStatus` 已归档到 `msg/pre_msg/`，当前 BT 不订阅，不作为姿态反馈闭环。
 - `RMUCEnemyTracks.enemy_x/enemy_y` 仍为多目标格式；当前消费者只在基地威胁判断里遍历 `enemy_x/enemy_y`。

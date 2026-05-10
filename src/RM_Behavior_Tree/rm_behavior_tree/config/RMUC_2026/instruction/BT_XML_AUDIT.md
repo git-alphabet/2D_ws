@@ -154,7 +154,7 @@ Sequence
 ├── RmucSubRobotPosition     (/robot_position)      → SUCCESS
 │   outputs: pose_x, pose_y, pose_yaw, is_at_nav_goal, pose
 ├── SubRadarTracks           (/radar/enemy_tracks)   → SUCCESS
-├── RmucSubSentryDecisionStatus (/sentry_decision_status) → SUCCESS  [P0 NEW]
+├── RmucSubSentryDecisionStatus (/sentry_decision_status) → SUCCESS  [P0 NEW, legacy]
 ├── RmucSubRobotBuff         (/robot_buff)           → SUCCESS  [P0 NEW]
 ├── RmucSubProjectileAllowance (/projectile_allowance) → SUCCESS  [P0 NEW]
 ├── RmucSubFieldStatus       (/field_status)         → SUCCESS  [P0 NEW]
@@ -443,7 +443,7 @@ Sequence (幂等)
 | `{pose}` | `RmucSubRobotPosition` | `/robot_position` | (TransformStamped) |
 | `{radar.tracks}` | `SubRadarTracks` | `/radar/enemy_tracks` | |
 | `{time.now_ms}` | `RmucSubGameStatus` | `/game_status` | |
-| `{sentry_decision_status}` | `RmucSubSentryDecisionStatus` | `/sentry_decision_status` | P0 NEW |
+| `{sentry_decision_status}` | `RmucSubSentryDecisionStatus` | `/sentry_decision_status` | P0 NEW, legacy |
 | `{robot_buff}` | `RmucSubRobotBuff` | `/robot_buff` | P0 NEW |
 | `{projectile_allowance}` | `RmucSubProjectileAllowance` | `/projectile_allowance` | P0 NEW |
 | `{field_status}` | `RmucSubFieldStatus` | `/field_status` | P0 NEW |
@@ -484,10 +484,10 @@ Sequence (幂等)
 | `{sentry.can_free_respawn}` | DecideRespawnCmd | ✅ |
 | `{sentry.can_instant_respawn}` | DecideRespawnCmd | ✅ |
 | `{sentry.instant_respawn_cost}` | DecideEconomyCmd, DecideRespawnCmd | ✅ |
-| `{sentry.current_posture}` | DecidePosture, ShouldChassisSpin, IsFireWindowOk | ✅ |
+| `{sentry.current_posture}` | DecidePosture, ShouldChassisSpin, IsFireWindowOk | ✅ (legacy source) |
 | `{sentry.remote_ammo_count}` | DecideEconomyCmd | ✅ |
 | `{sentry.remote_heal_count}` | DecideEconomyCmd | ✅ |
-| `{sentry.exchanged_ammo_total}` | — | ⚠️ **有写无读** |
+| `{sentry.exchanged_ammo_total}` | — | ⚠️ **有写无读** (legacy source) |
 | `{sentry.can_activate_energy}` | — | ⚠️ **有写无读** |
 
 #### P0 NEW — 0x0204 机器人增益
@@ -613,7 +613,7 @@ Sequence (幂等)
 | `{ammo.left}` | 剩余弹量（区别于允许弹量 ammo.allow） | 🟡 低 — 可能是预留字段 |
 | `{state.disengage_cd_s}` | 脱战倒计时秒数 | 🟡 低 — 可能用于日志/UI |
 | `{threat.fortress}` | 堡垒威胁 | 🟡 低 — 可能后续版本使用 |
-| `{sentry.exchanged_ammo_total}` | 已兑换弹量总量 | 🟡 低 |
+| `{sentry.exchanged_ammo_total}` | 已兑换弹量总量 | 🟡 低 (legacy source) |
 | `{sentry.can_activate_energy}` | 能否激活大能量机关 | 🟡 低 |
 | `{buff.heal_rate}` | 回血增益速率 | 🟡 低 |
 | `{buff.attack_pct}` | 攻击增益百分比 | 🟡 低 |
@@ -740,7 +740,7 @@ Sequence (幂等)
 | `RmucSubRFIDStatus` | ✅ | |
 | `RmucSubRobotPosition` | ✅ (含 pose output) | |
 | `SubRadarTracks` | ✅ | |
-| `RmucSubSentryDecisionStatus` | ✅ | P0 NEW |
+| `RmucSubSentryDecisionStatus` | ✅ | P0 NEW, legacy |
 | `RmucSubRobotBuff` | ✅ | P0 NEW |
 | `RmucSubProjectileAllowance` | ✅ | P0 NEW |
 | `RmucSubFieldStatus` | ✅ | P0 NEW |

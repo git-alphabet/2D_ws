@@ -64,9 +64,10 @@
 ## 数据流
 
 ```
+旧版裁判姿态反馈链路（已废弃）：
 裁判系统 → sentry_decision_status → ParseSentryBlackboard → DecidePosture → SentryCmdMux → /sentry_cmd
                                          ↓
-                                    current_posture (反馈)
+                                    current_posture (旧版反馈，当前树不消费)
                                     hp_cur, hp_max
                                     heat_cur
                                     has_target
