@@ -96,7 +96,7 @@ private:
   float init_spin_speed_;
   float spin_speed_{0.0f};
   bool has_received_cmd_spin_{false};
-  bool spin_enabled_{true};
+  bool spin_enabled_{false};
   bool last_spin_enabled_logged_{false};
   bool use_manual_spin_override_{false};
   bool manual_spin_override_enabled_{false};
