@@ -3,7 +3,7 @@ window_sec: 30.0
 report_every_sec: 5.0
 max_pair_dt_sec: 0.20
 source_detect_sec: 8.0
-auto_save_sec: 60.0   # 自动保存间隔（秒），0 则只在退出时保存
+auto_save_sec: 10.0   # 自动保存间隔（秒），0 则只在退出时保存
 qos: sensor_data
 
 topics:
