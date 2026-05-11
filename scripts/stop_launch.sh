@@ -9,6 +9,7 @@ TARGET="all"
 WS_IN_CONTAINER="${WS_IN_CONTAINER:-/ws}"
 # 容器外执行时自动检测这些容器（可用 DOCKER_CONTAINERS 覆盖，空格或逗号分隔）。
 CONTAINER_CANDIDATES="${DOCKER_CONTAINERS:-gxu2026-nav-laptop gxu2026-nav-robot gxu2026-neupan-runtime}"
+ODIN_SHUTDOWN_TIMEOUT="${ODIN_SHUTDOWN_TIMEOUT:-30}"
 
 SIM_PGID_FILE="/tmp/ros2_nav_sim.pgid"
 REALITY_PGID_FILE="/tmp/ros2_nav_reality.pgid"
@@ -78,6 +79,7 @@ cleanup_fastdds_shm() {
 kill_by_pgid_file() {
   local pgid_file="$1"
   local title="$2"
+  local force_kill="${3:-1}"
   local pgid
 
   [[ -f "$pgid_file" ]] || return 0
@@ -91,8 +93,40 @@ kill_by_pgid_file() {
   log "Killing $title PGID=$pgid via pgid file"
   kill -TERM "-$pgid" 2>/dev/null || true
   sleep 0.8
-  kill -KILL "-$pgid" 2>/dev/null || true
+  if [[ "$force_kill" -eq 1 ]]; then
+    kill -KILL "-$pgid" 2>/dev/null || true
+  fi
   rm -f "$pgid_file" 2>/dev/null || true
+}
+
+stop_odin_driver() {
+  local pattern='(^|/)host_sdk_sample(\s|$)'
+  local pids
+  local start_ts
+  local warned=0
+
+  pids="$(pgrep -f "$pattern" 2>/dev/null || true)"
+  [[ -n "$pids" ]] || return 0
+
+  log "Gracefully shutting down odin driver pids: $(echo "$pids" | tr '\n' ' ')"
+  while IFS= read -r pid; do
+    [[ -n "$pid" ]] || continue
+    kill -TERM "$pid" 2>/dev/null || true
+  done <<< "$pids"
+
+  start_ts="$(date +%s)"
+  while pgrep -f "$pattern" >/dev/null 2>&1; do
+    sleep 1
+    if [[ "$ODIN_SHUTDOWN_TIMEOUT" -gt 0 ]] && [[ $warned -eq 0 ]]; then
+      local now_ts
+      now_ts="$(date +%s)"
+      if (( now_ts - start_ts >= ODIN_SHUTDOWN_TIMEOUT )); then
+        log "Odin driver still alive after ${ODIN_SHUTDOWN_TIMEOUT}s, keep waiting..."
+        warned=1
+      fi
+    fi
+  done
+  log "Odin driver exited."
 }
 
 kill_by_pattern() {
@@ -142,10 +176,10 @@ kill_sim() {
 }
 
 kill_reality() {
-  kill_by_pgid_file "$REALITY_PGID_FILE" "reality"
+  kill_by_pgid_file "$REALITY_PGID_FILE" "reality" 0
   cleanup_fastdds_shm
+  stop_odin_driver
   kill_by_pattern 'rm_navigation_reality_launch\.py' 'reality nav/SLAM'
-  kill_by_pattern '(^|/)host_sdk_sample(\s|$)' 'odin_driver'
   kill_by_pattern '(^|/)mid360_driver_node(\s|$)' 'mid360_driver'
   kill_by_pattern '(^|/)pointlio_mapping(\s|$)' 'pointlio_mapping'
   kill_by_pattern '(^|/)joint_state_publisher(\s|$)' 'joint_state_publisher'
