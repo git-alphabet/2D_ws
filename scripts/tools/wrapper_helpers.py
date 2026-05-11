@@ -109,10 +109,16 @@ def kill_by_pattern(pattern: str, title: str, script_name: str) -> None:
         print(f"[{script_name}] Warning: {title} pids still alive: {' '.join(map(str, pids))}", file=sys.stderr)
 
 
-def kill_odin_driver(script_name: str, timeout: float = 10.0) -> bool:
+def kill_odin_driver(
+    script_name: str,
+    timeout: float = 10.0,
+    *,
+    force_kill: bool = False,
+    keep_waiting: bool = False,
+) -> bool:
     """Gracefully shutdown odin driver (host_sdk_sample) and wait for it to exit.
 
-    Returns True if driver exited cleanly, False if had to force kill.
+    Returns True if driver exited cleanly, False if still alive (or forced kill applied).
     """
     pattern = r"(^|/)host_sdk_sample(\s|$)"
     pids = pgrep(pattern)
@@ -137,16 +143,40 @@ def kill_odin_driver(script_name: str, timeout: float = 10.0) -> bool:
                 pass
 
     # Wait for driver to exit
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
+    deadline = None if timeout <= 0 else time.monotonic() + timeout
+    warned = False
+    while True:
         time.sleep(0.5)
         remaining = pgrep(pattern)
         if not remaining:
             print(f"[{script_name}] Odin driver exited cleanly.", file=sys.stderr)
             return True
+        if deadline is not None and time.monotonic() >= deadline:
+            if keep_waiting:
+                if not warned:
+                    print(
+                        f"[{script_name}] Odin driver still alive after {timeout}s, keep waiting...",
+                        file=sys.stderr,
+                    )
+                    warned = True
+                deadline = None
+                continue
+            break
 
     # Timeout - force kill
     remaining = pgrep(pattern)
+    if not remaining:
+        print(f"[{script_name}] Odin driver exited cleanly.", file=sys.stderr)
+        return True
+
+    if not force_kill:
+        print(
+            f"[{script_name}] WARNING: Odin driver still alive after {timeout}s, "
+            f"pids: {' '.join(map(str, remaining))}. Skip SIGKILL.",
+            file=sys.stderr,
+        )
+        return False
+
     print(
         f"[{script_name}] WARNING: Odin driver did not exit after {timeout}s, "
         f"pids: {' '.join(map(str, remaining))}, force killing.",
@@ -187,7 +217,7 @@ def cleanup_fastdds_shm() -> None:
         print(f"[fastdds] Cleaned {cleaned} shm segment(s).", file=sys.stderr)
 
 
-def kill_by_pgid_file(pgid_file: Path, title: str, script_name: str) -> None:
+def kill_by_pgid_file(pgid_file: Path, title: str, script_name: str, *, force_kill: bool = True) -> None:
     """通过 PGID 文件终止上次启动的进程组。"""
     if not pgid_file.exists():
         return
@@ -198,7 +228,8 @@ def kill_by_pgid_file(pgid_file: Path, title: str, script_name: str) -> None:
         return
 
     print(f"[{script_name}] Killing {title} PGID={pgid} via pgid file ...", file=sys.stderr)
-    for sig in (signal.SIGTERM, signal.SIGKILL):
+    signals = (signal.SIGTERM, signal.SIGKILL) if force_kill else (signal.SIGTERM,)
+    for sig in signals:
         try:
             os.killpg(pgid, sig)
         except ProcessLookupError:
@@ -219,7 +250,7 @@ def kill_by_pgid_file(pgid_file: Path, title: str, script_name: str) -> None:
 
 def kill_sim(script_name: str) -> None:
     """启动仿真前清理残留的 Gazebo 和仿真导航/SLAM 进程。"""
-    kill_by_pgid_file(PGID_FILES["sim"], "sim", script_name)
+    kill_by_pgid_file(PGID_FILES["sim"], "sim", script_name, force_kill=True)
     cleanup_fastdds_shm()
     for pat, title in [
         (r"bringup_sim\.launch\.py", "bringup_sim"),
@@ -231,11 +262,12 @@ def kill_sim(script_name: str) -> None:
 
 def kill_reality(script_name: str) -> None:
     """启动实车前清理残留进程。"""
-    kill_by_pgid_file(PGID_FILES["reality"], "reality", script_name)
+    kill_by_pgid_file(PGID_FILES["reality"], "reality", script_name, force_kill=False)
     cleanup_fastdds_shm()
+    odin_timeout = float(os.environ.get("ODIN_SHUTDOWN_TIMEOUT", "30"))
+    kill_odin_driver(script_name, timeout=odin_timeout, force_kill=False, keep_waiting=True)
     for pat, title in [
         (r"rm_navigation_reality_launch\.py", "reality nav/SLAM"),
-        (r"(^|/)host_sdk_sample(\s|$)", "odin_driver"),
         (r"(^|/)mid360_driver_node(\s|$)", "mid360_driver"),
         (r"(^|/)pointlio_mapping(\s|$)", "pointlio_mapping"),
         (r"(^|/)(timestamp_sync_monitor\.py|tools\.timestamp_sync_monitor)(\s|$)", "timestamp_monitor"),
