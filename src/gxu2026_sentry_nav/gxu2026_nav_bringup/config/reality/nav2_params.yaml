@@ -284,8 +284,8 @@ loam_interface:
 loam_interface_mid360:
   ros__parameters:
     use_sim_time: False
-    # 使用 point_lio 自身 odometry 重投影，避免跨传感器 odometry 引入散点。
-    state_estimation_topic: "aft_mapped_to_init"
+    # 使用 odin1 里程计作为统一 odom，避免双源 odom 相位差造成虚假障碍。
+    state_estimation_topic: "odin1/odometry_highfreq"
     # 使用 point_lio 的 body frame 点云，避免把 mid360 自身 lidar_odom 语义错误拼接到 odin 主 odom。
     # 输入点云话题。
     registered_scan_topic: "mid360/cloud_registered"
@@ -604,8 +604,19 @@ pointcloud_merge_sync:
     output_topic: "merged_registered_scan"
     # ApproximateTime 最大时间差，单位秒。
     merge_time_tolerance_sec: 0.08
+    # 同步策略：approximate 或 exact。
+    sync_policy: "approximate"
+    # 是否启用主雷达回退发布。
+    enable_fallback: true
     # 同步队列长度。
     queue_size: 20
+    # 是否启用时间补偿（用 TF 将次点云对齐到主点云时间）。
+    enable_time_compensation: true
+    # 时间补偿参考坐标系。
+    odom_frame: "odom"
+    base_frame: "base_footprint"
+    # 最大时间补偿窗口，单位秒。
+    max_time_compensation_sec: 0.20
 
 # SLAM Toolbox：mapping 模式时发布 map/odom 等；scan_topic 要与上游生成一致
 slam_toolbox:
