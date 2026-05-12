@@ -29,6 +29,7 @@ public:
   {
     return {
       BT::InputPort<int>("expected_nearby_goal_count"), BT::InputPort<double>("expected_dis"),
+      BT::InputPort<bool>("non_blocking"),
       BT::InputPort<double>("pose_x"), BT::InputPort<double>("pose_y"),
       BT::InputPort<geometry_msgs::msg::TransformStamped>("message")};
   }
@@ -50,12 +51,14 @@ private:
   int goal_count;
   int expected_nearby_goal_count;
   double expected_dis;
+  bool non_blocking;
   double current_pose_x;
   double current_pose_y;
   geometry_msgs::msg::Quaternion current_orientation;
   geometry_msgs::msg::PoseStamped nearby_random_point;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr publisher_goal_pose;
   std::chrono::time_point<std::chrono::high_resolution_clock> last_goal_time_;
+  std::chrono::time_point<std::chrono::high_resolution_clock> last_non_blocking_goal_time_;
 };
 }  // namespace rm_behavior_tree
 

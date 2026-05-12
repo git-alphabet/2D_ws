@@ -25,6 +25,7 @@ BT::NodeStatus MoveAroundAction::onStart()
   current_orientation.w = 1.0;
   expected_dis = 0.0;
   expected_nearby_goal_count = 0;
+  non_blocking = false;
   goal_count = 0;
 
   // Prefer scalar pose inputs. Keep the legacy TransformStamped port for existing RMUL XML.
@@ -51,9 +52,20 @@ BT::NodeStatus MoveAroundAction::onStart()
      std::cout << "missing required input [expected_nearby_goal_count]" << '\n';
     return BT::NodeStatus::FAILURE;
   }
+  getInput("non_blocking", non_blocking);
 
   if (expected_nearby_goal_count <= 0) {
     // No need to go into the RUNNING state
+    return BT::NodeStatus::SUCCESS;
+  } else if (non_blocking) {
+    auto now = std::chrono::high_resolution_clock::now();
+    auto elapsed = std::chrono::duration_cast<milliseconds>(
+      now - last_non_blocking_goal_time_).count();
+    if (elapsed >= 1000) {
+      generatePoints(current_pose_x, current_pose_y, expected_dis, nearby_random_point);
+      sendGoalPose(nearby_random_point);
+      last_non_blocking_goal_time_ = now;
+    }
     return BT::NodeStatus::SUCCESS;
   } else {
     // once the expected_nearby_goal_count is reached, we will return SUCCESS.
