@@ -9,6 +9,8 @@ RMUC 标定点辅助节点 —— 单个 PublishPoint 工具 + 自动轮转模�
   4. 发布 /calib/select 话题 (std_msgs/String) 可跳到指定点：
        ros2 topic pub --once /calib/select std_msgs/msg/String "data: supply_zone"
   5. 发布 /calib/prev 或 /calib/next (std_msgs/Empty) 可上翻/下翻
+       ros2 topic pub --once /calib/prev std_msgs/msg/Empty '{}'
+       ros2 topic pub --once /calib/next std_msgs/msg/Empty '{}'
 
 话题:
   订阅: /calib/clicked_point  (geometry_msgs/msg/PointStamped) — rviz 点击
@@ -42,14 +44,14 @@ CALIB_POINTS: list[tuple[str, str, tuple[float, float, float, float]]] = [
     # ── 以下暂时隐藏，需要时取消注释即可 ──
     # ("outpost_buff",           "3-前哨增益 OutpostBuff",     (0.8, 0.0, 0.8, 1.0)),
     ("fortress_area",          "F-堡垒区 Fortress",          (1.0, 0.0, 0.0, 1.0)),
-    # ("central_highland",       "6-中央高地 CentralHL",       (1.0, 1.0, 0.0, 1.0)),
-    # ("ladder_highland",        "7-梯形高地 LadderHL",        (0.0, 1.0, 1.0, 1.0)),
+    ("central_highland",       "6-中央高地 CentralHL",       (1.0, 1.0, 0.0, 1.0)),
+    ("ladder_highland",        "7-梯形高地 LadderHL",        (0.0, 1.0, 1.0, 1.0)),
     # ("defend_anchor",          "8-防御锚点 Defend",          (1.0, 0.4, 0.4, 1.0)),
     # ── 巡逻点（前哨站被毁后，在梯形高地附近巡逻的路点）──
     # ("patrol_1",               "P1-巡逻点1 Patrol1",        (0.4, 1.0, 0.4, 1.0)),
     # ("patrol_2",               "P2-巡逻点2 Patrol2",        (0.4, 1.0, 0.6, 1.0)),
     # ("patrol_3",               "P3-巡逻点3 Patrol3",        (0.4, 1.0, 0.8, 1.0)),
-    # ("cap_outpost",            "C-占领前哨 CapOutpost",     (1.0, 0.3, 0.0, 1.0)),
+    ("cap_outpost",            "C-占领前哨 CapOutpost",     (1.0, 0.3, 0.0, 1.0)),
 ]
 
 # ── rmuc_calibration.csv 默认路径 ──
@@ -231,6 +233,7 @@ class CalibPointHelper(Node):
             if key == target or target in name:
                 self.current_idx = idx
                 self._print_current_hint()
+                self._publish_all_markers()
                 self._publish_hint_marker()
                 return
         self.get_logger().warn(f"[CALIB] 未知标定点: '{target}'")
@@ -238,11 +241,13 @@ class CalibPointHelper(Node):
     def _on_next(self, _msg: Empty):
         self.current_idx = (self.current_idx + 1) % len(CALIB_POINTS)
         self._print_current_hint()
+        self._publish_all_markers()
         self._publish_hint_marker()
 
     def _on_prev(self, _msg: Empty):
         self.current_idx = (self.current_idx - 1) % len(CALIB_POINTS)
         self._print_current_hint()
+        self._publish_all_markers()
         self._publish_hint_marker()
 
     def _on_show_points(self, msg: Bool):
@@ -356,8 +361,12 @@ class CalibPointHelper(Node):
                 continue
             cx, cy = point
             r, g, b, a = color
+            is_current = idx == self.current_idx
             marker_alpha = a if source == "calibrated" else min(a, 0.45)
+            if is_current:
+                marker_alpha = 1.0
             label_suffix = "" if source == "calibrated" else "\n[YAML默认]"
+            current_prefix = "▶ " if is_current else ""
 
             # ── 十字标志 ──
             cross = Marker()
@@ -368,7 +377,7 @@ class CalibPointHelper(Node):
             cross.type = Marker.LINE_LIST
             cross.action = Marker.ADD
             cross.pose.orientation.w = 1.0
-            cross.scale.x = CROSS_LINE_WIDTH
+            cross.scale.x = CROSS_LINE_WIDTH * (2.0 if is_current else 1.0)
             cross.color.r = r
             cross.color.g = g
             cross.color.b = b
@@ -396,7 +405,7 @@ class CalibPointHelper(Node):
             label.color.g = 1.0
             label.color.b = 1.0
             label.color.a = 1.0 if source == "calibrated" else 0.8
-            label.text = f"({cx:.2f}, {cy:.2f})\n{display_name}{label_suffix}"
+            label.text = f"({cx:.2f}, {cy:.2f})\n{current_prefix}{display_name}{label_suffix}"
             ma.markers.append(label)
 
         self.marker_pub.publish(ma)
