@@ -37,7 +37,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 # ── 标定点定义 ──────────────────────────────────────────────
 # (key, display_name, color_rgba)
 CALIB_POINTS: list[tuple[str, str, tuple[float, float, float, float]]] = [
-    # ("supply_zone",            "1-补给区 Supply",            (0.0, 0.6, 1.0, 1.0)),
+    ("supply_zone",            "1-补给区 Supply",            (0.0, 0.6, 1.0, 1.0)),
     # ("base",                   "2-基地 Base",                (1.0, 0.5, 0.2, 1.0)),
     # ── 以下暂时隐藏，需要时取消注释即可 ──
     # ("outpost_buff",           "3-前哨增益 OutpostBuff",     (0.8, 0.0, 0.8, 1.0)),
