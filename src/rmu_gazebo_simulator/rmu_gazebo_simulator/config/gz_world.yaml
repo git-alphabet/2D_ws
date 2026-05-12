@@ -1,4 +1,4 @@
-world: "rmuc_2025"
+world: "rmuc_2026"
 
 robots:
 
@@ -92,4 +92,3 @@ robots:
       y_pose: "-3.5"
       z_pose: "0.28"
       yaw: "3.14"
-

@@ -6,11 +6,19 @@
       功能：
         - 在 RViz2 中通过 Nav2 Goal 手动设置导航目标点
         - 导航过程中停止底盘旋转 (chassis_spin = False)
-        - 到达目标 / 未设目标时开启底盘旋转 (chassis_spin = True)
+        - 开局停在初始位置时不自转
+        - 首次经历导航中状态后，到达第一个非初始导航目标才开始正常旋转逻辑
     -->
 
     <BehaviorTree ID="SpinAndNavigate">
         <ReactiveSequence>
+
+            <!-- 仅初始化一次：启动时还没有经历过真实导航目标 -->
+            <RunOnce then_skip="true">
+                <Sequence>
+                    <SetBlackboard output_key="has_seen_navigation" value="false"/>
+                </Sequence>
+            </RunOnce>
 
             <!-- 持续订阅机器人位置与导航到达状态 -->
             <RmucSubRobotPosition topic_name="robot_position"
@@ -20,18 +28,27 @@
 
             <!-- 底盘旋转控制 -->
             <ReactiveFallback>
-                <!-- 正在导航中 (is_at_nav_goal == false) → 停止旋转 -->
+                <!-- 正在导航中：记录已经离开初始点并停止旋转 -->
                 <ReactiveSequence>
                     <ScriptCondition code="is_at_nav_goal == false"/>
+                    <SetBlackboard output_key="has_seen_navigation" value="true"/>
                     <RmucRobotControl stop_gimbal_scan="False"
                                       chassis_spin="False"/>
                     <KeepRunning/>
                 </ReactiveSequence>
 
-                <!-- 到达目标 / 原地不动 → 底盘旋转 -->
+                <!-- 已经经历过导航，且当前到达目标 / 无活动目标 → 底盘旋转 -->
                 <ReactiveSequence>
+                    <ScriptCondition code="has_seen_navigation == true"/>
                     <RmucRobotControl stop_gimbal_scan="False"
                                       chassis_spin="True"/>
+                    <KeepRunning/>
+                </ReactiveSequence>
+
+                <!-- 开局初始位置：还未去过任何非初始导航目标，保持不旋转 -->
+                <ReactiveSequence>
+                    <RmucRobotControl stop_gimbal_scan="False"
+                                      chassis_spin="False"/>
                     <KeepRunning/>
                 </ReactiveSequence>
             </ReactiveFallback>
