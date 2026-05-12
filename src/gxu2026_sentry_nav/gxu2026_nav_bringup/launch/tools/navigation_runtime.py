@@ -14,9 +14,8 @@
 
 import os
 
-from launch.actions import ExecuteProcess, GroupAction, RegisterEventHandler, TimerAction
+from launch.actions import GroupAction, TimerAction
 from launch.conditions import IfCondition, UnlessCondition
-from launch.event_handlers import OnProcessExit
 from launch.substitutions import PythonExpression
 from launch_ros.actions import LoadComposableNodes, Node
 from launch_ros.descriptions import ComposableNode
@@ -497,58 +496,22 @@ def build_navigation_runtime_actions(
         ],
     )
 
-    # Unified startup gate: TF warmup (phase 1, optional) + container readiness (phase 2).
-    # Blocks until all expected composable nodes are verified loaded in the container,
-    # then exits. Lifecycle manager starts only after this gate passes.
-    startup_gate_cmd = ExecuteProcess(
-        cmd=[
-            "python3",
-            os.path.join(bringup_dir, "launch", "nav2_startup_gate.py"),
-            "--tf-warmup-enabled",
-            nav2_tf_warmup_enabled,
-            "--tf-target-frame",
-            nav2_tf_warmup_target_frame,
-            "--tf-source-frame",
-            nav2_tf_warmup_source_frame,
-            "--tf-timeout-sec",
-            nav2_tf_warmup_timeout_sec,
-            "--tf-check-hz",
-            nav2_tf_warmup_check_hz,
-            "--container-timeout-sec",
-            "30.0",
-            "--container-check-hz",
-            "2.0",
-            "--namespace",
-            namespace,
-            "--use-sim-time",
-            use_sim_time,
-            "--container-name",
-            "nav2_container",
-        ],
-        output="screen",
-    )
+    # Lifecycle manager starts after a settle delay to let container nodes load.
+    # Previous startup_gate polled 'ros2 component list' via DDS discovery which
+    # was unreliable and wasted ~30s on timeout. A fixed delay is simpler and correct.
+    container_settle_delay = 15.0
 
-    # Lifecycle manager starts after startup gate passes + settle delay.
-    # The delay lets DDS discovery complete before lifecycle transitions begin,
-    # preventing service response timeouts under high startup load.
-    start_lifecycle_manager_cmd = RegisterEventHandler(
-        OnProcessExit(
-            target_action=startup_gate_cmd,
-            on_exit=[
-                TimerAction(
-                    period=3.0,
-                    actions=[
-                        _build_lifecycle_manager_node(
-                            use_sim_time=use_sim_time,
-                            autostart=autostart,
-                            log_level=log_level,
-                            lifecycle_nodes=lifecycle_nodes,
-                            configured_params=configured_params,
-                        )
-                    ],
-                )
-            ],
-        )
+    start_lifecycle_manager_cmd = TimerAction(
+        period=container_settle_delay,
+        actions=[
+            _build_lifecycle_manager_node(
+                use_sim_time=use_sim_time,
+                autostart=autostart,
+                log_level=log_level,
+                lifecycle_nodes=lifecycle_nodes,
+                configured_params=configured_params,
+            )
+        ],
     )
 
     start_auto_aim_yaw_joint_state_bridge_cmd = Node(
@@ -574,6 +537,5 @@ def build_navigation_runtime_actions(
         load_loam_composable_node,
         load_composable_nodes,
         load_pointcloud_to_laserscan_composable_cmd,
-        startup_gate_cmd,
         start_lifecycle_manager_cmd,
     ]
