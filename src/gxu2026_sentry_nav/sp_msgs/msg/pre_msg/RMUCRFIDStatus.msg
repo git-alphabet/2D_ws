@@ -14,7 +14,5 @@
 # bool   rfid_outpost_buff     # 前哨站增益点 RFID 触发
 # bool   rfid_central_highland # 中央高地 RFID 触发
 # bool   rfid_ladder_highland  # 梯形高地 RFID 触发
-# bool   rfid_fortress_ally    # 己方堡垒 RFID 触发
-
 # # ── 以下字段暂未启用 ──
 # bool   rfid_fortress_enemy   # 敌方堡垒 RFID 触发

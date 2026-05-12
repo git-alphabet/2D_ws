@@ -29,6 +29,7 @@ public:
       BT::BidirectionalPort<double>("central_highland_left_x"), BT::BidirectionalPort<double>("central_highland_left_y"),
       BT::BidirectionalPort<double>("ramp_jump_x"), BT::BidirectionalPort<double>("ramp_jump_y"),
       BT::BidirectionalPort<double>("cap_outpost_x"), BT::BidirectionalPort<double>("cap_outpost_y"),
+      BT::BidirectionalPort<double>("fortress_area_x"), BT::BidirectionalPort<double>("fortress_area_y"),
       BT::BidirectionalPort<double>("arrive_radius"),
       BT::BidirectionalPort<double>("move_around_expected_dis"),
       BT::BidirectionalPort<int>("move_around_expected_nearby_goal_count"),

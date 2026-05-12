@@ -10,6 +10,7 @@ RMUC 2026 裁判系统话题模拟器
   /game_status       — RMUCGameStatus (1 Hz)
   /robot_status      — RMUCRobotStatus (10 Hz)
   /radar/enemy_tracks — RMUCEnemyTracks (10 Hz)
+  /sentry_cmd        — RMUCSentryCmd (only 模式下手动发布)
 
 使用方式:
   1. 先在一个终端启动仿真:  ./scripts/sim_mapping.sh
@@ -42,6 +43,10 @@ RMUC 2026 裁判系统话题模拟器
   --supply-delay  N秒后模拟补给区发放弹药 (0=不发放, 用于测试超时)
   --supply-amount 每次发放弹药量 (默认 100)
   --supply-repeat 是否每隔 supply-delay 秒重复发放 (不加=仅一次)
+  --only          只发布指定话题。目前支持 sentry_cmd
+  --posture       --only sentry_cmd 时发布的姿态 (1=进攻, 2=防御, 3=移动)
+  --confirm-respawn
+                  --only sentry_cmd 时发布确认复活
   --duration      运行时长秒数 (0=持续运行, 默认0)
 
 复合指令示例（按序列模拟多阶段场景，用 --duration 代替 timeout）:
@@ -65,6 +70,12 @@ RMUC 2026 裁判系统话题模拟器
 
   # 低弹药+每60秒补给100发（模拟真实免费补给节奏）
     python3 /ws/scripts/rmuc_test_publisher.py --ammo=50 --supply-delay=60 --supply-amount=100 --supply-repeat
+
+  # 只发布姿态指令到 /sentry_cmd，姿态 1=进攻 2=防御 3=移动
+    python3 /ws/scripts/rmuc_test_publisher.py --ns=/red_standard_robot1 --only=sentry_cmd --posture=1
+
+  # 只发布确认复活到 /sentry_cmd
+    python3 /ws/scripts/rmuc_test_publisher.py --ns=/red_standard_robot1 --only=sentry_cmd --confirm-respawn
 """
 
 import argparse
@@ -80,6 +91,7 @@ from sp_msgs.msg import (
     RMUCGameStatus,
     RMUCRobotStatus,
     RMUCEnemyTracks,
+    RMUCSentryCmd,
 )
 
 
@@ -226,6 +238,47 @@ class RmucTestPublisher(Node):
         self.pub_game.publish(msg)
 
 
+class RmucSingleTopicPublisher(Node):
+    """只发布一个 RMUC 测试话题，避免干扰其他链路。"""
+
+    def __init__(self, args, namespace=""):
+        super().__init__("rmuc_single_topic_publisher", namespace=namespace)
+        self.args = args
+        self.resolved_namespace = _normalize_namespace(namespace)
+        self.tick_count = 0
+
+        if args.only == "sentry_cmd":
+            self.pub_sentry_cmd = self.create_publisher(RMUCSentryCmd, "sentry_cmd", 10)
+            self.timer = self.create_timer(0.5, self._pub_sentry_cmd)
+            self.get_logger().info(
+                f"单话题模式: sentry_cmd, posture={args.posture} "
+                f"confirm_respawn={args.confirm_respawn} "
+                f"(topic={(self.resolved_namespace or '') + '/sentry_cmd' if self.resolved_namespace else '/sentry_cmd'})"
+            )
+        else:
+            raise ValueError(f"unsupported --only value: {args.only}")
+
+    def _header(self):
+        h = Header()
+        h.stamp = self.get_clock().now().to_msg()
+        h.frame_id = "base_link"
+        return h
+
+    def _pub_sentry_cmd(self):
+        self.tick_count += 1
+        msg = RMUCSentryCmd()
+        msg.header = self._header()
+        msg.cmd_posture = int(self.args.posture)
+        msg.cmd_confirm_respawn = bool(self.args.confirm_respawn)
+        self.pub_sentry_cmd.publish(msg)
+        if self.tick_count == 1 or self.tick_count % 10 == 0:
+            self.get_logger().info(
+                "发布 sentry_cmd: "
+                f"cmd_posture={msg.cmd_posture}, "
+                f"cmd_confirm_respawn={msg.cmd_confirm_respawn}"
+            )
+
+
 def _normalize_namespace(namespace: str) -> str:
     namespace = (namespace or "").strip()
     if not namespace or namespace == "/":
@@ -311,6 +364,12 @@ def main():
                         help="每次发放弹药量 (默认100)")
     parser.add_argument("--supply-repeat", action="store_true",
                         help="每隔 supply-delay 秒重复发放 (不加=仅发放一次)")
+    parser.add_argument("--only", choices=["sentry_cmd"], default="",
+                        help="只发布指定话题；目前支持 sentry_cmd")
+    parser.add_argument("--posture", type=int, choices=[1, 2, 3], default=3,
+                        help="--only sentry_cmd 时发布的姿态 (1=进攻, 2=防御, 3=移动)")
+    parser.add_argument("--confirm-respawn", action="store_true",
+                        help="--only sentry_cmd 时将 cmd_confirm_respawn 置为 true")
     parser.add_argument("--duration", type=float, default=0,
                         help="运行时长(秒), 0=持续运行直到Ctrl+C")
     args = parser.parse_args()
@@ -320,12 +379,15 @@ def main():
     resolved_namespace = _resolve_namespace(args.ns)
 
     # 使用 namespace 让所有话题自动带前缀 (如 /red_standard_robot1/game_status)
-    node = RmucTestPublisher(args, namespace=resolved_namespace)
+    if args.only:
+        node = RmucSingleTopicPublisher(args, namespace=resolved_namespace)
+    else:
+        node = RmucTestPublisher(args, namespace=resolved_namespace)
 
     try:
         node.get_logger().info(
             f"话题命名空间: {resolved_namespace or '/'} "
-            f"(请求值: {args.ns}, 话题如 {(resolved_namespace or '') + '/game_status' if resolved_namespace else '/game_status'})"
+            f"(请求值: {args.ns})"
         )
         if args.duration > 0:
             node.get_logger().info(f"将在 {args.duration}s 后自动退出")

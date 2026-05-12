@@ -148,8 +148,6 @@
             <output_port name="base_buff_y" default="0.0"/>     <!-- TODO: 己方基地增益区中心 y -->
             <output_port name="outpost_buff_x" default="0.0"/>  <!-- TODO: 己方前哨站增益区中心 x -->
             <output_port name="outpost_buff_y" default="0.0"/>  <!-- TODO: 己方前哨站增益区中心 y -->
-            <output_port name="fortress_ally_x" default="0.0"/> <!-- TODO: 己方堡垒区中心 x -->
-            <output_port name="fortress_ally_y" default="0.0"/> <!-- TODO: 己方堡垒区中心 y -->
             <output_port name="fortress_enemy_x" default="0.0"/><!-- TODO: 敌方堡垒区中心 x -->
             <output_port name="fortress_enemy_y" default="0.0"/><!-- TODO: 敌方堡垒区中心 y -->
             <output_port name="central_highland_x" default="0.0"/> <!-- TODO: 中央高地中心 x -->

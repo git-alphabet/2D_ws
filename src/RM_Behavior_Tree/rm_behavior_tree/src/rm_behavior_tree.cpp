@@ -140,7 +140,8 @@ int main(int argc, char ** argv)
       "central_highland_x","central_highland_y",
       "ladder_highland_x","ladder_highland_y",
       "defend_anchor_x","defend_anchor_y",
-      "cap_outpost_x","cap_outpost_y"
+      "cap_outpost_x","cap_outpost_y",
+      "fortress_area_x","fortress_area_y"
     };
     // double 阈值参数
     const std::vector<std::pair<std::string, double>> double_keys = {
