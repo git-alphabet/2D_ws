@@ -22,8 +22,8 @@ export MAPPING_CMD="ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch
     terrain_lidar_odometry_topic:=/odin1/odometry_highfreq"
 
 # ── 参数解析 ──────────────────────────────────────────────────────
-# 用法: odin1_mapping_bag.sh <bag目录> [odin1_mapping.sh 参数...]
-#       odin1_mapping_bag.sh              # 不回放 bag，只启动建图程序
+# 用法: mapping_bag.sh <bag目录> [mapping.sh 参数...]
+#       mapping_bag.sh              # 不回放 bag，只启动建图程序
 BAG_DIR="${1:-}"
 if [ -n "$BAG_DIR" ]; then
     shift
@@ -36,7 +36,7 @@ _bag_pid=""
 
 _cleanup() {
     if [ -n "$_bag_pid" ] && kill -0 "$_bag_pid" 2>/dev/null; then
-        echo "[odin1_mapping_bag] Stopping bag replay (PID $_bag_pid)..."
+        echo "[mapping_bag] Stopping bag replay (PID $_bag_pid)..."
         kill "$_bag_pid" 2>/dev/null || true
         wait "$_bag_pid" 2>/dev/null || true
     fi
@@ -44,7 +44,7 @@ _cleanup() {
 trap _cleanup EXIT INT TERM
 
 # ── 启动建图程序（先启动，等待 /clock）──────────────────────────
-"$SCRIPT_DIR/odin1_mapping.sh" "$@" &
+"$SCRIPT_DIR/mapping.sh" "$@" &
 _mapping_pid=$!
 
 # ── 启动 bag 回放 ──────────────────────────────────────────────
@@ -57,7 +57,7 @@ if [ -n "$BAG_DIR" ]; then
     fi
 
     if [ ! -d "$BAG_DIR" ]; then
-        echo "[odin1_mapping_bag] ERROR: bag directory not found: $BAG_DIR" >&2
+        echo "[mapping_bag] ERROR: bag directory not found: $BAG_DIR" >&2
         kill $_mapping_pid 2>/dev/null || true
         exit 1
     fi
@@ -67,14 +67,14 @@ if [ -n "$BAG_DIR" ]; then
         BAG_CMD="$BAG_CMD --loop"
     fi
 
-    echo "[odin1_mapping_bag] Starting bag replay (raw mode, rate=$BAG_RATE, loop=$BAG_LOOP): $BAG_DIR"
+    echo "[mapping_bag] Starting bag replay (raw mode, rate=$BAG_RATE, loop=$BAG_LOOP): $BAG_DIR"
     _branch="$(git -C "$SCRIPT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo default)"
     _branch_safe="$(echo "$_branch" | sed 's#[^A-Za-z0-9._-]#_#g')"
     _install_setup="$SCRIPT_DIR/../.buildcache/$_branch_safe/install/setup.bash"
     [ -f "$_install_setup" ] || _install_setup="$SCRIPT_DIR/../install/setup.bash"
     bash -c "source /opt/ros/humble/setup.bash && source $_install_setup 2>/dev/null; $BAG_CMD" &
     _bag_pid=$!
-    echo "[odin1_mapping_bag] Bag replay PID: $_bag_pid"
+    echo "[mapping_bag] Bag replay PID: $_bag_pid"
 fi
 
 wait $_mapping_pid 2>/dev/null || true
