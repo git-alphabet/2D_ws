@@ -53,6 +53,7 @@ BT::NodeStatus InitSentryConfigAction::tick()
 
   setDouble("arrive_radius", 1.0);
   setDouble("enemy_near_base_radius", 0.0);
+  setDouble("move_around_expected_dis", 0.3);
 
   setInt("hp_low", 180);
   setInt("hp_safe", 280);
@@ -60,6 +61,7 @@ BT::NodeStatus InitSentryConfigAction::tick()
   setInt("supply_wait_timeout_s", 30);
   setInt("base_threat_calm_timeout_ms", 0);
   setInt("patrol_hold_ms", 5000);
+  setInt("move_around_expected_nearby_goal_count", 3);
 
   // 巡逻参数 (从黑板直接读取，由 rm_behavior_tree.cpp 注入)
   bool patrol_enable = false;

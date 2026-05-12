@@ -20,6 +20,8 @@
                 cap_outpost_x="{cfg.cap_outpost_x}" cap_outpost_y="{cfg.cap_outpost_y}"
 
                 arrive_radius="{cfg.arrive_radius}"
+                move_around_expected_dis="{cfg.move_around_expected_dis}"
+                move_around_expected_nearby_goal_count="{cfg.move_around_expected_nearby_goal_count}"
                 hp_low="{cfg.hp_low}"
                 hp_safe="{cfg.hp_safe}"
                 ammo_low="{cfg.ammo_low}"

@@ -438,9 +438,8 @@ Sequence (幂等)
 | `{game_status}` | `RmucSubGameStatus` | `/game_status` | |
 | `{robot_status}` | `RmucSubRobotStatus` | `/robot_status` | |
 | `{rfid.status}` | `RmucSubRFIDStatus` | `/rfid_status` | |
-| `{pose.x}`, `{pose.y}`, `{pose.yaw}` | `RmucSubRobotPosition` | `/robot_position` | |
+| `{pose.x}`, `{pose.y}` | `RmucSubRobotPosition` | `/robot_position` | |
 | `{is_at_nav_goal}` | `RmucSubRobotPosition` | `/robot_position` | |
-| `{pose}` | `RmucSubRobotPosition` | `/robot_position` | (TransformStamped) |
 | `{radar.tracks}` | `SubRadarTracks` | `/radar/enemy_tracks` | |
 | `{time.now_ms}` | `RmucSubGameStatus` | `/game_status` | |
 | `{sentry_decision_status}` | `RmucSubSentryDecisionStatus` | `/sentry_decision_status` | P0 NEW, legacy |
@@ -602,7 +601,7 @@ Sequence (幂等)
 | `{active_subtree}` | SetBlackboard (rmuc_2026.xml 各分支, 共 8 处) | DecidePosture | ✅ |
 | `{heal_start_ms}` | RmucWaitAndHeal(inout) | RmucWaitAndHeal(inout) | ✅ (子树内部闭环) |
 | `{search_start_ms}` | InitSearchTimerIfNeeded(inout) | RmucMicroSearchSupplyCard(inout) | ✅ |
-| `{pose}` | RmucSubRobotPosition (TransformStamped output) | MoveAround(message) | ✅ |
+| `{pose.x}`, `{pose.y}` | RmucSubRobotPosition | MoveAround(pose_x/pose_y) | ✅ |
 
 ### 3.6 有写无读汇总（Dead Data）
 
@@ -718,7 +717,7 @@ Sequence (幂等)
 | 模式 | 位置 | 风险 | 建议 |
 |---|---|---|---|
 | Sequence 包裹 SetBlackboard + SubTree (8处) | rmuc_2026.xml ReactiveFallback 内 | 🟢 极低 — SetBlackboard 永远 SUCCESS | 保持现状 |
-| `MoveAround` 使用 `{pose}` key | WeaknessRecovery.xml | 🟢 **已确认** — `{pose}` 由 RmucSubRobotPosition 写入 (TransformStamped) | 无需修改 |
+| `MoveAround` 使用位置输入 | WeaknessRecovery.xml | 🟢 **已调整** — 使用 `{pose.x}` / `{pose.y}`，不再依赖伪造 `{pose}` | 无需修改 |
 | RespawnRecovery 导航到补给区后搜索 | RespawnRecovery.xml | 🟡 中等 — 若搜索超时可能卡住 | 已有 search_timeout_ms 配置兜底 |
 
 ---
@@ -738,7 +737,7 @@ Sequence (幂等)
 | `RmucSubGameStatus` | ✅ | |
 | `RmucSubRobotStatus` | ✅ | |
 | `RmucSubRFIDStatus` | ✅ | |
-| `RmucSubRobotPosition` | ✅ (含 pose output) | |
+| `RmucSubRobotPosition` | ✅ (pose_x/pose_y/is_at_nav_goal) | |
 | `SubRadarTracks` | ✅ | |
 | `RmucSubSentryDecisionStatus` | ✅ | P0 NEW, legacy |
 | `RmucSubRobotBuff` | ✅ | P0 NEW |

@@ -220,13 +220,16 @@ int main(int argc, char ** argv)
       "cap_outpost_x","cap_outpost_y"
     };
     const std::vector<std::pair<std::string, double>> double_keys = {
-      {"arrive_radius", 1.0}, {"enemy_near_base_radius", 0.0}
+      {"arrive_radius", 1.0},
+      {"enemy_near_base_radius", 0.0},
+      {"move_around_expected_dis", 0.3}
     };
     const std::vector<std::pair<std::string, int>> int_keys = {
       {"hp_low", 180}, {"hp_safe", 280},
       {"ammo_low", 80},
       {"base_threat_calm_timeout_ms", 0},
-      {"patrol_hold_ms", 5000}
+      {"patrol_hold_ms", 5000},
+      {"move_around_expected_nearby_goal_count", 3}
     };
 
     const std::string prefix = "rmuc_sentry_config.";

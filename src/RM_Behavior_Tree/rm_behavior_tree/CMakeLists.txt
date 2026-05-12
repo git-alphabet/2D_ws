@@ -23,6 +23,7 @@ set(PACKAGE_INCLUDE_DEPENDS
     sp_msgs
     rm_decision_interfaces
     rclcpp
+    geometry_msgs
     std_msgs
     behaviortree_cpp
     behaviortree_ros2
