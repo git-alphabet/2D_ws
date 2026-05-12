@@ -501,7 +501,7 @@ fake_vel_transform:
     # 减速带区域名。
     speed_bump_zone_name: "speed_bump"
     # 减速带语义区域文件。
-    speed_bump_zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
+    speed_bump_zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/semantic_zones.yaml"
 
 # 非线性小陀螺（实车）：同仿真，发布 cmd_spin（Float32，单位 rad/s）
 nonlinear_spin_publisher:

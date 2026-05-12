@@ -20,6 +20,7 @@ __pycache__/
 /chat.instructions.md
 
 .clinerules/
+.claude/
 /.codex
 /CLAUDE.md
 library/PCL_FLOW.md
