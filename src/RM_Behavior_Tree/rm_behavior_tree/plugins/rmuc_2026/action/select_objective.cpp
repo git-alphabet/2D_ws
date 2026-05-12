@@ -11,14 +11,19 @@ SelectObjectiveAction::SelectObjectiveAction(
 BT::NodeStatus SelectObjectiveAction::tick()
 {
   bool outpost_alive = true;
-  bool enemy_outpost_destroyed = true;
+  int stage_elapsed_time = 0;
+  int cap_sustain_time = 0;
+  getInput("stage_elapsed_time", stage_elapsed_time);
+  getInput("cap_sustain_time", cap_sustain_time);
   getInput("outpost_alive", outpost_alive);
-  getInput("enemy_outpost_destroyed", enemy_outpost_destroyed);
 
   std::string objective;
   double gx = 0, gy = 0;
 
-  if (!enemy_outpost_destroyed) {
+  const bool in_cap_window =
+    cap_sustain_time > 0 && stage_elapsed_time >= 0 && stage_elapsed_time < cap_sustain_time;
+
+  if (in_cap_window) {
     objective = "CAP_OUTPOST";
     getInput("cap_outpost_x", gx);
     getInput("cap_outpost_y", gy);
@@ -34,8 +39,9 @@ BT::NodeStatus SelectObjectiveAction::tick()
 
   static std::string last_obj;
   if (objective != last_obj) {
-    fprintf(stderr, "[SelectObjective] enemy_outpost_destroyed=%d, outpost_alive=%d → %s (%.2f, %.2f)\n",
-      enemy_outpost_destroyed, outpost_alive, objective.c_str(), gx, gy);
+    fprintf(stderr,
+      "[SelectObjective] elapsed=%d, cap_sustain_time=%d, outpost_alive=%d -> %s (%.2f, %.2f)\n",
+      stage_elapsed_time, cap_sustain_time, outpost_alive, objective.c_str(), gx, gy);
     last_obj = objective;
   }
 

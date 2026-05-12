@@ -20,7 +20,7 @@ public:
       BT::InputPort<int>("stage_remain_time"),
       BT::InputPort<int>("hp_cur"), BT::InputPort<int>("hp_max"),
       BT::InputPort<bool>("outpost_alive"),
-      BT::InputPort<bool>("enemy_outpost_destroyed"),
+      BT::InputPort<int>("cap_sustain_time"),
       BT::InputPort<double>("cap_outpost_x"),
       BT::InputPort<double>("cap_outpost_y"),
       BT::InputPort<double>("central_highland_x"),

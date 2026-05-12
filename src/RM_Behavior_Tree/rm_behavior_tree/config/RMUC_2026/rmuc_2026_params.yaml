@@ -34,6 +34,7 @@ rm_behavior_tree:
 
       cap_outpost_x: 10.5810         # 占领前哨点 x（标定缺失/无效时使用；默认值与当前 CSV 标定值一致）
       cap_outpost_y: 1.0294          # 占领前哨点 y（标定缺失/无效时使用；默认值与当前 CSV 标定值一致）
+      cap_sustain_time: 30           # 比赛开始后优先占领前哨点的持续时间 (秒)，超时后不再前往 cap_outpost
       
       # 可能有用的预设点（目前未启用）
       central_highland_left_x: 9.00

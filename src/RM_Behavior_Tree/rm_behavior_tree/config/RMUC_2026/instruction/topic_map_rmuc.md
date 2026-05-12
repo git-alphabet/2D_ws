@@ -42,7 +42,7 @@
 | 消息 | 话题 | 关键字段 | 当前 BT 使用情况 |
 |---|---|---|---|
 | `RMUCGameStatus` | `game_status` | `game_progress`, `stage_remain_time` | 已启用；`RmucSubGameStatus`、`RmucIsGameTime`、`ParseSentryBlackboard` 消费 |
-| `RMUCRobotStatus` | `robot_status` | `current_hp`, `shooter_heat`, `ammo_allow`, `outpost_hp`, `base_hp`, `enemy_outpost_status`, `is_detect_enemy` | 已启用；当前是黑板解析主输入 |
+| `RMUCRobotStatus` | `robot_status` | `current_hp`, `shooter_heat`, `ammo_allow`, `outpost_hp`, `base_hp`, `enemy_outpost_status`, `is_detect_enemy` | 已启用；当前是黑板解析主输入；`enemy_outpost_status` 不再参与 BT 决策 |
 | `RMUCRobotBuff` | `robot_buff` | `vulnerability_pct` | 已在 XML 中注释暂停；当前不订阅，也不参与决策 |
 | `RMUCRobotPosition` | `robot_position` | `pose_x`, `pose_y`, `is_at_nav_goal` | 已启用；`RmucSubRobotPosition`、`IsAtGoal`、`IsNavTargetSupply` 相关逻辑消费 |
 | `RMUCEnemyTracks` | `radar/enemy_tracks` | `enemy_x`, `enemy_y` | 已启用；`SubRadarTracks`、`ParseSentryBlackboard` 消费 |
@@ -64,7 +64,7 @@
 
 | 插件 | 类型 | 输入 | 关键输出 |
 |---|---|---|---|
-| `ParseSentryBlackboard` | `SyncAction` | `{game_status}`, `{robot_status}`, `{radar_tracks}`, `{pose.x/y}`, `cfg.*` | `game.*`, `hp.*`, `ammo.*`, `base.hp.*`, `outpost.*`, `enemy_outpost_*`, `state.*`, `combat.has_target`, `is_detect_enemy`, `threat.base` |
+| `ParseSentryBlackboard` | `SyncAction` | `{game_status}`, `{robot_status}`, `{radar_tracks}`, `{pose.x/y}`, `cfg.*` | `game.*`, `hp.*`, `ammo.*`, `base.hp.*`, `outpost.*`, `state.*`, `combat.has_target`, `is_detect_enemy`, `threat.base` |
 
 ### 关键派生逻辑
 
@@ -72,9 +72,9 @@
 - `is_detect_enemy`：来自 `robot_status.is_detect_enemy`，但机器人位于配置的语义忽略区域时会被压成 `false`。
 - `outpost.alive`：由 `robot_status.outpost_hp > 0` 得出。
 - `base.hp.cur`：由 `robot_status.base_hp` 得出。
-- `enemy_outpost_destroyed`：敌方前哨站状态不是 `1/2` 时视为已摧毁。
 - `threat.base`：基地威胁锁存。进入条件是雷达敌人靠近基地且基地掉血；解除条件是云台未见敌且基地不掉血持续 `base_threat_calm_timeout_ms`。
 - `state.disengaged`：存活状态下连续 6 秒未发射且未掉血。
+- `CAP_OUTPOST`：比赛开始后 `game.elapsed_s < cfg.cap_sustain_time` 时由 `SelectObjective` 选择；超时后不再由敌方前哨站状态触发。
 
 ## 初始化与配置节点
 

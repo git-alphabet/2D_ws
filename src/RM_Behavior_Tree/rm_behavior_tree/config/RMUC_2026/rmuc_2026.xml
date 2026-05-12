@@ -51,11 +51,11 @@
                             <SubTree ID="BaseDefense" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 2) 目标控制：高于默认姿态；进入 ObjectivePlanner 前先决定当前是前哨站争夺还是普通目标规划 -->
+                        <!-- 2) 目标控制：高于默认姿态；开局 cap_sustain_time 秒内优先占领前哨点 -->
                         <Sequence>
                             <ReactiveFallback>
                                 <Sequence>
-                                    <ScriptCondition code="enemy_outpost_destroyed == false"/>
+                                    <ScriptCondition code="cap_sustain_time &gt; 0 &amp;&amp; game_elapsed_s &lt; cap_sustain_time"/>
                                     <SetBlackboard output_key="active_subtree" value="CapOutpostPlanner"/>
                                 </Sequence>
                                 <SetBlackboard output_key="active_subtree" value="ObjectivePlanner"/>
