@@ -34,6 +34,7 @@ public:
   explicit NonlinearSpinPublisher(const rclcpp::NodeOptions & options)
   : rclcpp::Node("nonlinear_spin_publisher", options)
   {
+    this->declare_parameter<bool>("enabled", true);
     this->declare_parameter<bool>("start_on_first_trigger", false);
     this->declare_parameter<std::string>("start_trigger_topic", "controller_server/FollowPath/local_plan");
     this->declare_parameter<std::string>(
@@ -65,6 +66,7 @@ public:
     this->declare_parameter<double>("idle_timeout_sec", 0.5);
     this->declare_parameter<std::string>("robot_control_topic", "robot_control");
 
+    this->get_parameter("enabled", enabled_);
     this->get_parameter("start_on_first_trigger", start_on_first_trigger_);
     this->get_parameter("start_trigger_topic", start_trigger_topic_);
     this->get_parameter("start_trigger_msg_type", start_trigger_msg_type_);
@@ -288,6 +290,19 @@ private:
   {
     const auto now = this->get_clock()->now();
 
+    // Static config toggle: disabled via parameter, publish zero once and return.
+    if (!enabled_) {
+      if (w_current_ != 0.0) {
+        w_current_ = 0.0;
+        w_target_ = 0.0;
+        example_interfaces::msg::Float32 zero_msg;
+        zero_msg.data = 0.0f;
+        cmd_spin_pub_->publish(zero_msg);
+      }
+      last_time_ = now;
+      return;
+    }
+
     // chassis_spin master toggle from BT RobotControl
     if (!spin_enabled_) {
       if (w_current_ != 0.0) {
@@ -412,6 +427,7 @@ private:
   std::string start_trigger_msg_type_;
   std::string robot_control_topic_;
 
+  bool enabled_{true};
   bool start_on_first_trigger_{false};
   bool triggered_{false};
   bool trigger_require_nonzero_{false};

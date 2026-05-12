@@ -523,6 +523,17 @@ def build_navigation_runtime_actions(
         parameters=[configured_params],
     )
 
+    start_nonlinear_spin_publisher_cmd = Node(
+        package="fake_vel_transform",
+        executable="nonlinear_spin_publisher",
+        name="nonlinear_spin_publisher",
+        output="screen",
+        respawn=use_respawn,
+        respawn_delay=2.0,
+        parameters=[configured_params],
+        arguments=["--ros-args", "--log-level", log_level],
+    )
+
     return [
         start_auto_aim_yaw_joint_state_bridge_cmd,
         start_pointcloud_merge_sync_cmd,
@@ -533,6 +544,7 @@ def build_navigation_runtime_actions(
         start_point_lio_cmd,
         start_loam_interface_mid360_cmd,
         start_rm_behavior_tree_cmd,
+        start_nonlinear_spin_publisher_cmd,
         load_nodes,
         load_loam_composable_node,
         load_composable_nodes,

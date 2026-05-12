@@ -43,6 +43,7 @@ EXPECTED_NODES = [
     "velocity_smoother",
     "sensor_scan_generation",
     "fake_vel_transform",
+    "nonlinear_spin_publisher",
 ]
 
 

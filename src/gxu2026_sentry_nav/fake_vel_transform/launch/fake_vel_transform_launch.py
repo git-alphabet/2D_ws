@@ -28,8 +28,16 @@ def generate_launch_description():
         parameters=[{"use_sim_time": use_sim_time}],
     )
 
+    nonlinear_spin_publisher_node = Node(
+        package="fake_vel_transform",
+        executable="nonlinear_spin_publisher",
+        output="screen",
+        parameters=[{"use_sim_time": use_sim_time}],
+    )
+
     ld = LaunchDescription()
 
     ld.add_action(fake_vel_transform_node)
+    ld.add_action(nonlinear_spin_publisher_node)
 
     return ld
