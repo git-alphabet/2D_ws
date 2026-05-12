@@ -29,6 +29,7 @@
                              patrol_hold_ms="{cfg.patrol_hold_ms}"
                              arrive_radius="{cfg.arrive_radius}"
                              goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"/>
+            <SetBlackboard output_key="nav_goal_valid" value="true"/>
 
             <!-- 目标规划姿态：到达当前目标→防御(2)，导航中→移动(3) -->
             <ReactiveFallback>

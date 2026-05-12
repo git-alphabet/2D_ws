@@ -42,7 +42,8 @@ public:
       BT::BidirectionalPort<bool>("patrol_enable"),
       BT::BidirectionalPort<std::string>("patrol_waypoints"),
       BT::BidirectionalPort<std::string>("semantic_zones_file"),
-      BT::BidirectionalPort<std::string>("semantic_ignore_enemy_zone_type")};
+      BT::BidirectionalPort<std::string>("semantic_ignore_enemy_zone_type"),
+      BT::BidirectionalPort<bool>("nav_goal_valid")};
   }
   BT::NodeStatus tick() override;
 

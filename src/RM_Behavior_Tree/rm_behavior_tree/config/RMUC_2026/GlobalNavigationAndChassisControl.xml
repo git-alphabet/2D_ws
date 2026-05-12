@@ -86,6 +86,7 @@
 
                 <!-- 到达当前导航目标 → 旋转 -->
                 <Sequence>
+                    <ScriptCondition code="nav_goal_valid == true"/>
                     <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
                               goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
                               arrive_radius="{cfg.arrive_radius}"/>

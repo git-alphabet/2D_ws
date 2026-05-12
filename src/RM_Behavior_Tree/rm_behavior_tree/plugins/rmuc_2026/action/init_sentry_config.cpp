@@ -74,6 +74,7 @@ BT::NodeStatus InitSentryConfigAction::tick()
 
   setStr("semantic_zones_file", "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml");
   setStr("semantic_ignore_enemy_zone_type", "speed_bump");
+  setOutput("nav_goal_valid", false);
 
   loaded_once_ = true;
   return BT::NodeStatus::SUCCESS;

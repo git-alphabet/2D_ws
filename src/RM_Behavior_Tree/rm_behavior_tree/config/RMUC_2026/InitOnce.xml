@@ -33,6 +33,7 @@
                 patrol_waypoints="{cfg.patrol_waypoints}"
                 semantic_zones_file="{cfg.semantic_zones_file}"
                 semantic_ignore_enemy_zone_type="{cfg.semantic_ignore_enemy_zone_type}"
+                nav_goal_valid="{nav_goal_valid}"
                 />
             <!-- 标定覆盖：从 CSV 文件加载标定坐标，覆盖上面 YAML 默认值 -->
             <LoadCalibrationCSV

@@ -80,8 +80,6 @@ from sp_msgs.msg import (
     RMUCGameStatus,
     RMUCRobotStatus,
     RMUCEnemyTracks,
-    RMUCSentryDecisionStatus,
-    RMUCSentryCmd,
 )
 
 
@@ -97,10 +95,6 @@ class RmucTestPublisher(Node):
         self.pub_game = self.create_publisher(RMUCGameStatus, "game_status", 10)
         self.pub_robot = self.create_publisher(RMUCRobotStatus, "robot_status", 10)
         # robot_position 由 robot_position_bridge.py 发布（从 TF + Nav2 状态获取），此处不再重复发布
-        self.pub_sentry_decision = self.create_publisher(
-            RMUCSentryDecisionStatus, "sentry_decision_status", 10
-        )
-
         # ── enable_power: rmua19_robot_base 必须收到此信号才会响应 cmd_vel ──
         # 路径镜像 Gazebo 裁判插件: /referee_system/{ns}/enable_power
         # 空 ns 时退化为 /referee_system/enable_power
@@ -115,12 +109,6 @@ class RmucTestPublisher(Node):
 
         # ── 雷达敌方跟踪 (用于模拟基地威胁进入条件) ──
         self.pub_radar_tracks = self.create_publisher(RMUCEnemyTracks, "radar/enemy_tracks", 10)
-
-        # ── 订阅 BT 的 sentry_cmd，镜像 cmd_posture 到 sentry_decision_status ──
-        self.current_posture = 3  # 默认移动姿态
-        self.sub_sentry_cmd = self.create_subscription(
-            RMUCSentryCmd, "sentry_cmd", self._sentry_cmd_cb, 10
-        )
 
         # 倒计时状态
         self.remain_time = args.remain
@@ -152,10 +140,6 @@ class RmucTestPublisher(Node):
             f"supply_repeat={args.supply_repeat}"
         )
 
-    def _sentry_cmd_cb(self, msg: RMUCSentryCmd):
-        if msg.cmd_posture in (1, 2, 3):
-            self.current_posture = msg.cmd_posture
-
     def _header(self):
         h = Header()
         h.stamp = self.get_clock().now().to_msg()
@@ -172,7 +156,6 @@ class RmucTestPublisher(Node):
             self.base_hp = max(0.0, self.base_hp - self.base_hp_drain / 10.0)
 
         self._pub_robot_status()
-        self._pub_sentry_decision_status()
         self._pub_radar_tracks()
 
     def _pub_robot_status(self):
@@ -199,13 +182,6 @@ class RmucTestPublisher(Node):
             msg.enemy_x = []
             msg.enemy_y = []
         self.pub_radar_tracks.publish(msg)
-
-    def _pub_sentry_decision_status(self):
-        msg = RMUCSentryDecisionStatus()
-        msg.header = self._header()
-        msg.current_posture = self.current_posture
-        msg.exchanged_ammo_total = 0
-        self.pub_sentry_decision.publish(msg)
 
     # ────────── 1 Hz 话题 ──────────
 
