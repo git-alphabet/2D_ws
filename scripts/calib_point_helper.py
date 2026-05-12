@@ -37,19 +37,19 @@ from visualization_msgs.msg import Marker, MarkerArray
 # ── 标定点定义 ──────────────────────────────────────────────
 # (key, display_name, color_rgba)
 CALIB_POINTS: list[tuple[str, str, tuple[float, float, float, float]]] = [
-    ("supply_zone",            "1-补给区 Supply",            (0.0, 0.6, 1.0, 1.0)),
+    # ("supply_zone",            "1-补给区 Supply",            (0.0, 0.6, 1.0, 1.0)),
     # ("base",                   "2-基地 Base",                (1.0, 0.5, 0.2, 1.0)),
     # ── 以下暂时隐藏，需要时取消注释即可 ──
     # ("outpost_buff",           "3-前哨增益 OutpostBuff",     (0.8, 0.0, 0.8, 1.0)),
-    # ("fortress_ally",          "5-堡垒区 Fortress",          (1.0, 0.0, 0.0, 1.0)),
-    ("central_highland",       "6-中央高地 CentralHL",       (1.0, 1.0, 0.0, 1.0)),
-    ("ladder_highland",        "7-梯形高地 LadderHL",        (0.0, 1.0, 1.0, 1.0)),
+    ("fortress_area",          "F-堡垒区 Fortress",          (1.0, 0.0, 0.0, 1.0)),
+    # ("central_highland",       "6-中央高地 CentralHL",       (1.0, 1.0, 0.0, 1.0)),
+    # ("ladder_highland",        "7-梯形高地 LadderHL",        (0.0, 1.0, 1.0, 1.0)),
     # ("defend_anchor",          "8-防御锚点 Defend",          (1.0, 0.4, 0.4, 1.0)),
     # ── 巡逻点（前哨站被毁后，在梯形高地附近巡逻的路点）──
-    ("patrol_1",               "P1-巡逻点1 Patrol1",        (0.4, 1.0, 0.4, 1.0)),
-    ("patrol_2",               "P2-巡逻点2 Patrol2",        (0.4, 1.0, 0.6, 1.0)),
+    # ("patrol_1",               "P1-巡逻点1 Patrol1",        (0.4, 1.0, 0.4, 1.0)),
+    # ("patrol_2",               "P2-巡逻点2 Patrol2",        (0.4, 1.0, 0.6, 1.0)),
     # ("patrol_3",               "P3-巡逻点3 Patrol3",        (0.4, 1.0, 0.8, 1.0)),
-    ("cap_outpost",            "C-占领前哨 CapOutpost",     (1.0, 0.3, 0.0, 1.0)),
+    # ("cap_outpost",            "C-占领前哨 CapOutpost",     (1.0, 0.3, 0.0, 1.0)),
 ]
 
 # ── rmuc_calibration.csv 默认路径 ──
@@ -66,7 +66,7 @@ CALIB_POINT_PARAM_MAP: dict[str, tuple[str, str]] = {
     "supply_zone": ("supply_zone_x", "supply_zone_y"),
     "base": ("base_x", "base_y"),
     "outpost_buff": ("outpost_buff_x", "outpost_buff_y"),
-    "fortress_ally": ("fortress_ally_x", "fortress_ally_y"),
+    "fortress_area": ("fortress_area_x", "fortress_area_y"),
     "central_highland": ("central_highland_x", "central_highland_y"),
     "ladder_highland": ("ladder_highland_x", "ladder_highland_y"),
     "defend_anchor": ("defend_anchor_x", "defend_anchor_y"),
@@ -544,7 +544,7 @@ class CalibPointHelper(Node):
                     f.write("# 使用方法:\n")
                     f.write("#   1. 启动 sim_mapping.sh, 标定辅助节点会自动启动\n")
                     f.write("#   2. 在 rviz 工具栏选择 \"标定点 Calib\", 点击地图标定\n")
-                    f.write("#   3. 跳到指定标定点: ros2 topic pub --once /calib/select std_msgs/msg/String \"data: fortress_ally\"\n")
+                    f.write("#   3. 跳到指定标定点: ros2 topic pub --once /calib/select std_msgs/msg/String \"data: fortress_area\"\n")
                     f.write("#   4. 上/下翻: ros2 topic pub --once /calib/next std_msgs/msg/Empty '{}'\n")
                     f.write("#\n")
 
