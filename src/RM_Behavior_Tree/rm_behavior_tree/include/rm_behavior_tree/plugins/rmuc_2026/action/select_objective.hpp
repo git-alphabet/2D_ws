@@ -3,7 +3,9 @@
 
 #include <string>
 #include <cmath>
+#include <chrono>
 #include "behaviortree_cpp/action_node.h"
+#include "sp_msgs/msg/rmuc_game_status.hpp"
 
 namespace rm_behavior_tree
 {
@@ -16,6 +18,7 @@ public:
   {
     return {
       BT::InputPort<double>("pose_x"), BT::InputPort<double>("pose_y"),
+      BT::InputPort<sp_msgs::msg::RMUCGameStatus>("game_status"),
       BT::InputPort<int>("stage_elapsed_time"),
       BT::InputPort<int>("stage_remain_time"),
       BT::InputPort<int>("hp_cur"), BT::InputPort<int>("hp_max"),
@@ -33,6 +36,11 @@ public:
       BT::OutputPort<std::string>("objective_name")};
   }
   BT::NodeStatus tick() override;
+
+private:
+  bool cap_timer_started_{false};
+  bool cap_timer_done_{false};
+  std::chrono::steady_clock::time_point cap_timer_start_{};
 };
 }  // namespace rm_behavior_tree
 #endif

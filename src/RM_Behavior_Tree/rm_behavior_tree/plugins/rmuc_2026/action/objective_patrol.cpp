@@ -1,6 +1,7 @@
 #include "rm_behavior_tree/plugins/rmuc_2026/action/objective_patrol.hpp"
 #include "behaviortree_cpp/blackboard.h"
 #include <algorithm>
+#include <cmath>
 #include <sstream>
 
 namespace rm_behavior_tree
@@ -57,24 +58,54 @@ BT::NodeStatus ObjectivePatrolAction::tick()
 
   auto ensure_int = [&](const std::string & key, int default_val) {
     try {
-      root_bb->get<int>(key);
+      (void)root_bb->get<int>(key);
     } catch (...) {
       root_bb->set<int>(key, default_val);
     }
   };
   auto ensure_bool = [&](const std::string & key, bool default_val) {
     try {
-      root_bb->get<bool>(key);
+      (void)root_bb->get<bool>(key);
     } catch (...) {
       root_bb->set<bool>(key, default_val);
     }
   };
   auto ensure_int64 = [&](const std::string & key, int64_t default_val) {
     try {
-      root_bb->get<int64_t>(key);
+      (void)root_bb->get<int64_t>(key);
     } catch (...) {
       root_bb->set<int64_t>(key, default_val);
     }
+  };
+  auto ensure_double = [&](const std::string & key, double default_val) {
+    try {
+      (void)root_bb->get<double>(key);
+    } catch (...) {
+      root_bb->set<double>(key, default_val);
+    }
+  };
+  auto publish_goal = [&](double goal_x, double goal_y) {
+    constexpr double kGoalChangeEps = 1e-3;
+    const std::string last_x_key = state_prefix + "last_goal_x";
+    const std::string last_y_key = state_prefix + "last_goal_y";
+    const std::string have_last_key = state_prefix + "has_last_goal";
+    ensure_double(last_x_key, goal_x);
+    ensure_double(last_y_key, goal_y);
+    ensure_bool(have_last_key, false);
+
+    const bool have_last = root_bb->get<bool>(have_last_key);
+    const double last_x = root_bb->get<double>(last_x_key);
+    const double last_y = root_bb->get<double>(last_y_key);
+    const bool changed = have_last && (
+      std::fabs(goal_x - last_x) > kGoalChangeEps ||
+      std::fabs(goal_y - last_y) > kGoalChangeEps);
+
+    root_bb->set<double>(last_x_key, goal_x);
+    root_bb->set<double>(last_y_key, goal_y);
+    root_bb->set<bool>(have_last_key, true);
+    setOutput("goal_x", goal_x);
+    setOutput("goal_y", goal_y);
+    setOutput("goal_changed", changed);
   };
 
   ensure_int(state_prefix + "current_idx", 0);
@@ -85,8 +116,7 @@ BT::NodeStatus ObjectivePatrolAction::tick()
 
   if (!outpost_destroyed_objective) {
     // 直接输出战略目标坐标
-    setOutput("goal_x", obj_x);
-    setOutput("goal_y", obj_y);
+    publish_goal(obj_x, obj_y);
     root_bb->set<int>(state_prefix + "current_idx", 0);
     root_bb->set<bool>(state_prefix + "was_arrived", false);
     root_bb->set<int64_t>(state_prefix + "arrived_time_ms", 0);
@@ -119,8 +149,7 @@ BT::NodeStatus ObjectivePatrolAction::tick()
   }
 
   if (cycle.empty()) {
-    setOutput("goal_x", obj_x);
-    setOutput("goal_y", obj_y);
+    publish_goal(obj_x, obj_y);
     return BT::NodeStatus::SUCCESS;
   }
 
@@ -184,8 +213,7 @@ BT::NodeStatus ObjectivePatrolAction::tick()
     }
   }
 
-  setOutput("goal_x", cycle[current_idx].x);
-  setOutput("goal_y", cycle[current_idx].y);
+  publish_goal(cycle[current_idx].x, cycle[current_idx].y);
   return BT::NodeStatus::SUCCESS;
 }
 

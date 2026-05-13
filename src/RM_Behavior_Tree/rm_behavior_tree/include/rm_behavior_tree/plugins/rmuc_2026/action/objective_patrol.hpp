@@ -36,7 +36,8 @@ public:
       BT::InputPort<int>("patrol_hold_ms", 5000, "到达巡逻点后停留时间(ms)"),
       BT::InputPort<double>("arrive_radius", 0.5, "到达判定半径(m)"),
       BT::OutputPort<double>("goal_x"),
-      BT::OutputPort<double>("goal_y")};
+      BT::OutputPort<double>("goal_y"),
+      BT::OutputPort<bool>("goal_changed")};
   }
 
   BT::NodeStatus tick() override;

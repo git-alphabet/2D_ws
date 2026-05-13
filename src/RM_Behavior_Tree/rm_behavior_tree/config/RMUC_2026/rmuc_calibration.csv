@@ -18,10 +18,10 @@
 # base,-2.3532,-2.0007
 # defend_anchor,0.0968,-0.4008
 # patrol_3,0.0596,-6.6217
-# patrol_1,5.1546,-1.5698
 # patrol_2,4.5796,-0.0708
 # supply_zone,5.0844,-3.4419
 fortress_area,1.9907,-1.8907
 central_highland,4.3247,-4.0767
-ladder_highland,0.4063,-3.7129
-cap_outpost,3.0016,-2.9778
+ladder_highland,-1.9565,-3.7483
+patrol_1,2.7999,-5.3993
+cap_outpost,4.0830,1.0942

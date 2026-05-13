@@ -3,40 +3,6 @@
 
     <BehaviorTree ID="ObjectivePlanner">
         <ReactiveSequence>
-            <!-- 选择战略目标 (开局占领前哨点 / 中心高地 / 梯形高地) -->
-            <SelectObjective pose_x="{pose.x}" pose_y="{pose.y}"
-                             stage_elapsed_time="{game.elapsed_s}"
-                             stage_remain_time="{game.remain_s}"
-                             hp_cur="{hp.cur}" hp_max="{hp.max}"
-                             outpost_alive="{outpost.alive}"
-                             cap_sustain_time="{cfg.cap_sustain_time}"
-                             cap_outpost_x="{cfg.cap_outpost_x}"
-                             cap_outpost_y="{cfg.cap_outpost_y}"
-                             central_highland_x="{cfg.central_highland_x}"
-                             central_highland_y="{cfg.central_highland_y}"
-                             ladder_highland_x="{cfg.ladder_highland_x}"
-                             ladder_highland_y="{cfg.ladder_highland_y}"
-                             fortress_area_x="{cfg.fortress_area_x}"
-                             fortress_area_y="{cfg.fortress_area_y}"
-                             goal_x="{nav.objective_x}" goal_y="{nav.objective_y}"
-                             objective_name="{nav.objective}"/>
-
-            <!-- 巡逻决策：前哨站被毁后，在梯形高地和堡垒区之间循环；巡逻开启时追加普通巡逻点 -->
-            <ObjectivePatrol pose_x="{pose.x}" pose_y="{pose.y}"
-                             objective_x="{nav.objective_x}"
-                             objective_y="{nav.objective_y}"
-                             objective_name="{nav.objective}"
-                             fortress_area_x="{cfg.fortress_area_x}"
-                             fortress_area_y="{cfg.fortress_area_y}"
-                             patrol_enable="{cfg.patrol_enable}"
-                             patrol_waypoints="{cfg.patrol_waypoints}"
-                             ladder_time="{cfg.ladder_time}"
-                             fortress_time="{cfg.fortress_time}"
-                             patrol_hold_ms="{cfg.patrol_hold_ms}"
-                             arrive_radius="{cfg.arrive_radius}"
-                             goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"/>
-            <SetBlackboard output_key="nav_goal_valid" value="true"/>
-
             <!-- 目标规划姿态：到达当前目标→防御(2)，导航中→移动(3) -->
             <ReactiveFallback>
                 <Sequence>
@@ -51,6 +17,15 @@
                                posture_out="{cmd.posture}"
                                is_allow_select_posture="{cmd.allow_posture_send}"/>
             </ReactiveFallback>
+
+            <Fallback>
+                <Inverter>
+                    <ScriptCondition code="nav_goal_changed == true"/>
+                </Inverter>
+                <CancelNavGoal action_name="navigate_to_pose"
+                               wait_for_service_ms="50"
+                               wait_response_ms="100"/>
+            </Fallback>
 
             <!-- 发送导航目标给 Nav2（同一目标默认只发一次，避免密集重发导致崩溃） -->
             <!-- ForceSuccess: 即使 Nav2 导航失败/中止，ObjectivePlanner 也保持活跃 -->
