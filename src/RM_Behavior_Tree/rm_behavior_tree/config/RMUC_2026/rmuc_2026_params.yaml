@@ -68,7 +68,7 @@ rm_behavior_tree:
       arrive_radius: 0.8              # 统一到达判定半径 (米)
       enemy_near_base_radius: 5.0     # 敌人距基地威胁半径 (米)
       base_threat_calm_timeout_ms: 30000  # 基地威胁自动解除平静时间 (毫秒)
-      move_around_enable: true       # 是否启用 MoveAround 随机微动
+      move_around_enable: false       # 是否启用 MoveAround 随机微动
       move_around_expected_dis: 0.3   # MoveAround 随机微动半径 (米)
       move_around_expected_nearby_goal_count: 3  # MoveAround 单次触发发布的随机目标点数量
 
