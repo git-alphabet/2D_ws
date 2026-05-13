@@ -236,6 +236,7 @@ pb_controller_profiles:
 # 行为树相关（RM 侧）：实车不用 sim time
 rm_behavior_tree:
   ros__parameters:
+    executable: rm_behavior_tree_rmuc
     style: rmuc_01.xml
     # 是否使用仿真时间。
     use_sim_time: False
@@ -1202,4 +1203,3 @@ lifecycle_manager_navigation:
     bond_timeout: 15.0
     # 是否在 bond 断开后尝试重连。
     attempt_respawn_reconnection: true
-
