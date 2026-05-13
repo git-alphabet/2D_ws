@@ -62,6 +62,8 @@ BT::NodeStatus InitSentryConfigAction::tick()
   setInt("supply_wait_timeout_s", 30);
   setInt("base_threat_calm_timeout_ms", 0);
   setInt("cap_sustain_time", 30);
+  setInt("ladder_time", 5000);
+  setInt("fortress_time", 5000);
   setInt("patrol_hold_ms", 5000);
   setInt("move_around_expected_nearby_goal_count", 3);
 

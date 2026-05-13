@@ -27,6 +27,8 @@ public:
       BT::InputPort<double>("central_highland_y"),
       BT::InputPort<double>("ladder_highland_x"),
       BT::InputPort<double>("ladder_highland_y"),
+      BT::InputPort<double>("fortress_area_x"),
+      BT::InputPort<double>("fortress_area_y"),
       BT::OutputPort<double>("goal_x"), BT::OutputPort<double>("goal_y"),
       BT::OutputPort<std::string>("objective_name")};
   }

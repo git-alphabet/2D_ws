@@ -230,6 +230,8 @@ int main(int argc, char ** argv)
       {"ammo_low", 80},
       {"base_threat_calm_timeout_ms", 0},
       {"cap_sustain_time", 30},
+      {"ladder_time", 5000},
+      {"fortress_time", 5000},
       {"patrol_hold_ms", 5000},
       {"move_around_expected_nearby_goal_count", 3}
     };

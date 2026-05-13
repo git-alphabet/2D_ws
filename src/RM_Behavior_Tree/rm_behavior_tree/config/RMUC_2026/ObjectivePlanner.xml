@@ -16,16 +16,22 @@
                              central_highland_y="{cfg.central_highland_y}"
                              ladder_highland_x="{cfg.ladder_highland_x}"
                              ladder_highland_y="{cfg.ladder_highland_y}"
+                             fortress_area_x="{cfg.fortress_area_x}"
+                             fortress_area_y="{cfg.fortress_area_y}"
                              goal_x="{nav.objective_x}" goal_y="{nav.objective_y}"
                              objective_name="{nav.objective}"/>
 
-            <!-- 巡逻决策：如果前哨站被毁+巡逻开启 → 在目标点和巡逻点间循环 -->
+            <!-- 巡逻决策：前哨站被毁后，在梯形高地和堡垒区之间循环；巡逻开启时追加普通巡逻点 -->
             <ObjectivePatrol pose_x="{pose.x}" pose_y="{pose.y}"
                              objective_x="{nav.objective_x}"
                              objective_y="{nav.objective_y}"
                              objective_name="{nav.objective}"
+                             fortress_area_x="{cfg.fortress_area_x}"
+                             fortress_area_y="{cfg.fortress_area_y}"
                              patrol_enable="{cfg.patrol_enable}"
                              patrol_waypoints="{cfg.patrol_waypoints}"
+                             ladder_time="{cfg.ladder_time}"
+                             fortress_time="{cfg.fortress_time}"
                              patrol_hold_ms="{cfg.patrol_hold_ms}"
                              arrive_radius="{cfg.arrive_radius}"
                              goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"/>

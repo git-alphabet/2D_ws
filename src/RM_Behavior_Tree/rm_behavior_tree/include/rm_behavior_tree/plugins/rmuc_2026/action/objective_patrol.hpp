@@ -10,9 +10,10 @@
 namespace rm_behavior_tree
 {
 
-/// 目标巡逻节点：在战略目标点与巡逻点之间循环
-/// - 巡逻关闭 或 目标不是 TRAPEZOIDAL_HIGHLAND → 只输出战略目标坐标
-/// - 巡逻开启 + 目标是 TRAPEZOIDAL_HIGHLAND → 在 [目标点, wpt0, wpt1, ...] 之间周期循环
+/// 目标巡逻节点：前哨站被毁后，在梯形高地、堡垒区和普通巡逻点之间循环
+/// - 目标不是 TRAPEZOIDAL_HIGHLAND → 只输出战略目标坐标
+/// - 目标是 TRAPEZOIDAL_HIGHLAND → 默认在 [梯形高地, 堡垒区] 之间循环
+/// - 巡逻开启时追加普通巡逻点，形成 [梯形高地, 堡垒区, wpt0, wpt1, ...]
 class ObjectivePatrolAction : public BT::SyncActionNode
 {
 public:
@@ -26,8 +27,12 @@ public:
       BT::InputPort<double>("objective_x"),
       BT::InputPort<double>("objective_y"),
       BT::InputPort<std::string>("objective_name"),
+      BT::InputPort<double>("fortress_area_x"),
+      BT::InputPort<double>("fortress_area_y"),
       BT::InputPort<bool>("patrol_enable", false, "是否启用巡逻"),
       BT::InputPort<std::string>("patrol_waypoints", "", "巡逻点 \"x1,y1;x2,y2;...\""),
+      BT::InputPort<int>("ladder_time", 5000, "梯形高地停留时间(ms)"),
+      BT::InputPort<int>("fortress_time", 5000, "堡垒区停留时间(ms)"),
       BT::InputPort<int>("patrol_hold_ms", 5000, "到达巡逻点后停留时间(ms)"),
       BT::InputPort<double>("arrive_radius", 0.5, "到达判定半径(m)"),
       BT::OutputPort<double>("goal_x"),
@@ -37,7 +42,13 @@ public:
   BT::NodeStatus tick() override;
 
 private:
-  struct Pt { double x; double y; };
+  struct Pt
+  {
+    double x;
+    double y;
+    int hold_ms;
+    const char * label;
+  };
 
   static std::vector<Pt> parseWaypoints(const std::string & s);
 
