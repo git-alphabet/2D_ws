@@ -29,6 +29,37 @@ from tools.wrapper_models import BackgroundGroup, CommonConfig
 ODIN_SAVE_GRACE_SEC = float(os.environ.get("ODIN_SAVE_GRACE_SEC", "8"))
 
 
+def save_latest_terminal_log_doc(cfg: CommonConfig, log_file: Path, branch_safe: str) -> None:
+    if "mapping" not in cfg.log_type:
+        return
+
+    doc_path = cfg.ws_dir / "launch_logs" / branch_safe / f"{Path(cfg.script_name).stem}_latest_terminal_log.md"
+    try:
+        content = log_file.read_text(errors="replace")
+    except Exception as exc:
+        print(f"[{cfg.script_name}] Latest terminal log doc skipped: cannot read {log_file}: {exc}", file=sys.stderr)
+        return
+
+    generated_at = datetime.now(BEIJING_TZ).strftime("%Y-%m-%d %H:%M:%S %z")
+    doc = (
+        f"# Latest {Path(cfg.script_name).stem} Terminal Log\n\n"
+        f"- Generated at: {generated_at}\n"
+        f"- Source log: `{log_file}`\n"
+        f"- Mode: `{cfg.log_type}`\n\n"
+        "```text\n"
+        f"{content}"
+    )
+    if content and not content.endswith("\n"):
+        doc += "\n"
+    doc += "```\n"
+
+    try:
+        doc_path.write_text(doc)
+        print(f"[{cfg.script_name}] Latest terminal log doc -> {doc_path}", file=sys.stderr)
+    except Exception as exc:
+        print(f"[{cfg.script_name}] Latest terminal log doc failed: {exc}", file=sys.stderr)
+
+
 def validate_extra_launch_args(args: list[str]) -> None:
     allowed_prefixes = ("--", "__")
     for arg in args:
@@ -603,6 +634,7 @@ def launch_in_terminal(
         finally:
             signal.signal(signal.SIGINT, prev_sigint)
             signal.signal(signal.SIGTERM, prev_sigterm)
+            save_latest_terminal_log_doc(cfg, log_file, branch_safe)
             if pgid_file:
                 try:
                     pgid_file.unlink()

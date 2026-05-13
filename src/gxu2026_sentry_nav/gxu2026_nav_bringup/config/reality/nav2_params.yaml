@@ -40,7 +40,7 @@ pb_navigation_switches:
     # 里程计来源标识。
     odometry_source: "odin1"
     # 行为树配置名。
-    behavior_tree: "none"
+    behavior_tree: "config/RMUC_2026/rmuc_2026.xml"
 
 # 机器人描述文件基名：对应 gxu2026_robot_description/resource/xmacro/<name>.sdf.xmacro
 robot_description_runtime:
