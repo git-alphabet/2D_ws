@@ -9,8 +9,8 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "example_interfaces/msg/float32.hpp"
-#include "sp_msgs/msg/rmuc_robot_control.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "sp_msgs/msg/rmuc_robot_control.hpp"
 
 namespace
 {
@@ -34,7 +34,6 @@ public:
   explicit NonlinearSpinPublisher(const rclcpp::NodeOptions & options)
   : rclcpp::Node("nonlinear_spin_publisher", options)
   {
-    this->declare_parameter<bool>("enabled", false);
     this->declare_parameter<bool>("start_on_first_trigger", false);
     this->declare_parameter<std::string>("start_trigger_topic", "controller_server/FollowPath/local_plan");
     this->declare_parameter<std::string>(
@@ -66,7 +65,6 @@ public:
     this->declare_parameter<double>("idle_timeout_sec", 0.5);
     this->declare_parameter<std::string>("robot_control_topic", "robot_control");
 
-    this->get_parameter("enabled", enabled_);
     this->get_parameter("start_on_first_trigger", start_on_first_trigger_);
     this->get_parameter("start_trigger_topic", start_trigger_topic_);
     this->get_parameter("start_trigger_msg_type", start_trigger_msg_type_);
@@ -219,8 +217,7 @@ public:
 
     RCLCPP_INFO(
       this->get_logger(),
-      "NonlinearSpinPublisher: enabled=%s start_on_first_trigger=%s trigger_topic=%s trigger_type=%s cmd_spin_topic=%s center=%.3f range=%.3f freq=(%.3f,%.3f) amp_ratio=(%.2f,%.2f) amp_scale=[%.2f,%.2f] freq_scale=[%.2f,%.2f] max_abs=%.3f update=%.3fs accel=%.3f publish=%.1fHz seed=%ld",
-      enabled_ ? "true" : "false",
+      "NonlinearSpinPublisher: start_on_first_trigger=%s trigger_topic=%s trigger_type=%s cmd_spin_topic=%s center=%.3f range=%.3f freq=(%.3f,%.3f) amp_ratio=(%.2f,%.2f) amp_scale=[%.2f,%.2f] freq_scale=[%.2f,%.2f] max_abs=%.3f update=%.3fs accel=%.3f publish=%.1fHz seed=%ld",
       start_on_first_trigger_ ? "true" : "false",
       start_trigger_topic_.c_str(),
       start_trigger_msg_type_.c_str(),
@@ -284,19 +281,15 @@ private:
 
   void onRobotControl(const sp_msgs::msg::RMUCRobotControl::ConstSharedPtr msg)
   {
-    chassis_spin_enabled_ = msg->chassis_spin;
+    spin_enabled_ = msg->chassis_spin;
   }
 
   void onTimer()
   {
     const auto now = this->get_clock()->now();
 
-    if (!enabled_) {
-      return;
-    }
-
     // chassis_spin master toggle from BT RobotControl
-    if (!chassis_spin_enabled_) {
+    if (!spin_enabled_) {
       if (w_current_ != 0.0) {
         w_current_ = 0.0;
         w_target_ = 0.0;
@@ -419,12 +412,11 @@ private:
   std::string start_trigger_msg_type_;
   std::string robot_control_topic_;
 
-  bool enabled_{false};
   bool start_on_first_trigger_{false};
   bool triggered_{false};
   bool trigger_require_nonzero_{false};
   bool stop_on_idle_{true};
-  bool chassis_spin_enabled_{false};
+  bool spin_enabled_{true};
 
   double publish_rate_hz_{50.0};
   double center_speed_{6.28};
