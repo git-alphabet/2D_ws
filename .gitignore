@@ -27,6 +27,7 @@ __pycache__/
 launch_logs/
 maps/
 src/RM_Behavior_Tree/rm_behavior_tree/config/RMUC_2026/instruction/bt调用链
+src/RM_Behavior_Tree/rm_behavior_tree/config/RMUC_2026/instruction/标定调用链.md
 
 .clinerules/
 /CLAUDE.md
