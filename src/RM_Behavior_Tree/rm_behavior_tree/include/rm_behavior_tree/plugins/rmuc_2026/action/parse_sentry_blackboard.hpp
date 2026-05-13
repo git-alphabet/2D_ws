@@ -49,14 +49,13 @@ public:
       // ── outputs: GameStatus 派生 ──
       BT::OutputPort<int>("stage_remain_time"),
       BT::OutputPort<int>("stage_elapsed_time"),
+      BT::OutputPort<int>("game_elapsed_s"),
 
       // ── outputs: RobotStatus 派生 ──
       BT::OutputPort<int>("hp_cur"),
       BT::OutputPort<int>("ammo_allow"),
       BT::OutputPort<int>("base_hp_cur"),
       BT::OutputPort<bool>("outpost_alive"),
-      BT::OutputPort<int>("enemy_outpost_status"),
-      BT::OutputPort<bool>("enemy_outpost_destroyed"),
       BT::OutputPort<bool>("is_dead"),
       BT::OutputPort<bool>("has_target"),
       BT::OutputPort<bool>("is_detect_enemy"),

@@ -90,56 +90,73 @@ colcon build --build-base /ws/.buildcache/Alphabet/build \
 ## 9. 姿态转换相关调试
 
 > 姿态值: 1=进攻  2=防御  3=移动
-> 当前 RMUC 2026 主链: 各战术子树/基地威胁逻辑写入 `cmd.posture` → `PostureDegradationGuard` 产出 `cmd.final_posture` → `SentryCmdMux` 发布 `/sentry_cmd`
+> 当前 RMUC 2026 主链: 各战术/全局控制子树写入 `cmd.posture` → `PostureDegradationGuard` 产出 `cmd.final_posture` → `SentryCmdMux` 发布 `/sentry_cmd`
+> `sentry_decision_status` 已归档，当前 BT 不订阅、不发布；姿态查询以 `/sentry_cmd.cmd_posture` 为准。
 
-### 9.1 查看旧版姿态反馈（已废弃，当前 BT 不消费）
-
-```bash
-# 旧版裁判系统反馈的当前姿态 (current_posture 字段)
-ros2 topic echo /red_standard_robot1/sentry_decision_status --field current_posture
-
-# 完整 sentry_decision_status（旧版链路，含复活/兑换计数等）
-ros2 topic echo /red_standard_robot1/sentry_decision_status --once
-```
-
-### 9.2 查看 BT 输出的姿态指令（BT → 电控）
+### 9.1 查看 BT 输出的姿态指令（BT → 电控/裁判系统）
 
 ```bash
 # 仅看姿态指令字段
 ros2 topic echo /red_standard_robot1/sentry_cmd --field cmd_posture
 
-# 完整 sentry_cmd（含复活/远程兑换/允许发弹量等）
+# 完整 sentry_cmd（当前包含姿态与确认复活）
 ros2 topic echo /red_standard_robot1/sentry_cmd --once
 ```
 
-### 9.3 姿态决策影响因子（DecidePosture 的输入）
+### 9.2 手动只发布 sentry_cmd（不发布其他裁判输入）
 
 ```bash
-# 血量（hp_cur / hp_max 影响攻防评分）
-ros2 topic echo /red_standard_robot1/robot_status --once --field current_hp
-ros2 topic echo /red_standard_robot1/robot_status --once --field hp_max
+source /opt/ros/humble/setup.bash && \
+source /ws/.buildcache/Alphabet/install/setup.bash
 
-# 枪管热量（heat_cur > heat_high 时偏向防御）
-ros2 topic echo /red_standard_robot1/robot_status --once --field shooter_heat
+# 姿态 1=进攻
+python3 /ws/scripts/rmuc_test_publisher.py --ns=/red_standard_robot1 --only=sentry_cmd --posture=1
 
-# 是否检测到目标（has_target → 攻击评分 +35）
-ros2 topic echo /red_standard_robot1/robot_status --once --field detect_enemy
+# 姿态 2=防御
+python3 /ws/scripts/rmuc_test_publisher.py --ns=/red_standard_robot1 --only=sentry_cmd --posture=2
 
-# buff 状态（防御增益/易伤标记/冷却增益影响评分）
-ros2 topic echo /red_standard_robot1/robot_buff --once
+# 姿态 3=移动
+python3 /ws/scripts/rmuc_test_publisher.py --ns=/red_standard_robot1 --only=sentry_cmd --posture=3
 
-# 允许发弹量（ammo<=0 时攻击评分归零，移动评分 +50）
-ros2 topic echo /red_standard_robot1/projectile_allowance --once
+# 确认复活
+python3 /ws/scripts/rmuc_test_publisher.py --ns=/red_standard_robot1 --only=sentry_cmd --confirm-respawn
+
+# 指定姿态并同时确认复活
+python3 /ws/scripts/rmuc_test_publisher.py --ns=/red_standard_robot1 --only=sentry_cmd --posture=3 --confirm-respawn
 ```
 
-### 9.4 姿态转换对比监控（同时观察输入姿态 vs 输出姿态）
+> 注意：这会额外发布 `/red_standard_robot1/sentry_cmd`。如果 BT 同时运行，它也会发布同一个话题，实际接收端会看到两路发布者混在一起。需要单独测电控/裁判接收姿态时，建议暂停 BT 或用 `ros2 topic info /red_standard_robot1/sentry_cmd -v` 确认发布者数量。
+
+### 9.3 姿态决策影响因子（当前 BT 原始输入）
 
 ```bash
-# 终端1: 裁判系统当前姿态（输入）
-ros2 topic echo /red_standard_robot1/sentry_decision_status --field current_posture
+# 血量：低血触发 LowHPRetreat，输出移动(3)并回补给区
+ros2 topic echo /red_standard_robot1/robot_status --once --field current_hp
 
-# 终端2: BT 决策后的姿态指令（输出）
+# 弹药：低弹触发 SustainAndEconomy，输出防御(2)并走补给链路
+ros2 topic echo /red_standard_robot1/robot_status --once --field ammo_allow
+
+# 是否检测到敌人：普通敌情分支输出进攻(1)，但优先级低于补给/基地威胁
+ros2 topic echo /red_standard_robot1/robot_status --once --field is_detect_enemy
+
+# 基地血量与雷达敌情：共同影响基地威胁锁存
+ros2 topic echo /red_standard_robot1/robot_status --once --field base_hp
+ros2 topic echo /red_standard_robot1/radar/enemy_tracks --once
+
+# 己方前哨站存活状态：影响目标点选择，进而影响到达目标后的防御/移动姿态
+ros2 topic echo /red_standard_robot1/robot_status --once --field outpost_hp
+```
+
+### 9.4 姿态转换对比监控
+
+```bash
+# 终端1: BT 最终姿态输出
 ros2 topic echo /red_standard_robot1/sentry_cmd --field cmd_posture
+
+# 终端2: 当前 active_subtree 只能通过日志/Groot 侧看；
+# CLI 侧通常结合以下输入与 sentry_cmd 输出判断是哪条分支接管。
+ros2 topic echo /red_standard_robot1/robot_status --once
+ros2 topic echo /red_standard_robot1/robot_position --once
 ```
 
 ### 9.5 姿态转换日志
@@ -167,7 +184,7 @@ python3 /ws/scripts/used/rmuc_test_publisher.py \
   --duration=25
 
 # 3) 观察姿态：早期应为移动(3)，到达防御锚点后应切到进攻(1)
-ros2 topic echo /red_standard_robot1/sentry_decision_status --field current_posture
+ros2 topic echo /red_standard_robot1/sentry_cmd --field cmd_posture
 
 # 3.1) 查询当前基地威胁锁存状态（最关键）
 # 当前没有单独 ROS 话题直接发布 threat.base；
@@ -185,7 +202,7 @@ ros2 topic echo /red_standard_robot1/robot_position --once
 
 > 预期现象:
 > 0. `grep ... | tail -1` 若输出“基地威胁触发”，说明当前 `threat.base=true`；若最后一条是“基地威胁解除”，说明当前 `threat.base=false`。
-> 1. `sentry_decision_status.current_posture` 先为 3，随后变为 1。
+> 1. `/red_standard_robot1/sentry_cmd.cmd_posture` 先为 3，随后变为 1。
 > 2. 日志出现 `DefendAnchor New goal: [ 0.097, -0.401 ]`。
 > 3. 控制器日志出现 `Reached the goal!`。
 

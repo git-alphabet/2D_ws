@@ -17,23 +17,28 @@ MoveAroundAction::MoveAroundAction(const std::string & name, const BT::NodeConfi
 
 BT::NodeStatus MoveAroundAction::onStart()
 {
-  current_location.header.frame_id = "map";
-  current_location.transform.translation.x = 0.0;
-  current_location.transform.translation.y = 0.0;
-  current_location.transform.translation.z = 0.0;
-  current_location.transform.rotation.x = 0.0;
-  current_location.transform.rotation.y = 0.0;
-  current_location.transform.rotation.z = 0.0;
-  current_location.transform.rotation.w = 1.0;
-
+  current_pose_x = 0.0;
+  current_pose_y = 0.0;
+  current_orientation.x = 0.0;
+  current_orientation.y = 0.0;
+  current_orientation.z = 0.0;
+  current_orientation.w = 1.0;
   expected_dis = 0.0;
   expected_nearby_goal_count = 0;
+  non_blocking = false;
   goal_count = 0;
 
-  // 获取参数：机器人当前位置坐标的blackboard映射
-  if (!getInput("message", current_location)) {
-     std::cout << "missing required input [current_location]" << '\n';
-    return BT::NodeStatus::FAILURE;
+  // Prefer scalar pose inputs. Keep the legacy TransformStamped port for existing RMUL XML.
+  const bool has_pose_xy = getInput("pose_x", current_pose_x) && getInput("pose_y", current_pose_y);
+  if (!has_pose_xy) {
+    geometry_msgs::msg::TransformStamped current_location;
+    if (!getInput("message", current_location)) {
+       std::cout << "missing required input [pose_x/pose_y] or [message]" << '\n';
+      return BT::NodeStatus::FAILURE;
+    }
+    current_pose_x = current_location.transform.translation.x;
+    current_pose_y = current_location.transform.translation.y;
+    current_orientation = current_location.transform.rotation;
   }
 
   // 获取参数：期望的距离
@@ -47,9 +52,20 @@ BT::NodeStatus MoveAroundAction::onStart()
      std::cout << "missing required input [expected_nearby_goal_count]" << '\n';
     return BT::NodeStatus::FAILURE;
   }
+  getInput("non_blocking", non_blocking);
 
   if (expected_nearby_goal_count <= 0) {
     // No need to go into the RUNNING state
+    return BT::NodeStatus::SUCCESS;
+  } else if (non_blocking) {
+    auto now = std::chrono::high_resolution_clock::now();
+    auto elapsed = std::chrono::duration_cast<milliseconds>(
+      now - last_non_blocking_goal_time_).count();
+    if (elapsed >= 1000) {
+      generatePoints(current_pose_x, current_pose_y, expected_dis, nearby_random_point);
+      sendGoalPose(nearby_random_point);
+      last_non_blocking_goal_time_ = now;
+    }
     return BT::NodeStatus::SUCCESS;
   } else {
     // once the expected_nearby_goal_count is reached, we will return SUCCESS.
@@ -74,7 +90,7 @@ BT::NodeStatus MoveAroundAction::onRunning()
       return BT::NodeStatus::RUNNING;  // Wait without blocking the BT thread
     }
     goal_count++;
-    generatePoints(current_location, expected_dis, nearby_random_point);
+    generatePoints(current_pose_x, current_pose_y, expected_dis, nearby_random_point);
     sendGoalPose(nearby_random_point);
     last_goal_time_ = now;
     return BT::NodeStatus::RUNNING;
@@ -88,8 +104,7 @@ void MoveAroundAction::onHalted()
 }
 
 void MoveAroundAction::generatePoints(
-  geometry_msgs::msg::TransformStamped location, double distance,
-  geometry_msgs::msg::PoseStamped & nearby_random_point)
+  double pose_x, double pose_y, double distance, geometry_msgs::msg::PoseStamped & nearby_random_point)
 {
   // 创建随机数生成器
   std::random_device rd;
@@ -101,13 +116,10 @@ void MoveAroundAction::generatePoints(
 
   nearby_random_point.header.stamp = rclcpp::Clock().now();
   nearby_random_point.header.frame_id = "map";
-  nearby_random_point.pose.position.x = location.transform.translation.x + distance * sin(angle);
-  nearby_random_point.pose.position.y = location.transform.translation.y + distance * cos(angle);
-  nearby_random_point.pose.position.z = location.transform.translation.z;
-  nearby_random_point.pose.orientation.x = location.transform.rotation.x;
-  nearby_random_point.pose.orientation.y = location.transform.rotation.y;
-  nearby_random_point.pose.orientation.z = location.transform.rotation.z;
-  nearby_random_point.pose.orientation.w = location.transform.rotation.w;
+  nearby_random_point.pose.position.x = pose_x + distance * sin(angle);
+  nearby_random_point.pose.position.y = pose_y + distance * cos(angle);
+  nearby_random_point.pose.position.z = 0.0;
+  nearby_random_point.pose.orientation = current_orientation;
 }
 
 void MoveAroundAction::sendGoalPose(geometry_msgs::msg::PoseStamped & msg)

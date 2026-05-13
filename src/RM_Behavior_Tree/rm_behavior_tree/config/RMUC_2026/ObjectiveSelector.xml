@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+
+    <BehaviorTree ID="ObjectiveSelector">
+        <ReactiveSequence>
+            <!-- 只更新当前应该去哪里，不直接发导航目标 -->
+            <SelectObjective pose_x="{pose.x}" pose_y="{pose.y}"
+                             game_status="{game_status}"
+                             stage_elapsed_time="{game.elapsed_s}"
+                             stage_remain_time="{game.remain_s}"
+                             hp_cur="{hp.cur}" hp_max="{hp.max}"
+                             outpost_alive="{outpost.alive}"
+                             cap_sustain_time="{cfg.cap_sustain_time}"
+                             cap_outpost_x="{cfg.cap_outpost_x}"
+                             cap_outpost_y="{cfg.cap_outpost_y}"
+                             central_highland_x="{cfg.central_highland_x}"
+                             central_highland_y="{cfg.central_highland_y}"
+                             ladder_highland_x="{cfg.ladder_highland_x}"
+                             ladder_highland_y="{cfg.ladder_highland_y}"
+                             fortress_area_x="{cfg.fortress_area_x}"
+                             fortress_area_y="{cfg.fortress_area_y}"
+                             goal_x="{nav.objective_x}" goal_y="{nav.objective_y}"
+                             objective_name="{nav.objective}"/>
+
+            <ObjectivePatrol pose_x="{pose.x}" pose_y="{pose.y}"
+                             objective_x="{nav.objective_x}"
+                             objective_y="{nav.objective_y}"
+                             objective_name="{nav.objective}"
+                             fortress_area_x="{cfg.fortress_area_x}"
+                             fortress_area_y="{cfg.fortress_area_y}"
+                             patrol_enable="{cfg.patrol_enable}"
+                             patrol_waypoints="{cfg.patrol_waypoints}"
+                             ladder_time="{cfg.ladder_time}"
+                             fortress_time="{cfg.fortress_time}"
+                             patrol_hold_ms="{cfg.patrol_hold_ms}"
+                             arrive_radius="{cfg.arrive_radius}"
+                             goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
+                             goal_changed="{nav_goal_changed}"/>
+
+            <SetBlackboard output_key="nav_goal_valid" value="true"/>
+        </ReactiveSequence>
+    </BehaviorTree>
+
+</root>

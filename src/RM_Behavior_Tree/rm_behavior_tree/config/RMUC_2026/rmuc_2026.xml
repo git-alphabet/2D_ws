@@ -33,6 +33,9 @@
                     <!-- 构建并按控制速率发送哨兵自主决策指令 (0x0120) -->
                     <SubTree ID="CommandHub" _autoremap="true"/>
 
+                    <!-- 先刷新当前战略目标，避免全局底盘层拿上一帧旧目标判断是否允许微动 -->
+                    <SubTree ID="ObjectiveSelector" _autoremap="true"/>
+
                     <!-- 全局接管控制：持续发布底盘/云台控制，并在低血/敌情下统一做门禁 -->
                     <SubTree ID="GlobalNavigationAndChassisControl" _autoremap="true"/>
 
@@ -51,15 +54,9 @@
                             <SubTree ID="BaseDefense" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 2) 目标控制：高于默认姿态；进入 ObjectivePlanner 前先决定当前是前哨站争夺还是普通目标规划 -->
+                        <!-- 2) 目标控制：高于默认姿态；目标内部负责开局占领前哨点的一次性计时 -->
                         <Sequence>
-                            <ReactiveFallback>
-                                <Sequence>
-                                    <ScriptCondition code="enemy_outpost_destroyed == false"/>
-                                    <SetBlackboard output_key="active_subtree" value="CapOutpostPlanner"/>
-                                </Sequence>
-                                <SetBlackboard output_key="active_subtree" value="ObjectivePlanner"/>
-                            </ReactiveFallback>
+                            <SetBlackboard output_key="active_subtree" value="ObjectivePlanner"/>
                             <SubTree ID="ObjectivePlanner" _autoremap="true"/>
                         </Sequence>
 
@@ -109,6 +106,7 @@
     <include path="BaseDefense.xml"/>
     <include path="SustainAndEconomy.xml"/>
     <include path="AmmoPlan.xml"/>
+    <include path="ObjectiveSelector.xml"/>
     <include path="ObjectivePlanner.xml"/>
 
 </root>

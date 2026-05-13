@@ -101,8 +101,15 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
   // ── 比赛阶段 (GameStatus) ──
   auto game_msg = getInput<sp_msgs::msg::RMUCGameStatus>("game_status");
   if (game_msg) {
-    setOutput("stage_remain_time", static_cast<int>(game_msg->stage_remain_time));
-    setOutput("stage_elapsed_time", 420 - static_cast<int>(game_msg->stage_remain_time));
+    const int remain_time = static_cast<int>(game_msg->stage_remain_time);
+    const int elapsed_time = 420 - remain_time;
+    setOutput("stage_remain_time", remain_time);
+    setOutput("stage_elapsed_time", elapsed_time);
+    setOutput("game_elapsed_s", elapsed_time);
+  } else {
+    setOutput("stage_remain_time", -1);
+    setOutput("stage_elapsed_time", 0);
+    setOutput("game_elapsed_s", 0);
   }
 
   bool suppress_enemy_detection = false;
@@ -135,22 +142,16 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
   if (robot_ptr) {
     const auto & r = **robot_ptr;
     effective_detect_enemy = suppress_enemy_detection ? false : r.is_detect_enemy;
-    const bool enemy_outpost_destroyed =
-      !(r.enemy_outpost_status == 1 || r.enemy_outpost_status == 2);
     setOutput("hp_cur", static_cast<int>(r.current_hp));
     setOutput("ammo_allow", static_cast<int>(r.ammo_allow));
     setOutput("outpost_alive", r.outpost_hp > 0);
     setOutput("base_hp_cur", static_cast<int>(r.base_hp));
-    setOutput("enemy_outpost_status", static_cast<int>(r.enemy_outpost_status));
-    setOutput("enemy_outpost_destroyed", enemy_outpost_destroyed);
     setOutput("is_dead", r.current_hp <= 0);
     setOutput("has_target", effective_detect_enemy);
     setOutput("is_detect_enemy", effective_detect_enemy);
   } else {
     setOutput("outpost_alive", false);
     setOutput("base_hp_cur", 0);
-    setOutput("enemy_outpost_status", 1);
-    setOutput("enemy_outpost_destroyed", false);
     setOutput("has_target", false);
     setOutput("is_detect_enemy", false);
   }

@@ -2,6 +2,7 @@
 #define RM_BEHAVIOR_TREE__PLUGINS__ACTION__MOVE_AROUND_HPP_
 
 #include <geometry_msgs/msg/transform_stamped.hpp>
+#include <geometry_msgs/msg/quaternion.hpp>
 #include <rclcpp/node.hpp>
 #include <rclcpp/publisher.hpp>
 
@@ -15,7 +16,8 @@ namespace rm_behavior_tree
 /**
  * @brief 获取当前位置后小范围移动，躲避攻击
  *        以机器人当前位置为圆心，期望距离为半径的圆内随机生成随机点位
- * @param[in] message 机器人位置信息
+ * @param[in] pose_x 机器人当前位置 x
+ * @param[in] pose_y 机器人当前位置 y
  * @param[in] expected_nearby_goal_count 附近随机点位数量
  */
 class MoveAroundAction : public BT::StatefulActionNode, rclcpp::Node
@@ -26,7 +28,9 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
-      BT::InputPort<int>("expected_nearby_goal_count"), BT::InputPort<float>("expected_dis"),
+      BT::InputPort<int>("expected_nearby_goal_count"), BT::InputPort<double>("expected_dis"),
+      BT::InputPort<bool>("non_blocking"),
+      BT::InputPort<double>("pose_x"), BT::InputPort<double>("pose_y"),
       BT::InputPort<geometry_msgs::msg::TransformStamped>("message")};
   }
 
@@ -36,9 +40,8 @@ public:
 
   void onHalted() override;
 
-  void generatePoints(
-    geometry_msgs::msg::TransformStamped location, double distance,
-    geometry_msgs::msg::PoseStamped & nearby_random_point);
+  void generatePoints(double pose_x, double pose_y, double distance,
+                      geometry_msgs::msg::PoseStamped & nearby_random_point);
 
   void setMessage(geometry_msgs::msg::PoseStamped & msg);
 
@@ -47,11 +50,15 @@ public:
 private:
   int goal_count;
   int expected_nearby_goal_count;
-  float expected_dis;
-  geometry_msgs::msg::TransformStamped current_location;
+  double expected_dis;
+  bool non_blocking;
+  double current_pose_x;
+  double current_pose_y;
+  geometry_msgs::msg::Quaternion current_orientation;
   geometry_msgs::msg::PoseStamped nearby_random_point;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr publisher_goal_pose;
   std::chrono::time_point<std::chrono::high_resolution_clock> last_goal_time_;
+  std::chrono::time_point<std::chrono::high_resolution_clock> last_non_blocking_goal_time_;
 };
 }  // namespace rm_behavior_tree
 

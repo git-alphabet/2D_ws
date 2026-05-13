@@ -140,7 +140,8 @@ int main(int argc, char ** argv)
       "central_highland_x","central_highland_y",
       "ladder_highland_x","ladder_highland_y",
       "defend_anchor_x","defend_anchor_y",
-      "cap_outpost_x","cap_outpost_y"
+      "cap_outpost_x","cap_outpost_y",
+      "fortress_area_x","fortress_area_y"
     };
     // double 阈值参数
     const std::vector<std::pair<std::string, double>> double_keys = {
@@ -151,6 +152,9 @@ int main(int argc, char ** argv)
       {"hp_low", 180}, {"hp_safe", 280},
       {"ammo_low", 80},
       {"base_threat_calm_timeout_ms", 0},
+      {"cap_sustain_time", 30},
+      {"ladder_time", 5000},
+      {"fortress_time", 5000},
       {"patrol_hold_ms", 5000}
     };
 
@@ -184,6 +188,9 @@ int main(int argc, char ** argv)
       }
       int v = static_cast<int>(node->get_parameter(param_name).as_int());
       bb->set("cfg." + k, v);
+      if (k == "cap_sustain_time") {
+        bb->set(k, v);
+      }
       injected++;
     }
     RCLCPP_INFO(node->get_logger(), "Injected %d RMUC config params into blackboard", injected);

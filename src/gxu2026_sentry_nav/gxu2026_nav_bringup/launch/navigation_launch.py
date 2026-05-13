@@ -60,7 +60,6 @@ def generate_launch_description():
     enable_gimbal_yaw_bridge = LaunchConfiguration("enable_gimbal_yaw_bridge")
     enable_rm_behavior_tree = LaunchConfiguration("enable_rm_behavior_tree")
     rm_behavior_tree_executable = LaunchConfiguration("rm_behavior_tree_executable")
-    rm_behavior_tree_extra_params_file = LaunchConfiguration("rm_behavior_tree_extra_params_file")
     rm_behavior_tree_style_path = LaunchConfiguration("rm_behavior_tree_style_path")
 
     lifecycle_nodes = [
@@ -223,6 +222,30 @@ def generate_launch_description():
         parameters=[configured_params],
     )
 
+    # Load rmuc_2026_params.yaml as additional BT sentry config (single source of truth)
+    try:
+        rm_bt_share_dir = get_package_share_directory("rm_behavior_tree")
+        rmuc_bt_params_file = os.path.join(
+            rm_bt_share_dir, "config", "RMUC_2026", "rmuc_2026_params.yaml"
+        )
+    except PackageNotFoundError:
+        rmuc_bt_params_file = None
+
+    rmuc_bt_params = ParameterFile(
+        RewrittenYaml(
+            source_file=rmuc_bt_params_file,
+            root_key=normalized_root_key,
+            param_rewrites=param_substitutions,
+            convert_types=True,
+        ),
+        allow_substs=True,
+    ) if rmuc_bt_params_file else None
+
+    _bt_parameters = [configured_params]
+    if rmuc_bt_params is not None:
+        _bt_parameters.append(rmuc_bt_params)
+    _bt_parameters.append({"style": rm_behavior_tree_style_path})
+
     start_rm_behavior_tree_cmd = Node(
         package="rm_behavior_tree",
         executable=rm_behavior_tree_executable,
@@ -230,11 +253,7 @@ def generate_launch_description():
         output="screen",
         respawn=use_respawn,
         respawn_delay=2.0,
-        parameters=[
-            configured_params,
-            rm_behavior_tree_extra_params_file,
-            {"style": rm_behavior_tree_style_path},
-        ],
+        parameters=_bt_parameters,
         arguments=["--ros-args", "--log-level", log_level],
         condition=IfCondition(enable_rm_behavior_tree),
     )
@@ -471,6 +490,7 @@ def generate_launch_description():
         default_style_file = "rmuc_01.xml"
         enable_rm_bt = False
         style_file = default_style_file
+        rm_bt_executable = "rm_behavior_tree"
         processed_file = str(params_path)
         controller_plugin_name = None
         neupan_frame_name = None
@@ -586,6 +606,7 @@ def generate_launch_description():
             if not rm_bt_params and target_data is not raw_yaml:
                 rm_bt_params = _get_ros_params(raw_yaml, "rm_behavior_tree")
             style_file = rm_bt_params.get("style", style_file)
+            rm_bt_executable = rm_bt_params.get("executable", rm_bt_executable)
             if behavior_tree_selector:
                 selector_lower = behavior_tree_selector.lower()
                 if selector_lower in {"disabled", "none", "nav2", "default"}:
@@ -639,34 +660,8 @@ def generate_launch_description():
                 if available_profiles:
                     selected_plugin_key = next(iter(available_profiles))
 
-            # 若选中 neupan_nav2_controller，无条件从 neupan_nav2_controller 包内
-            # 按 sim/reality 加载 neupan.yaml，作为 FollowPath 的配置来源。
-            # bringup nav2_params.yaml 中不应再有 FollowPath NeuPAN 块；即使残留也会被覆盖。
-            if selected_plugin_key and selected_plugin_key.startswith("neupan_nav2_controller"):
-                try:
-                    neupan_pkg_dir = get_package_share_directory("neupan_nav2_controller")
-                    is_sim = str(use_sim_time.perform(context)).strip().lower() in {"true", "1"}
-                    sub_dir = "simulation" if is_sim else "reality"
-                    neupan_yaml_path = os.path.join(neupan_pkg_dir, "config", sub_dir, "neupan.yaml")
-                    with open(neupan_yaml_path, "r") as _f:
-                        _neupan_data = yaml.safe_load(_f) or {}
-                    _cs_params = _neupan_data.get("controller_server", {}).get("ros__parameters", {})
-                    _neupan_profile = _cs_params.get(active_plugin_slot)
-                    if isinstance(_neupan_profile, dict):
-                        available_profiles[selected_plugin_key] = copy.deepcopy(_neupan_profile)
-                        import sys as _sys
-                        print(
-                            f"[navigation_launch] Loaded NeuPAN profile from {neupan_yaml_path}",
-                            file=_sys.stderr,
-                        )
-                except Exception as _e:
-                    import sys as _sys
-                    print(
-                        f"[navigation_launch] Warning: could not load neupan.yaml: {_e}",
-                        file=_sys.stderr,
-                    )
-
-            
+            # 控制器 profile 统一从总参数文件读取（pb_controller_profiles）。
+            # 不再额外加载 neupan_nav2_controller/config/*/neupan.yaml。
 
             frame_override_paths = [
                 ["bt_navigator", "ros__parameters", "robot_base_frame"],
@@ -706,22 +701,11 @@ def generate_launch_description():
                     processed_file = tmp_file.name
 
         style_path = _resolve_bt_style_path(style_file) if enable_rm_bt else style_file
-        style_path_lower = style_path.lower() if isinstance(style_path, str) else ""
-        rm_bt_executable = "rm_behavior_tree_rmuc" if "rmuc" in style_path_lower else "rm_behavior_tree"
-        rm_bt_extra_params = processed_file
-        if rm_bt_executable == "rm_behavior_tree_rmuc":
-            rm_bt_extra_params = os.path.join(
-                get_package_share_directory("rm_behavior_tree"),
-                "config",
-                "RMUC_2026",
-                "rmuc_2026_params.yaml",
-            )
         return [
             SetLaunchConfiguration(
                 "enable_rm_behavior_tree", "true" if enable_rm_bt else "false"
             ),
             SetLaunchConfiguration("rm_behavior_tree_executable", rm_bt_executable),
-            SetLaunchConfiguration("rm_behavior_tree_extra_params_file", rm_bt_extra_params),
             SetLaunchConfiguration("rm_behavior_tree_style_path", style_path),
             SetLaunchConfiguration("processed_params_file", processed_file),
             SetLaunchConfiguration("enable_obstacle_scan", enable_obstacle_scan_value),
@@ -794,13 +778,12 @@ def generate_launch_description():
     ld.add_action(
         SetLaunchConfiguration("processed_params_file", params_file)
     )
-    ld.add_action(SetLaunchConfiguration("rm_behavior_tree_executable", "rm_behavior_tree"))
-    ld.add_action(SetLaunchConfiguration("rm_behavior_tree_extra_params_file", params_file))
     ld.add_action(SetLaunchConfiguration("enable_obstacle_scan", "false"))
     # Set switches before starting nodes
     ld.add_action(set_switches_cmd)
     # Add the actions to launch all of the navigation nodes
-    ld.add_action(nonlinear_spin_publisher_node)
+    # Disabled: nonlinear_spin_publisher replaced by fake_vel_transform init_spin_speed
+    # ld.add_action(nonlinear_spin_publisher_node)
     ld.add_action(start_auto_aim_yaw_sim_pub_cmd)
     ld.add_action(start_auto_aim_yaw_joint_state_bridge_cmd)
     ld.add_action(start_terrain_analysis_cmd)

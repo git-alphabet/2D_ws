@@ -32,7 +32,8 @@ BT::NodeStatus InitSentryConfigAction::tick()
                     "defend_anchor_x","defend_anchor_y",
                     "central_highland_left_x","central_highland_left_y",
                     "ramp_jump_x","ramp_jump_y",
-                    "cap_outpost_x","cap_outpost_y"})
+                    "cap_outpost_x","cap_outpost_y",
+                    "fortress_area_x","fortress_area_y"})
   {
     double v = 0.0;
     getInput(k, v);
@@ -53,13 +54,18 @@ BT::NodeStatus InitSentryConfigAction::tick()
 
   setDouble("arrive_radius", 1.0);
   setDouble("enemy_near_base_radius", 0.0);
+  setDouble("move_around_expected_dis", 0.3);
 
   setInt("hp_low", 180);
   setInt("hp_safe", 280);
   setInt("ammo_low", 80);
   setInt("supply_wait_timeout_s", 30);
   setInt("base_threat_calm_timeout_ms", 0);
+  setInt("cap_sustain_time", 30);
+  setInt("ladder_time", 5000);
+  setInt("fortress_time", 5000);
   setInt("patrol_hold_ms", 5000);
+  setInt("move_around_expected_nearby_goal_count", 3);
 
   // 巡逻参数 (从黑板直接读取，由 rm_behavior_tree.cpp 注入)
   bool patrol_enable = false;
@@ -72,6 +78,7 @@ BT::NodeStatus InitSentryConfigAction::tick()
 
   setStr("semantic_zones_file", "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml");
   setStr("semantic_ignore_enemy_zone_type", "speed_bump");
+  setOutput("nav_goal_valid", false);
 
   loaded_once_ = true;
   return BT::NodeStatus::SUCCESS;

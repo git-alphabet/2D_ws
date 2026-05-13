@@ -217,16 +217,23 @@ int main(int argc, char ** argv)
       "defend_anchor_x","defend_anchor_y",
       "central_highland_left_x","central_highland_left_y",
       "ramp_jump_x","ramp_jump_y",
-      "cap_outpost_x","cap_outpost_y"
+      "cap_outpost_x","cap_outpost_y",
+      "fortress_area_x","fortress_area_y"
     };
     const std::vector<std::pair<std::string, double>> double_keys = {
-      {"arrive_radius", 1.0}, {"enemy_near_base_radius", 0.0}
+      {"arrive_radius", 1.0},
+      {"enemy_near_base_radius", 0.0},
+      {"move_around_expected_dis", 0.3}
     };
     const std::vector<std::pair<std::string, int>> int_keys = {
       {"hp_low", 180}, {"hp_safe", 280},
       {"ammo_low", 80},
       {"base_threat_calm_timeout_ms", 0},
-      {"patrol_hold_ms", 5000}
+      {"cap_sustain_time", 30},
+      {"ladder_time", 5000},
+      {"fortress_time", 5000},
+      {"patrol_hold_ms", 5000},
+      {"move_around_expected_nearby_goal_count", 3}
     };
 
     const std::string prefix = "rmuc_sentry_config.";
@@ -257,6 +264,9 @@ int main(int argc, char ** argv)
       }
       int v = static_cast<int>(node->get_parameter(param_name).as_int());
       bb->set("cfg." + k, v);
+      if (k == "cap_sustain_time") {
+        bb->set(k, v);
+      }
       injected++;
     }
     RCLCPP_INFO(node->get_logger(), "Injected %d RMUC config params into blackboard", injected);
