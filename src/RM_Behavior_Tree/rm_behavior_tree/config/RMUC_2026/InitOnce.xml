@@ -21,6 +21,7 @@
                 fortress_area_x="{cfg.fortress_area_x}" fortress_area_y="{cfg.fortress_area_y}"
 
                 arrive_radius="{cfg.arrive_radius}"
+                move_around_enable="{cfg.move_around_enable}"
                 move_around_expected_dis="{cfg.move_around_expected_dis}"
                 move_around_expected_nearby_goal_count="{cfg.move_around_expected_nearby_goal_count}"
                 hp_low="{cfg.hp_low}"

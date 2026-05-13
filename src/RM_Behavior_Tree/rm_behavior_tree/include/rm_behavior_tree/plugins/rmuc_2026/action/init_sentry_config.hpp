@@ -31,6 +31,7 @@ public:
       BT::BidirectionalPort<double>("cap_outpost_x"), BT::BidirectionalPort<double>("cap_outpost_y"),
       BT::BidirectionalPort<double>("fortress_area_x"), BT::BidirectionalPort<double>("fortress_area_y"),
       BT::BidirectionalPort<double>("arrive_radius"),
+      BT::BidirectionalPort<bool>("move_around_enable"),
       BT::BidirectionalPort<double>("move_around_expected_dis"),
       BT::BidirectionalPort<int>("move_around_expected_nearby_goal_count"),
       BT::BidirectionalPort<int>("hp_low"),

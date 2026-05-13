@@ -67,6 +67,10 @@ BT::NodeStatus InitSentryConfigAction::tick()
   setInt("patrol_hold_ms", 5000);
   setInt("move_around_expected_nearby_goal_count", 3);
 
+  bool move_around_enable = true;
+  getInput("move_around_enable", move_around_enable);
+  setOutput("move_around_enable", move_around_enable);
+
   // 巡逻参数 (从黑板直接读取，由 rm_behavior_tree.cpp 注入)
   bool patrol_enable = false;
   getInput("patrol_enable", patrol_enable);
