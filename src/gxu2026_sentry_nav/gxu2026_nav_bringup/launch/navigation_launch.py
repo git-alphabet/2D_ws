@@ -79,7 +79,15 @@ def generate_launch_description():
 
     lifecycle_nodes = [
         "controller_server",
-        "smoother_server",
+        "nav2_params.yaml
++1
+-1
+￼
+￼
+￼
+23:13
+￼
+smoother_server",
         "planner_server",
         "behavior_server",
         "bt_navigator",
