@@ -20,8 +20,8 @@
 # patrol_3,0.0596,-6.6217
 # patrol_2,4.5796,-0.0708
 # supply_zone,5.0844,-3.4419
-fortress_area,1.9907,-1.8907
-central_highland,0.2048,-0.7701
-ladder_highland,-1.9565,-3.7483
-patrol_1,2.7999,-5.3993
-cap_outpost,4.0830,1.0942
+# fortress_area,2.1450,0.8180
+central_highland,2.2262,4.0510
+# ladder_highland,-3.0382,-2.4563
+# patrol_1,3.9051,-4.8671
+cap_outpost,0.1962,-1.2494
