@@ -13,6 +13,13 @@
         -->
         <ReactiveSequence>
 
+            <!-- 低血恢复锁存：先更新状态，供下面唯一的底盘控制出口使用 -->
+            <UpdateHealRecoveryLatch hp_cur="{hp.cur}"
+                                     hp_low="{cfg.hp_low}"
+                                     hp_safe="{cfg.hp_safe}"
+                                     need_heal_recovery="{need_heal_recovery}"
+                                     low_hp_supply_retreat_count="{low_hp_supply_retreat_count}"/>
+
             <!-- 全局底盘/云台控制：基于条件，与战术子树解耦 -->
             <ReactiveFallback name="ChassisControlLayer">
                 <!-- 死亡 → 停云台，不旋转 -->
@@ -21,7 +28,24 @@
                     <RmucRobotControl stop_gimbal_scan="True"
                                       chassis_spin="False"/>
                 </Sequence>
-                <!-- 在补给区 → 不旋转（安全区域，回血/补弹中） -->
+
+                <!-- 回补给/补弹/当前目标为补给区 → 不旋转，优先级高于普通遇敌 -->
+                <Sequence>
+                    <ScriptCondition code="need_heal_recovery == true"/>
+                    <RmucRobotControl stop_gimbal_scan="False"
+                                      chassis_spin="False"/>
+                </Sequence>
+                <Sequence>
+                    <IsAmmoBelow ammo_allow="{ammo.allow}" ammo_low="{cfg.ammo_low}"/>
+                    <RmucRobotControl stop_gimbal_scan="False"
+                                      chassis_spin="False"/>
+                </Sequence>
+                <Sequence>
+                    <IsNavTargetSupply goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
+                                       arrive_radius="{cfg.arrive_radius}"/>
+                    <RmucRobotControl stop_gimbal_scan="False"
+                                      chassis_spin="False"/>
+                </Sequence>
                 <Sequence>
                     <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
                               goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
@@ -29,7 +53,8 @@
                     <RmucRobotControl stop_gimbal_scan="False"
                                       chassis_spin="False"/>
                 </Sequence>
-                <!-- 基地威胁且已到防御锚点 → 持续自转 -->
+
+                <!-- 基地威胁优先于普通遇敌；到达防御锚点后持续自转，路上不转 -->
                 <Sequence>
                     <IsBaseThreatened base_threat="{threat.base}"/>
                     <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
@@ -37,25 +62,46 @@
                               arrive_radius="{cfg.arrive_radius}"/>
                     <RmucRobotControl stop_gimbal_scan="False"
                                       chassis_spin="True"/>
+                    <Inverter>
+                        <RmucIsDetectEnemy message="{robot_status}"
+                                           is_detect_enemy="{is_detect_enemy}"/>
+                    </Inverter>
+                    <MoveAround pose_x="{pose.x}" pose_y="{pose.y}"
+                                expected_dis="{cfg.move_around_expected_dis}"
+                                expected_nearby_goal_count="{cfg.move_around_expected_nearby_goal_count}"
+                                non_blocking="true"/>
                 </Sequence>
+                <Sequence>
+                    <IsBaseThreatened base_threat="{threat.base}"/>
+                    <RmucRobotControl stop_gimbal_scan="False"
+                                      chassis_spin="False"/>
+                </Sequence>
+
+                <!-- 普通遇敌：低于基地威胁/回补给，高于其他导航到点状态 -->
+                <Sequence>
+                    <RmucIsDetectEnemy message="{robot_status}"
+                                       is_detect_enemy="{is_detect_enemy}"/>
+                    <RmucRobotControl stop_gimbal_scan="False"
+                                      chassis_spin="True"/>
+                </Sequence>
+
                 <!-- 到达当前导航目标 → 旋转 -->
                 <Sequence>
+                    <ScriptCondition code="nav_goal_valid == true"/>
                     <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
                               goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
                               arrive_radius="{cfg.arrive_radius}"/>
                     <RmucRobotControl stop_gimbal_scan="False"
                                       chassis_spin="True"/>
+                    <MoveAround pose_x="{pose.x}" pose_y="{pose.y}"
+                                expected_dis="{cfg.move_around_expected_dis}"
+                                expected_nearby_goal_count="{cfg.move_around_expected_nearby_goal_count}"
+                                non_blocking="true"/>
                 </Sequence>
                 <!-- 默认（导航中等） → 不旋转 -->
                 <RmucRobotControl stop_gimbal_scan="False"
                                   chassis_spin="False"/>
             </ReactiveFallback>
-
-            <!-- 低血恢复锁存：低于 hp_low 进入恢复态，直到达到 hp_safe 才退出 -->
-            <UpdateHealRecoveryLatch hp_cur="{hp.cur}"
-                                     hp_low="{cfg.hp_low}"
-                                     hp_safe="{cfg.hp_safe}"
-                                     need_heal_recovery="{need_heal_recovery}"/>
 
             <!-- 生存优先：死亡/低血量回补给区 -->
             <ReactiveFallback name="SurvivalGuard">
@@ -97,15 +143,13 @@
                 <!-- 当前 Nav2 目标 = 补给区 → 放行（无视敌人，继续导航回家） -->
                 <IsNavTargetSupply goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
                                    arrive_radius="{cfg.arrive_radius}"/>
-                <!-- 有敌人 + 目标不是补给区 → 切攻击姿态 + 取消导航 + 开启旋转 + 阻塞 -->
+                <!-- 有敌人 + 目标不是补给区 → 切攻击姿态 + 取消导航 + 阻塞；底盘控制由 ChassisControlLayer 唯一发布 -->
                 <Sequence>
                     <SetBlackboard output_key="active_subtree" value="EnemyHold"/>
                     <SelectPosture posture_value="1"
                                    posture_out="{cmd.posture}"
                                    is_allow_select_posture="{cmd.allow_posture_send}"/>
                     <CancelNavGoal action_name="navigate_to_pose"/>
-                    <RmucRobotControl stop_gimbal_scan="False"
-                                      chassis_spin="True"/>
                     <KeepRunning/>
                 </Sequence>
             </ReactiveFallback>

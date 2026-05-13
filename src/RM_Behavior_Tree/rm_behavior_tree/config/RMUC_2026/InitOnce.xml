@@ -18,19 +18,26 @@
                 central_highland_left_x="{cfg.central_highland_left_x}" central_highland_left_y="{cfg.central_highland_left_y}"
                 ramp_jump_x="{cfg.ramp_jump_x}" ramp_jump_y="{cfg.ramp_jump_y}"
                 cap_outpost_x="{cfg.cap_outpost_x}" cap_outpost_y="{cfg.cap_outpost_y}"
+                fortress_area_x="{cfg.fortress_area_x}" fortress_area_y="{cfg.fortress_area_y}"
 
                 arrive_radius="{cfg.arrive_radius}"
+                move_around_expected_dis="{cfg.move_around_expected_dis}"
+                move_around_expected_nearby_goal_count="{cfg.move_around_expected_nearby_goal_count}"
                 hp_low="{cfg.hp_low}"
                 hp_safe="{cfg.hp_safe}"
                 ammo_low="{cfg.ammo_low}"
                 supply_wait_timeout_s="{cfg.supply_wait_timeout_s}"
                 enemy_near_base_radius="{cfg.enemy_near_base_radius}"
                 base_threat_calm_timeout_ms="{cfg.base_threat_calm_timeout_ms}"
+                cap_sustain_time="{cfg.cap_sustain_time}"
+                ladder_time="{cfg.ladder_time}"
+                fortress_time="{cfg.fortress_time}"
                 patrol_hold_ms="{cfg.patrol_hold_ms}"
                 patrol_enable="{cfg.patrol_enable}"
                 patrol_waypoints="{cfg.patrol_waypoints}"
                 semantic_zones_file="{cfg.semantic_zones_file}"
                 semantic_ignore_enemy_zone_type="{cfg.semantic_ignore_enemy_zone_type}"
+                nav_goal_valid="{nav_goal_valid}"
                 />
             <!-- 标定覆盖：从 CSV 文件加载标定坐标，覆盖上面 YAML 默认值 -->
             <LoadCalibrationCSV
@@ -45,6 +52,7 @@
                 central_highland_left_x="{cfg.central_highland_left_x}" central_highland_left_y="{cfg.central_highland_left_y}"
                 ramp_jump_x="{cfg.ramp_jump_x}" ramp_jump_y="{cfg.ramp_jump_y}"
                 cap_outpost_x="{cfg.cap_outpost_x}" cap_outpost_y="{cfg.cap_outpost_y}"
+                fortress_area_x="{cfg.fortress_area_x}" fortress_area_y="{cfg.fortress_area_y}"
                 patrol_waypoints="{cfg.patrol_waypoints}"
                 />
             <InitCmdState cmd_state="{cmd.state}"/>

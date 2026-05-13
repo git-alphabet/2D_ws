@@ -29,18 +29,25 @@ public:
       BT::BidirectionalPort<double>("central_highland_left_x"), BT::BidirectionalPort<double>("central_highland_left_y"),
       BT::BidirectionalPort<double>("ramp_jump_x"), BT::BidirectionalPort<double>("ramp_jump_y"),
       BT::BidirectionalPort<double>("cap_outpost_x"), BT::BidirectionalPort<double>("cap_outpost_y"),
+      BT::BidirectionalPort<double>("fortress_area_x"), BT::BidirectionalPort<double>("fortress_area_y"),
       BT::BidirectionalPort<double>("arrive_radius"),
+      BT::BidirectionalPort<double>("move_around_expected_dis"),
+      BT::BidirectionalPort<int>("move_around_expected_nearby_goal_count"),
       BT::BidirectionalPort<int>("hp_low"),
       BT::BidirectionalPort<int>("hp_safe"),
       BT::BidirectionalPort<int>("ammo_low"),
       BT::BidirectionalPort<int>("supply_wait_timeout_s"),
       BT::BidirectionalPort<double>("enemy_near_base_radius"),
       BT::BidirectionalPort<int>("base_threat_calm_timeout_ms"),
+      BT::BidirectionalPort<int>("cap_sustain_time"),
+      BT::BidirectionalPort<int>("ladder_time"),
+      BT::BidirectionalPort<int>("fortress_time"),
       BT::BidirectionalPort<int>("patrol_hold_ms"),
       BT::BidirectionalPort<bool>("patrol_enable"),
       BT::BidirectionalPort<std::string>("patrol_waypoints"),
       BT::BidirectionalPort<std::string>("semantic_zones_file"),
-      BT::BidirectionalPort<std::string>("semantic_ignore_enemy_zone_type")};
+      BT::BidirectionalPort<std::string>("semantic_ignore_enemy_zone_type"),
+      BT::BidirectionalPort<bool>("nav_goal_valid")};
   }
   BT::NodeStatus tick() override;
 

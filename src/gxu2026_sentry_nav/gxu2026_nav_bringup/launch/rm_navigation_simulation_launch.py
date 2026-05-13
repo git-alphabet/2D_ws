@@ -15,21 +15,13 @@
 
 import os
 from pathlib import Path
-from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import (
-    DeclareLaunchArgument,
-    ExecuteProcess,
-    IncludeLaunchDescription,
-    LogInfo,
-    OpaqueFunction,
-    SetLaunchConfiguration,
-)
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, TextSubstitution
+from launch.substitutions import LaunchConfiguration, TextSubstitution, FindExecutable
 from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterFile
 from nav2_common.launch import RewrittenYaml
@@ -63,66 +55,6 @@ def generate_launch_description():
         allow_substs=True,
     )
 
-    def _resolve_single_map_file(context, *, map_arg, slam_arg, map_dir):
-        slam_value = (slam_arg.perform(context) or "").strip().lower()
-        if slam_value in {"true", "1", "yes", "on"}:
-            return []
-
-        map_override = (map_arg.perform(context) or "").strip()
-        if map_override:
-            map_path = Path(map_override).expanduser()
-            if not map_path.is_file():
-                raise RuntimeError(
-                    f"Map file does not exist: {map_path}. Navigation launch aborted."
-                )
-            return [
-                SetLaunchConfiguration("map", str(map_path)),
-                LogInfo(
-                    msg=[
-                        "Using map yaml: ",
-                        map_path.name,
-                        " (",
-                        str(map_path),
-                        ")",
-                    ]
-                ),
-            ]
-
-        map_candidates = sorted(
-            path for path in Path(map_dir).expanduser().glob("*.yaml") if path.is_file()
-        )
-        if not map_candidates:
-            raise RuntimeError(
-                f"No map yaml found in {map_dir}. Navigation launch aborted."
-            )
-        if len(map_candidates) > 1:
-            candidates = ", ".join(path.name for path in map_candidates)
-            raise RuntimeError(
-                f"Expected exactly one map yaml in {map_dir}, found {len(map_candidates)}: {candidates}. Navigation launch aborted."
-            )
-        selected_map = map_candidates[0]
-        return [
-            SetLaunchConfiguration("map", str(selected_map)),
-            LogInfo(
-                msg=[
-                    "Using map yaml: ",
-                    selected_map.name,
-                    " (",
-                    str(selected_map),
-                    ")",
-                ]
-            ),
-        ]
-
-    resolve_map_cmd = OpaqueFunction(
-        function=_resolve_single_map_file,
-        kwargs={
-            "map_arg": map_yaml_file,
-            "slam_arg": slam,
-            "map_dir": os.path.join(bringup_dir, "map", "simulation"),
-        },
-    )
-
     # Declare the launch arguments
     declare_namespace_cmd = DeclareLaunchArgument(
         "namespace",
@@ -133,7 +65,7 @@ def generate_launch_description():
     declare_slam_cmd = DeclareLaunchArgument(
         "slam",
         default_value="False",
-        description="Whether run a SLAM. If True, it will enable mapping mode and publish static tf (map->odom)",
+        description="Whether run a SLAM. If True, it will disable small_gicp and send static tf (map->odom)",
     )
 
     declare_world_cmd = DeclareLaunchArgument(
@@ -144,11 +76,12 @@ def generate_launch_description():
 
     declare_map_yaml_cmd = DeclareLaunchArgument(
         "map",
-        default_value="",
-        description=(
-            "Full path to map file to load. Empty means auto-detect exactly one yaml "
-            "under map/simulation"
-        ),
+        default_value=[
+            TextSubstitution(text=os.path.join(bringup_dir, "map", "simulation", "")),
+            world,
+            TextSubstitution(text=".yaml"),
+        ],
+        description="Full path to map file to load",
     )
 
     declare_prior_pcd_file_cmd = DeclareLaunchArgument(
@@ -237,6 +170,15 @@ def generate_launch_description():
         }.items(),
     )
 
+    joy_teleop_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(launch_dir, "joy_teleop_launch.py")),
+        launch_arguments={
+            "namespace": namespace,
+            "use_sim_time": use_sim_time,
+            "joy_config_file": params_file,
+        }.items(),
+    )
+
     ld = LaunchDescription()
 
     # Declare the launch options
@@ -252,21 +194,25 @@ def generate_launch_description():
     ld.add_action(declare_rviz_config_file_cmd)
     ld.add_action(declare_use_rviz_cmd)
     ld.add_action(declare_use_respawn_cmd)
-    ld.add_action(resolve_map_cmd)
 
     # Add the actions to launch all of the navigation nodes
     ld.add_action(start_velodyne_convert_tool)
     ld.add_action(bringup_cmd)
+    ld.add_action(joy_teleop_cmd)
     ld.add_action(rviz_cmd)
 
+    # ── 标定辅助节点 ──
     # CALIB_HELPER_MODE:
-    #   off/false/0   -> disabled
-    #   any other value -> enabled for both SLAM and navigation modes
-    calib_mode = os.environ.get("CALIB_HELPER_MODE", "always").strip().lower()
+    #   off/false/0   -> 关闭
+    #   slam          -> 仅 SLAM 模式启用
+    #   always/nav    -> 导航与 SLAM 都启用
+    calib_mode = os.environ.get("CALIB_HELPER_MODE", "slam").strip().lower()
     calib_enabled = calib_mode not in ("0", "false", "no", "off", "disable", "disabled")
 
+    # 查找 calib_point_helper.py: 优先用环境变量，其次尝试工作区 scripts/ 目录
     calib_script = os.environ.get("CALIB_HELPER_SCRIPT", "")
     if not calib_script:
+        # 从 bringup_dir 推算工作区根目录 (向上找直到 scripts/ 存在)
         _ws_candidate = Path(bringup_dir)
         for _ in range(6):
             _ws_candidate = _ws_candidate.parent
@@ -274,15 +220,22 @@ def generate_launch_description():
             if _candidate.exists():
                 calib_script = str(_candidate)
                 break
-
     if calib_enabled and calib_script and os.path.isfile(calib_script):
         calib_args = ["python3", calib_script]
+        # 默认启用 CSV (直接写到 rmuc_calibration.csv)，设置 CALIB_NO_CSV=1 才关闭
         if os.environ.get("CALIB_NO_CSV", "").strip() in ("1", "true", "yes"):
             calib_args.append("--no-csv")
-        start_calib_helper = ExecuteProcess(
-            cmd=calib_args,
-            output="screen",
-        )
+        if calib_mode in ("always", "all", "nav"):
+            start_calib_helper = ExecuteProcess(
+                cmd=calib_args,
+                output="screen",
+            )
+        else:
+            start_calib_helper = ExecuteProcess(
+                cmd=calib_args,
+                output="screen",
+                condition=IfCondition(slam),
+            )
         ld.add_action(start_calib_helper)
 
     return ld

@@ -81,7 +81,7 @@ Sequence
     ├─→ RmucSubGameStatus          (/game_status)         → game_status, now_ms
     ├─→ RmucSubRobotStatus         (/robot_status)        → robot_status
     ├─→ RmucSubRFIDStatus          (/rfid_status)         → rfid_status
-    ├─→ RmucSubRobotPosition       (/robot_position)      → pose_x/y/yaw, is_at_nav_goal, pose
+    ├─→ RmucSubRobotPosition       (/robot_position)      → pose_x/y, is_at_nav_goal
     ├─→ SubRadarTracks             (/radar/enemy_tracks)   → radar_tracks
     │
     │   ─── 以下 P0 裁判系统话题为历史规划/归档链路，当前 live 树以 topic_map_rmuc.md 为准 ───
@@ -182,7 +182,7 @@ Sequence
  IsWeakness?  SelectNearestDispelCard    SendGoal(1Hz)
  (门控)       (选最近增益点:              + 关闭开火
   │           补给区/基地buff/            + MoveAround
-  │           前哨站buff)                  (到达后微调)
+  │           前哨站buff)                  (到达后用 pose_x/y 微调)
   │               │                          │
  虚弱=YES        写入 nav.goal_x/y           │
  不虚弱=退出      │                          │
