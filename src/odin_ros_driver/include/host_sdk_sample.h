@@ -78,6 +78,7 @@ double get_ptp_smoothed_offset();
 
     #include "rclcpp/rclcpp.hpp"
     #include "std_msgs/msg/string.hpp"
+    #include "std_msgs/msg/bool.hpp"
     #include <std_msgs/msg/header.hpp>
     #include <visualization_msgs/msg/marker_array.hpp>
     #include "sensor_msgs/msg/image.hpp"
@@ -1173,6 +1174,17 @@ void publishRgb(capture_Image_List_t *stream) {
 
     }
 
+    // Publish relocalization success status (latched)
+    void publishRelocalizationSuccess() {
+#ifdef ROS2
+        if (relocalization_success_pub_) {
+            std_msgs::msg::Bool msg;
+            msg.data = true;
+            relocalization_success_pub_->publish(msg);
+        }
+#endif
+    }
+
     // Publish WIWC data (T_CL and T_IL extrinsics) as a separate topic
     void publishWiwc(capture_Image_List_t* stream) {
         uint32_t data_len = stream->imageList[0].length;
@@ -1780,6 +1792,9 @@ private:
             undistort_rgb_pub_ = node_->create_publisher<sensor_msgs::msg::Image>("odin1/image/undistorted", qos_sensor);
             intensity_gray_pub_ = node_->create_publisher<sensor_msgs::msg::Image>("odin1/image/intensity_gray", qos_sensor);
             wiwc_publisher_ = node_->create_publisher<ros::Odometry>("odin1/wiwc", qos_small);
+            relocalization_success_pub_ = node_->create_publisher<std_msgs::msg::Bool>(
+                "odin1/relocalization_success",
+                rclcpp::QoS(1).transient_local().reliable());
             tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(node_);
         #endif
     }
@@ -1819,6 +1834,7 @@ private:
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr intensity_gray_pub_;
         rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr pub_camera_pose_visual_;
         rclcpp::Publisher<ros::Odometry>::SharedPtr wiwc_publisher_;
+        rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr relocalization_success_pub_;
         camera_pose_visualization cameraposevisual_;
         std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster;
         // 缓存 map→odom TF，HIGHFREQ 回调里一并发布，避免 Nav2 因低频 TF 外推失败

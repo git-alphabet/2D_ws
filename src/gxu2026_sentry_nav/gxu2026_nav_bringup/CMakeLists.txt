@@ -21,4 +21,5 @@ ament_auto_package(
   config
   behavior_trees
   rviz
+  scripts
 )

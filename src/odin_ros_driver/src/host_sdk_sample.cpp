@@ -1169,6 +1169,7 @@ static void lidar_data_callback(const lidar_data_t *data, void *user_data)
                     if (!g_relocalization_success_msg_printed) {
                     #ifdef ROS2
                         RCLCPP_INFO(rclcpp::get_logger("odom"), "relocalization success!");
+                        g_ros_object->publishRelocalizationSuccess();
                     #else
                         ROS_INFO("relocalization success!");
                     #endif

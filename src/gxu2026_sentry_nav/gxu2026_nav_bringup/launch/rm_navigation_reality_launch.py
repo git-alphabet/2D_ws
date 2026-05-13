@@ -557,6 +557,31 @@ def generate_launch_description():
         }.items(),
     )
 
+    # Relocalization fallback node: only for Mode 2 (relocalization).
+    # Allows manual initial pose via RViz to unblock Nav2 when odin1 relocalization
+    # takes too long. Stops publishing when odin1 relocalization succeeds.
+    def _add_relocalization_fallback(context, *, odin_mode_arg):
+        odin_mode_value = (odin_mode_arg.perform(context) or "").strip()
+        if odin_mode_value != "2":
+            return []
+        fallback_script = os.path.join(bringup_dir, "scripts", "relocalization_fallback_node.py")
+        if not os.path.isfile(fallback_script):
+            return []
+        return [
+            Node(
+                package="gxu2026_nav_bringup",
+                executable=fallback_script,
+                name="relocalization_fallback",
+                output="screen",
+                namespace=namespace,
+            ),
+        ]
+
+    relocalization_fallback_cmd = OpaqueFunction(
+        function=_add_relocalization_fallback,
+        kwargs={"odin_mode_arg": LaunchConfiguration("odin_map_mode")},
+    )
+
     ld = LaunchDescription()
 
     # Declare the launch options
@@ -596,6 +621,7 @@ def generate_launch_description():
     ld.add_action(start_odin_driver_node)
     ld.add_action(start_mid360_driver_node)
     ld.add_action(bringup_cmd)
+    ld.add_action(relocalization_fallback_cmd)
     ld.add_action(rviz_cmd)
 
     # CALIB_HELPER_MODE:

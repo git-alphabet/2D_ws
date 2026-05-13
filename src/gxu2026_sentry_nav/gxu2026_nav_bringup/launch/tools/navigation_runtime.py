@@ -275,6 +275,18 @@ def build_navigation_runtime_actions(
         condition=IfCondition(enable_rm_behavior_tree),
     )
 
+    start_robot_position_bridge_cmd = Node(
+        package="rm_behavior_tree",
+        executable="robot_position_bridge",
+        name="robot_position_bridge",
+        output="screen",
+        respawn=use_respawn,
+        respawn_delay=2.0,
+        parameters=[configured_params],
+        arguments=["--ros-args", "--log-level", log_level],
+        condition=IfCondition(enable_rm_behavior_tree),
+    )
+
     load_nodes = GroupAction(
         condition=UnlessCondition(use_composition),
         actions=[
@@ -543,6 +555,7 @@ def build_navigation_runtime_actions(
         start_terrain_analysis_ext_single_cmd,
         start_point_lio_cmd,
         start_loam_interface_mid360_cmd,
+        start_robot_position_bridge_cmd,
         start_rm_behavior_tree_cmd,
         start_nonlinear_spin_publisher_cmd,
         load_nodes,

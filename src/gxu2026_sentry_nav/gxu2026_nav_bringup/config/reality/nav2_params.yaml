@@ -924,7 +924,7 @@ local_costmap:
         # 膨胀代价衰减系数。
         cost_scaling_factor: 4.0
         # 障碍物膨胀半径，单位米。
-        inflation_radius: 0.4
+        inflation_radius: 0.6
       # 是否总是发布完整代价地图。
       always_send_full_costmap: False
 
@@ -1027,7 +1027,7 @@ global_costmap:
         # 膨胀代价衰减系数。
         cost_scaling_factor: 4.0
         # 障碍物膨胀半径，单位米。
-        inflation_radius: 0.4
+        inflation_radius: 0.6
       # 是否总是发布完整代价地图。
       always_send_full_costmap: False
 
