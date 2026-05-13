@@ -4,10 +4,12 @@
 	1.launch/navigation_launch.py
 	2.launch/rm_navigation_simulation_launch.py
 	3.rviz/nav2_default_view.rviz
-
+ 
 3.scripts/
 	1._debug_bt_switch.py
 	2.used/rmuc_test_publisher.py
 	3.launch_wrapper.py
 	4.tools/
 	5.calib_point_helper.py
+
+4.gxu2026_sentry_nav/sp_mags
