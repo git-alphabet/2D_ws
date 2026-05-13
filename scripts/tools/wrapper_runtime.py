@@ -17,6 +17,7 @@ from tools.wrapper_helpers import (
     BEIJING_TZ,
     build_base_env,
     current_branch,
+    is_truthy,
     slugify,
     run_shell,
     pid_gone,
@@ -436,14 +437,21 @@ def start_timestamp_monitor(cfg: CommonConfig, bg: BackgroundGroup) -> None:
         return
 
     base_env = build_base_env(cfg)
+    branch = current_branch(cfg.ws_dir)
+    branch_safe = re.sub(r"[^A-Za-z0-9._-]", "_", branch)
+    log_dir = cfg.ws_dir / "launch_logs" / branch_safe
+    log_dir.mkdir(parents=True, exist_ok=True)
+    bj_tz = timezone(timedelta(hours=8))
+    ts = datetime.now(bj_tz).strftime("%Y%m%d_%H%M%S_%f")
+    log_file = log_dir / f"{Path(cfg.script_name).stem}_{ts}_timestamp_monitor.log"
 
     cmd = (
         f"{base_env}; "
         f"export TIMESTAMP_SYNC_MONITOR_CONFIG={shlex.quote(str(config_path))}; "
-        f"python3 -m tools.timestamp_sync_monitor >/dev/null 2>&1"
+        f"python3 -m tools.timestamp_sync_monitor 2>&1 | tee -a {shlex.quote(str(log_file))}"
     )
     print(
-        f"[{cfg.script_name}] (timestamp-monitor) running silently, JSON auto-saved periodically + on exit",
+        f"[{cfg.script_name}] (timestamp-monitor) log -> {log_file}",
         file=sys.stderr,
     )
     p = subprocess.Popen(["bash", "-lc", cmd], preexec_fn=os.setsid)
@@ -508,10 +516,14 @@ def launch_in_terminal(
         # 驱动之外的进程关闭超时时间（秒）
         other_shutdown_timeout = int(os.environ.get("OTHER_SHUTDOWN_TIMEOUT", "5"))
         # odin 驱动关闭超时时间（秒）
-        odin_shutdown_timeout = float(os.environ.get("ODIN_SHUTDOWN_TIMEOUT", "5"))
+        odin_shutdown_timeout = float(os.environ.get("ODIN_SHUTDOWN_TIMEOUT", "30"))
+        # 超时后是否自动 SIGKILL（默认关闭，仅允许手动二次 Ctrl+C）
+        force_kill_after_timeout = is_truthy(os.environ.get("FORCE_KILL_AFTER_TIMEOUT", "0"))
+        odin_force_kill = is_truthy(os.environ.get("ODIN_FORCE_KILL", "0"))
         shutdown_requested = [False]
         pre_shutdown_done = [False]
         odin_shutdown_done = [False]
+        timeout_notified = [False]
 
         def _force_kill() -> None:
             try:
@@ -542,7 +554,11 @@ def launch_in_terminal(
                     f"\n[{cfg.script_name}] Shutting down odin driver first (timeout {odin_shutdown_timeout}s)...",
                     file=sys.stderr,
                 )
-                kill_odin_driver(cfg.script_name, timeout=odin_shutdown_timeout)
+                kill_odin_driver(
+                    cfg.script_name,
+                    timeout=odin_shutdown_timeout,
+                    force_kill=odin_force_kill,
+                )
 
             # Step 3: Send SIGTERM to remaining processes
             print(
@@ -569,13 +585,21 @@ def launch_in_terminal(
                     if deadline is None:
                         deadline = time.monotonic() + other_shutdown_timeout
                     if time.monotonic() > deadline:
-                        print(
-                            f"[{cfg.script_name}] Shutdown timeout ({other_shutdown_timeout}s), force killing...",
-                            file=sys.stderr,
-                        )
-                        _force_kill()
-                        p.wait()
-                        break
+                        if force_kill_after_timeout:
+                            print(
+                                f"[{cfg.script_name}] Shutdown timeout ({other_shutdown_timeout}s), force killing...",
+                                file=sys.stderr,
+                            )
+                            _force_kill()
+                            p.wait()
+                            break
+                        if not timeout_notified[0]:
+                            print(
+                                f"[{cfg.script_name}] Shutdown timeout ({other_shutdown_timeout}s), keep waiting."
+                                " Press Ctrl+C again to force kill.",
+                                file=sys.stderr,
+                            )
+                            timeout_notified[0] = True
         finally:
             signal.signal(signal.SIGINT, prev_sigint)
             signal.signal(signal.SIGTERM, prev_sigterm)

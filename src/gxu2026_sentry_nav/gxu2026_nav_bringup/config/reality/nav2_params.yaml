@@ -284,8 +284,8 @@ loam_interface:
 loam_interface_mid360:
   ros__parameters:
     use_sim_time: False
-    # 使用 point_lio 自身 odometry 重投影，避免跨传感器 odometry 引入散点。
-    state_estimation_topic: "aft_mapped_to_init"
+    # 使用 odin1 里程计作为统一 odom，避免双源 odom 相位差造成虚假障碍。
+    state_estimation_topic: "odin1/odometry_highfreq"
     # 使用 point_lio 的 body frame 点云，避免把 mid360 自身 lidar_odom 语义错误拼接到 odin 主 odom。
     # 输入点云话题。
     registered_scan_topic: "mid360/cloud_registered"
@@ -501,7 +501,7 @@ fake_vel_transform:
     # 减速带区域名。
     speed_bump_zone_name: "speed_bump"
     # 减速带语义区域文件。
-    speed_bump_zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
+    speed_bump_zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/semantic_zones.yaml"
 
 # 非线性小陀螺（实车）：同仿真，发布 cmd_spin（Float32，单位 rad/s）
 nonlinear_spin_publisher:
@@ -515,8 +515,7 @@ nonlinear_spin_publisher:
 
     # 触发策略：收到第一条 Nav2 local_plan 后开始小陀螺，之后不停止
     # 是否在首次触发后持续发布。
-    start_on_first_trigger: true
-    # 触发话题。
+    start_on_first_trigger: false
     start_trigger_topic: "cmd_vel_nav2_result"
     # 触发消息类型。
     start_trigger_msg_type: "geometry_msgs/Twist"
@@ -528,7 +527,7 @@ nonlinear_spin_publisher:
     publish_rate_hz: 50.0
 
     # 变频变幅正弦叠加：center_speed + A1*sin(phi1) + A2*sin(phi2 + offset)
-    center_speed: 3.14            # 中心角速度(rad/s)
+    center_speed: 4.2            # 中心角速度(rad/s)
     range_speed: 2.0              # 总振幅基准(rad/s)
     primary_amp_ratio: 0.65       # 主正弦分量振幅占比(会和 secondary 归一化)
     secondary_amp_ratio: 0.35     # 次正弦分量振幅占比
@@ -546,7 +545,7 @@ nonlinear_spin_publisher:
     accel_limit: 16.0             # 输出角速度加速度限幅(rad/s^2)
 
     max_abs_speed: 4.8            # 输出绝对值上限(rad/s)
-    min_abs_speed: 2.8            # 输出绝对值下限(rad/s)，避免转速贴近 0
+    min_abs_speed: 3.0            # 输出绝对值下限(rad/s)，避免转速贴近 0
     seed: 1                       # 随机种子(0 为每次随机)
     start_delay_sec: 0.5          # 节点启动后延迟生效时间(s)
 
@@ -604,8 +603,19 @@ pointcloud_merge_sync:
     output_topic: "merged_registered_scan"
     # ApproximateTime 最大时间差，单位秒。
     merge_time_tolerance_sec: 0.08
+    # 同步策略：approximate 或 exact。
+    sync_policy: "approximate"
+    # 是否启用主雷达回退发布。
+    enable_fallback: true
     # 同步队列长度。
     queue_size: 20
+    # 是否启用时间补偿（用 TF 将次点云对齐到主点云时间）。
+    enable_time_compensation: true
+    # 时间补偿参考坐标系。
+    odom_frame: "odom"
+    base_frame: "base_footprint"
+    # 最大时间补偿窗口，单位秒。
+    max_time_compensation_sec: 0.20
 
 # SLAM Toolbox：mapping 模式时发布 map/odom 等；scan_topic 要与上游生成一致
 slam_toolbox:

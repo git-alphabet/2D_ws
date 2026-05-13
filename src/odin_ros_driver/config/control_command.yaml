@@ -122,7 +122,7 @@ register_keys:
   # 保存路径：ws/src/odin_ros_driver/recorddata/{record_start_time}/
   # ATTENTION: please copy the full folder for post-processing.
   # 注意：后处理时请复制完整目录
-  recorddata: 0           # 0: off; 1: on
+  recorddata: 1           # 0: off; 1: on
 
   # Save device runtime status info to ws/src/odin_ros_driver/log/Driver_{drvier_start_time}/Conn_{device_connection_time}/dev_status.csv
   # 将设备运行状态信息保存到 ws/src/odin_ros_driver/log/Driver_{drvier_start_time}/Conn_{device_connection_time}/dev_status.csv

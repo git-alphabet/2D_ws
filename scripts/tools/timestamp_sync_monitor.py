@@ -2,6 +2,7 @@
 # pyright: reportMissingImports=false
 from __future__ import annotations
 
+import atexit
 import argparse
 import importlib
 import json
@@ -112,7 +113,7 @@ class TopicState:
     msg_type: str
     end_stamp_field: str = ""
     end_stamp_mode: str = ""
-    samples: deque[tuple[float, float, float, float]] = field(default_factory=deque)
+    samples: deque[tuple[float, float, float, float, str]] = field(default_factory=deque)
     rx_count: int = 0
     last_rx_mono: float | None = None
 
@@ -288,6 +289,10 @@ class SyncMonitor(Node):
             ts = _stamp_to_sec(msg)
             if not math.isfinite(ts):
                 return
+            header = getattr(msg, "header", None)
+            frame_id = ""
+            if header is not None:
+                frame_id = str(getattr(header, "frame_id", ""))
             now_mono = time.monotonic()
             now_ros = self._now_sec()
             age = now_ros - ts
@@ -297,7 +302,7 @@ class SyncMonitor(Node):
             end_age = now_ros - end_ts if math.isfinite(end_ts) else math.nan
             topic.rx_count += 1
             topic.last_rx_mono = now_mono
-            topic.samples.append((now_mono, ts, age, end_age))
+            topic.samples.append((now_mono, ts, age, end_age, frame_id))
 
             old_limit = now_mono - self.window_sec
             while topic.samples and topic.samples[0][0] < old_limit:
@@ -354,11 +359,11 @@ class SyncMonitor(Node):
         if not topic.samples:
             return None
 
-        ages = [age for _, _, age, _ in topic.samples if math.isfinite(age)]
+        ages = [age for _, _, age, _, _ in topic.samples if math.isfinite(age)]
         if not ages:
             return None
 
-        rx_times = [mono for mono, _, _, _ in topic.samples]
+        rx_times = [mono for mono, _, _, _, _ in topic.samples]
         duration = max(rx_times) - min(rx_times) if len(rx_times) >= 2 else 0.0
         rate = (len(rx_times) - 1) / duration if duration > 0.0 else math.nan
         summary = {
@@ -385,7 +390,9 @@ class SyncMonitor(Node):
                 }
             )
 
-        end_ages = [end_age for _, _, _, end_age in topic.samples if math.isfinite(end_age)]
+        end_ages = [
+            end_age for _, _, _, end_age, _ in topic.samples if math.isfinite(end_age)
+        ]
         if end_ages:
             summary.update(
                 {
@@ -397,6 +404,26 @@ class SyncMonitor(Node):
                 }
             )
         return summary
+
+    @staticmethod
+    def _topic_frame_summary(topic: TopicState) -> tuple[str, int]:
+        frame_ids = [frame_id for _, _, _, _, frame_id in topic.samples if frame_id]
+        if not frame_ids:
+            return "", 0
+        counts: dict[str, int] = {}
+        for frame_id in frame_ids:
+            counts[frame_id] = counts.get(frame_id, 0) + 1
+        top = max(counts, key=counts.get)
+        return top, len(counts)
+
+    @staticmethod
+    def _latest_frame_id(topic: TopicState | None) -> str:
+        if topic is None:
+            return ""
+        for _, _, _, _, frame_id in reversed(topic.samples):
+            if frame_id:
+                return frame_id
+        return ""
 
     def _report(self) -> None:
         now = time.monotonic()
@@ -419,10 +446,18 @@ class SyncMonitor(Node):
             topic_summaries[topic.name] = summary
             topic_summaries[topic.topic] = summary
             live_flag = "live" if live else "stale"
+            frame_id, frame_variants = self._topic_frame_summary(topic)
+            if not frame_id:
+                frame_note = " frame_id=unknown"
+            elif frame_variants > 1:
+                frame_note = f" frame_id={frame_id} variants={frame_variants}"
+            else:
+                frame_note = f" frame_id={frame_id}"
             self.get_logger().info(
                 f"[topic:{topic.name}] {live_flag} n={summary['n']:.0f} rate={summary['rate']:.2f}Hz "
                 f"age(s): last={summary['last']:.3f} mean={summary['mean']:.3f} "
                 f"p50={summary['p50']:.3f} p95={summary['p95']:.3f} max={summary['max']:.3f}"
+                f"{frame_note}"
             )
             if "end_mean" in summary:
                 self.get_logger().info(
@@ -467,6 +502,14 @@ class SyncMonitor(Node):
             )
 
         for pair in self.pairs:
+            left_state = self.topic_by_name_or_topic.get(pair.left_topic)
+            right_state = self.topic_by_name_or_topic.get(pair.right_topic)
+            left_frame = self._latest_frame_id(left_state)
+            right_frame = self._latest_frame_id(right_state)
+            if left_frame and right_frame and left_frame != right_frame:
+                self.get_logger().warn(
+                    f"[{pair.name}] frame_id mismatch left={left_frame} right={right_frame}"
+                )
             if not pair.samples:
                 left_live = bool(pair.left_last_rx_mono) and (now - pair.left_last_rx_mono <= self.window_sec)
                 right_live = bool(pair.right_last_rx_mono) and (now - pair.right_last_rx_mono <= self.window_sec)
@@ -585,8 +628,7 @@ class SyncMonitor(Node):
 
     def save(self) -> Path | None:
         if not self._snapshots:
-            self.get_logger().warn("no snapshots to save")
-            return None
+            self.get_logger().warn("no snapshots to save (writing empty report)")
 
         # Use a single file per session; first save creates it, subsequent saves overwrite.
         if not hasattr(self, "_session_file"):
@@ -648,20 +690,37 @@ def main() -> int:
 
     rclpy.init()
     node = None
+    saved_once = False
+
+    def _save_report(reason: str) -> None:
+        nonlocal saved_once
+        if saved_once or node is None:
+            return
+        try:
+            path = node.save()
+            saved_once = True
+            if path:
+                print(f"saved report to {path} ({reason})", file=sys.stderr, flush=True)
+        except Exception as exc:
+            print(f"failed to save report ({reason}): {exc}", file=sys.stderr, flush=True)
+
     try:
         node = SyncMonitor(cfg)
+        atexit.register(lambda: _save_report("atexit"))
 
         def _on_signal(signum, _frame):
+            _save_report(f"signal {signum}")
             rclpy.shutdown()
 
         signal.signal(signal.SIGTERM, _on_signal)
+        signal.signal(signal.SIGINT, _on_signal)
 
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
     finally:
+        _save_report("shutdown")
         if node is not None:
-            node.save()
             node.destroy_node()
         try:
             rclpy.shutdown()
