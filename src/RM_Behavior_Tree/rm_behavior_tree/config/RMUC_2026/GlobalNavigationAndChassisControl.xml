@@ -17,7 +17,8 @@
             <UpdateHealRecoveryLatch hp_cur="{hp.cur}"
                                      hp_low="{cfg.hp_low}"
                                      hp_safe="{cfg.hp_safe}"
-                                     need_heal_recovery="{need_heal_recovery}"/>
+                                     need_heal_recovery="{need_heal_recovery}"
+                                     low_hp_supply_retreat_count="{low_hp_supply_retreat_count}"/>
 
             <!-- 全局底盘/云台控制：基于条件，与战术子树解耦 -->
             <ReactiveFallback name="ChassisControlLayer">
@@ -61,6 +62,10 @@
                               arrive_radius="{cfg.arrive_radius}"/>
                     <RmucRobotControl stop_gimbal_scan="False"
                                       chassis_spin="True"/>
+                    <Inverter>
+                        <RmucIsDetectEnemy message="{robot_status}"
+                                           is_detect_enemy="{is_detect_enemy}"/>
+                    </Inverter>
                     <MoveAround pose_x="{pose.x}" pose_y="{pose.y}"
                                 expected_dis="{cfg.move_around_expected_dis}"
                                 expected_nearby_goal_count="{cfg.move_around_expected_nearby_goal_count}"
@@ -78,10 +83,6 @@
                                        is_detect_enemy="{is_detect_enemy}"/>
                     <RmucRobotControl stop_gimbal_scan="False"
                                       chassis_spin="True"/>
-                    <MoveAround pose_x="{pose.x}" pose_y="{pose.y}"
-                                expected_dis="{cfg.move_around_expected_dis}"
-                                expected_nearby_goal_count="{cfg.move_around_expected_nearby_goal_count}"
-                                non_blocking="true"/>
                 </Sequence>
 
                 <!-- 到达当前导航目标 → 旋转 -->
