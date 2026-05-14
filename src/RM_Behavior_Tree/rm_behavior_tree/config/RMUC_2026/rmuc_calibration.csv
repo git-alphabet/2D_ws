@@ -19,6 +19,9 @@
 # defend_anchor,0.0968,-0.4008
 # patrol_3,0.0596,-6.6217
 # patrol_2,4.5796,-0.0708
+out_alive_patrol_3,0.0,0.0
+out_alive_patrol_2,0.0,0.0
+out_alive_patrol_1,0.0,0.0
 # supply_zone,5.0844,-3.4419
 # fortress_area,2.1450,0.8180
 # ladder_highland,-3.0382,-2.4563

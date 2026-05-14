@@ -30,6 +30,8 @@
                              fortress_area_y="{cfg.fortress_area_y}"
                              patrol_enable="{cfg.patrol_enable}"
                              patrol_waypoints="{cfg.patrol_waypoints}"
+                             out_alive_patrol_enable="{cfg.out_alive_patrol_enable}"
+                             out_alive_patrol_waypoints="{cfg.out_alive_patrol_waypoints}"
                              ladder_time="{cfg.ladder_time}"
                              fortress_time="{cfg.fortress_time}"
                              patrol_hold_ms="{cfg.patrol_hold_ms}"

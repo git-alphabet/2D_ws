@@ -197,6 +197,7 @@ int main(int argc, char ** argv)
 
     for (const auto & [key, def] : std::vector<std::pair<std::string, bool>>{
         {"patrol_enable", false},
+        {"out_alive_patrol_enable", false},
         {"move_around_enable", true}})
     {
       auto pn = prefix + key;
@@ -210,9 +211,9 @@ int main(int argc, char ** argv)
       }
       injected++;
     }
-    // patrol_waypoints (vector<double> → string "x1,y1;x2,y2;...")
-    {
-      auto pn = prefix + "patrol_waypoints";
+    // waypoint arrays (vector<double> → string "x1,y1;x2,y2;...")
+    for (const auto & key : {"patrol_waypoints", "out_alive_patrol_waypoints"}) {
+      auto pn = prefix + key;
       if (!node->has_parameter(pn))
         node->declare_parameter<std::vector<double>>(pn, std::vector<double>{});
       auto vec = node->get_parameter(pn).as_double_array();
@@ -221,10 +222,10 @@ int main(int argc, char ** argv)
         if (!wpts_str.empty()) wpts_str += ";";
         wpts_str += std::to_string(vec[i]) + "," + std::to_string(vec[i + 1]);
       }
-      bb->set("cfg.patrol_waypoints", wpts_str);
+      bb->set("cfg." + std::string(key), wpts_str);
       if (!wpts_str.empty()) injected++;
-      RCLCPP_INFO(node->get_logger(), "Patrol waypoints (%zu points): %s",
-                  vec.size() / 2, wpts_str.c_str());
+      RCLCPP_INFO(node->get_logger(), "%s (%zu points): %s",
+                  key, vec.size() / 2, wpts_str.c_str());
     }
   }
 
