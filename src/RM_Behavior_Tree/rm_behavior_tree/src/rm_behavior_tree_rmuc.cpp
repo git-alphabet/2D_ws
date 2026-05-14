@@ -271,12 +271,19 @@ int main(int argc, char ** argv)
     }
     RCLCPP_INFO(node->get_logger(), "Injected %d RMUC config params into blackboard", injected);
 
-    // patrol_enable (bool)
+    for (const auto & [key, def] : std::vector<std::pair<std::string, bool>>{
+        {"patrol_enable", false},
+        {"move_around_enable", true}})
     {
-      auto pn = prefix + "patrol_enable";
-      if (!node->has_parameter(pn)) node->declare_parameter<bool>(pn, false);
+      auto pn = prefix + key;
+      if (!node->has_parameter(pn)) {
+        node->declare_parameter<bool>(pn, def);
+      }
       bool v = node->get_parameter(pn).as_bool();
-      bb->set("cfg.patrol_enable", v);
+      bb->set("cfg." + key, v);
+      if (key == "move_around_enable") {
+        bb->set(key, v);
+      }
       injected++;
     }
     // patrol_waypoints (vector<double> → string "x1,y1;x2,y2;...")

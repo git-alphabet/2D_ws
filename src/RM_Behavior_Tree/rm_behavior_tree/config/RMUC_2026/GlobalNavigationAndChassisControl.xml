@@ -62,14 +62,19 @@
                               arrive_radius="{cfg.arrive_radius}"/>
                     <RmucRobotControl stop_gimbal_scan="False"
                                       chassis_spin="True"/>
-                    <Inverter>
-                        <RmucIsDetectEnemy message="{robot_status}"
-                                           is_detect_enemy="{is_detect_enemy}"/>
-                    </Inverter>
-                    <MoveAround pose_x="{pose.x}" pose_y="{pose.y}"
-                                expected_dis="{cfg.move_around_expected_dis}"
-                                expected_nearby_goal_count="{cfg.move_around_expected_nearby_goal_count}"
-                                non_blocking="true"/>
+                    <ForceSuccess>
+                        <Sequence>
+                            <ScriptCondition code="move_around_enable == true"/>
+                            <Inverter>
+                                <RmucIsDetectEnemy message="{robot_status}"
+                                                   is_detect_enemy="{is_detect_enemy}"/>
+                            </Inverter>
+                            <MoveAround pose_x="{pose.x}" pose_y="{pose.y}"
+                                        expected_dis="{cfg.move_around_expected_dis}"
+                                        expected_nearby_goal_count="{cfg.move_around_expected_nearby_goal_count}"
+                                        non_blocking="true"/>
+                        </Sequence>
+                    </ForceSuccess>
                 </Sequence>
                 <Sequence>
                     <IsBaseThreatened base_threat="{threat.base}"/>
@@ -93,10 +98,15 @@
                               arrive_radius="{cfg.arrive_radius}"/>
                     <RmucRobotControl stop_gimbal_scan="False"
                                       chassis_spin="True"/>
-                    <MoveAround pose_x="{pose.x}" pose_y="{pose.y}"
-                                expected_dis="{cfg.move_around_expected_dis}"
-                                expected_nearby_goal_count="{cfg.move_around_expected_nearby_goal_count}"
-                                non_blocking="true"/>
+                    <ForceSuccess>
+                        <Sequence>
+                            <ScriptCondition code="move_around_enable == true"/>
+                            <MoveAround pose_x="{pose.x}" pose_y="{pose.y}"
+                                        expected_dis="{cfg.move_around_expected_dis}"
+                                        expected_nearby_goal_count="{cfg.move_around_expected_nearby_goal_count}"
+                                        non_blocking="true"/>
+                        </Sequence>
+                    </ForceSuccess>
                 </Sequence>
                 <!-- 默认（导航中等） → 不旋转 -->
                 <RmucRobotControl stop_gimbal_scan="False"
