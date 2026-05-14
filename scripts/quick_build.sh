@@ -136,7 +136,7 @@ else
 fi
 
 # CMake 生成器选择：优先 Ninja（仅在新缓存或显式选择时启用）
-BUILD_GENERATOR="${BUILD_GENERATOR:-default}"
+BUILD_GENERATOR="${BUILD_GENERATOR:-ninja}"
 CMAKE_GENERATOR=""
 if [[ "$BUILD_GENERATOR" == "ninja" ]]; then
   if command -v ninja >/dev/null 2>&1; then

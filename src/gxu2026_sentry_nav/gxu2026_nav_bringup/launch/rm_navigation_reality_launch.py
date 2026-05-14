@@ -567,13 +567,15 @@ def generate_launch_description():
         fallback_script = os.path.join(bringup_dir, "scripts", "relocalization_fallback_node.py")
         if not os.path.isfile(fallback_script):
             return []
+        fallback_cmd = ["python3", fallback_script]
+        namespace_value = (namespace.perform(context) or "").strip()
+        if namespace_value:
+            fallback_cmd.extend(["--ros-args", "-r", f"__ns:={namespace_value}"])
         return [
-            Node(
-                package="gxu2026_nav_bringup",
-                executable=fallback_script,
+            ExecuteProcess(
+                cmd=fallback_cmd,
                 name="relocalization_fallback",
                 output="screen",
-                namespace=namespace,
             ),
         ]
 

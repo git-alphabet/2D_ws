@@ -18,7 +18,7 @@ register_keys:
 
   # original rgb data in jpeg format from device
   # 设备原始 JPEG 格式 RGB 数据
-  sendrgbcompressed: 0    # 0: off; 1: on
+  sendrgbcompressed: 1    # 0: off; 1: on
 
   # RGB data, decoded from original jpeg data from device, bgr8 format
   # 由设备原始 JPEG 解码得到的 RGB 数据，格式为 bgr8
@@ -32,7 +32,7 @@ register_keys:
   # 依赖 sendrgb；相关相机参数位于 ws/src/odin_ros_driver/config/calib.yaml
   # Processed on host device
   # 在主机侧处理
-  sendrgbundistort: 0    # 0: off; 1: on.
+  sendrgbundistort: 1    # 0: off; 1: on.
 
   # IMU data
   # IMU 数据
@@ -122,7 +122,7 @@ register_keys:
   # 保存路径：ws/src/odin_ros_driver/recorddata/{record_start_time}/
   # ATTENTION: please copy the full folder for post-processing.
   # 注意：后处理时请复制完整目录
-  recorddata: 1           # 0: off; 1: on
+  recorddata: 0           # 0: off; 1: on
 
   # Save device runtime status info to ws/src/odin_ros_driver/log/Driver_{drvier_start_time}/Conn_{device_connection_time}/dev_status.csv
   # 将设备运行状态信息保存到 ws/src/odin_ros_driver/log/Driver_{drvier_start_time}/Conn_{device_connection_time}/dev_status.csv
@@ -145,7 +145,7 @@ register_keys:
   # 自定义初始位姿 [x, y, z, qx, qy, qz, qw]
   custom_init_pos: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
   # 重定位模式必须设置地图绝对路径，否则会失败
-  relocalization_map_abs_path: "/ws/.buildcache/odin1/src/odin_ros_driver/map/20260514_021023/map_20260514_021345.bin" # must be set for Relocalization mode or will fail
+  relocalization_map_abs_path: "/ws/.buildcache/odin1/src/odin_ros_driver/map/20260514_234102/map_20260514_234126.bin" # must be set for Relocalization mode or will fail
 
   # To get the mapping result file, please use the set_param.sh script provided: "./set_param.sh save_map 1"
   # 如需导出建图结果，请使用脚本："./set_param.sh save_map 1"
