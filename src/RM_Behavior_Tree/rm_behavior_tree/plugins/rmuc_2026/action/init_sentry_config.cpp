@@ -80,6 +80,14 @@ BT::NodeStatus InitSentryConfigAction::tick()
   getInput("patrol_waypoints", patrol_waypoints);
   setOutput("patrol_waypoints", patrol_waypoints);
 
+  bool out_alive_patrol_enable = false;
+  getInput("out_alive_patrol_enable", out_alive_patrol_enable);
+  setOutput("out_alive_patrol_enable", out_alive_patrol_enable);
+
+  std::string out_alive_patrol_waypoints;
+  getInput("out_alive_patrol_waypoints", out_alive_patrol_waypoints);
+  setOutput("out_alive_patrol_waypoints", out_alive_patrol_waypoints);
+
   setStr("semantic_zones_file", "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml");
   setStr("semantic_ignore_enemy_zone_type", "speed_bump");
   setOutput("nav_goal_valid", false);
