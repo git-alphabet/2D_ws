@@ -128,19 +128,19 @@ def kill_odin_driver(
 
     print(f"[{script_name}] Gracefully shutting down odin driver pids: {' '.join(map(str, pids))}", file=sys.stderr)
 
-    # Send SIGTERM for graceful shutdown
+    # Send SIGINT for graceful shutdown (ROS defaults map SIGINT and SIGTERM to clean shutdown)
     for pid in list(pids):
         try:
             os.kill(pid, 0)
         except OSError:
             continue
         try:
-            os.killpg(os.getpgid(pid), signal.SIGTERM)
+            # We ONLY want to kill the odin driver itself first, not the entire process group
+            # because the process group contains all other ROS 2 nodes we may want to keep alive
+            # for pre_shutdown_hook or delayed shutdown.
+            os.kill(pid, signal.SIGINT)
         except Exception:
-            try:
-                os.kill(pid, signal.SIGTERM)
-            except Exception:
-                pass
+            pass
 
     # Wait for driver to exit
     deadline = None if timeout <= 0 else time.monotonic() + timeout
