@@ -36,7 +36,7 @@ public:
       BT::InputPort<std::string>("out_alive_patrol_waypoints", "", "前哨站存活巡逻点 \"x1,y1;x2,y2;...\""),
       BT::InputPort<int>("ladder_time", 5000, "梯形高地停留时间(ms)"),
       BT::InputPort<int>("fortress_time", 5000, "堡垒区停留时间(ms)"),
-      BT::InputPort<int>("patrol_hold_ms", 5000, "到达巡逻点后停留时间(ms)"),
+      BT::InputPort<int>("patrol_hold_ms", 5000, "普通巡逻点/前哨站存活巡逻停留时间(ms)"),
       BT::InputPort<double>("arrive_radius", 0.5, "到达判定半径(m)"),
       BT::OutputPort<double>("goal_x"),
       BT::OutputPort<double>("goal_y"),
