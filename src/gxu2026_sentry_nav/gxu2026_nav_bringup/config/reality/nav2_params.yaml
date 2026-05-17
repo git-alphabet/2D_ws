@@ -154,6 +154,7 @@ pb_controller_profiles:
 # 行为树相关（RM 侧）：实车不用 sim time
 rm_behavior_tree:
   ros__parameters:
+    executable: rm_behavior_tree_rmuc
     is_blue_team: False
     style: rmuc_01.xml
     use_sim_time: False

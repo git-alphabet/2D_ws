@@ -36,6 +36,7 @@ public:
       BT::OutputPort<double>("fortress_area_x"), BT::OutputPort<double>("fortress_area_y"),
       // 巡逻航点 (格式: "x1,y1;x2,y2;...")
       BT::OutputPort<std::string>("patrol_waypoints"),
+      BT::OutputPort<std::string>("out_alive_patrol_waypoints"),
     };
   }
 

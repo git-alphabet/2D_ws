@@ -67,6 +67,10 @@ BT::NodeStatus InitSentryConfigAction::tick()
   setInt("patrol_hold_ms", 5000);
   setInt("move_around_expected_nearby_goal_count", 3);
 
+  bool move_around_enable = true;
+  getInput("move_around_enable", move_around_enable);
+  setOutput("move_around_enable", move_around_enable);
+
   // 巡逻参数 (从黑板直接读取，由 rm_behavior_tree.cpp 注入)
   bool patrol_enable = false;
   getInput("patrol_enable", patrol_enable);
@@ -75,6 +79,14 @@ BT::NodeStatus InitSentryConfigAction::tick()
   std::string patrol_waypoints;
   getInput("patrol_waypoints", patrol_waypoints);
   setOutput("patrol_waypoints", patrol_waypoints);
+
+  bool out_alive_patrol_enable = false;
+  getInput("out_alive_patrol_enable", out_alive_patrol_enable);
+  setOutput("out_alive_patrol_enable", out_alive_patrol_enable);
+
+  std::string out_alive_patrol_waypoints;
+  getInput("out_alive_patrol_waypoints", out_alive_patrol_waypoints);
+  setOutput("out_alive_patrol_waypoints", out_alive_patrol_waypoints);
 
   setStr("semantic_zones_file", "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml");
   setStr("semantic_ignore_enemy_zone_type", "speed_bump");

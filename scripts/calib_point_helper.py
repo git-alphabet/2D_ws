@@ -43,14 +43,18 @@ CALIB_POINTS: list[tuple[str, str, tuple[float, float, float, float]]] = [
     # ("base",                   "2-基地 Base",                (1.0, 0.5, 0.2, 1.0)),
     # ── 以下暂时隐藏，需要时取消注释即可 ──
     # ("outpost_buff",           "3-前哨增益 OutpostBuff",     (0.8, 0.0, 0.8, 1.0)),
-    ("fortress_area",          "F-堡垒区 Fortress",          (1.0, 0.0, 0.0, 1.0)),
+    # ("fortress_area",          "F-堡垒区 Fortress",          (1.0, 0.0, 0.0, 1.0)),
     ("central_highland",       "6-中央高地 CentralHL",       (1.0, 1.0, 0.0, 1.0)),
-    ("ladder_highland",        "7-梯形高地 LadderHL",        (0.0, 1.0, 1.0, 1.0)),
+    # ("ladder_highland",        "7-梯形高地 LadderHL",        (0.0, 1.0, 1.0, 1.0)),
     # ("defend_anchor",          "8-防御锚点 Defend",          (1.0, 0.4, 0.4, 1.0)),
     # ── 巡逻点（前哨站被毁后，在梯形高地附近巡逻的路点）──
-    ("patrol_1",               "P1-巡逻点1 Patrol1",        (0.4, 1.0, 0.4, 1.0)),
+    # ("patrol_1",               "P1-巡逻点1 Patrol1",        (0.4, 1.0, 0.4, 1.0)),
     # ("patrol_2",               "P2-巡逻点2 Patrol2",        (0.4, 1.0, 0.6, 1.0)),
     # ("patrol_3",               "P3-巡逻点3 Patrol3",        (0.4, 1.0, 0.8, 1.0)),
+    # ── 前哨站存活时，中央高地周边巡逻的路点 ──
+    ("out_alive_patrol_1",     "A1-存活巡逻点1 AlivePatrol1", (0.2, 0.9, 1.0, 1.0)),
+    ("out_alive_patrol_2",     "A2-存活巡逻点2 AlivePatrol2", (0.2, 0.8, 1.0, 1.0)),
+    ("out_alive_patrol_3",     "A3-存活巡逻点3 AlivePatrol3", (0.2, 0.7, 1.0, 1.0)),
     ("cap_outpost",            "C-占领前哨 CapOutpost",     (1.0, 0.3, 0.0, 1.0)),
 ]
 
@@ -79,6 +83,12 @@ PATROL_WAYPOINT_INDEX_MAP: dict[str, tuple[int, int]] = {
     "patrol_1": (0, 1),
     "patrol_2": (2, 3),
     "patrol_3": (4, 5),
+}
+
+OUT_ALIVE_PATROL_WAYPOINT_INDEX_MAP: dict[str, tuple[int, int]] = {
+    "out_alive_patrol_1": (0, 1),
+    "out_alive_patrol_2": (2, 3),
+    "out_alive_patrol_3": (4, 5),
 }
 
 MAP_FRAME = "map"
@@ -432,6 +442,7 @@ class CalibPointHelper(Node):
     def _parse_default_config(self, path: Path) -> dict:
         wanted_keys = {axis for axes in CALIB_POINT_PARAM_MAP.values() for axis in axes}
         wanted_keys.add("patrol_waypoints")
+        wanted_keys.add("out_alive_patrol_waypoints")
         values: dict[str, object] = {}
 
         with open(path, "r") as f:
@@ -444,7 +455,7 @@ class CalibPointHelper(Node):
                 if key not in wanted_keys:
                     continue
                 raw_value = raw_value.strip()
-                if key == "patrol_waypoints":
+                if key in {"patrol_waypoints", "out_alive_patrol_waypoints"}:
                     try:
                         values[key] = ast.literal_eval(raw_value)
                     except (SyntaxError, ValueError):
@@ -468,6 +479,16 @@ class CalibPointHelper(Node):
         if key in PATROL_WAYPOINT_INDEX_MAP:
             indices = PATROL_WAYPOINT_INDEX_MAP[key]
             waypoints = cfg.get("patrol_waypoints", [])
+            if not isinstance(waypoints, list) or len(waypoints) <= max(indices):
+                return None
+            try:
+                return float(waypoints[indices[0]]), float(waypoints[indices[1]])
+            except (TypeError, ValueError):
+                return None
+
+        if key in OUT_ALIVE_PATROL_WAYPOINT_INDEX_MAP:
+            indices = OUT_ALIVE_PATROL_WAYPOINT_INDEX_MAP[key]
+            waypoints = cfg.get("out_alive_patrol_waypoints", [])
             if not isinstance(waypoints, list) or len(waypoints) <= max(indices):
                 return None
             try:

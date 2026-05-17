@@ -35,6 +35,8 @@
                 patrol_hold_ms="{cfg.patrol_hold_ms}"
                 patrol_enable="{cfg.patrol_enable}"
                 patrol_waypoints="{cfg.patrol_waypoints}"
+                out_alive_patrol_enable="{cfg.out_alive_patrol_enable}"
+                out_alive_patrol_waypoints="{cfg.out_alive_patrol_waypoints}"
                 semantic_zones_file="{cfg.semantic_zones_file}"
                 semantic_ignore_enemy_zone_type="{cfg.semantic_ignore_enemy_zone_type}"
                 nav_goal_valid="{nav_goal_valid}"
@@ -54,6 +56,7 @@
                 cap_outpost_x="{cfg.cap_outpost_x}" cap_outpost_y="{cfg.cap_outpost_y}"
                 fortress_area_x="{cfg.fortress_area_x}" fortress_area_y="{cfg.fortress_area_y}"
                 patrol_waypoints="{cfg.patrol_waypoints}"
+                out_alive_patrol_waypoints="{cfg.out_alive_patrol_waypoints}"
                 />
             <InitCmdState cmd_state="{cmd.state}"/>
             <!-- 补弹重试状态初始化由 HoldForSupplyAmmoTick 在首次触发时通过 rootBlackboard 完成 -->

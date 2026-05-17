@@ -68,6 +68,7 @@ BT::NodeStatus LoadCalibrationCSVAction::tick()
   // 解析 CSV
   std::map<std::string, std::pair<double, double>> point_map;
   std::map<int, std::pair<double, double>> patrol_map;
+  std::map<int, std::pair<double, double>> out_alive_patrol_map;
 
   std::string line;
   int line_num = 0;
@@ -96,7 +97,19 @@ BT::NodeStatus LoadCalibrationCSVAction::tick()
       continue;
     }
 
-    // 巡逻点 (patrol_1, patrol_2, ...)
+    // 前哨站存活巡逻点 (out_alive_patrol_1, out_alive_patrol_2, ...)
+    const std::string out_alive_prefix = "out_alive_patrol_";
+    if (name.rfind(out_alive_prefix, 0) == 0) {
+      try {
+        int idx = std::stoi(name.substr(out_alive_prefix.size()));
+        out_alive_patrol_map[idx] = {x, y};
+      } catch (...) {
+        std::cerr << "[CALIB_CSV] 无法解析前哨存活巡逻点序号: " << name << "\n";
+      }
+      continue;
+    }
+
+    // 前哨站被毁巡逻点 (patrol_1, patrol_2, ...)
     if (name.size() > 7 && name.substr(0, 7) == "patrol_") {
       try {
         int idx = std::stoi(name.substr(7));
@@ -141,6 +154,18 @@ BT::NodeStatus LoadCalibrationCSVAction::tick()
     overridden++;
     std::cout << "[CALIB_CSV] 覆盖 patrol_waypoints (" << patrol_map.size()
               << " 点): " << wpts_str << "\n";
+  }
+
+  if (!out_alive_patrol_map.empty()) {
+    std::string wpts_str;
+    for (const auto & [idx, coord] : out_alive_patrol_map) {
+      if (!wpts_str.empty()) wpts_str += ";";
+      wpts_str += std::to_string(coord.first) + "," + std::to_string(coord.second);
+    }
+    setOutput("out_alive_patrol_waypoints", wpts_str);
+    overridden++;
+    std::cout << "[CALIB_CSV] 覆盖 out_alive_patrol_waypoints ("
+              << out_alive_patrol_map.size() << " 点): " << wpts_str << "\n";
   }
 
   // 警告未识别的点位

@@ -34,7 +34,7 @@ rm_behavior_tree:
 
       cap_outpost_x: 10.5810         # 占领前哨点 x（标定缺失/无效时使用；默认值与当前 CSV 标定值一致）
       cap_outpost_y: 1.0294          # 占领前哨点 y（标定缺失/无效时使用；默认值与当前 CSV 标定值一致）
-      cap_sustain_time: 60           # 比赛开始后优先占领前哨点的持续时间 (秒)，超时后不再前往 cap_outpost
+      cap_sustain_time: 10           # 比赛开始后优先占领前哨点的持续时间 (秒)，超时后不再前往 cap_outpost
 
       fortress_area_x: 1.9907        # 堡垒区 x（前哨站被毁后的轮换点）
       fortress_area_y: -1.8907       # 堡垒区 y（前哨站被毁后的轮换点）
@@ -51,8 +51,10 @@ rm_behavior_tree:
       calibration_csv_path: "/ws/src/RM_Behavior_Tree/rm_behavior_tree/config/RMUC_2026/rmuc_calibration.csv"
 
       # ─────────── 巡逻配置 ───────────
-      patrol_enable: true             # 是否启用巡逻 (仅前哨站被毁时生效)
+      patrol_enable: false             # 是否启用巡逻 (仅前哨站被毁时生效)
       patrol_waypoints: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # 巡逻点数组 [x1,y1,x2,y2,...]
+      out_alive_patrol_enable: true   # 前哨站存活时，是否启用中央高地周边巡逻
+      out_alive_patrol_waypoints: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # 前哨站存活巡逻点数组 [x1,y1,x2,y2,...]
       ladder_time: 4000                # 前哨站被毁后，梯形高地停留时间 (毫秒)
       fortress_time: 4000              # 前哨站被毁后，堡垒区停留时间 (毫秒)
       patrol_hold_ms: 4000             # 巡逻到达普通巡逻点后的停留时间 (毫秒)
@@ -68,10 +70,11 @@ rm_behavior_tree:
       arrive_radius: 0.8              # 统一到达判定半径 (米)
       enemy_near_base_radius: 5.0     # 敌人距基地威胁半径 (米)
       base_threat_calm_timeout_ms: 30000  # 基地威胁自动解除平静时间 (毫秒)
+      move_around_enable: false       # 是否启用 MoveAround 随机微动
       move_around_expected_dis: 0.3   # MoveAround 随机微动半径 (米)
       move_around_expected_nearby_goal_count: 3  # MoveAround 单次触发发布的随机目标点数量
 
       # ─────────── 语义区域 ───────────
       # 由 scripts/tools/semantic_from_label_image.py 生成；speed_bump 区域内禁止旋转并忽略云台见敌
-      semantic_zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
+      semantic_zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/semantic_zones.yaml"
       semantic_ignore_enemy_zone_type: "speed_bump"
