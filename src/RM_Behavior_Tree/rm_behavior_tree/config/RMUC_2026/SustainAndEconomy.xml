@@ -3,12 +3,36 @@
 
     <BehaviorTree ID="SustainAndEconomy">
         <ReactiveSequence>
-            <!-- Ammo management (prefer supply free ticks & station purchase; remote only when disengaged) -->
-            <SubTree ID="AmmoPlan" _autoremap="true"/>
-            <!-- 补弹 → 防御姿态(2)，减伤跑路更安全；仅在 AmmoPlan 活跃 (RUNNING) 时才设置 -->
-            <SelectPosture posture_value="2"
-                           posture_out="{cmd.posture}"
-                           is_allow_select_posture="{cmd.allow_posture_send}"/>
+            <!-- 低弹补给：路上强制移动；到补给区后强制防御并等待补弹 -->
+            <IsAmmoBelow ammo_allow="{ammo.allow}" ammo_low="{supply.next_threshold}"/>
+
+            <ReactiveFallback>
+                <!-- 已到补给区：防御姿态等待补弹/超时降级 -->
+                <ReactiveSequence>
+                    <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
+                              goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
+                              arrive_radius="{cfg.arrive_radius}"/>
+                    <SelectPosture posture_value="2"
+                                   posture_out="{cmd.posture}"
+                                   is_allow_select_posture="{cmd.allow_posture_send}"/>
+                    <HoldForSupplyAmmoTick ammo_allow="{ammo.allow}"
+                                           timeout_s="{cfg.supply_wait_timeout_s}"
+                                           default_threshold="{cfg.ammo_low}"
+                                           supply_fail_count="{supply.fail_count}"
+                                           supply_next_threshold="{supply.next_threshold}"/>
+                </ReactiveSequence>
+
+                <!-- 未到补给区：移动姿态前往补给区，普通敌情不会打断 -->
+                <ReactiveSequence>
+                    <SelectPosture posture_value="3"
+                                   posture_out="{cmd.posture}"
+                                   is_allow_select_posture="{cmd.allow_posture_send}"/>
+                    <SendGoal name="GoSupplyZone"
+                              goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
+                              frame_id="map" action_name="navigate_to_pose"/>
+                    <KeepRunning/>
+                </ReactiveSequence>
+            </ReactiveFallback>
         </ReactiveSequence>
     </BehaviorTree>
 
