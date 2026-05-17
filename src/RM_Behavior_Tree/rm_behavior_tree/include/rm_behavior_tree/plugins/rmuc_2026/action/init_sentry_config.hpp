@@ -45,6 +45,7 @@ public:
       BT::BidirectionalPort<int>("fortress_time"),
       BT::BidirectionalPort<int>("patrol_hold_ms"),
       BT::BidirectionalPort<bool>("patrol_enable"),
+      BT::BidirectionalPort<bool>("destroyed_outpost_ladder_enable"),
       BT::BidirectionalPort<std::string>("patrol_waypoints"),
       BT::BidirectionalPort<bool>("out_alive_patrol_enable"),
       BT::BidirectionalPort<std::string>("out_alive_patrol_waypoints"),

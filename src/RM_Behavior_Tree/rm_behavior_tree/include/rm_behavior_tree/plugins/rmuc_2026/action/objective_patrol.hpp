@@ -13,7 +13,7 @@ namespace rm_behavior_tree
 /// 目标巡逻节点：根据当前战略目标复用巡逻逻辑
 /// - 目标是 CENTRAL_HIGHLAND 且 out_alive_patrol_enable=true → [中央高地, 存活巡逻点...] 循环
 /// - 其他非 TRAPEZOIDAL_HIGHLAND 目标 → 只输出战略目标坐标
-/// - 目标是 TRAPEZOIDAL_HIGHLAND → 默认在 [梯形高地, 堡垒区] 之间循环
+/// - 目标是 TRAPEZOIDAL_HIGHLAND → 根据 destroyed_outpost_ladder_enable 决定 [梯形高地, 堡垒区] 或 [堡垒区]
 /// - 巡逻开启时追加普通巡逻点，形成 [梯形高地, 堡垒区, wpt0, wpt1, ...]
 class ObjectivePatrolAction : public BT::SyncActionNode
 {
@@ -31,6 +31,7 @@ public:
       BT::InputPort<double>("fortress_area_x"),
       BT::InputPort<double>("fortress_area_y"),
       BT::InputPort<bool>("patrol_enable", false, "是否启用巡逻"),
+      BT::InputPort<bool>("destroyed_outpost_ladder_enable", true, "前哨站被毁且巡逻关闭时是否加入梯形高地"),
       BT::InputPort<std::string>("patrol_waypoints", "", "巡逻点 \"x1,y1;x2,y2;...\""),
       BT::InputPort<bool>("out_alive_patrol_enable", false, "前哨站存活时是否启用中央高地巡逻"),
       BT::InputPort<std::string>("out_alive_patrol_waypoints", "", "前哨站存活巡逻点 \"x1,y1;x2,y2;...\""),

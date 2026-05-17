@@ -76,6 +76,10 @@ BT::NodeStatus InitSentryConfigAction::tick()
   getInput("patrol_enable", patrol_enable);
   setOutput("patrol_enable", patrol_enable);
 
+  bool destroyed_outpost_ladder_enable = true;
+  getInput("destroyed_outpost_ladder_enable", destroyed_outpost_ladder_enable);
+  setOutput("destroyed_outpost_ladder_enable", destroyed_outpost_ladder_enable);
+
   std::string patrol_waypoints;
   getInput("patrol_waypoints", patrol_waypoints);
   setOutput("patrol_waypoints", patrol_waypoints);

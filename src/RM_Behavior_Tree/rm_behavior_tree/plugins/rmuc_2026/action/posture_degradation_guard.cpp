@@ -1,4 +1,5 @@
 #include "rm_behavior_tree/plugins/rmuc_2026/action/posture_degradation_guard.hpp"
+#include "behaviortree_cpp/blackboard.h"
 #include <iostream>
 
 namespace rm_behavior_tree
@@ -13,6 +14,28 @@ BT::NodeStatus PostureDegradationGuard::tick()
   int desired = 3;
   getInput("desired_posture", desired);
 
+  bool is_dead = false;
+  bool need_heal_recovery = false;
+  bool base_threat = false;
+  int hp_cur = 10000;
+  int hp_low = 0;
+  int ammo_allow = 300;
+  int ammo_low = 80;
+  getInput("is_dead", is_dead);
+  getInput("need_heal_recovery", need_heal_recovery);
+  getInput("hp_cur", hp_cur);
+  getInput("hp_low", hp_low);
+  getInput("ammo_allow", ammo_allow);
+  getInput("ammo_low", ammo_low);
+  getInput("base_threat", base_threat);
+  if (auto * root_bb = config().blackboard->rootBlackboard()) {
+    try {
+      ammo_low = root_bb->get<int>("supply.next_threshold");
+    } catch (...) {
+      // Keep the XML-provided fallback threshold.
+    }
+  }
+
   int threshold_s = 180;
   getInput("degradation_threshold_s", threshold_s);
 
@@ -25,6 +48,8 @@ BT::NodeStatus PostureDegradationGuard::tick()
   auto now = std::chrono::steady_clock::now();
 
   int effective_desired = desired;
+  const bool bypass_degradation =
+    is_dead || need_heal_recovery || hp_cur < hp_low || ammo_allow < ammo_low || base_threat;
 
   // 首次初始化
   if (!initialized_) {
@@ -42,6 +67,19 @@ BT::NodeStatus PostureDegradationGuard::tick()
 
   if (active_posture_ >= 1 && active_posture_ <= kPostureCount) {
     cumulative_ms_[active_posture_ - 1] += delta_ms;
+  }
+
+  if (bypass_degradation) {
+    if (in_forced_switch_) {
+      std::cout << "[PostureDegradationGuard] 高优先级状态接管，取消强制姿态 "
+                << forced_posture_ << "，放行姿态 " << effective_desired << std::endl;
+    }
+    in_forced_switch_ = false;
+    forced_posture_ = 0;
+    forced_duration_ms_ = 0;
+    active_posture_ = effective_desired;
+    setOutput("final_posture", effective_desired);
+    return BT::NodeStatus::SUCCESS;
   }
 
   // ── 强制切换模式 (防御 or 移动) ──

@@ -50,6 +50,9 @@ BT::NodeStatus ObjectivePatrolAction::tick()
   bool patrol_enable = false;
   getInput("patrol_enable", patrol_enable);
 
+  bool destroyed_outpost_ladder_enable = true;
+  getInput("destroyed_outpost_ladder_enable", destroyed_outpost_ladder_enable);
+
   std::string wpts_str;
   getInput("patrol_waypoints", wpts_str);
 
@@ -153,7 +156,9 @@ BT::NodeStatus ObjectivePatrolAction::tick()
     }
     cycle.insert(cycle.end(), alive_patrol_pts.begin(), alive_patrol_pts.end());
   } else {
-    cycle.push_back({obj_x, obj_y, ladder_hold_ms, "ladder"});
+    if (destroyed_outpost_ladder_enable) {
+      cycle.push_back({obj_x, obj_y, ladder_hold_ms, "ladder"});
+    }
     cycle.push_back({fortress_x, fortress_y, fortress_hold_ms, "fortress"});
 
     if (patrol_enable) {
@@ -223,8 +228,8 @@ BT::NodeStatus ObjectivePatrolAction::tick()
       long hold_elapsed_ms = (was_arrived && arrived_time_ms > 0) ?
         static_cast<long>(now_ms - arrived_time_ms) : 0;
       fprintf(stderr,
-              "[ObjectivePatrol] destroyed_enable=%d alive_enable=%d obj=%s wpts=%zuB alive_wpts=%zuB active=1 idx=%d/%zu target=%s arrived=%d hold=%ldms/%dms dist=%.2f\n",
-              patrol_enable, out_alive_patrol_enable, obj_name.c_str(),
+              "[ObjectivePatrol] destroyed_enable=%d destroyed_ladder=%d alive_enable=%d obj=%s wpts=%zuB alive_wpts=%zuB active=1 idx=%d/%zu target=%s arrived=%d hold=%ldms/%dms dist=%.2f\n",
+              patrol_enable, destroyed_outpost_ladder_enable, out_alive_patrol_enable, obj_name.c_str(),
               wpts_str.size(), out_alive_wpts_str.size(),
               current_idx, cycle.size(), target.label, was_arrived,
               hold_elapsed_ms, hold_ms_cache_, dist);

@@ -52,6 +52,7 @@ rm_behavior_tree:
 
       # ─────────── 巡逻配置 ───────────
       patrol_enable: false             # 是否启用巡逻 (仅前哨站被毁时生效)
+      destroyed_outpost_ladder_enable: true  # 前哨站被毁且 patrol_enable=false 时，是否在梯形高地和堡垒区之间循环；false=只守堡垒区
       patrol_waypoints: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # 巡逻点数组 [x1,y1,x2,y2,...]
       out_alive_patrol_enable: true   # 前哨站存活时，是否启用中央高地周边巡逻
       out_alive_patrol_waypoints: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # 前哨站存活巡逻点数组 [x1,y1,x2,y2,...]

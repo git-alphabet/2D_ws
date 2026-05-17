@@ -27,6 +27,13 @@ public:
   {
     return {
       BT::InputPort<int>("desired_posture", "3", "期望姿态 (来自战术子树 SelectPosture)"),
+      BT::InputPort<bool>("is_dead", false, "死亡时跳过姿态降级"),
+      BT::InputPort<bool>("need_heal_recovery", false, "低血回血时跳过姿态降级"),
+      BT::InputPort<int>("hp_cur", 10000, "当前血量"),
+      BT::InputPort<int>("hp_low", 0, "低血阈值"),
+      BT::InputPort<int>("ammo_allow", 300, "当前允许发弹量"),
+      BT::InputPort<int>("ammo_low", 80, "低弹阈值"),
+      BT::InputPort<bool>("base_threat", false, "基地威胁时跳过姿态降级"),
       BT::InputPort<int>("degradation_threshold_s", "180", "姿态降级阈值 (秒，默认3分钟)"),
       BT::InputPort<int>("forced_defense_s", "5", "强制防御持续时间 (秒，匹配裁判系统冷却)"),
       BT::InputPort<int>("forced_movement_s", "5", "防御超时→强制移动持续时间 (秒)"),
