@@ -10,8 +10,15 @@
             <DecideRespawnCmd is_dead="{state.is_dead}"
                               confirm_respawn="{cmd.confirm_respawn}"/>
 
-            <!-- 姿态降级守卫：仅负责累计时间降级，不处理基地威胁/补弹等业务姿态 -->
+            <!-- 姿态降级守卫：低于基地威胁/补弹/回血，高于普通遇敌及普通目标点 -->
             <PostureDegradationGuard desired_posture="{cmd.posture}"
+                                     is_dead="{state.is_dead}"
+                                     need_heal_recovery="{need_heal_recovery}"
+                                     hp_cur="{hp.cur}"
+                                     hp_low="{cfg.hp_low}"
+                                     ammo_allow="{ammo.allow}"
+                                     ammo_low="{cfg.ammo_low}"
+                                     base_threat="{threat.base}"
                                      degradation_threshold_s="180"
                                      forced_defense_s="5"
                                      forced_movement_s="5"

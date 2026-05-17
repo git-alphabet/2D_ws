@@ -29,6 +29,7 @@
                              fortress_area_x="{cfg.fortress_area_x}"
                              fortress_area_y="{cfg.fortress_area_y}"
                              patrol_enable="{cfg.patrol_enable}"
+                             destroyed_outpost_ladder_enable="{cfg.destroyed_outpost_ladder_enable}"
                              patrol_waypoints="{cfg.patrol_waypoints}"
                              out_alive_patrol_enable="{cfg.out_alive_patrol_enable}"
                              out_alive_patrol_waypoints="{cfg.out_alive_patrol_waypoints}"
