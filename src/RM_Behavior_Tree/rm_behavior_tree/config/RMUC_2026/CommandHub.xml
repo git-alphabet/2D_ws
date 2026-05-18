@@ -19,6 +19,7 @@
                                      ammo_allow="{ammo.allow}"
                                      ammo_low="{cfg.ammo_low}"
                                      base_threat="{threat.base}"
+                                     semantic_zone_active="{semantic.zone_active}"
                                      degradation_threshold_s="180"
                                      forced_defense_s="5"
                                      forced_movement_s="5"

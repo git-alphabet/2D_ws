@@ -196,6 +196,7 @@ int main(int argc, char ** argv)
     RCLCPP_INFO(node->get_logger(), "Injected %d RMUC config params into blackboard", injected);
 
     for (const auto & [key, def] : std::vector<std::pair<std::string, bool>>{
+        {"conservative_mode_enable", false},
         {"patrol_enable", false},
         {"out_alive_patrol_enable", false},
         {"move_around_enable", true}})

@@ -72,6 +72,10 @@ BT::NodeStatus InitSentryConfigAction::tick()
   setOutput("move_around_enable", move_around_enable);
 
   // 巡逻参数 (从黑板直接读取，由 rm_behavior_tree.cpp 注入)
+  bool conservative_mode_enable = false;
+  getInput("conservative_mode_enable", conservative_mode_enable);
+  setOutput("conservative_mode_enable", conservative_mode_enable);
+
   bool patrol_enable = false;
   getInput("patrol_enable", patrol_enable);
   setOutput("patrol_enable", patrol_enable);

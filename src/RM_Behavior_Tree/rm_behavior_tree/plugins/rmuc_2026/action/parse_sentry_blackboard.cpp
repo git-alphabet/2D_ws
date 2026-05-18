@@ -134,6 +134,7 @@ BT::NodeStatus ParseSentryBlackboardAction::tick()
               << " (zone_type=" << semantic_ignore_zone_type << ")"
               << std::endl;
   }
+  setOutput("semantic_zone_active", suppress_enemy_detection);
 
   bool effective_detect_enemy = false;
 

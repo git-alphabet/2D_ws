@@ -17,6 +17,7 @@ BT::NodeStatus PostureDegradationGuard::tick()
   bool is_dead = false;
   bool need_heal_recovery = false;
   bool base_threat = false;
+  bool semantic_zone_active = false;
   int hp_cur = 10000;
   int hp_low = 0;
   int ammo_allow = 300;
@@ -28,6 +29,7 @@ BT::NodeStatus PostureDegradationGuard::tick()
   getInput("ammo_allow", ammo_allow);
   getInput("ammo_low", ammo_low);
   getInput("base_threat", base_threat);
+  getInput("semantic_zone_active", semantic_zone_active);
   if (auto * root_bb = config().blackboard->rootBlackboard()) {
     try {
       ammo_low = root_bb->get<int>("supply.next_threshold");
@@ -56,17 +58,15 @@ BT::NodeStatus PostureDegradationGuard::tick()
     initialized_ = true;
     active_posture_ = effective_desired;
     last_tick_time_ = now;
-    setOutput("final_posture", effective_desired);
-    return BT::NodeStatus::SUCCESS;
-  }
+  } else {
+    // 累加当前活跃姿态的时间
+    auto delta_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+      now - last_tick_time_).count();
+    last_tick_time_ = now;
 
-  // 累加当前活跃姿态的时间
-  auto delta_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-    now - last_tick_time_).count();
-  last_tick_time_ = now;
-
-  if (active_posture_ >= 1 && active_posture_ <= kPostureCount) {
-    cumulative_ms_[active_posture_ - 1] += delta_ms;
+    if (active_posture_ >= 1 && active_posture_ <= kPostureCount) {
+      cumulative_ms_[active_posture_ - 1] += delta_ms;
+    }
   }
 
   if (bypass_degradation) {
@@ -79,6 +79,19 @@ BT::NodeStatus PostureDegradationGuard::tick()
     forced_duration_ms_ = 0;
     active_posture_ = effective_desired;
     setOutput("final_posture", effective_desired);
+    return BT::NodeStatus::SUCCESS;
+  }
+
+  if (semantic_zone_active) {
+    if (in_forced_switch_) {
+      std::cout << "[PostureDegradationGuard] 语义区接管，取消强制姿态 "
+                << forced_posture_ << "，强制移动姿态" << std::endl;
+    }
+    in_forced_switch_ = false;
+    forced_posture_ = 0;
+    forced_duration_ms_ = 0;
+    active_posture_ = 3;
+    setOutput("final_posture", 3);
     return BT::NodeStatus::SUCCESS;
   }
 

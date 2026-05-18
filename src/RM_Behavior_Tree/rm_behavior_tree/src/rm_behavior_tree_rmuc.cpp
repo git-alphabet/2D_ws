@@ -180,6 +180,7 @@ int main(int argc, char ** argv)
   // rmuc_is_at_goal 已移至 K2（需要 costmap 订阅）
   regBT("rmuc_is_zone_card_detected");
   regBT("rmuc_is_base_threatened");
+  regBT("rmuc_is_semantic_zone_active");
   regBT("rmuc_is_vulnerable");
   regBT("rmuc_is_detect_enemy");
   regBT("rmuc_is_ammo_below");
@@ -272,6 +273,7 @@ int main(int argc, char ** argv)
     RCLCPP_INFO(node->get_logger(), "Injected %d RMUC config params into blackboard", injected);
 
     for (const auto & [key, def] : std::vector<std::pair<std::string, bool>>{
+        {"conservative_mode_enable", false},
         {"patrol_enable", false},
         {"out_alive_patrol_enable", false},
         {"move_around_enable", true}})
