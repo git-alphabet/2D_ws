@@ -10,6 +10,7 @@
                              stage_remain_time="{game.remain_s}"
                              hp_cur="{hp.cur}" hp_max="{hp.max}"
                              outpost_alive="{outpost.alive}"
+                             conservative_mode_enable="{cfg.conservative_mode_enable}"
                              cap_sustain_time="{cfg.cap_sustain_time}"
                              cap_outpost_x="{cfg.cap_outpost_x}"
                              cap_outpost_y="{cfg.cap_outpost_y}"

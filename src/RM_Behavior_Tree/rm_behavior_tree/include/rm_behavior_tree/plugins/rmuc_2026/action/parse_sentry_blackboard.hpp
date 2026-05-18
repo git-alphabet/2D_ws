@@ -59,6 +59,7 @@ public:
       BT::OutputPort<bool>("is_dead"),
       BT::OutputPort<bool>("has_target"),
       BT::OutputPort<bool>("is_detect_enemy"),
+      BT::OutputPort<bool>("semantic_zone_active"),
 
       // ── outputs: 占位/兼容 ──
       BT::OutputPort<bool>("base_threat"),

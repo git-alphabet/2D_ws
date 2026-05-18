@@ -12,11 +12,14 @@ SelectObjectiveAction::SelectObjectiveAction(
 BT::NodeStatus SelectObjectiveAction::tick()
 {
   bool outpost_alive = true;
+  bool conservative_mode_enable = false;
   int stage_elapsed_time = 0;
   int cap_sustain_time = 0;
   getInput("cap_sustain_time", cap_sustain_time);
   getInput("stage_elapsed_time", stage_elapsed_time);
   getInput("outpost_alive", outpost_alive);
+  getInput("conservative_mode_enable", conservative_mode_enable);
+  const bool fortress_patrol_mode = !outpost_alive || conservative_mode_enable;
 
   std::string objective;
   double gx = 0, gy = 0;
@@ -25,7 +28,9 @@ BT::NodeStatus SelectObjectiveAction::tick()
   const bool match_started = game_status && game_status->game_progress == 4;
   const auto now = std::chrono::steady_clock::now();
 
-  if (cap_sustain_time <= 0) {
+  if (fortress_patrol_mode) {
+    cap_timer_started_ = false;
+  } else if (cap_sustain_time <= 0) {
     cap_timer_done_ = true;
   } else if (match_started && !cap_timer_started_ && !cap_timer_done_) {
     cap_timer_started_ = true;
@@ -47,7 +52,11 @@ BT::NodeStatus SelectObjectiveAction::tick()
 
   const bool in_cap_window = cap_timer_started_ && !cap_timer_done_;
 
-  if (in_cap_window) {
+  if (fortress_patrol_mode) {
+    objective = "TRAPEZOIDAL_HIGHLAND";
+    getInput("ladder_highland_x", gx);
+    getInput("ladder_highland_y", gy);
+  } else if (in_cap_window) {
     objective = "CAP_OUTPOST";
     getInput("cap_outpost_x", gx);
     getInput("cap_outpost_y", gy);
@@ -65,7 +74,8 @@ BT::NodeStatus SelectObjectiveAction::tick()
   if (objective != last_obj) {
     fprintf(stderr,
       "[SelectObjective] game_elapsed_s=%d, cap_timer_started=%d, cap_timer_done=%d, outpost_alive=%d -> %s (%.2f, %.2f)\n",
-      stage_elapsed_time, cap_timer_started_, cap_timer_done_, outpost_alive,
+      stage_elapsed_time, cap_timer_started_, cap_timer_done_,
+      outpost_alive,
       objective.c_str(), gx, gy);
     last_obj = objective;
   }

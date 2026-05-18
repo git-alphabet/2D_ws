@@ -234,6 +234,10 @@ ament_auto_add_library(rmuc_is_base_threatened SHARED
     plugins/rmuc_2026/condition/is_base_threatened.cpp)
 add_target_dependencies(rmuc_is_base_threatened)
 
+ament_auto_add_library(rmuc_is_semantic_zone_active SHARED
+    plugins/rmuc_2026/condition/is_semantic_zone_active.cpp)
+add_target_dependencies(rmuc_is_semantic_zone_active)
+
 ament_auto_add_library(rmuc_is_vulnerable SHARED
     plugins/rmuc_2026/condition/is_vulnerable.cpp)
 add_target_dependencies(rmuc_is_vulnerable)

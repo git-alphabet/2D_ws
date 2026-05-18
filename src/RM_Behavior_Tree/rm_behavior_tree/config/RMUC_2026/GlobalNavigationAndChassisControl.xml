@@ -82,7 +82,14 @@
                                       chassis_spin="False"/>
                 </Sequence>
 
-                <!-- 普通遇敌：低于基地威胁/回补给，高于其他导航到点状态 -->
+                <!-- 语义区：禁止底盘旋转，低于基地威胁，高于普通遇敌 -->
+                <Sequence>
+                    <IsSemanticZoneActive semantic_zone_active="{semantic.zone_active}"/>
+                    <RmucRobotControl stop_gimbal_scan="False"
+                                      chassis_spin="False"/>
+                </Sequence>
+
+                <!-- 普通遇敌：低于基地威胁/语义区/回补给，高于其他导航到点状态 -->
                 <Sequence>
                     <RmucIsDetectEnemy message="{robot_status}"
                                        is_detect_enemy="{is_detect_enemy}"/>
@@ -135,6 +142,8 @@
                 <IsAmmoBelow ammo_allow="{ammo.allow}" ammo_low="{cfg.ammo_low}"/>
                 <!-- 基地威胁模式 → 放行，优先回基地防御锚点，不受普通见敌阻塞打断 -->
                 <IsBaseThreatened base_threat="{threat.base}"/>
+                <!-- 语义区 → 放行，禁用普通遇敌接管 -->
+                <IsSemanticZoneActive semantic_zone_active="{semantic.zone_active}"/>
                 <!-- robot_buff 易伤防御分支暂停接入：恢复时取消注释即可。
                 <Sequence>
                     <SetBlackboard output_key="active_subtree" value="VulnerableDefense"/>
