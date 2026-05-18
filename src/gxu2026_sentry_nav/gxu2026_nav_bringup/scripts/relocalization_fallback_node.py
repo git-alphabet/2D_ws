@@ -24,7 +24,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from geometry_msgs.msg import PoseWithCovarianceStamped, TransformStamped
 from std_msgs.msg import Bool
-from tf2_ros import Buffer, TransformListener, StaticTransformBroadcaster
+from tf2_ros import Buffer, TransformListener, TransformBroadcaster
 
 
 def quat_to_rotation_matrix(q):
@@ -79,7 +79,9 @@ class RelocalizationFallbackNode(Node):
         # TF
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self)
-        self._tf_broadcaster = StaticTransformBroadcaster(self)
+        self._tf_broadcaster = TransformBroadcaster(self)
+        self._fallback_tf_msg = None
+        self._timer = self.create_timer(0.1, self._timer_callback)
 
         # Subscribers
         # /initialpose from RViz (PoseWithCovarianceStamped, map frame)
@@ -107,6 +109,13 @@ class RelocalizationFallbackNode(Node):
             'Relocalization fallback node started. '
             'Waiting for initial pose from RViz (2D Pose Estimate)...'
         )
+
+
+    def _timer_callback(self):
+        with self._lock:
+            if self._active and self._fallback_tf_msg:
+                self._fallback_tf_msg.header.stamp = self.get_clock().now().to_msg()
+                self._tf_broadcaster.sendTransform(self._fallback_tf_msg)
 
     def _on_initial_pose(self, msg: PoseWithCovarianceStamped):
         """Handle initial pose from RViz."""
@@ -163,7 +172,7 @@ class RelocalizationFallbackNode(Node):
             p_map_odom = p_map_base - R_map_odom @ p_odom_base
             q_map_odom = rotation_matrix_to_quat(R_map_odom)
 
-            # Publish static map -> odom TF
+            # Publish fallback map -> odom TF
             tf_msg = TransformStamped()
             tf_msg.header.stamp = self.get_clock().now().to_msg()
             tf_msg.header.frame_id = 'map'
@@ -176,7 +185,7 @@ class RelocalizationFallbackNode(Node):
             tf_msg.transform.rotation.z = q_map_odom[2]
             tf_msg.transform.rotation.w = q_map_odom[3]
 
-            self._tf_broadcaster.sendTransform(tf_msg)
+            self._fallback_tf_msg = tf_msg
             self._active = True
 
             self.get_logger().info(

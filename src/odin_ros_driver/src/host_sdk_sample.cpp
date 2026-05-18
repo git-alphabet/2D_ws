@@ -1834,9 +1834,9 @@ int main(int argc, char *argv[])
     g_ros_object = new MultiSensorPublisher(nh);
 #endif
 
-    // Register signal handlers for Ctrl+C
-    signal(SIGINT, signal_handler);
-    signal(SIGTERM, signal_handler);
+    // Let ROS handle SIGINT/SIGTERM gracefully
+    // signal(SIGINT, signal_handler);
+    // signal(SIGTERM, signal_handler);
 
     try {
     #ifdef ROS2
@@ -2160,14 +2160,14 @@ int main(int argc, char *argv[])
             ROS_INFO("image_index: %d", g_ros_object->get_image_index());
         #endif
         // Perform cleanup on normal exit
-        // if(lidar_stop_stream(odinDevice, LIDAR_MODE_SLAM))
-        // {
-        //     #ifdef ROS2
-        //         RCLCPP_INFO(rclcpp::get_logger("device_cb"), "lidar_stop_stream failed");
-        //     #else
-        //         ROS_INFO("lidar_stop_stream failed");
-        //     #endif
-        // }
+        if(lidar_stop_stream(odinDevice, LIDAR_MODE_SLAM))
+        {
+            #ifdef ROS2
+                RCLCPP_INFO(rclcpp::get_logger("device_cb"), "lidar_stop_stream failed");
+            #else
+                ROS_INFO("lidar_stop_stream failed");
+            #endif
+        }
         
         if(lidar_unregister_stream_callback(odinDevice))
         {
@@ -2189,12 +2189,17 @@ int main(int argc, char *argv[])
     
     // Stop custom parameter monitoring thread on exit
     g_param_monitor_running = false;
+    deviceConnected = false;  // Ensure the loop in the thread exits quickly
     if (g_param_monitor_thread.joinable()) {
         g_param_monitor_thread.join();
     }
     
-    
-    // lidar_system_deinit();
+    #ifdef ROS2
+        RCLCPP_INFO(rclcpp::get_logger("main"), "Deinitializing lidar system...");
+    #else
+        ROS_INFO("Deinitializing lidar system...");
+    #endif
+    lidar_system_deinit();
 
 
 
