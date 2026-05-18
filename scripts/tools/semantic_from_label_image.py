@@ -24,10 +24,9 @@ from PIL import Image
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 
-# 用户在这里修改输入输出路径，不再需要命令行传参。
-LABEL_IMAGE_PATH = WORKSPACE_ROOT / "rmuc_2025.png"
-MAP_YAML_PATH = WORKSPACE_ROOT / "src/gxu2026_sentry_nav/gxu2026_nav_bringup/map/simulation/rmuc_2025.yaml"
-OUTPUT_YAML_PATH = WORKSPACE_ROOT / "src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/simulation/semantic_zones.yaml"
+LABEL_IMAGE_PATH = WORKSPACE_ROOT / "mapping_20260516_015143.png"
+MAP_YAML_PATH = WORKSPACE_ROOT / "src/gxu2026_sentry_nav/gxu2026_nav_bringup/map/reality/mapping_20260516_015143.yaml"
+OUTPUT_YAML_PATH = WORKSPACE_ROOT / "src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/semantic_zones.yaml"
 PALETTE_YAML_PATH: Path | None = None
 MIN_PIXELS = 20
 

@@ -197,11 +197,11 @@ pb_controller_profiles:
       # 是否按速度缩放前视距离。
       use_velocity_scaled_lookahead_dist: true
       # 速度缩放前视时间，单位秒。
-      lookahead_time: 1.0
+      lookahead_time: 1.5
       # 最小前视距离，单位米。
       min_lookahead_dist: 0.5
       # 最大前视距离，单位米。
-      max_lookahead_dist: 1.0
+      max_lookahead_dist: 2.0
       # 是否使用插值。
       use_interpolation: false
       # 是否使用转向对齐。
@@ -213,9 +213,9 @@ pb_controller_profiles:
       # 目标接近阶段的速度缩放距离，单位米。
       approach_velocity_scaling_dist: 1.0
       # 线速度下限。
-      v_linear_min: -1.5
+      v_linear_min: -2.5
       # 线速度上限。
-      v_linear_max: 1.5
+      v_linear_max: 2.5
       # 角速度下限。
       v_angular_min: -3.0
       # 角速度上限。
@@ -488,7 +488,7 @@ fake_vel_transform:
     # 是否在移动时关闭小陀螺。
     disable_spin_while_moving: true
     # 初始小陀螺速度，单位 rad/s。
-    init_spin_speed: 3.0
+    init_spin_speed: 0.0
     # 减速带速度下限控制：进入 speed_bump 区域后，线速度低于该值会被抬高
     # 是否启用减速带最低速度限制。
     enable_speed_bump_min_speed: true
@@ -496,7 +496,7 @@ fake_vel_transform:
     # 是否启用减速带角速度置零。
     enable_speed_bump_zero_angular_z: true
     # 减速带最低线速度，单位 m/s。
-    speed_bump_min_linear_speed: 1.5
+    speed_bump_min_linear_speed: 1.3
     # 减速带地图坐标系。
     speed_bump_map_frame: "map"
     # 减速带区域名。

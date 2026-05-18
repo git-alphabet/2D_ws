@@ -19,12 +19,12 @@
 # defend_anchor,0.0968,-0.4008
 # patrol_3,0.0596,-6.6217
 # patrol_2,4.5796,-0.0708
-# supply_zone,5.0844,-3.4419
 # fortress_area,2.1450,0.8180
 # ladder_highland,-3.0382,-2.4563
 # patrol_1,3.9051,-4.8671
-central_highland,-4.9227,3.4140
-out_alive_patrol_1,-1.5797,2.2767
-out_alive_patrol_2,-3.3976,2.1625
-out_alive_patrol_3,-1.5648,0.8535
-cap_outpost,0.7130,-0.1728
+# out_alive_patrol_1,0.4457,2.8689
+# out_alive_patrol_2,0.1382,7.0639
+# out_alive_patrol_3,0.5692,-2.3062
+supply_zone,0.0125,0.8370
+central_highland,1.3242,1.5397
+cap_outpost,2.1230,2.8391
