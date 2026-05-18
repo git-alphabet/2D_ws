@@ -136,7 +136,7 @@ ros2 topic echo /red_standard_robot1/robot_status --once --field current_hp
 # 弹药：低弹触发 SustainAndEconomy，输出防御(2)并走补给链路
 ros2 topic echo /red_standard_robot1/robot_status --once --field ammo_allow
 
-# 是否检测到敌人：普通敌情分支输出进攻(1)，但优先级低于补给/基地威胁
+# 是否检测到敌人：普通敌情分支只取消导航和自转，不改姿态
 ros2 topic echo /red_standard_robot1/robot_status --once --field is_detect_enemy
 
 # 基地血量与雷达敌情：共同影响基地威胁锁存
@@ -169,7 +169,7 @@ grep -i "posture\|姿态\|DecidePosture" /ws/launch_logs/*.log 2>/dev/null | tai
 grep -i "SentryCmdMux\|sentry_cmd" /ws/launch_logs/*.log 2>/dev/null | tail -20
 ```
 > **切换规则**: 普通姿态切换仍受 5 秒冷却和姿态降级守卫约束。
-> **基地威胁模式**: 触发后优先回防 `defend_anchor`，未到锚点时输出移动(3)；到达锚点后输出进攻(1)；威胁解除后才恢复普通姿态决策。
+> **基地威胁模式**: 触发后优先回防 `defend_anchor`，未到锚点时输出移动(3)；到达锚点并检测到敌人后输出防御(2)；威胁解除后才恢复普通姿态决策。
 
 ## 10. 基地威胁模式调试
 
@@ -183,7 +183,7 @@ python3 /ws/scripts/used/rmuc_test_publisher.py \
   --base-hp-drain=5 \
   --duration=25
 
-# 3) 观察姿态：早期应为移动(3)，到达防御锚点后应切到进攻(1)
+# 3) 观察姿态：早期应为移动(3)，到达防御锚点并检测到敌人后应切到防御(2)
 ros2 topic echo /red_standard_robot1/sentry_cmd --field cmd_posture
 
 # 3.1) 查询当前基地威胁锁存状态（最关键）
@@ -202,7 +202,7 @@ ros2 topic echo /red_standard_robot1/robot_position --once
 
 > 预期现象:
 > 0. `grep ... | tail -1` 若输出“基地威胁触发”，说明当前 `threat.base=true`；若最后一条是“基地威胁解除”，说明当前 `threat.base=false`。
-> 1. `/red_standard_robot1/sentry_cmd.cmd_posture` 先为 3，随后变为 1。
+> 1. `/red_standard_robot1/sentry_cmd.cmd_posture` 先为 3，随后变为 2。
 > 2. 日志出现 `DefendAnchor New goal: [ 0.097, -0.401 ]`。
 > 3. 控制器日志出现 `Reached the goal!`。
 

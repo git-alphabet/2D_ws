@@ -190,11 +190,11 @@ rmuc_2026 (ReactiveSequence)
    |  |     +- 易伤防御 -> SelectPosture(2) + KeepRunning (注释暂停)
    |  |     +- 未见敌 -> 放行
    |  |     +- 当前目标是补给区 -> 放行
-   |  |     +- 普通见敌 -> SelectPosture(1) + CancelNavGoal + robot_control(spin)
+   |  |     +- 普通见敌 -> CancelNavGoal + robot_control(spin)，不改姿态
    |  |
    |  +- 战术 ReactiveFallback
    |     +- SustainAndEconomy: AmmoPlan 活跃时 SelectPosture(2)
-   |     +- BaseDefense: 受威胁时去防御锚点；到点见敌攻姿态，否则移动姿态
+   |     +- BaseDefense: 受威胁时去防御锚点；到点见敌防御姿态，否则移动姿态
    |     +- ObjectivePlanner: 选择前哨站/高地/巡逻目标；到点防御，路上移动
    |     +- DefaultPosture: 到当前 nav.goal 防御，否则移动
    |
@@ -210,7 +210,7 @@ rmuc_2026 (ReactiveSequence)
 1. `SurvivalGuard`：死亡/低血回血恢复锁存最高，进入 `LowHPRetreat` 后阻塞后续战术。
 2. `SustainAndEconomy`：低弹补给高于基地威胁和普通见敌；补弹流程活跃时选择防御姿态。
 3. `BaseDefense`：基地威胁高于普通见敌；基地威胁期间普通见敌拦截不会取消回防目标。
-4. `EnemyHold`：普通见敌时攻击姿态、取消导航、原地旋转。
+4. `EnemyHold`：普通见敌时取消导航、原地旋转，不改姿态。
 5. `ObjectivePlanner`：无高优先级接管时规划/巡逻；到点防御，路上移动。
 6. `DefaultPosture`：兜底姿态；到当前目标防御，否则移动。
 7. `PostureDegradationGuard`：最后对 `{cmd.posture}` 做累计时间降级，输出 `{cmd.final_posture}`。

@@ -162,12 +162,9 @@
                 <!-- 当前 Nav2 目标 = 补给区 → 放行（无视敌人，继续导航回家） -->
                 <IsNavTargetSupply goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
                                    arrive_radius="{cfg.arrive_radius}"/>
-                <!-- 有敌人 + 目标不是补给区 → 切攻击姿态 + 取消导航 + 阻塞；底盘控制由 ChassisControlLayer 唯一发布 -->
+                <!-- 有敌人 + 目标不是补给区 → 取消导航 + 阻塞；底盘控制由 ChassisControlLayer 唯一发布 -->
                 <Sequence>
                     <SetBlackboard output_key="active_subtree" value="EnemyHold"/>
-                    <SelectPosture posture_value="1"
-                                   posture_out="{cmd.posture}"
-                                   is_allow_select_posture="{cmd.allow_posture_send}"/>
                     <CancelNavGoal action_name="navigate_to_pose"/>
                     <KeepRunning/>
                 </Sequence>
