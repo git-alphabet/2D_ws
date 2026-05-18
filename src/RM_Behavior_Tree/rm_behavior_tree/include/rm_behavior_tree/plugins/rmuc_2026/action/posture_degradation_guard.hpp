@@ -34,6 +34,7 @@ public:
       BT::InputPort<int>("ammo_allow", 300, "当前允许发弹量"),
       BT::InputPort<int>("ammo_low", 80, "低弹阈值"),
       BT::InputPort<bool>("base_threat", false, "基地威胁时跳过姿态降级"),
+      BT::InputPort<bool>("semantic_zone_active", false, "语义区内强制移动姿态"),
       BT::InputPort<int>("degradation_threshold_s", "180", "姿态降级阈值 (秒，默认3分钟)"),
       BT::InputPort<int>("forced_defense_s", "5", "强制防御持续时间 (秒，匹配裁判系统冷却)"),
       BT::InputPort<int>("forced_movement_s", "5", "防御超时→强制移动持续时间 (秒)"),

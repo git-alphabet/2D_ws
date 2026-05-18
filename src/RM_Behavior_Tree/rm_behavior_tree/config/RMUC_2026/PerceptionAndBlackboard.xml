@@ -44,6 +44,7 @@
                                    is_dead="{state.is_dead}"
                                    has_target="{combat.has_target}"
                                    is_detect_enemy="{is_detect_enemy}"
+                                   semantic_zone_active="{semantic.zone_active}"
                                    base_threat="{threat.base}"
                                    is_disengaged="{state.disengaged}"
                                    />
