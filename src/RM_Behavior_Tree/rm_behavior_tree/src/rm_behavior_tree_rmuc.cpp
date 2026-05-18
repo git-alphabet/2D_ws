@@ -285,7 +285,7 @@ int main(int argc, char ** argv)
       }
       bool v = node->get_parameter(pn).as_bool();
       bb->set("cfg." + key, v);
-      if (key == "move_around_enable") {
+      if (key == "move_around_enable" || key == "enemy_hold_attack_enable") {
         bb->set(key, v);
       }
       injected++;
