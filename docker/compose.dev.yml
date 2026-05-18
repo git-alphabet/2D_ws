@@ -51,9 +51,9 @@ x-base: &base
     - ./docker_gui_env.sh:/ws/docker/docker_gui_env.sh:ro
     - ../.git:/ws/.git:ro
     - ../.buildcache:/ws/.buildcache
-    # - /tmp/.X11-unix:/tmp/.X11-unix:rw
-    # - ${DOCKER_GUI_HOST_DIR:-/tmp/gxu2026-docker-gui}:/tmp/gxu2026-docker-gui:ro
-    # - ${XAUTH_HOST_FILE:-/tmp/.docker.xauth}:/tmp/.docker.xauth:ro
+    - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    - ${DOCKER_GUI_HOST_DIR:-/tmp/gxu2026-docker-gui}:/tmp/gxu2026-docker-gui:ro
+    - ${XAUTH_HOST_FILE:-/tmp/.docker.xauth}:/tmp/.docker.xauth:ro
     - ../src:/ws/src                        # 代码挂载（改代码立刻生效）
     - ../scripts:/ws/scripts
     - ../bags:/ws/bags
@@ -148,9 +148,9 @@ services:
       - ./docker_gui_env.sh:/ws/docker/docker_gui_env.sh:ro
       - ../.git:/ws/.git:ro
       - ../.buildcache:/ws/.buildcache
-      # - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      # - ${DOCKER_GUI_HOST_DIR:-/tmp/gxu2026-docker-gui}:/tmp/gxu2026-docker-gui:ro
-      # - ${XAUTH_HOST_FILE:-/tmp/.docker.xauth}:/tmp/.docker.xauth:ro
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${DOCKER_GUI_HOST_DIR:-/tmp/gxu2026-docker-gui}:/tmp/gxu2026-docker-gui:ro
+      - ${XAUTH_HOST_FILE:-/tmp/.docker.xauth}:/tmp/.docker.xauth:ro
       - ../src:/ws/src
       - ../scripts:/ws/scripts
       - ../bags:/ws/bags

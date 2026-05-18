@@ -308,11 +308,12 @@ def start_bag_recording(cfg: CommonConfig, bg: BackgroundGroup) -> None:
 
     bag_cfg = robot_runtime.get("bag_record") if isinstance(robot_runtime, dict) else None
     if not isinstance(bag_cfg, dict):
-        print(
-            f"[{cfg.script_name}] bag_record disabled or missing in {params_path}; skip bag recording.",
-            file=sys.stderr,
-        )
-        return
+        bag_cfg = {}
+
+    # 环境变量覆盖：AUTO_RECORD_BAG 强制开启录包。
+    auto_record = is_truthy(os.environ.get("AUTO_RECORD_BAG"))
+    if auto_record:
+        bag_cfg["enabled"] = True
 
     if not bool(bag_cfg.get("enabled", False)):
         print(f"[{cfg.script_name}] bag_record enabled=false; skip bag recording.", file=sys.stderr)
@@ -330,6 +331,9 @@ def start_bag_recording(cfg: CommonConfig, bg: BackgroundGroup) -> None:
     log_dir.mkdir(parents=True, exist_ok=True)
     session_tag = datetime.now(BEIJING_TZ).strftime("%Y%m%d_%H%M%S_%f")
 
+    # 环境变量覆盖：AUTO_RECORD_BAG_MODE 只启动匹配的 profile。
+    auto_mode = os.environ.get("AUTO_RECORD_BAG_MODE", "").strip()
+
     started = 0
     for profile_name, profile in profiles.items():
         if not isinstance(profile, dict):
@@ -342,6 +346,8 @@ def start_bag_recording(cfg: CommonConfig, bg: BackgroundGroup) -> None:
             continue
 
         mode = str(profile.get("mode", "")).strip()
+        if auto_mode and mode != auto_mode:
+            continue
         if mode not in {"basic", "full", "raw"}:
             print(
                 f"[{cfg.script_name}] WARN unsupported bag mode '{mode}' in {params_path}; skip.",

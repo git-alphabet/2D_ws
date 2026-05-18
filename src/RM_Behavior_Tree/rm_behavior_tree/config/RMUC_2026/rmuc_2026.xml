@@ -39,28 +39,34 @@
                     <!-- 全局接管控制：持续发布底盘/云台控制，并在低血/敌情下统一做门禁 -->
                     <SubTree ID="GlobalNavigationAndChassisControl" _autoremap="true"/>
 
-                    <!-- 基于优先级的战术（低血/死亡由上层生存门禁接管；补弹/基地威胁可压过普通见敌） -->
+                    <!-- 基于优先级的战术：所有会发布导航目标的分支在这里统一仲裁，避免低优先级目标补发覆盖高优先级目标 -->
                     <ReactiveFallback>
 
-                        <!-- 0) 后勤：补弹（经济感知），高于基地威胁/普通见敌 -->
+                        <!-- 0) 生存：死亡/低血回血，拥有最高导航目标发送权 -->
+                        <Sequence>
+                            <SetBlackboard output_key="active_subtree" value="LowHPRetreat"/>
+                            <SubTree ID="LowHPRetreat" _autoremap="true"/>
+                        </Sequence>
+
+                        <!-- 1) 后勤：补弹（经济感知），高于基地威胁/普通见敌 -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="SustainAndEconomy"/>
                             <SubTree ID="SustainAndEconomy" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 1) 基地/堡垒防御（受威胁时），低于补弹但高于普通见敌 -->
+                        <!-- 2) 基地/堡垒防御（受威胁时），低于补弹但高于普通见敌 -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="BaseDefense"/>
                             <SubTree ID="BaseDefense" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 2) 目标控制：高于默认姿态；目标内部负责开局占领前哨点的一次性计时 -->
+                        <!-- 3) 目标控制：高于默认姿态；目标内部负责开局占领前哨点的一次性计时 -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="ObjectivePlanner"/>
                             <SubTree ID="ObjectivePlanner" _autoremap="true"/>
                         </Sequence>
 
-                        <!-- 3) 默认姿态：到达当前导航目标→防御(2)，导航中→移动(3) -->
+                        <!-- 4) 默认姿态：到达当前导航目标→防御(2)，导航中→移动(3) -->
                         <Sequence>
                             <SetBlackboard output_key="active_subtree" value="DefaultPosture"/>
                             <ReactiveFallback name="DefaultPosture">
