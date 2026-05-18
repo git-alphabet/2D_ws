@@ -76,6 +76,10 @@ BT::NodeStatus InitSentryConfigAction::tick()
   getInput("conservative_mode_enable", conservative_mode_enable);
   setOutput("conservative_mode_enable", conservative_mode_enable);
 
+  bool enemy_hold_attack_enable = true;
+  getInput("enemy_hold_attack_enable", enemy_hold_attack_enable);
+  setOutput("enemy_hold_attack_enable", enemy_hold_attack_enable);
+
   bool patrol_enable = false;
   getInput("patrol_enable", patrol_enable);
   setOutput("patrol_enable", patrol_enable);
