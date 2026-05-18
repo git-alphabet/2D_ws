@@ -34,6 +34,7 @@
                 fortress_time="{cfg.fortress_time}"
                 patrol_hold_ms="{cfg.patrol_hold_ms}"
                 conservative_mode_enable="{cfg.conservative_mode_enable}"
+                enemy_hold_attack_enable="{cfg.enemy_hold_attack_enable}"
                 patrol_enable="{cfg.patrol_enable}"
                 destroyed_outpost_ladder_enable="{cfg.destroyed_outpost_ladder_enable}"
                 patrol_waypoints="{cfg.patrol_waypoints}"

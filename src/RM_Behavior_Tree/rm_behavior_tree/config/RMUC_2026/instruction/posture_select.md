@@ -5,10 +5,10 @@
 | 状态 | 子树 | 姿态 | 说明 |
 |------|------|------|------|
 | 初始化 | InitOnce | 3 移动 | 黑板默认值 |
-| 基地防御 | BaseDefense | 1 攻击 | 3倍伤害保基地 |
+| 基地防御 | BaseDefense | 2 防御 | 到防御锚点后驻守 |
 | 低血量/死亡 | LowHPRetreat | 3 移动 | 1.5倍移速跑路 |
 | 补弹 | SustainAndEconomy | 2 防御 | 减伤50%安全补弹 |
-| 检测到敌人 | EnemyHold | 1 攻击 | 停车开打 |
+| 检测到敌人 | EnemyHold | 按开关切姿态 | 开启时切攻击，关闭时切防御 |
 | 正常巡逻（导航中） | ObjectivePlanner | 3 移动 | 1.5倍移速跑图 |
 | 到达目标点（无敌人） | ObjectivePlanner | 2 防御 | 驻守减伤 |
 
@@ -20,10 +20,10 @@
 
 ```
 ObjectivePlanner.xml   → SelectPosture posture_value="3"
-BaseDefense.xml        → SelectPosture posture_value="1"
+BaseDefense.xml        → SelectPosture posture_value="2"
 LowHPRetreat.xml       → SelectPosture posture_value="3"
 SustainAndEconomy.xml  → SelectPosture posture_value="2"
-rmuc_2026.xml EnemyHold → SelectPosture posture_value="1"
+EnemyHold              → enemy_hold_attack_enable=true 时用 SelectPosture(1)，否则用 SelectPosture(2)
 ```
 
 ### 数据流
