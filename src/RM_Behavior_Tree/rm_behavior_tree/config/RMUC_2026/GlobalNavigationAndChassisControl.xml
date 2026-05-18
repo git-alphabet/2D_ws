@@ -93,8 +93,23 @@
                 <Sequence>
                     <RmucIsDetectEnemy message="{robot_status}"
                                        is_detect_enemy="{is_detect_enemy}"/>
-                    <RmucRobotControl stop_gimbal_scan="False"
-                                      chassis_spin="True"/>
+                    <ReactiveFallback>
+                        <Sequence>
+                            <ScriptCondition code="enemy_hold_attack_enable == true"/>
+                            <SelectPosture posture_value="1"
+                                           posture_out="{cmd.posture}"
+                                           is_allow_select_posture="{cmd.allow_posture_send}"/>
+                            <RmucRobotControl stop_gimbal_scan="False"
+                                              chassis_spin="True"/>
+                        </Sequence>
+                        <Sequence>
+                            <SelectPosture posture_value="2"
+                                           posture_out="{cmd.posture}"
+                                           is_allow_select_posture="{cmd.allow_posture_send}"/>
+                            <RmucRobotControl stop_gimbal_scan="False"
+                                              chassis_spin="True"/>
+                        </Sequence>
+                    </ReactiveFallback>
                 </Sequence>
 
                 <!-- 到达当前导航目标 → 旋转 -->

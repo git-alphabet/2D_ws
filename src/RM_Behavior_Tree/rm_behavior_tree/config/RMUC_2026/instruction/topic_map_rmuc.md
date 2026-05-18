@@ -210,7 +210,7 @@ rmuc_2026 (ReactiveSequence)
 1. `SurvivalGuard`：死亡/低血回血恢复锁存最高，进入 `LowHPRetreat` 后阻塞后续战术。
 2. `SustainAndEconomy`：低弹补给高于基地威胁和普通见敌；补弹流程活跃时选择防御姿态。
 3. `BaseDefense`：基地威胁高于普通见敌；基地威胁期间普通见敌拦截不会取消回防目标。
-4. `EnemyHold`：普通见敌时取消导航、原地旋转，不改姿态。
+4. `EnemyHold`：普通见敌时取消导航、原地旋转；姿态由 `enemy_hold_attack_enable` 决定是进攻(1)还是防御(2)。
 5. `ObjectivePlanner`：无高优先级接管时规划/巡逻；到点防御，路上移动。
 6. `DefaultPosture`：兜底姿态；到当前目标防御，否则移动。
 7. `PostureDegradationGuard`：最后对 `{cmd.posture}` 做累计时间降级，输出 `{cmd.final_posture}`。

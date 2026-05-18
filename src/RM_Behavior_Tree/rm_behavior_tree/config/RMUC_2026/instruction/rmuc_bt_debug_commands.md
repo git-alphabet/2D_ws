@@ -136,7 +136,7 @@ ros2 topic echo /red_standard_robot1/robot_status --once --field current_hp
 # 弹药：低弹触发 SustainAndEconomy，输出防御(2)并走补给链路
 ros2 topic echo /red_standard_robot1/robot_status --once --field ammo_allow
 
-# 是否检测到敌人：普通敌情分支只取消导航和自转，不改姿态
+# 是否检测到敌人：普通敌情分支按 enemy_hold_attack_enable 切姿态
 ros2 topic echo /red_standard_robot1/robot_status --once --field is_detect_enemy
 
 # 基地血量与雷达敌情：共同影响基地威胁锁存
@@ -169,7 +169,7 @@ grep -i "posture\|姿态\|DecidePosture" /ws/launch_logs/*.log 2>/dev/null | tai
 grep -i "SentryCmdMux\|sentry_cmd" /ws/launch_logs/*.log 2>/dev/null | tail -20
 ```
 > **切换规则**: 普通姿态切换仍受 5 秒冷却和姿态降级守卫约束。
-> **基地威胁模式**: 触发后优先回防 `defend_anchor`，未到锚点时输出移动(3)；到达锚点并检测到敌人后输出防御(2)；威胁解除后才恢复普通姿态决策。
+> **普通见敌模式**: `enemy_hold_attack_enable=true` 时普通见敌切攻击(1)，`false` 时切防御(2)，同时取消导航并原地自转。
 
 ## 10. 基地威胁模式调试
 
