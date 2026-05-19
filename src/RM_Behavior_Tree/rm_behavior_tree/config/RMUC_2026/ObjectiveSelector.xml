@@ -41,7 +41,7 @@
                              goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
                              goal_changed="{nav_goal_changed}"/>
 
-            <SetBlackboard output_key="nav_goal_valid" value="true"/>
+            <!-- 这里只计算目标坐标；nav_goal_valid 只能在 ObjectivePlanner 真正 SendGoal 后置 true。 -->
         </ReactiveSequence>
     </BehaviorTree>
 
