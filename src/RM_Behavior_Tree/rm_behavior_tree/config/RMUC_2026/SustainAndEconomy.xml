@@ -4,7 +4,7 @@
     <BehaviorTree ID="SustainAndEconomy">
         <ReactiveSequence>
             <!-- 低弹补给：路上强制移动；到补给区后强制防御并等待补弹 -->
-            <IsAmmoBelow ammo_allow="{ammo.allow}" ammo_low="{supply.next_threshold}"/>
+            <IsAmmoBelow ammo_allow="{ammo.allow}" ammo_low="{cfg.ammo_low}"/>
 
             <ReactiveFallback>
                 <!-- 已到补给区：防御姿态等待补弹/超时降级 -->

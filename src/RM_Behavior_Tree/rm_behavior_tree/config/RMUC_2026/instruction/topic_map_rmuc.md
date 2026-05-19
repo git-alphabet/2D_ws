@@ -104,7 +104,7 @@
 | `RmucIsGameTime` | `{game_status}`, `{robot_status}` | 比赛阶段和剩余时间窗口；允许无比赛状态时用 HP 回退判断 |
 | `RmucIsDead` | `{robot_status}` | `current_hp <= 0` |
 | `RmucIsHPBelow` | `{robot_status}`, `hp_threshold` | 当前 HP 低于阈值 |
-| `IsAmmoBelow` | `{ammo.allow}`, `{cfg.ammo_low}` / `{supply.next_threshold}` | 允许发弹量不足 |
+| `IsAmmoBelow` | `{ammo.allow}`, `{cfg.ammo_low}` | 允许发弹量不足；默认按配置阈值判断，补弹失败降级后插件内部临时改用 `{supply.next_threshold}` |
 | `RmucIsDetectEnemy` | `{robot_status}`, `{is_detect_enemy}` | 优先使用解析后的 `is_detect_enemy` |
 | `IsVulnerable` | `{robot_buff}` | 已在 XML 中注释暂停；原逻辑为 `vulnerability_pct >= min_vulnerability_pct` |
 | `IsBaseThreatened` | `{threat.base}` | 基地威胁锁存是否为 true |
@@ -143,7 +143,7 @@ threat.*           -> 威胁评估，当前主要是 threat.base
 combat.*           -> 视觉战斗目标状态
 pose.*             -> 自车位置
 nav.*              -> 当前战略目标和最终导航目标
-supply.*           -> 补弹失败计数与动态弹量阈值
+supply.*           -> 补弹失败计数与动态弹量阈值；只有 supply.threshold_overridden=true 时动态阈值才接管 cfg.ammo_low
 cmd.*              -> 待发送指令、最终姿态、发送频率、内部命令状态
 active_subtree     -> 当前接管分支，调试用
 is_detect_enemy    -> 语义区过滤后的见敌标志

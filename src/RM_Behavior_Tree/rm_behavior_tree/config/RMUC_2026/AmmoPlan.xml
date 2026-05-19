@@ -4,7 +4,7 @@
     <BehaviorTree ID="AmmoPlan">
         <ReactiveSequence>
             <!-- 动态阈值：初始80，失败后降级为 x/2 → 1(=0发) → -1(放弃) -->
-            <IsAmmoBelow ammo_allow="{ammo.allow}" ammo_low="{supply.next_threshold}"/>
+            <IsAmmoBelow ammo_allow="{ammo.allow}" ammo_low="{cfg.ammo_low}"/>
 
             <ReactiveFallback>
                 <!-- If at supply: wait for ammo (30s timeout, retry degradation) -->
