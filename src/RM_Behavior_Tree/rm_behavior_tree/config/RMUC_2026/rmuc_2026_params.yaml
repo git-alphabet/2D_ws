@@ -36,8 +36,8 @@ rm_behavior_tree:
       cap_outpost_y: 1.7417  # 占领前哨点 y（标定缺失/无效时使用；默认值与当前 CSV 标定值一致）
       cap_sustain_time: 10           # 比赛开始后优先占领前哨点的持续时间 (秒)，超时后不再前往 cap_outpost
 
-      fortress_area_x: 1.4494  # 堡垒区 x（前哨站被毁后的轮换点）
-      fortress_area_y: -1.7871  # 堡垒区 y（前哨站被毁后的轮换点）
+      fortress_area_x: 1.8860  # 堡垒区 x（前哨站被毁后的轮换点）
+      fortress_area_y: -1.7872  # 堡垒区 y（前哨站被毁后的轮换点）
       
       # 可能有用的预设点（目前未启用）
       central_highland_left_x: 9.00
