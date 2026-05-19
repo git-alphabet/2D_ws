@@ -52,6 +52,7 @@ rm_behavior_tree:
 
       # ─────────── 巡逻配置 ───────────
       conservative_mode_enable: true # 保守模式开关；开启后按前哨站已毁处理，跳过开局占点/中央高地，直接走堡垒区/梯形高地/巡逻点逻辑
+      energy_saving_mode_enable: false # 节能模式开关；开启后到补给区时切攻击姿态，关闭时保持防御姿态
       enemy_hold_attack_enable: true # 普通遇敌时是否切攻击姿态；true=切攻击(1), false=切防御(2)
       out_alive_patrol_enable: false   # 是否启用前哨站存活巡逻
       patrol_enable: false             # 是否启用前哨站被毁巡逻 
