@@ -199,6 +199,7 @@ int main(int argc, char ** argv)
         {"conservative_mode_enable", false},
         {"enemy_hold_attack_enable", true},
         {"patrol_enable", false},
+        {"destroyed_outpost_ladder_enable", true},
         {"out_alive_patrol_enable", false},
         {"move_around_enable", true}})
     {
