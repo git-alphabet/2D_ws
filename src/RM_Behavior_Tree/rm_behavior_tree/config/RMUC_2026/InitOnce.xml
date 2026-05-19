@@ -33,6 +33,7 @@
                 ladder_time="{cfg.ladder_time}"
                 fortress_time="{cfg.fortress_time}"
                 patrol_hold_ms="{cfg.patrol_hold_ms}"
+                energy_saving_mode_enable="{cfg.energy_saving_mode_enable}"
                 conservative_mode_enable="{cfg.conservative_mode_enable}"
                 enemy_hold_attack_enable="{cfg.enemy_hold_attack_enable}"
                 patrol_enable="{cfg.patrol_enable}"

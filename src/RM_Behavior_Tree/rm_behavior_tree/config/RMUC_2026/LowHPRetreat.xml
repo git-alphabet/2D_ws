@@ -27,6 +27,17 @@
                         <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
                                   goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
                                   arrive_radius="{cfg.arrive_radius}"/>
+                        <ReactiveFallback>
+                            <Sequence>
+                                <ScriptCondition code="energy_saving_mode_enable == true"/>
+                                <SelectPosture posture_value="1"
+                                               posture_out="{cmd.posture}"
+                                               is_allow_select_posture="{cmd.allow_posture_send}"/>
+                            </Sequence>
+                            <SelectPosture posture_value="2"
+                                           posture_out="{cmd.posture}"
+                                           is_allow_select_posture="{cmd.allow_posture_send}"/>
+                        </ReactiveFallback>
                         <HoldAndHeal hp_cur="{hp.cur}" hp_max="{hp.max}" hp_safe="{cfg.hp_safe}"
                                      stage_elapsed_time="{game.elapsed_s}"/>
                     </ReactiveSequence>

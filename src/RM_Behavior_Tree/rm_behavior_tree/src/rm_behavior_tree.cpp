@@ -197,6 +197,7 @@ int main(int argc, char ** argv)
 
     for (const auto & [key, def] : std::vector<std::pair<std::string, bool>>{
         {"conservative_mode_enable", false},
+        {"energy_saving_mode_enable", false},
         {"enemy_hold_attack_enable", true},
         {"patrol_enable", false},
         {"destroyed_outpost_ladder_enable", true},
@@ -209,7 +210,7 @@ int main(int argc, char ** argv)
       }
       bool v = node->get_parameter(pn).as_bool();
       bb->set("cfg." + key, v);
-      if (key == "move_around_enable" || key == "enemy_hold_attack_enable") {
+      if (key == "move_around_enable" || key == "enemy_hold_attack_enable" || key == "energy_saving_mode_enable") {
         bb->set(key, v);
       }
       injected++;

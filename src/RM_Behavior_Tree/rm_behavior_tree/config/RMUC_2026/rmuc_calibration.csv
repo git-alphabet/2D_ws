@@ -16,7 +16,6 @@
 
 # outpost_buff,3.5489,-4.2745
 # base,-2.3532,-2.0007
-# defend_anchor,0.0968,-0.4008
 # patrol_3,0.0596,-6.6217
 # patrol_2,4.5796,-0.0708
 # patrol_1,3.9051,-4.8671
@@ -27,4 +26,5 @@
 # ladder_highland,3.3684,-3.7025
 # cap_outpost,-0.6550,-3.7711
 supply_zone,3.4300,-4.8488
-fortress_area,0.5577,-3.8523
+# fortress_area,4.0291,-4.0656
+# defend_anchor,2.1907,-4.4914
