@@ -4,7 +4,8 @@ Relocalization fallback node for odin1 Mode 2.
 
 When odin1 relocalization takes too long, this node allows the user to manually
 set an initial pose via RViz (2D Pose Estimate) to publish a map->odom TF,
-unblocking Nav2 startup. When odin1 relocalization succeeds, it takes over.
+unblocking Nav2 startup. When odin1 relocalization succeeds, this node switches
+to republishing the driver's odom->map TF (same direction, no TF loop).
 
 Flow:
   1. Node starts in standby (no map->odom TF published)
@@ -12,7 +13,7 @@ Flow:
   3. This node computes map->odom TF from the initial pose and current odometry
   4. Nav2 warmup completes, lifecycle manager activates
   5. When odin1 relocalizes -> odin1/relocalization_success topic received
-  6. This node stops publishing, odin1 takes over
+  6. This node switches to republishing driver's odom->map (same direction, no loop)
 """
 
 import math
@@ -76,6 +77,9 @@ class RelocalizationFallbackNode(Node):
         self._odin1_relocalized = False
         self._lock = threading.Lock()
 
+        # After relocalization: listen to driver's odom->map and republish it
+        self._odom_map_tf = None
+
         # TF
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self)
@@ -113,7 +117,15 @@ class RelocalizationFallbackNode(Node):
 
     def _timer_callback(self):
         with self._lock:
-            if self._active and self._fallback_tf_msg:
+            # After relocalization: republish driver's odom->map (same direction, no loop)
+            if self._odin1_relocalized and self._odom_map_tf is not None:
+                tf_msg = TransformStamped()
+                tf_msg.header.stamp = self.get_clock().now().to_msg()
+                tf_msg.header.frame_id = 'odom'
+                tf_msg.child_frame_id = 'map'
+                tf_msg.transform = self._odom_map_tf.transform
+                self._tf_broadcaster.sendTransform(tf_msg)
+            elif self._active and self._fallback_tf_msg:
                 self._fallback_tf_msg.header.stamp = self.get_clock().now().to_msg()
                 self._tf_broadcaster.sendTransform(self._fallback_tf_msg)
 
@@ -201,10 +213,26 @@ class RelocalizationFallbackNode(Node):
             with self._lock:
                 self._odin1_relocalized = True
                 self._active = False
+            # Start listening to driver's odom->map TF to republish it
+            self._odom_map_timer = self.create_timer(
+                0.1, self._update_odom_map_tf
+            )
             self.get_logger().info(
                 'odin1 relocalization succeeded! '
-                'Stopping fallback map->odom TF. odin1 takes over.'
+                'Switching to odom->map TF (matching driver direction).'
             )
+
+    def _update_odom_map_tf(self):
+        """Periodically fetch driver's odom->map TF."""
+        try:
+            tf = self._tf_buffer.lookup_transform(
+                'odom', 'map', rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=0.1),
+            )
+            with self._lock:
+                self._odom_map_tf = tf
+        except Exception:
+            pass
 
 
 def main(args=None):

@@ -30,11 +30,13 @@
                                  dead_hz="1.0"
                                  hz_out="{cmd.sentry_cmd_hz}"/>
 
-            <RateController hz="{cmd.sentry_cmd_hz}">
-                <SentryCmdMux posture="{cmd.final_posture}"
-                              confirm_respawn="{cmd.confirm_respawn}"
-                              cmd_state="{cmd.state}"/>
-            </RateController>
+            <ForceSuccess>
+                <RateController hz="{cmd.sentry_cmd_hz}">
+                    <SentryCmdMux posture="{cmd.final_posture}"
+                                  confirm_respawn="{cmd.confirm_respawn}"
+                                  cmd_state="{cmd.state}"/>
+                </RateController>
+            </ForceSuccess>
         </Sequence>
     </BehaviorTree>
 </root>
