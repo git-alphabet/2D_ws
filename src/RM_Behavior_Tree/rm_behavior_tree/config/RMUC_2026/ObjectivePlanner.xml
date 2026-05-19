@@ -39,6 +39,7 @@
                               max_dedup_ms="5000"/>
                 </RateController>
             </ForceSuccess>
+            <SetBlackboard output_key="nav_goal_valid" value="true"/>
             <KeepRunning/>
         </ReactiveSequence>
     </BehaviorTree>
