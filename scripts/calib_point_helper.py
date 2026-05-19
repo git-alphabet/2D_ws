@@ -40,12 +40,12 @@ from visualization_msgs.msg import Marker, MarkerArray
 # ── 标定点定义 ──────────────────────────────────────────────
 # (key, display_name, color_rgba)
 CALIB_POINTS: list[tuple[str, str, tuple[float, float, float, float]]] = [
-    ("supply_zone",            "1-补给区 Supply",            (0.0, 0.6, 1.0, 1.0)),
+    # ("supply_zone",            "1-补给区 Supply",            (0.0, 0.6, 1.0, 1.0)),
     # ("base",                   "2-基地 Base",                (1.0, 0.5, 0.2, 1.0)),
     # ── 以下暂时隐藏，需要时取消注释即可 ──
     # ("outpost_buff",           "3-前哨增益 OutpostBuff",     (0.8, 0.0, 0.8, 1.0)),
-    # ("fortress_area",          "F-堡垒区 Fortress",          (1.0, 0.0, 0.0, 1.0)),
-    ("central_highland",       "6-中央高地 CentralHL",       (1.0, 1.0, 0.0, 1.0)),
+    ("fortress_area",          "F-堡垒区 Fortress",          (1.0, 0.0, 0.0, 1.0)),
+    # ("central_highland",       "6-中央高地 CentralHL",       (1.0, 1.0, 0.0, 1.0)),
     # ("ladder_highland",        "7-梯形高地 LadderHL",        (0.0, 1.0, 1.0, 1.0)),
     # ("defend_anchor",          "8-防御锚点 Defend",          (1.0, 0.4, 0.4, 1.0)),
     # ── 巡逻点（前哨站被毁后，在梯形高地附近巡逻的路点）──
@@ -56,8 +56,9 @@ CALIB_POINTS: list[tuple[str, str, tuple[float, float, float, float]]] = [
     # ("out_alive_patrol_1",     "A1-存活巡逻点1 AlivePatrol1", (0.2, 0.9, 1.0, 1.0)),
     # ("out_alive_patrol_2",     "A2-存活巡逻点2 AlivePatrol2", (0.2, 0.8, 1.0, 1.0)),
     # ("out_alive_patrol_3",     "A3-存活巡逻点3 AlivePatrol3", (0.2, 0.7, 1.0, 1.0)),
-    ("cap_outpost",            "C-占领前哨 CapOutpost",     (1.0, 0.3, 0.0, 1.0)),
+    # ("cap_outpost",            "C-占领前哨 CapOutpost",     (1.0, 0.3, 0.0, 1.0)),
 ]
+ALL_CALIB_POINTS = list(CALIB_POINTS)
 
 # ── rmuc_calibration.csv 默认路径 ──
 DEFAULT_CSV_PATH = os.path.join(
