@@ -14,13 +14,25 @@ BT::NodeStatus IsAmmoBelowCondition::tick()
 {
   int ammo = 300, low = 80;
   getInput("ammo_allow", ammo);
+  getInput("ammo_low", low);
 
-  // 从根黑板直接读取动态阈值（绕过 SubTree autoremap 链）
+  const char * threshold_source = "cfg.ammo_low";
+
+  // 补弹失败降级后，才允许动态阈值接管配置阈值。
   auto* root_bb = config().blackboard->rootBlackboard();
+  bool threshold_overridden = false;
   try {
-    low = root_bb->get<int>("supply.next_threshold");
+    threshold_overridden = root_bb->get<bool>("supply.threshold_overridden");
   } catch (...) {
-    getInput("ammo_low", low);
+    threshold_overridden = false;
+  }
+  if (threshold_overridden) {
+    try {
+      low = root_bb->get<int>("supply.next_threshold");
+      threshold_source = "supply.next_threshold";
+    } catch (...) {
+      threshold_source = "cfg.ammo_low";
+    }
   }
 
   bool below = (ammo < low);
@@ -29,8 +41,8 @@ BT::NodeStatus IsAmmoBelowCondition::tick()
   static auto last_log = std::chrono::steady_clock::now();
   auto now = std::chrono::steady_clock::now();
   if (std::chrono::duration_cast<std::chrono::seconds>(now - last_log).count() >= 5) {
-    std::printf("[IsAmmoBelow] ammo=%d threshold=%d → %s\n",
-                ammo, low, below ? "BELOW(补弹)" : "OK");
+    std::printf("[IsAmmoBelow] ammo=%d threshold=%d source=%s → %s\n",
+                ammo, low, threshold_source, below ? "BELOW(补弹)" : "OK");
     last_log = now;
   }
 

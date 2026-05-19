@@ -31,10 +31,18 @@ BT::NodeStatus PostureDegradationGuard::tick()
   getInput("base_threat", base_threat);
   getInput("semantic_zone_active", semantic_zone_active);
   if (auto * root_bb = config().blackboard->rootBlackboard()) {
+    bool threshold_overridden = false;
     try {
-      ammo_low = root_bb->get<int>("supply.next_threshold");
+      threshold_overridden = root_bb->get<bool>("supply.threshold_overridden");
     } catch (...) {
-      // Keep the XML-provided fallback threshold.
+      threshold_overridden = false;
+    }
+    if (threshold_overridden) {
+      try {
+        ammo_low = root_bb->get<int>("supply.next_threshold");
+      } catch (...) {
+        // Keep the XML-provided fallback threshold.
+      }
     }
   }
 
