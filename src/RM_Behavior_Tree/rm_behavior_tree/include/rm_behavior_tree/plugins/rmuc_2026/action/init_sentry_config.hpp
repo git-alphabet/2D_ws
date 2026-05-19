@@ -44,6 +44,7 @@ public:
       BT::BidirectionalPort<int>("ladder_time"),
       BT::BidirectionalPort<int>("fortress_time"),
       BT::BidirectionalPort<int>("patrol_hold_ms"),
+      BT::BidirectionalPort<bool>("energy_saving_mode_enable"),
       BT::BidirectionalPort<bool>("conservative_mode_enable"),
       BT::BidirectionalPort<bool>("enemy_hold_attack_enable"),
       BT::BidirectionalPort<bool>("patrol_enable"),
