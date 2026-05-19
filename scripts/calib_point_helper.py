@@ -24,6 +24,7 @@ import argparse
 import ast
 import csv
 import os
+import re
 import sys
 from collections import OrderedDict
 from pathlib import Path
@@ -57,6 +58,7 @@ CALIB_POINTS: list[tuple[str, str, tuple[float, float, float, float]]] = [
     # ("out_alive_patrol_3",     "A3-存活巡逻点3 AlivePatrol3", (0.2, 0.7, 1.0, 1.0)),
     # ("cap_outpost",            "C-占领前哨 CapOutpost",     (1.0, 0.3, 0.0, 1.0)),
 ]
+ALL_CALIB_POINTS = list(CALIB_POINTS)
 
 # ── rmuc_calibration.csv 默认路径 ──
 DEFAULT_CSV_PATH = os.path.join(
@@ -100,17 +102,31 @@ MARKER_Z = 0.05
 
 
 class CalibPointHelper(Node):
-    def __init__(self, csv_path: str):
+    def __init__(
+        self,
+        csv_path: str,
+        params_path: str,
+        sync_params: bool = True,
+        enabled_from_csv: bool = True,
+        save_csv: bool = True,
+    ):
         super().__init__("calib_point_helper")
 
         self.calibrated: OrderedDict[str, tuple[float, float]] = OrderedDict()
         self.default_points: OrderedDict[str, tuple[float, float]] = OrderedDict()
         self.csv_path = csv_path
+        self.params_path = params_path
+        self.sync_params = sync_params
+        self.enabled_from_csv = enabled_from_csv
+        self.save_csv = save_csv
+        self.calib_points = list(ALL_CALIB_POINTS)
         self.current_idx = 0
         self.show_hint = True
         self.show_points = True
 
         # 启动时从 CSV 加载已有的标定数据
+        if self.enabled_from_csv:
+            self._filter_points_by_csv_enabled()
         self._load_csv()
         self.default_points = self._load_yaml_defaults()
 
@@ -143,44 +159,53 @@ class CalibPointHelper(Node):
         self._wait_timer = self.create_timer(5.0, self._wait_callback)
 
         loaded = len(self.calibrated)
-        total = len(CALIB_POINTS)
+        total = len(self.calib_points)
         if loaded > 0:
             loaded_keys = ", ".join(self.calibrated.keys())
-            fallback_count = sum(1 for key, _, _ in CALIB_POINTS
+            fallback_count = sum(1 for key, _, _ in self.calib_points
                                  if key not in self.calibrated and key in self.default_points)
             self.get_logger().info(
                 f"[CALIB] 标定辅助节点已启动 | 从 CSV 加载了 {loaded}/{total} 个旧坐标\n"
                 f"  已有: {loaded_keys}\n"
                 f"  YAML 回退显示: {fallback_count} 个\n"
                 f"  点击地图可覆盖更新对应坐标\n"
-                f"  CSV: {csv_path}"
+                f"  CSV: {csv_path}\n"
+                f"  同步参数: {'开启' if self.sync_params else '关闭'}\n"
+                f"  CSV启用过滤: {'开启' if self.enabled_from_csv else '关闭'}\n"
+                f"  保存CSV: {'开启' if self.save_csv else '关闭'}"
             )
         elif self.default_points:
             self.get_logger().info(
                 f"[CALIB] 标定辅助节点已启动 | CSV 不可用，使用 YAML 默认值显示 {len(self.default_points)}/{total} 个坐标\n"
-                f"  YAML: {DEFAULT_PARAMS_PATH}\n"
+                f"  YAML: {self.params_path}\n"
                 f"  点击地图可覆盖更新并写入 CSV\n"
-                f"  CSV: {csv_path}"
+                f"  CSV: {csv_path}\n"
+                f"  同步参数: {'开启' if self.sync_params else '关闭'}\n"
+                f"  CSV启用过滤: {'开启' if self.enabled_from_csv else '关闭'}\n"
+                f"  保存CSV: {'开启' if self.save_csv else '关闭'}"
             )
         else:
             self.get_logger().info(
                 f"[CALIB] 标定辅助节点已启动 | 共 {total} 个标定点，从空白开始\n"
-                f"  CSV: {csv_path}"
+                f"  CSV: {csv_path}\n"
+                f"  同步参数: {'开启' if self.sync_params else '关闭'}\n"
+                f"  CSV启用过滤: {'开启' if self.enabled_from_csv else '关闭'}\n"
+                f"  保存CSV: {'开启' if self.save_csv else '关闭'}"
             )
 
     def _current_point(self) -> tuple[str, str, tuple[float, float, float, float]]:
-        return CALIB_POINTS[self.current_idx]
+        return self.calib_points[self.current_idx]
 
     def _advance_to_first_uncalibrated(self):
         """启动时跳到第一个还没标定过的点。"""
-        for idx, (key, _, _) in enumerate(CALIB_POINTS):
+        for idx, (key, _, _) in enumerate(self.calib_points):
             if key not in self.calibrated:
                 self.current_idx = idx
                 return
 
     def _print_current_hint(self):
         key, name, _ = self._current_point()
-        total = len(CALIB_POINTS)
+        total = len(self.calib_points)
         done = len(self.calibrated)
         if key in self.calibrated:
             cx, cy = self.calibrated[key]
@@ -215,6 +240,7 @@ class CalibPointHelper(Node):
 
         self._publish_all_markers()
         self._save_csv()
+        self._sync_params_for_point(key, x, y)
 
         # 自动跳到下一个未标定的点
         self._advance_to_next()
@@ -223,11 +249,11 @@ class CalibPointHelper(Node):
 
     def _advance_to_next(self):
         """跳到下一个还未标定的点；如果全部已标定则循环到下一个。"""
-        total = len(CALIB_POINTS)
+        total = len(self.calib_points)
         # 优先找未标定的点
         for offset in range(1, total + 1):
             idx = (self.current_idx + offset) % total
-            key = CALIB_POINTS[idx][0]
+            key = self.calib_points[idx][0]
             if key not in self.calibrated:
                 self.current_idx = idx
                 return
@@ -239,7 +265,7 @@ class CalibPointHelper(Node):
 
     def _on_select(self, msg: String):
         target = msg.data.strip()
-        for idx, (key, name, _) in enumerate(CALIB_POINTS):
+        for idx, (key, name, _) in enumerate(self.calib_points):
             if key == target or target in name:
                 self.current_idx = idx
                 self._print_current_hint()
@@ -249,13 +275,13 @@ class CalibPointHelper(Node):
         self.get_logger().warn(f"[CALIB] 未知标定点: '{target}'")
 
     def _on_next(self, _msg: Empty):
-        self.current_idx = (self.current_idx + 1) % len(CALIB_POINTS)
+        self.current_idx = (self.current_idx + 1) % len(self.calib_points)
         self._print_current_hint()
         self._publish_all_markers()
         self._publish_hint_marker()
 
     def _on_prev(self, _msg: Empty):
-        self.current_idx = (self.current_idx - 1) % len(CALIB_POINTS)
+        self.current_idx = (self.current_idx - 1) % len(self.calib_points)
         self._print_current_hint()
         self._publish_all_markers()
         self._publish_hint_marker()
@@ -347,7 +373,7 @@ class CalibPointHelper(Node):
         hint.color.g = g
         hint.color.b = b
         hint.color.a = 1.0
-        hint.text = f"[{self.current_idx+1}/{len(CALIB_POINTS)}] {name} {status}"
+        hint.text = f"[{self.current_idx+1}/{len(self.calib_points)}] {name} {status}"
         ma.markers.append(hint)
         self.hint_pub.publish(ma)
 
@@ -365,7 +391,7 @@ class CalibPointHelper(Node):
 
         now = self.get_clock().now().to_msg()
 
-        for idx, (key, display_name, color) in enumerate(CALIB_POINTS):
+        for idx, (key, display_name, color) in enumerate(self.calib_points):
             point, source = self._display_point(key)
             if point is None:
                 continue
@@ -422,7 +448,7 @@ class CalibPointHelper(Node):
 
     def _load_yaml_defaults(self) -> OrderedDict[str, tuple[float, float]]:
         defaults: OrderedDict[str, tuple[float, float]] = OrderedDict()
-        path = Path(DEFAULT_PARAMS_PATH)
+        path = Path(self.params_path)
         if not path.exists():
             self.get_logger().warn(f"[CALIB] YAML 默认参数文件不存在: {path}")
             return defaults
@@ -430,7 +456,7 @@ class CalibPointHelper(Node):
         try:
             cfg = self._parse_default_config(path)
 
-            for key, _, _ in CALIB_POINTS:
+            for key, _, _ in self.calib_points:
                 point = self._yaml_default_point(cfg, key)
                 if point is not None:
                     defaults[key] = point
@@ -498,6 +524,105 @@ class CalibPointHelper(Node):
 
         return None
 
+    # ── YAML 参数同步 ────────────────────────────────────────
+
+    def _format_float(self, value: float) -> str:
+        return f"{value:.4f}"
+
+    def _split_comment(self, text: str) -> tuple[str, str]:
+        if "#" not in text:
+            return text.rstrip(), ""
+        before, after = text.split("#", 1)
+        return before.rstrip(), "  #" + after.rstrip()
+
+    def _replace_scalar_param(self, lines: list[str], key: str, value: float) -> bool:
+        pattern = re.compile(rf"^(\s*)({re.escape(key)})(\s*:\s*)(.*?)(\r?\n)?$")
+        for idx, line in enumerate(lines):
+            match = pattern.match(line)
+            if not match:
+                continue
+            indent, name, sep, old_value, newline = match.groups()
+            _, comment = self._split_comment(old_value)
+            lines[idx] = f"{indent}{name}{sep}{self._format_float(value)}{comment}{newline or os.linesep}"
+            return True
+        return False
+
+    def _replace_waypoint_param(
+        self,
+        lines: list[str],
+        key: str,
+        x_index: int,
+        y_index: int,
+        x: float,
+        y: float,
+    ) -> bool:
+        pattern = re.compile(rf"^(\s*)({re.escape(key)})(\s*:\s*)(.*?)(\r?\n)?$")
+        for idx, line in enumerate(lines):
+            match = pattern.match(line)
+            if not match:
+                continue
+            indent, name, sep, old_value, newline = match.groups()
+            value_text, comment = self._split_comment(old_value)
+            try:
+                values = ast.literal_eval(value_text.strip())
+            except (SyntaxError, ValueError):
+                values = []
+            if not isinstance(values, list):
+                values = []
+            while len(values) <= max(x_index, y_index):
+                values.append(0.0)
+            values[x_index] = x
+            values[y_index] = y
+            rendered = "[" + ", ".join(self._format_float(float(v)) for v in values) + "]"
+            lines[idx] = f"{indent}{name}{sep}{rendered}{comment}{newline or os.linesep}"
+            return True
+        return False
+
+    def _sync_params_for_point(self, key: str, x: float, y: float):
+        if not self.sync_params:
+            return
+        params_path = Path(self.params_path)
+        if not params_path.exists():
+            self.get_logger().error(f"[CALIB] 参数同步失败，文件不存在: {params_path}")
+            return
+
+        try:
+            lines = params_path.read_text().splitlines(keepends=True)
+            updated = False
+
+            if key in CALIB_POINT_PARAM_MAP:
+                x_key, y_key = CALIB_POINT_PARAM_MAP[key]
+                updated_x = self._replace_scalar_param(lines, x_key, x)
+                updated_y = self._replace_scalar_param(lines, y_key, y)
+                updated = updated_x and updated_y
+                if not updated:
+                    self.get_logger().warn(
+                        f"[CALIB] 参数同步不完整: {key} -> {x_key}/{y_key}"
+                    )
+            elif key in PATROL_WAYPOINT_INDEX_MAP:
+                x_idx, y_idx = PATROL_WAYPOINT_INDEX_MAP[key]
+                updated = self._replace_waypoint_param(
+                    lines, "patrol_waypoints", x_idx, y_idx, x, y
+                )
+            elif key in OUT_ALIVE_PATROL_WAYPOINT_INDEX_MAP:
+                x_idx, y_idx = OUT_ALIVE_PATROL_WAYPOINT_INDEX_MAP[key]
+                updated = self._replace_waypoint_param(
+                    lines, "out_alive_patrol_waypoints", x_idx, y_idx, x, y
+                )
+            else:
+                self.get_logger().warn(f"[CALIB] 参数同步跳过未知点: {key}")
+                return
+
+            if not updated:
+                self.get_logger().error(f"[CALIB] 参数同步失败，未找到对应字段: {key}")
+                return
+
+            params_path.write_text("".join(lines))
+            self.default_points[key] = (x, y)
+            self.get_logger().info(f"[CALIB] 参数已同步: {params_path} <- {key} ({x:.4f}, {y:.4f})")
+        except Exception as e:
+            self.get_logger().error(f"[CALIB] 参数同步失败: {e}")
+
     # ── CSV 读写 ──────────────────────────────────────────
 
     def _load_csv(self):
@@ -509,7 +634,7 @@ class CalibPointHelper(Node):
             self.get_logger().info(f"[CALIB] CSV 文件不存在，从空白开始: {path}")
             return
 
-        known_keys = {pt[0] for pt in CALIB_POINTS}
+        known_keys = {pt[0] for pt in self.calib_points}
         loaded = 0
         try:
             with open(path, "r") as f:
@@ -539,6 +664,8 @@ class CalibPointHelper(Node):
 
     def _save_csv(self):
         """直接覆写 rmuc_calibration.csv，保留原有注释头。"""
+        if not self.save_csv:
+            return
         if not self.csv_path:
             return
         try:
@@ -579,7 +706,7 @@ class CalibPointHelper(Node):
                     f.write("#\n")
 
                 # 写所有标定点数据（已标定的写坐标，未标定的写注释占位）
-                for key, display_name, _ in CALIB_POINTS:
+                for key, display_name, _ in self.calib_points:
                     if key in self.calibrated:
                         x, y = self.calibrated[key]
                         f.write(f"{key},{x:.4f},{y:.4f}\n")
@@ -596,17 +723,75 @@ class CalibPointHelper(Node):
         except Exception as e:
             self.get_logger().error(f"[CALIB] CSV 保存失败: {e}")
 
+    def _filter_points_by_csv_enabled(self):
+        if not self.csv_path:
+            self.get_logger().warn("[CALIB] 开启了 CSV 点位过滤，但未提供 CSV；使用 helper 中启用的全部点")
+            return
+
+        path = Path(self.csv_path)
+        if not path.exists():
+            self.get_logger().warn(f"[CALIB] 开启了 CSV 点位过滤，但 CSV 不存在: {path}")
+            return
+
+        enabled_keys: set[str] = set()
+        try:
+            with open(path, "r") as f:
+                for raw_line in f:
+                    line = raw_line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    parts = line.split(",")
+                    if len(parts) < 3:
+                        continue
+                    name = parts[0].strip()
+                    if name and name != "point_name":
+                        enabled_keys.add(name)
+        except Exception as e:
+            self.get_logger().warn(f"[CALIB] CSV 点位过滤读取失败: {e}")
+            return
+
+        if not enabled_keys:
+            self.get_logger().warn(f"[CALIB] CSV 中没有启用点位，使用 helper 中启用的全部点: {path}")
+            return
+
+        helper_keys = {key for key, _, _ in self.calib_points}
+        filtered = [pt for pt in self.calib_points if pt[0] in enabled_keys]
+        ignored = sorted(enabled_keys - helper_keys)
+        if ignored:
+            self.get_logger().warn(
+                f"[CALIB] CSV 中这些点没有在 calib_point_helper.py 启用，已忽略: {', '.join(ignored)}"
+            )
+        if not filtered:
+            self.get_logger().warn("[CALIB] CSV 与 helper 没有共同启用点位，使用 helper 中启用的全部点")
+            return
+
+        self.calib_points = filtered
+        self.get_logger().info(
+            f"[CALIB] CSV 点位过滤开启: {len(self.calib_points)} 个点 -> "
+            f"{', '.join(key for key, _, _ in self.calib_points)}"
+        )
+
 
 def main(args=None):
     parser = argparse.ArgumentParser(description="RMUC 标定点辅助节点")
     parser.add_argument("--csv", type=str, default=None,
                         help="CSV 文件路径 (默认: rmuc_calibration.csv)")
+    parser.add_argument("--params", type=str, default=str(Path(DEFAULT_PARAMS_PATH).resolve()),
+                        help="rmuc_2026_params.yaml 路径")
+    parser.add_argument("--sync-params", action="store_true",
+                        help="只同步 rmuc_2026_params.yaml，不保存 CSV；默认同时保存 CSV + YAML")
+    parser.add_argument("--enabled-from-csv", dest="enabled_from_csv", action="store_true",
+                        default=True,
+                        help="只轮转 calib_point_helper.py 和 CSV 中同时启用的点（默认开启）")
+    parser.add_argument("--no-enabled-from-csv", dest="enabled_from_csv", action="store_false",
+                        help="关闭 CSV 启用过滤，轮转 calib_point_helper.py 中启用的全部点")
     parser.add_argument("--no-csv", action="store_true",
                         help="不保存 CSV")
     known, unknown = parser.parse_known_args()
 
     csv_path = known.csv
-    if not csv_path and not known.no_csv:
+    save_csv = not (known.no_csv or known.sync_params)
+    if not csv_path:
         # 默认写到 rmuc_calibration.csv
         resolved = Path(DEFAULT_CSV_PATH).resolve()
         if resolved.parent.exists():
@@ -615,7 +800,13 @@ def main(args=None):
             csv_path = None
 
     rclpy.init(args=args)
-    node = CalibPointHelper(csv_path=csv_path if not known.no_csv else "")
+    node = CalibPointHelper(
+        csv_path=csv_path if csv_path else "",
+        params_path=known.params,
+        sync_params=True,
+        enabled_from_csv=known.enabled_from_csv,
+        save_csv=save_csv,
+    )
     try:
         rclpy.spin(node)
     except (KeyboardInterrupt, ExternalShutdownException):
