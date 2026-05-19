@@ -33,10 +33,15 @@ BT::NodeStatus HoldForSupplyAmmoTickAction::onRunning()
 
   // 确保根黑板上 key 有值（autoremap 可能创建了空条目，getEntry 非空但无值）
   auto ensure_init = [&](const char* key, int default_val) {
-    try { root_bb->get<int>(key); }
+    try { (void)root_bb->get<int>(key); }
     catch (...) { root_bb->set<int>(key, default_val); }
   };
+  auto ensure_bool_init = [&](const char* key, bool default_val) {
+    try { (void)root_bb->get<bool>(key); }
+    catch (...) { root_bb->set<bool>(key, default_val); }
+  };
   ensure_init("supply.fail_count", 0);
+  ensure_bool_init("supply.threshold_overridden", false);
   {
     int default_thr = 80;
     getInput("default_threshold", default_thr);
@@ -49,6 +54,7 @@ BT::NodeStatus HoldForSupplyAmmoTickAction::onRunning()
     getInput("default_threshold", default_thr);
     root_bb->set<int>("supply.fail_count", 0);
     root_bb->set<int>("supply.next_threshold", default_thr);
+    root_bb->set<bool>("supply.threshold_overridden", false);
     std::printf("[HoldForSupplyAmmoTick] 补弹成功! %d→%d 重置阈值=%d\n", initial_ammo_, ammo, default_thr);
     return BT::NodeStatus::SUCCESS;
   }
@@ -76,12 +82,15 @@ BT::NodeStatus HoldForSupplyAmmoTickAction::onRunning()
     if (fail_count == 1) {
       int next = std::max(initial_ammo_ / 2, 1);
       root_bb->set<int>("supply.next_threshold", next);
+      root_bb->set<bool>("supply.threshold_overridden", true);
       std::printf("[HoldForSupplyAmmoTick] 超时! 第%d次失败 → 新阈值=%d\n", fail_count, next);
     } else if (fail_count == 2) {
       root_bb->set<int>("supply.next_threshold", 1);
+      root_bb->set<bool>("supply.threshold_overridden", true);
       std::printf("[HoldForSupplyAmmoTick] 超时! 第%d次失败 → 新阈值=1\n", fail_count);
     } else {
       root_bb->set<int>("supply.next_threshold", -1);
+      root_bb->set<bool>("supply.threshold_overridden", true);
       std::printf("[HoldForSupplyAmmoTick] 超时! 第%d次失败 → 放弃补弹\n", fail_count);
     }
     return BT::NodeStatus::SUCCESS;  // 退出补弹，回去打
