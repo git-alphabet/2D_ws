@@ -1,5 +1,6 @@
 #include "rm_behavior_tree/plugins/rmuc_2026/action/posture_degradation_guard.hpp"
 #include "behaviortree_cpp/blackboard.h"
+#include <cmath>
 #include <iostream>
 
 namespace rm_behavior_tree
@@ -18,6 +19,14 @@ BT::NodeStatus PostureDegradationGuard::tick()
   bool need_heal_recovery = false;
   bool base_threat = false;
   bool semantic_zone_active = false;
+  bool nav_goal_valid = false;
+  double pose_x = 0.0;
+  double pose_y = 0.0;
+  double nav_goal_x = 0.0;
+  double nav_goal_y = 0.0;
+  double fortress_area_x = 0.0;
+  double fortress_area_y = 0.0;
+  double arrive_radius = 0.5;
   int hp_cur = 10000;
   int hp_low = 0;
   int ammo_allow = 300;
@@ -30,6 +39,14 @@ BT::NodeStatus PostureDegradationGuard::tick()
   getInput("ammo_low", ammo_low);
   getInput("base_threat", base_threat);
   getInput("semantic_zone_active", semantic_zone_active);
+  getInput("nav_goal_valid", nav_goal_valid);
+  getInput("pose_x", pose_x);
+  getInput("pose_y", pose_y);
+  getInput("nav_goal_x", nav_goal_x);
+  getInput("nav_goal_y", nav_goal_y);
+  getInput("fortress_area_x", fortress_area_x);
+  getInput("fortress_area_y", fortress_area_y);
+  getInput("arrive_radius", arrive_radius);
   if (auto * root_bb = config().blackboard->rootBlackboard()) {
     bool threshold_overridden = false;
     try {
@@ -100,6 +117,24 @@ BT::NodeStatus PostureDegradationGuard::tick()
     forced_duration_ms_ = 0;
     active_posture_ = 3;
     setOutput("final_posture", 3);
+    return BT::NodeStatus::SUCCESS;
+  }
+
+  const double fortress_goal_dist = std::hypot(nav_goal_x - fortress_area_x, nav_goal_y - fortress_area_y);
+  const double goal_arrive_dist = std::hypot(pose_x - nav_goal_x, pose_y - nav_goal_y);
+  const bool fortress_standby =
+    nav_goal_valid && fortress_goal_dist <= 0.05 && goal_arrive_dist <= arrive_radius;
+
+  if (fortress_standby) {
+    if (in_forced_switch_) {
+      std::cout << "[PostureDegradationGuard] 堡垒区站定禁用姿态降级，取消强制姿态 "
+                << forced_posture_ << "，放行姿态 " << effective_desired << std::endl;
+    }
+    in_forced_switch_ = false;
+    forced_posture_ = 0;
+    forced_duration_ms_ = 0;
+    active_posture_ = effective_desired;
+    setOutput("final_posture", effective_desired);
     return BT::NodeStatus::SUCCESS;
   }
 
