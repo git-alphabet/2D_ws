@@ -40,7 +40,7 @@ pb_navigation_switches:
     # 里程计来源标识。
     odometry_source: "odin1"
     # 行为树配置名。
-    behavior_tree: "config/RMUC_2026/rmuc_2026.xml"
+    behavior_tree: "none"
 
 # 机器人描述文件基名：对应 gxu2026_robot_description/resource/xmacro/<name>.sdf.xmacro
 robot_description_runtime:
@@ -60,7 +60,7 @@ robot_description_runtime:
 
 
     bag_record:
-      enabled: false
+      enabled: true
       profiles:
         replay_full:
           name: replay_full
@@ -488,7 +488,7 @@ fake_vel_transform:
     # 是否在移动时关闭小陀螺。
     disable_spin_while_moving: true
     # 初始小陀螺速度，单位 rad/s。
-    init_spin_speed: 0.0
+    init_spin_speed: 6.0
     # 减速带速度下限控制：进入 speed_bump 区域后，线速度低于该值会被抬高
     # 是否启用减速带最低速度限制。
     enable_speed_bump_min_speed: true

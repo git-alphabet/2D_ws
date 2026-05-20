@@ -34,7 +34,6 @@ rm_behavior_tree:
 
       cap_outpost_x: 10.2085  # 占领前哨点 x（标定缺失/无效时使用；默认值与当前 CSV 标定值一致）
       cap_outpost_y: 1.7417  # 占领前哨点 y（标定缺失/无效时使用；默认值与当前 CSV 标定值一致）
-      cap_sustain_time: 10           # 比赛开始后优先占领前哨点的持续时间 (秒)，超时后不再前往 cap_outpost
 
       fortress_area_x: 1.8860  # 堡垒区 x（前哨站被毁后的轮换点）
       fortress_area_y: -1.7872  # 堡垒区 y（前哨站被毁后的轮换点）
@@ -51,14 +50,15 @@ rm_behavior_tree:
       calibration_csv_path: "/ws/src/RM_Behavior_Tree/rm_behavior_tree/config/RMUC_2026/rmuc_calibration.csv"
 
       # ─────────── 巡逻配置 ───────────
-      conservative_mode_enable: true # 保守模式开关；开启后按前哨站已毁处理，跳过开局占点/中央高地，直接走堡垒区/梯形高地/巡逻点逻辑
+      conservative_mode_enable: false # 保守模式开关；开启后按前哨站已毁处理，跳过开局占点/中央高地，直接走堡垒区/梯形高地/巡逻点逻辑
       energy_saving_mode_enable: true # 节能模式开关；开启后到补给区时切攻击姿态，关闭时保持防御姿态
       enemy_hold_attack_enable: false # 普通遇敌时是否切攻击姿态；true=切攻击(1)，false=切防御(2)
-      out_alive_patrol_enable: false   # 是否启用前哨站存活巡逻
+      out_alive_patrol_enable: true   # 是否启用前哨站存活巡逻
       patrol_enable: false             # 是否启用前哨站被毁巡逻 
       destroyed_outpost_ladder_enable: false  # 前哨站被毁且启动巡逻时，是否启动梯形高地；false=只守堡垒区
       patrol_waypoints: [3.6249, -3.8823, 3.6278, 0.1613, 6.2382, 2.7272]  # 巡逻点数组 [x1,y1,x2,y2,...]
       out_alive_patrol_waypoints: [12.2996, -3.7358, 6.1771, -1.6386, 10.9989, 0.8936]  # 前哨站存活巡逻点数组 [x1,y1,x2,y2,...]
+      cap_sustain_time: 40           # 比赛开始后优先占领前哨点的持续时间 (秒)，超时后不再前往 cap_outpost
       ladder_time: 4000                # 前哨站被毁后，梯形高地停留时间 (毫秒)
       fortress_time: 4000              # 前哨站被毁后，堡垒区停留时间 (毫秒)
       patrol_hold_ms: 4000             # 普通巡逻点/前哨站存活巡逻点/中央高地巡逻停留时间 (毫秒)
