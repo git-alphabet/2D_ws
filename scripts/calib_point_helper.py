@@ -779,7 +779,7 @@ def main(args=None):
     parser.add_argument("--params", type=str, default=str(Path(DEFAULT_PARAMS_PATH).resolve()),
                         help="rmuc_2026_params.yaml 路径")
     parser.add_argument("--sync-params", action="store_true",
-                        help="只同步 rmuc_2026_params.yaml，不保存 CSV；默认同时保存 CSV + YAML")
+                        help="同时同步 rmuc_2026_params.yaml；默认只保存 CSV")
     parser.add_argument("--enabled-from-csv", dest="enabled_from_csv", action="store_true",
                         default=True,
                         help="只轮转 calib_point_helper.py 和 CSV 中同时启用的点（默认开启）")
@@ -790,7 +790,7 @@ def main(args=None):
     known, unknown = parser.parse_known_args()
 
     csv_path = known.csv
-    save_csv = not (known.no_csv or known.sync_params)
+    save_csv = not known.no_csv
     if not csv_path:
         # 默认写到 rmuc_calibration.csv
         resolved = Path(DEFAULT_CSV_PATH).resolve()
@@ -803,7 +803,7 @@ def main(args=None):
     node = CalibPointHelper(
         csv_path=csv_path if csv_path else "",
         params_path=known.params,
-        sync_params=True,
+        sync_params=known.sync_params,
         enabled_from_csv=known.enabled_from_csv,
         save_csv=save_csv,
     )

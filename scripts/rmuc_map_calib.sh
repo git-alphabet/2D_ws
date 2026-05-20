@@ -149,7 +149,8 @@ pids+=("$!")
 
 python3 "$SCRIPT_DIR/calib_point_helper.py" \
   --csv "$CALIB_CSV_PATH" \
-  --params "$RMUC_PARAMS_PATH" &
+  --params "$RMUC_PARAMS_PATH" \
+  --sync-params &
 pids+=("$!")
 
 rviz2 -d "$RVIZ_CONFIG_ARG" &
