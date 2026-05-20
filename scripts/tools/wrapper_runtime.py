@@ -384,14 +384,25 @@ def start_bag_recording(cfg: CommonConfig, bg: BackgroundGroup) -> None:
             f"{base_env}; "
             f"{' '.join(shlex.quote(part) for part in bag_cmd)}"
         )
-        log_file = log_dir / f"{Path(cfg.script_name).stem}_bag_{slugify(str(profile_name))}_{session_tag}.log"
-        print(
-            f"[{cfg.script_name}] (bag) {profile_name} -> {log_file}",
-            file=sys.stderr,
-        )
+        
+        is_bag_script = Path(cfg.script_name).stem.startswith("bag")
+        if is_bag_script:
+            log_file = log_dir / f"{Path(cfg.script_name).stem}_{slugify(str(profile_name))}_{session_tag}.log"
+            out_fd = open(log_file, "w")
+            print(
+                f"[{cfg.script_name}] (bag) {profile_name} -> {log_file}",
+                file=sys.stderr,
+            )
+        else:
+            out_fd = subprocess.DEVNULL
+            print(
+                f"[{cfg.script_name}] (bag) {profile_name} started (no log)",
+                file=sys.stderr,
+            )
+
         p = subprocess.Popen(
             ["bash", "-lc", cmd],
-            stdout=open(log_file, "w"),
+            stdout=out_fd,
             stderr=subprocess.STDOUT,
             preexec_fn=os.setsid,
         )
