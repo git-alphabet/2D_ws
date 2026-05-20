@@ -50,10 +50,10 @@ rm_behavior_tree:
       calibration_csv_path: "/ws/src/RM_Behavior_Tree/rm_behavior_tree/config/RMUC_2026/rmuc_calibration.csv"
 
       # ─────────── 巡逻配置 ───────────
-      conservative_mode_enable: false # 保守模式开关；开启后按前哨站已毁处理，跳过开局占点/中央高地，直接走堡垒区/梯形高地/巡逻点逻辑
+      conservative_mode_enable: true # 保守模式开关；开启后按前哨站已毁处理，跳过开局占点/中央高地，直接走堡垒区/梯形高地/巡逻点逻辑
       energy_saving_mode_enable: true # 节能模式开关；开启后到补给区时切攻击姿态，关闭时保持防御姿态
       enemy_hold_attack_enable: false # 普通遇敌时是否切攻击姿态；true=切攻击(1)，false=切防御(2)
-      out_alive_patrol_enable: true   # 是否启用前哨站存活巡逻
+      out_alive_patrol_enable: false   # 是否启用前哨站存活巡逻
       patrol_enable: true             # 是否启用前哨站被毁巡逻 
       destroyed_outpost_ladder_enable: false  # 前哨站被毁且启动巡逻时，是否启动梯形高地；false=只守堡垒区
       patrol_waypoints: [0.4718, -2.8059, 0.3599, 2.1097, 2.4622, 4.6228]  # 巡逻点数组 [x1,y1,x2,y2,...]

@@ -3,7 +3,7 @@ Description=Refresh Docker GUI auth cookie and display hints periodically
 
 [Timer]
 OnBootSec=15s
-OnUnitActiveSec=10s
+OnUnitActiveSec=1s
 Unit=gxu2026-docker-xauth.service
 
 [Install]

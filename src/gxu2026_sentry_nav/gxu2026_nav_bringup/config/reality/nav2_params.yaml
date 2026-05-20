@@ -60,7 +60,7 @@ robot_description_runtime:
 
 
     bag_record:
-      enabled: true
+      enabled: false
       profiles:
         replay_full:
           name: replay_full
@@ -1009,11 +1009,11 @@ global_costmap:
           # 该源允许的最高障碍高度。
           max_obstacle_height: 2.0
           # 该源用于标记障碍的最大距离。
-          obstacle_max_range: 10.0
+          obstacle_max_range: 20.0
           # 该源用于标记障碍的最小距离。
           obstacle_min_range: 0.6
           # 该源用于射线清除的最大距离。
-          raytrace_max_range: 10.0
+          raytrace_max_range: 20.0
           # 该源用于射线清除的最小距离。
           raytrace_min_range: 0.6
       static_layer:
@@ -1200,6 +1200,6 @@ velocity_smoother:
 lifecycle_manager_navigation:
   ros__parameters:
     # 生命周期管理器 bond 超时时间，单位秒。启动时系统负载高，需要足够余量。
-    bond_timeout: 15.0
+    bond_timeout: 30.0
     # 是否在 bond 断开后尝试重连。
     attempt_respawn_reconnection: true
