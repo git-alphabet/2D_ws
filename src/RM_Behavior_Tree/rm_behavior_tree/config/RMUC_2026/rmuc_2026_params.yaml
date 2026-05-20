@@ -54,19 +54,19 @@ rm_behavior_tree:
       energy_saving_mode_enable: true # 节能模式开关；开启后到补给区时切攻击姿态，关闭时保持防御姿态
       enemy_hold_attack_enable: false # 普通遇敌时是否切攻击姿态；true=切攻击(1)，false=切防御(2)
       out_alive_patrol_enable: true   # 是否启用前哨站存活巡逻
-      patrol_enable: false             # 是否启用前哨站被毁巡逻 
+      patrol_enable: true             # 是否启用前哨站被毁巡逻 
       destroyed_outpost_ladder_enable: false  # 前哨站被毁且启动巡逻时，是否启动梯形高地；false=只守堡垒区
       patrol_waypoints: [3.6249, -3.8823, 3.6278, 0.1613, 6.2382, 2.7272]  # 巡逻点数组 [x1,y1,x2,y2,...]
       out_alive_patrol_waypoints: [12.2996, -3.7358, 6.1771, -1.6386, 10.9989, 0.8936]  # 前哨站存活巡逻点数组 [x1,y1,x2,y2,...]
-      cap_sustain_time: 40           # 比赛开始后优先占领前哨点的持续时间 (秒)，超时后不再前往 cap_outpost
+      cap_sustain_time: 60           # 比赛开始后优先占领前哨点的持续时间 (秒)，超时后不再前往 cap_outpost
       ladder_time: 4000                # 前哨站被毁后，梯形高地停留时间 (毫秒)
       fortress_time: 4000              # 前哨站被毁后，堡垒区停留时间 (毫秒)
       patrol_hold_ms: 4000             # 普通巡逻点/前哨站存活巡逻点/中央高地巡逻停留时间 (毫秒)
 
       # ─────────── 战斗/生存阈值 ───────────
       hp_low: 180                     # 低血量阈值 (触发 LowHPRetreat 撤退回补给区)
-      hp_safe: 400                    # 安全血量阈值 (HoldAndHeal 回血目标)
-      ammo_low: 280                    # 低弹药阈值 (触发 AmmoPlan)
+      hp_safe: 390                    # 安全血量阈值 (HoldAndHeal 回血目标)
+      ammo_low: 80                    # 低弹药阈值 (触发 AmmoPlan)
       supply_wait_timeout_s: 10       # 在补给区等待免费补弹的单次超时 (秒)
 
       # ─────────── 导航参数 ───────────

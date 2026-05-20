@@ -40,7 +40,7 @@ pb_navigation_switches:
     # 里程计来源标识。
     odometry_source: "odin1"
     # 行为树配置名。
-    behavior_tree: "none"
+    behavior_tree: "config/RMUC_2026/rmuc_2026.xml"
 
 # 机器人描述文件基名：对应 gxu2026_robot_description/resource/xmacro/<name>.sdf.xmacro
 robot_description_runtime:
@@ -496,7 +496,7 @@ fake_vel_transform:
     # 是否启用减速带角速度置零。
     enable_speed_bump_zero_angular_z: true
     # 减速带最低线速度，单位 m/s。
-    speed_bump_min_linear_speed: 1.3
+    speed_bump_min_linear_speed: 1.4
     # 减速带地图坐标系。
     speed_bump_map_frame: "map"
     # 减速带区域名。
@@ -512,7 +512,7 @@ nonlinear_spin_publisher:
 
     # 总开关：true 才会开始发布 cmd_spin
     # 是否启用小陀螺输出。
-    enabled: false
+    enabled: true
 
     # 触发策略：收到第一条 Nav2 local_plan 后开始小陀螺，之后不停止
     # 是否在首次触发后持续发布。
