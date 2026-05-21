@@ -40,23 +40,23 @@ from visualization_msgs.msg import Marker, MarkerArray
 # ── 标定点定义 ──────────────────────────────────────────────
 # (key, display_name, color_rgba)
 CALIB_POINTS: list[tuple[str, str, tuple[float, float, float, float]]] = [
-    # ("supply_zone",            "1-补给区 Supply",            (0.0, 0.6, 1.0, 1.0)),
-    # ("base",                   "2-基地 Base",                (1.0, 0.5, 0.2, 1.0)),
+    ("supply_zone",            "1-补给区 Supply",            (0.0, 0.6, 1.0, 1.0)),
+    ("base",                   "2-基地 Base",                (1.0, 0.5, 0.2, 1.0)),
     # ── 以下暂时隐藏，需要时取消注释即可 ──
     # ("outpost_buff",           "3-前哨增益 OutpostBuff",     (0.8, 0.0, 0.8, 1.0)),
     ("fortress_area",          "F-堡垒区 Fortress",          (1.0, 0.0, 0.0, 1.0)),
-    # ("central_highland",       "6-中央高地 CentralHL",       (1.0, 1.0, 0.0, 1.0)),
-    # ("ladder_highland",        "7-梯形高地 LadderHL",        (0.0, 1.0, 1.0, 1.0)),
-    # ("defend_anchor",          "8-防御锚点 Defend",          (1.0, 0.4, 0.4, 1.0)),
+    ("central_highland",       "6-中央高地 CentralHL",       (1.0, 1.0, 0.0, 1.0)),
+    ("ladder_highland",        "7-梯形高地 LadderHL",        (0.0, 1.0, 1.0, 1.0)),
+    ("defend_anchor",          "8-防御锚点 Defend",          (1.0, 0.4, 0.4, 1.0)),
     # ── 巡逻点（前哨站被毁后，在梯形高地附近巡逻的路点）──
-    # ("patrol_1",               "P1-巡逻点1 Patrol1",        (0.4, 1.0, 0.4, 1.0)),
-    # ("patrol_2",               "P2-巡逻点2 Patrol2",        (0.4, 1.0, 0.6, 1.0)),
-    # ("patrol_3",               "P3-巡逻点3 Patrol3",        (0.4, 1.0, 0.8, 1.0)),
+    ("patrol_1",               "P1-巡逻点1 Patrol1",        (0.4, 1.0, 0.4, 1.0)),
+    ("patrol_2",               "P2-巡逻点2 Patrol2",        (0.4, 1.0, 0.6, 1.0)),
+    ("patrol_3",               "P3-巡逻点3 Patrol3",        (0.4, 1.0, 0.8, 1.0)),
     # ── 前哨站存活时，中央高地周边巡逻的路点 ──
-    # ("out_alive_patrol_1",     "A1-存活巡逻点1 AlivePatrol1", (0.2, 0.9, 1.0, 1.0)),
-    # ("out_alive_patrol_2",     "A2-存活巡逻点2 AlivePatrol2", (0.2, 0.8, 1.0, 1.0)),
-    # ("out_alive_patrol_3",     "A3-存活巡逻点3 AlivePatrol3", (0.2, 0.7, 1.0, 1.0)),
-    # ("cap_outpost",            "C-占领前哨 CapOutpost",     (1.0, 0.3, 0.0, 1.0)),
+    ("out_alive_patrol_1",     "A1-存活巡逻点1 AlivePatrol1", (0.2, 0.9, 1.0, 1.0)),
+    ("out_alive_patrol_2",     "A2-存活巡逻点2 AlivePatrol2", (0.2, 0.8, 1.0, 1.0)),
+    ("out_alive_patrol_3",     "A3-存活巡逻点3 AlivePatrol3", (0.2, 0.7, 1.0, 1.0)),
+    ("cap_outpost",            "C-占领前哨 CapOutpost",     (1.0, 0.3, 0.0, 1.0)),
 ]
 ALL_CALIB_POINTS = list(CALIB_POINTS)
 
@@ -779,7 +779,7 @@ def main(args=None):
     parser.add_argument("--params", type=str, default=str(Path(DEFAULT_PARAMS_PATH).resolve()),
                         help="rmuc_2026_params.yaml 路径")
     parser.add_argument("--sync-params", action="store_true",
-                        help="只同步 rmuc_2026_params.yaml，不保存 CSV；默认同时保存 CSV + YAML")
+                        help="同时同步 rmuc_2026_params.yaml；默认只保存 CSV")
     parser.add_argument("--enabled-from-csv", dest="enabled_from_csv", action="store_true",
                         default=True,
                         help="只轮转 calib_point_helper.py 和 CSV 中同时启用的点（默认开启）")
@@ -790,7 +790,7 @@ def main(args=None):
     known, unknown = parser.parse_known_args()
 
     csv_path = known.csv
-    save_csv = not (known.no_csv or known.sync_params)
+    save_csv = not known.no_csv
     if not csv_path:
         # 默认写到 rmuc_calibration.csv
         resolved = Path(DEFAULT_CSV_PATH).resolve()
@@ -803,7 +803,7 @@ def main(args=None):
     node = CalibPointHelper(
         csv_path=csv_path if csv_path else "",
         params_path=known.params,
-        sync_params=True,
+        sync_params=known.sync_params,
         enabled_from_csv=known.enabled_from_csv,
         save_csv=save_csv,
     )
