@@ -394,7 +394,7 @@ nonlinear_spin_publisher:
     publish_rate_hz: 50.0
 
     # 变频变幅正弦叠加：center_speed + A1*sin(phi1) + A2*sin(phi2 + offset)
-    center_speed: 5.2            # 中心角速度(rad/s)
+    center_speed: 6.2            # 中心角速度(rad/s)
     range_speed: 1.0              # 总振幅基准(rad/s)
     primary_amp_ratio: 0.65       # 主正弦分量振幅占比(会和 secondary 归一化)
     secondary_amp_ratio: 0.35     # 次正弦分量振幅占比
@@ -411,7 +411,7 @@ nonlinear_spin_publisher:
     target_update_period: 0.15    # 重采样周期(s)
     accel_limit: 16.0             # 输出角速度加速度限幅(rad/s^2)
 
-    max_abs_speed: 6.2            # 输出绝对值上限(rad/s)
+    max_abs_speed: 8.2            # 输出绝对值上限(rad/s)
     min_abs_speed: 4.0            # 输出绝对值下限(rad/s)，避免转速贴近 0
     seed: 1                       # 随机种子(0 为每次随机)
     start_delay_sec: 0.5          # 节点启动后延迟生效时间(s)
