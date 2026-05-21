@@ -27,6 +27,7 @@ from launch.actions import (
     LogInfo,
     OpaqueFunction,
     SetLaunchConfiguration,
+    TimerAction,
 )
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -505,14 +506,21 @@ def generate_launch_description():
         }.items(),
     )
 
-    start_odin_driver_node = Node(
-        package="odin_ros_driver",
-        executable="host_sdk_sample",
-        name="host_sdk_sample",
-        output="screen",
-        namespace=namespace,
-        parameters=[{"config_file": odin_config_file}],
-        condition=IfCondition(use_odin_driver),
+    # Delay odin driver to avoid CPU contention during composable node loading.
+    # The driver floods HIGHFREQ_ODOM data on connect, starving the container.
+    start_odin_driver_node = TimerAction(
+        period=5.0,
+        actions=[
+            Node(
+                package="odin_ros_driver",
+                executable="host_sdk_sample",
+                name="host_sdk_sample",
+                output="screen",
+                namespace=namespace,
+                parameters=[{"config_file": odin_config_file}],
+                condition=IfCondition(use_odin_driver),
+            )
+        ],
     )
 
     start_mid360_driver_node = Node(
