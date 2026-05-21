@@ -508,15 +508,14 @@ def build_navigation_runtime_actions(
         ],
     )
 
-    # Lifecycle manager: standalone node with autostart=False.
-    # startup_gate.py will call lifecycle_manager/startup service when ready.
-    # This avoids blocking the launch system and allows dynamic wait.
+    # Lifecycle manager with autostart: automatically activates all managed
+    # nodes after a short delay to let the container finish loading.
     start_lifecycle_manager_cmd = TimerAction(
         period=5.0,  # Short delay to let container start
         actions=[
             _build_lifecycle_manager_node(
                 use_sim_time=use_sim_time,
-                autostart=False,  # startup_gate.py will trigger startup
+                autostart=autostart,
                 log_level=log_level,
                 lifecycle_nodes=lifecycle_nodes,
                 configured_params=configured_params,
