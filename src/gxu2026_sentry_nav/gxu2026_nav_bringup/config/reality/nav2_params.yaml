@@ -30,7 +30,7 @@ pb_navigation_switches:
     # small_gicp 重定位总开关：
     # - true: 启动 small_gicp_relocalization，提供 map->odom 动态对齐
     # - false: 不启动重定位，使用静态 map->odom(0,0,0) + 纯里程计导航
-    enable_small_gicp_relocalization: false
+    enable_small_gicp_relocalization: true
     # 行为树策略入口（default / 其他预设），用于切换导航任务编排逻辑。
     behavior_tree: "config/RMUC_2026/rmuc_2026.xml"
 
@@ -656,7 +656,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 4.0
-        inflation_radius: 0.4
+        inflation_radius: 0.6
       always_send_full_costmap: False
 
 # 代价地图（global）：通常使用 map 坐标系，观测源常来自 terrain_map_ext
@@ -707,7 +707,7 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 4.0
-        inflation_radius: 0.4
+        inflation_radius: 0.6
       always_send_full_costmap: False
 
 # The yaml_filename does not need to be specified since it going to be set by defaults in launch.
