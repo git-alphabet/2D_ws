@@ -516,7 +516,7 @@ def launch_in_terminal(
     bg: Optional[BackgroundGroup] = None,
     pgid_file: Optional[Path] = None,
     pre_shutdown_hook: Optional[Callable[[], None]] = None,
-) -> None:
+) -> int:
     base_env = build_base_env(cfg)
 
     full_cmd = f"cd {shlex.quote(str(cfg.ws_dir))}; {base_env}"
@@ -657,13 +657,13 @@ def launch_in_terminal(
                     pgid_file.unlink()
                 except FileNotFoundError:
                     pass
-        return
+        return p.returncode or 0
 
     term = cfg.terminal_cmd
     keep_shell = f"{full_cmd}; exec bash"
     if term == "gnome-terminal":
         run_shell(f"gnome-terminal --title={shlex.quote(title)} -- bash -c {shlex.quote(keep_shell)}")
-        return
+        return 0
 
     if term == "x-terminal-emulator":
         subprocess.Popen(
@@ -691,7 +691,7 @@ def launch_in_terminal(
             ],
             preexec_fn=os.setsid,
         )
-        return
+        return 0
 
     subprocess.Popen([term, "-T", title, "-e", "bash", "-lc", keep_shell], preexec_fn=os.setsid)
 

@@ -5,6 +5,7 @@ import atexit
 import os
 import shlex
 import signal
+import subprocess
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -36,6 +37,69 @@ from tools.wrapper_runtime import (
     start_timestamp_monitor,
     start_watchdog,
 )
+
+
+def run_startup_gate(cfg: CommonConfig, mode: str) -> bool:
+    """Run the startup gate to ensure TF is ready before launching navigation.
+
+    Returns True if the gate passes, False otherwise.
+    """
+    # Only run for reality_navigation mode
+    if mode != "reality_navigation":
+        return True
+
+    # Check if startup gate is enabled via environment variable
+    gate_enabled = os.environ.get("NAV2_STARTUP_GATE_ENABLED", "true").strip().lower()
+    if gate_enabled not in {"true", "1", "yes", "on"}:
+        print(f"[{cfg.script_name}] Startup gate disabled via NAV2_STARTUP_GATE_ENABLED", file=sys.stderr)
+        return True
+
+    # Construct path to startup_gate.py
+    bringup_dir = cfg.ws_dir / "src/gxu2026_sentry_nav/gxu2026_nav_bringup"
+    gate_script = bringup_dir / "launch" / "nav2_startup_gate.py"
+
+    if not gate_script.exists():
+        print(f"[{cfg.script_name}] Warning: startup_gate.py not found at {gate_script}", file=sys.stderr)
+        return True
+
+    # Build command to run the startup gate
+    # The script needs ROS2 environment, so we source it first
+    gate_cmd = f"source {cfg.ros_setup} && source {cfg.overlay_setup} && python3 {gate_script}"
+
+    # Add namespace if needed
+    namespace = os.environ.get("NAV2_NAMESPACE", "")
+    if namespace:
+        gate_cmd += f" --namespace {shlex.quote(namespace)}"
+
+    print(f"[{cfg.script_name}] Running startup gate...", file=sys.stderr)
+
+    try:
+        result = subprocess.run(
+            ["bash", "-c", gate_cmd],
+            capture_output=True,
+            text=True,
+            timeout=120,  # 2 minute timeout
+        )
+
+        # Print gate output
+        if result.stdout:
+            print(result.stdout, file=sys.stderr)
+        if result.stderr:
+            print(result.stderr, file=sys.stderr)
+
+        if result.returncode == 0:
+            print(f"[{cfg.script_name}] Startup gate passed", file=sys.stderr)
+            return True
+        else:
+            print(f"[{cfg.script_name}] Startup gate failed with return code {result.returncode}", file=sys.stderr)
+            return False
+
+    except subprocess.TimeoutExpired:
+        print(f"[{cfg.script_name}] Startup gate timed out after 120 seconds", file=sys.stderr)
+        return False
+    except Exception as e:
+        print(f"[{cfg.script_name}] Error running startup gate: {e}", file=sys.stderr)
+        return False
 
 
 def main(argv: list[str]) -> int:
@@ -224,15 +288,52 @@ def main(argv: list[str]) -> int:
 
         pre_shutdown_hook = _mapping_presave
 
-    launch_in_terminal(
-        cfg,
-        fg_title,
-        ros_cmd,
-        neupan_env_cmd,
-        pgid_file=PGID_FILES["reality"],
-        pre_shutdown_hook=pre_shutdown_hook,
-    )
-    return 0
+    # 运行 startup gate 确保 TF 就绪（仅对 reality_navigation 模式）
+    if mode == "reality_navigation":
+        if not run_startup_gate(cfg, mode):
+            print(f"[{script_name}] Startup gate failed. Aborting navigation launch.", file=sys.stderr)
+            return 1
+
+    # 重启机制：如果 ros2 launch 非正常退出，自动重试
+    # 环境变量控制：NAV_RESTART_MAX（最大重试次数，默认 3）、NAV_RESTART_DELAY（重试间隔秒，默认 5）
+    restart_max = int(os.environ.get("NAV_RESTART_MAX", "3"))
+    restart_delay = float(os.environ.get("NAV_RESTART_DELAY", "5"))
+
+    for attempt in range(restart_max + 1):
+        if attempt > 0:
+            print(
+                f"[{script_name}] Restart attempt {attempt}/{restart_max} after {restart_delay}s...",
+                file=sys.stderr,
+            )
+            time.sleep(restart_delay)
+
+        rc = launch_in_terminal(
+            cfg,
+            fg_title,
+            ros_cmd,
+            neupan_env_cmd,
+            pgid_file=PGID_FILES["reality"],
+            pre_shutdown_hook=pre_shutdown_hook,
+        )
+
+        # rc=0 表示正常退出（用户手动停止），不需要重启
+        # rc=130 表示 SIGINT，不需要重启
+        if rc == 0 or rc == 130:
+            return rc
+
+        # 非正常退出，检查是否还能重试
+        if attempt < restart_max:
+            print(
+                f"[{script_name}] Navigation exited with code {rc}, will restart...",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                f"[{script_name}] Navigation exited with code {rc}, max retries reached.",
+                file=sys.stderr,
+            )
+
+    return rc
 
 
 if __name__ == "__main__":

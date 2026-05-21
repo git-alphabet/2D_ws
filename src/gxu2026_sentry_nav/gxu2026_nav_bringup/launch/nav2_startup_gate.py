@@ -25,6 +25,7 @@ Exit codes:
 """
 
 import argparse
+import os
 import subprocess
 import sys
 import time
@@ -55,22 +56,34 @@ def parse_args():
     p = argparse.ArgumentParser(
         description="Nav2 startup gate: TF warmup + container readiness."
     )
-    # TF warmup
-    p.add_argument("--tf-warmup-enabled", default="true",
+    # TF warmup - read from environment variables with fallback to defaults
+    p.add_argument("--tf-warmup-enabled",
+                    default=os.environ.get("NAV2_TF_WARMUP_ENABLED", "true"),
                     help="Enable TF warmup phase (default: true).")
-    p.add_argument("--tf-target-frame", default="odom")
-    p.add_argument("--tf-source-frame", default="gimbal_yaw_fake")
-    p.add_argument("--tf-timeout-sec", type=float, default=25.0,
+    p.add_argument("--tf-target-frame",
+                    default=os.environ.get("NAV2_TF_WARMUP_TARGET_FRAME", "map"),
+                    help="Target frame for TF warmup (default: map for global_costmap).")
+    p.add_argument("--tf-source-frame",
+                    default=os.environ.get("NAV2_TF_WARMUP_SOURCE_FRAME", "gimbal_yaw_fake"),
+                    help="Source frame for TF warmup (default: gimbal_yaw_fake).")
+    p.add_argument("--tf-timeout-sec", type=float,
+                    default=float(os.environ.get("NAV2_TF_WARMUP_TIMEOUT_SEC", "25.0")),
                     help="TF warmup timeout; <=0 disables timeout.")
-    p.add_argument("--tf-check-hz", type=float, default=20.0)
+    p.add_argument("--tf-check-hz", type=float,
+                    default=float(os.environ.get("NAV2_TF_WARMUP_CHECK_HZ", "20.0")))
     # Container readiness
-    p.add_argument("--container-timeout-sec", type=float, default=30.0,
+    p.add_argument("--container-timeout-sec", type=float,
+                    default=float(os.environ.get("NAV2_CONTAINER_TIMEOUT_SEC", "30.0")),
                     help="Container readiness timeout (default: 30.0).")
-    p.add_argument("--container-check-hz", type=float, default=2.0)
+    p.add_argument("--container-check-hz", type=float,
+                    default=float(os.environ.get("NAV2_CONTAINER_CHECK_HZ", "2.0")))
     # Common
-    p.add_argument("--namespace", default="")
-    p.add_argument("--use-sim-time", default="false")
-    p.add_argument("--container-name", default="nav2_container")
+    p.add_argument("--namespace",
+                    default=os.environ.get("NAV2_NAMESPACE", ""))
+    p.add_argument("--use-sim-time",
+                    default=os.environ.get("NAV2_USE_SIM_TIME", "false"))
+    p.add_argument("--container-name",
+                    default=os.environ.get("NAV2_CONTAINER_NAME", "nav2_container"))
     p.add_argument("--expected-nodes", type=str, nargs="*", default=None,
                     help="Override expected node names.")
     return p.parse_args()
@@ -133,9 +146,9 @@ def phase_tf_warmup(args):
                 % (args.tf_target_frame, args.tf_source_frame)
             )
         else:
-            node.get_logger().warn(
+            node.get_logger().error(
                 "TF warmup: timeout, transform '%s' <- '%s' not ready. "
-                "Continuing startup anyway."
+                "Aborting startup."
                 % (args.tf_target_frame, args.tf_source_frame)
             )
     finally:
@@ -252,10 +265,12 @@ def phase_container_ready(args):
 def main():
     args = parse_args()
 
-    # Phase 1: TF warmup (optional)
+    # Phase 1: TF warmup (optional but blocking on failure)
     if parse_bool(args.tf_warmup_enabled):
         print("[startup_gate] Phase 1: TF warmup...", flush=True)
-        phase_tf_warmup(args)
+        if not phase_tf_warmup(args):
+            print("[startup_gate] TF warmup failed. Aborting.", flush=True)
+            return 1
 
     # Phase 2: Container readiness (mandatory)
     ok = phase_container_ready(args)
