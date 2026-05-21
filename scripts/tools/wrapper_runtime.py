@@ -18,6 +18,7 @@ from tools.wrapper_helpers import (
     build_base_env,
     current_branch,
     is_truthy,
+    read_yaml_params,
     slugify,
     run_shell,
     pid_gone,
@@ -289,32 +290,25 @@ def start_bag_recording(cfg: CommonConfig, bg: BackgroundGroup) -> None:
         )
         return
 
-    try:
-        import yaml  # type: ignore
-
-        raw_yaml = yaml.safe_load(params_path.read_text()) or {}
-    except Exception as exc:
-        print(
-            f"[{cfg.script_name}] WARN cannot read bag config from {params_path}: {exc}; skip bag recording.",
-            file=sys.stderr,
-        )
+    # 环境变量覆盖：AUTO_RECORD_BAG=0 强制关闭，=1 强制开启，未设置则用 YAML 配置。
+    env_override = os.environ.get("AUTO_RECORD_BAG", "").strip()
+    if env_override == "0":
+        print(f"[{cfg.script_name}] AUTO_RECORD_BAG=0; skip bag recording.", file=sys.stderr)
         return
 
-    robot_runtime = {}
-    if isinstance(raw_yaml, dict):
-        robot_node = raw_yaml.get("robot_description_runtime")
-        if isinstance(robot_node, dict):
-            robot_runtime = robot_node.get("ros__parameters", {}) or {}
-
-    bag_cfg = robot_runtime.get("bag_record") if isinstance(robot_runtime, dict) else None
+    pb_params = read_yaml_params(params_path, "pb_navigation_switches")
+    bag_cfg = pb_params.get("bag_record") if isinstance(pb_params, dict) else None
     if not isinstance(bag_cfg, dict):
         print(
-            f"[{cfg.script_name}] bag_record disabled or missing in {params_path}; skip bag recording.",
+            f"[{cfg.script_name}] bag_record missing in {params_path}; skip bag recording.",
             file=sys.stderr,
         )
         return
 
-    if not bool(bag_cfg.get("enabled", False)):
+    if env_override == "1":
+        # 环境变量强制开启，忽略 YAML 中的 enabled 字段。
+        bag_cfg = dict(bag_cfg, enabled=True)
+    elif not bool(bag_cfg.get("enabled", False)):
         print(f"[{cfg.script_name}] bag_record enabled=false; skip bag recording.", file=sys.stderr)
         return
 

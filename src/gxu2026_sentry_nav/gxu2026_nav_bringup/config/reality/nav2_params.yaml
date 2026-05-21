@@ -47,7 +47,7 @@ pb_navigation_switches:
     enable_gimbal_yaw_bridge: true             #是否启用 gimbal_yaw_bridge 通路。
 
     bag_record:
-      enabled: false
+      enabled: true
       profiles:
         replay_full:
           name: replay_full
@@ -363,9 +363,9 @@ fake_vel_transform:
     # 你希望“自转不中断”，这里保持 false。
     disable_spin_while_moving: false
     # 基础自旋前馈角速度（rad/s）；当没有 cmd_spin 输入时使用。
-    spin_feedforward_base_speed: 3.0
+    spin_feedforward_base_speed: 5.0
     # 兼容旧参数（建议不再使用）：init_spin_speed
-    init_spin_speed: 3.0
+    init_spin_speed: 5.0
 
     # 减速带速度下限控制：进入 speed_bump 区域后，线速度低于该值会被抬高
     enable_speed_bump_min_speed: true
@@ -394,8 +394,8 @@ nonlinear_spin_publisher:
     publish_rate_hz: 50.0
 
     # 变频变幅正弦叠加：center_speed + A1*sin(phi1) + A2*sin(phi2 + offset)
-    center_speed: 4.2            # 中心角速度(rad/s)
-    range_speed: 2.0              # 总振幅基准(rad/s)
+    center_speed: 5.2            # 中心角速度(rad/s)
+    range_speed: 1.0              # 总振幅基准(rad/s)
     primary_amp_ratio: 0.65       # 主正弦分量振幅占比(会和 secondary 归一化)
     secondary_amp_ratio: 0.35     # 次正弦分量振幅占比
     primary_freq_hz: 0.8          # 主正弦基础频率(Hz)
@@ -411,8 +411,8 @@ nonlinear_spin_publisher:
     target_update_period: 0.15    # 重采样周期(s)
     accel_limit: 16.0             # 输出角速度加速度限幅(rad/s^2)
 
-    max_abs_speed: 4.8            # 输出绝对值上限(rad/s)
-    min_abs_speed: 3.0            # 输出绝对值下限(rad/s)，避免转速贴近 0
+    max_abs_speed: 6.2            # 输出绝对值上限(rad/s)
+    min_abs_speed: 4.0            # 输出绝对值下限(rad/s)，避免转速贴近 0
     seed: 1                       # 随机种子(0 为每次随机)
     start_delay_sec: 0.5          # 节点启动后延迟生效时间(s)
 

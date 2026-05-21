@@ -15,16 +15,16 @@
 # ─────────── 地图坐标 ───────────
 
 # outpost_buff,6.5300,-5.1200
-supply_zone,3.1421,-3.5740
-base,-0.7966,-1.4857
-fortress_area,-0.3134,7.1667
 # central_highland,8.4864,7.7738
 # ladder_highland,-4.8491,2.9982
-defend_anchor,-1.1109,0.5459
-patrol_1,0.3100,5.0066
 # patrol_2,1.7221,3.7282
 # patrol_3,-0.1113,3.4065
 # out_alive_patrol_1,7.0959,5.0069
 # out_alive_patrol_2,2.4692,7.6233
 # out_alive_patrol_3,4.4031,11.4056
 # cap_outpost,2.1183,10.4713
+supply_zone,0.0517,0.7776
+base,-0.8865,-1.4696
+fortress_area,1.3692,0.4984
+defend_anchor,-1.1109,0.5459
+patrol_1,0.3321,-0.7029
