@@ -36,6 +36,7 @@ import time
 # Expected composable nodes — keep in sync with navigation_runtime.py
 # ---------------------------------------------------------------------------
 # All composable nodes loaded into the container (for Phase 2).
+# nonlinear_spin_publisher is a standalone Node, not in the container.
 EXPECTED_CONTAINER_NODES = [
     "controller_server",
     "smoother_server",
@@ -46,7 +47,6 @@ EXPECTED_CONTAINER_NODES = [
     "velocity_smoother",
     "sensor_scan_generation",
     "fake_vel_transform",
-    "nonlinear_spin_publisher",
 ]
 
 # Only lifecycle-managed nodes (for Phase 3) — must match lifecycle_nodes

@@ -516,7 +516,7 @@ def build_navigation_runtime_actions(
         actions=[
             _build_lifecycle_manager_node(
                 use_sim_time=use_sim_time,
-                autostart="False",  # startup_gate.py will trigger startup
+                autostart=False,  # startup_gate.py will trigger startup
                 log_level=log_level,
                 lifecycle_nodes=lifecycle_nodes,
                 configured_params=configured_params,
