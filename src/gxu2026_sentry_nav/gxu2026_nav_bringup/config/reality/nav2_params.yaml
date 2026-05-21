@@ -354,8 +354,8 @@ fake_vel_transform:
     # 线速度衰减增益：越大则速度高时前馈自旋衰减越明显。
     spin_ff_velocity_decay_gain: 0.6
     # 最终角速度上下限（rad/s）
-    angular_z_lower_limit: -3.0
-    angular_z_upper_limit: 3.0
+    angular_z_lower_limit: -6.2
+    angular_z_upper_limit: 6.2
     # 对称绝对值限幅（<=0 表示关闭；开启后与上下限共同生效）。
     max_abs_angular_z: 0.0
     robot_control_topic: "robot_control"

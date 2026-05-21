@@ -23,8 +23,8 @@
 # out_alive_patrol_2,2.4692,7.6233
 # out_alive_patrol_3,4.4031,11.4056
 # cap_outpost,2.1183,10.4713
-supply_zone,0.0517,0.7776
+supply_zone,-1.1482,0.6386
 base,-0.8865,-1.4696
-fortress_area,1.3692,0.4984
+fortress_area,-0.6853,0.1742
 defend_anchor,-1.1109,0.5459
-patrol_1,0.3321,-0.7029
+patrol_1,-1.3524,-0.2736

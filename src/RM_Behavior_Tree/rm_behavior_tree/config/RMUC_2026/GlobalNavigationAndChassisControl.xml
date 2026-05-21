@@ -46,14 +46,25 @@
                     <RmucRobotControl stop_gimbal_scan="False"
                                       chassis_spin="False"/>
                 </Sequence>
+
+                <!-- 到达当前导航目标 → 旋转；需高于“物理接近补给区”，避免巡逻点和补给区半径重叠时被误关旋转 -->
                 <Sequence>
+                    <ScriptCondition code="nav_goal_valid == true"/>
                     <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
-                              goal_x="{cfg.supply_zone_x}" goal_y="{cfg.supply_zone_y}"
+                              goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
                               arrive_radius="{cfg.arrive_radius}"/>
                     <RmucRobotControl stop_gimbal_scan="False"
-                                      chassis_spin="False"/>
+                                      chassis_spin="True"/>
+                    <ForceSuccess>
+                        <Sequence>
+                            <ScriptCondition code="move_around_enable == true"/>
+                            <MoveAround pose_x="{pose.x}" pose_y="{pose.y}"
+                                        expected_dis="{cfg.move_around_expected_dis}"
+                                        expected_nearby_goal_count="{cfg.move_around_expected_nearby_goal_count}"
+                                        non_blocking="true"/>
+                        </Sequence>
+                    </ForceSuccess>
                 </Sequence>
-
                 <!-- 基地威胁优先于普通遇敌；到达防御锚点后持续自转，路上不转 -->
                 <Sequence>
                     <IsBaseThreatened base_threat="{threat.base}"/>
@@ -112,24 +123,6 @@
                     </ReactiveFallback>
                 </Sequence>
 
-                <!-- 到达当前导航目标 → 旋转 -->
-                <Sequence>
-                    <ScriptCondition code="nav_goal_valid == true"/>
-                    <IsAtGoal pose_x="{pose.x}" pose_y="{pose.y}"
-                              goal_x="{nav.goal_x}" goal_y="{nav.goal_y}"
-                              arrive_radius="{cfg.arrive_radius}"/>
-                    <RmucRobotControl stop_gimbal_scan="False"
-                                      chassis_spin="True"/>
-                    <ForceSuccess>
-                        <Sequence>
-                            <ScriptCondition code="move_around_enable == true"/>
-                            <MoveAround pose_x="{pose.x}" pose_y="{pose.y}"
-                                        expected_dis="{cfg.move_around_expected_dis}"
-                                        expected_nearby_goal_count="{cfg.move_around_expected_nearby_goal_count}"
-                                        non_blocking="true"/>
-                        </Sequence>
-                    </ForceSuccess>
-                </Sequence>
                 <!-- 默认（导航中等） → 不旋转 -->
                 <RmucRobotControl stop_gimbal_scan="False"
                                   chassis_spin="False"/>
