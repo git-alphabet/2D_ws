@@ -14,29 +14,29 @@ rm_behavior_tree:
       home_x: 0.0                    # 己方出生点/复活点 x
       home_y: 0.0                    # 己方出生点/复活点 y
 
-      supply_zone_x: -6.1623  # 补给区坐标 x (RFID刷卡 + 导航 + 选点统一使用)
-      supply_zone_y: -5.3560  # 补给区坐标 y
+      supply_zone_x: 3.1421  # 补给区坐标 x (RFID刷卡 + 导航 + 选点统一使用)
+      supply_zone_y: -3.5740  # 补给区坐标 y
 
-      base_x: -6.1017  # 基地坐标 x（独立点位；默认值与当前 CSV 标定值一致）
-      base_y: -0.1527  # 基地坐标 y（独立点位；默认值与当前 CSV 标定值一致）
+      base_x: -0.7966  # 基地坐标 x（独立点位；默认值与当前 CSV 标定值一致）
+      base_y: -1.4857  # 基地坐标 y（独立点位；默认值与当前 CSV 标定值一致）
 
       outpost_buff_x: 6.53           # 己方前哨站增益区中心 x
       outpost_buff_y: -5.12          # 己方前哨站增益区中心 y
 
-      central_highland_x: 7.4393  # 中央高地中线偏家 x
-      central_highland_y: -2.8439  # 中央高地中线偏家 y
+      central_highland_x: 8.4864  # 中央高地中线偏家 x
+      central_highland_y: 7.7738  # 中央高地中线偏家 y
 
-      ladder_highland_x: -4.8399  # 梯形高地 x
-      ladder_highland_y: 5.1520  # 梯形高地 y
+      ladder_highland_x: -4.8491  # 梯形高地 x
+      ladder_highland_y: 2.9982  # 梯形高地 y
 
-      defend_anchor_x: -4.7679  # 防御锚点 x（基地前守卫位置）
-      defend_anchor_y: 1.0230  # 防御锚点 y
+      defend_anchor_x: -1.1109  # 防御锚点 x（基地前守卫位置）
+      defend_anchor_y: 0.5459  # 防御锚点 y
 
-      cap_outpost_x: 6.4009  # 占领前哨点 x（标定缺失/无效时使用；默认值与当前 CSV 标定值一致）
-      cap_outpost_y: 3.1851  # 占领前哨点 y（标定缺失/无效时使用；默认值与当前 CSV 标定值一致）
+      cap_outpost_x: 2.1183  # 占领前哨点 x（标定缺失/无效时使用；默认值与当前 CSV 标定值一致）
+      cap_outpost_y: 10.4713  # 占领前哨点 y（标定缺失/无效时使用；默认值与当前 CSV 标定值一致）
 
-      fortress_area_x: -2.1188  # 堡垒区 x（前哨站被毁后的轮换点）
-      fortress_area_y: -0.2108  # 堡垒区 y（前哨站被毁后的轮换点）
+      fortress_area_x: -0.3134  # 堡垒区 x（前哨站被毁后的轮换点）
+      fortress_area_y: 7.1667  # 堡垒区 y（前哨站被毁后的轮换点）
       
       # 可能有用的预设点（目前未启用）
       central_highland_left_x: 9.00
@@ -56,8 +56,8 @@ rm_behavior_tree:
       out_alive_patrol_enable: true   # 是否启用前哨站存活巡逻
       patrol_enable: true             # 是否启用前哨站被毁巡逻 
       destroyed_outpost_ladder_enable: false  # 前哨站被毁且启动巡逻时，是否启动梯形高地；false=只守堡垒区
-      patrol_waypoints: [0.2466, -3.2178, 0.2290, 2.2849, 2.7077, 4.9763]  # 巡逻点数组 [x1,y1,x2,y2,...]
-      out_alive_patrol_waypoints: [3.2139, -2.6023, 3.2359, 2.9811, 7.8123, 2.2113]  # 前哨站存活巡逻点数组 [x1,y1,x2,y2,...]
+      patrol_waypoints: [0.3100, 5.0066, 1.7221, 3.7282, -0.1113, 3.4065]  # 巡逻点数组 [x1,y1,x2,y2,...]
+      out_alive_patrol_waypoints: [7.0959, 5.0069, 2.4692, 7.6233, 4.4031, 11.4056]  # 前哨站存活巡逻点数组 [x1,y1,x2,y2,...]
       cap_sustain_time: 60           # 比赛开始后优先占领前哨点的持续时间 (秒)，超时后不再前往 cap_outpost
       ladder_time: 4000                # 前哨站被毁后，梯形高地停留时间 (毫秒)
       fortress_time: 4000              # 前哨站被毁后，堡垒区停留时间 (毫秒)
