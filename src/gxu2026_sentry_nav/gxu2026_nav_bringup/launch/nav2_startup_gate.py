@@ -35,7 +35,8 @@ import time
 # ---------------------------------------------------------------------------
 # Expected composable nodes — keep in sync with navigation_runtime.py
 # ---------------------------------------------------------------------------
-EXPECTED_NODES = [
+# All composable nodes loaded into the container (for Phase 2).
+EXPECTED_CONTAINER_NODES = [
     "controller_server",
     "smoother_server",
     "planner_server",
@@ -46,6 +47,19 @@ EXPECTED_NODES = [
     "sensor_scan_generation",
     "fake_vel_transform",
     "nonlinear_spin_publisher",
+]
+
+# Only lifecycle-managed nodes (for Phase 3) — must match lifecycle_nodes
+# in navigation_launch.py.  Non-lifecycle composable nodes cannot transition
+# to INACTIVE, so including them would cause Phase 3 to timeout.
+EXPECTED_LIFECYCLE_NODES = [
+    "controller_server",
+    "smoother_server",
+    "planner_server",
+    "behavior_server",
+    "bt_navigator",
+    "waypoint_follower",
+    "velocity_smoother",
 ]
 
 
@@ -194,7 +208,7 @@ def get_loaded_nodes(container_fq_name):
 
 def phase_container_ready(args):
     """Block until all expected composable nodes are loaded. Returns True if ready."""
-    expected_nodes = set(args.expected_nodes or EXPECTED_NODES)
+    expected_nodes = set(args.expected_nodes or EXPECTED_CONTAINER_NODES)
     timeout_sec = args.container_timeout_sec
     check_period = 1.0 / max(args.container_check_hz, 0.1)
     ns = (args.namespace or "").strip()
@@ -318,7 +332,7 @@ def get_all_lifecycle_states(namespace=""):
 
 def phase_lifecycle_ready(args):
     """Block until all expected nodes reach INACTIVE state. Returns True if ready."""
-    expected_nodes = set(args.expected_nodes or EXPECTED_NODES)
+    expected_nodes = set(args.expected_nodes or EXPECTED_LIFECYCLE_NODES)
     timeout_sec = args.lifecycle_timeout_sec
     check_period = 1.0 / max(args.lifecycle_check_hz, 0.1)
     ns = (args.namespace or "").strip().lstrip("/")
