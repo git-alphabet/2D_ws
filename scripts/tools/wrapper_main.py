@@ -5,7 +5,6 @@ import atexit
 import os
 import shlex
 import signal
-import subprocess
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -225,56 +224,15 @@ def main(argv: list[str]) -> int:
 
         pre_shutdown_hook = _mapping_presave
 
-    # 后台运行 startup gate，等待节点就绪后触发 lifecycle_manager
-    if mode == "reality_navigation" and is_truthy(os.environ.get("NAV2_STARTUP_GATE_ENABLED", "true")):
-        bringup_dir = ws_dir / "src/gxu2026_sentry_nav/gxu2026_nav_bringup"
-        gate_script = bringup_dir / "launch" / "nav2_startup_gate.py"
-        if gate_script.exists():
-            gate_cmd = f"source {cfg.ros_setup} && source {cfg.overlay_setup} && python3 {gate_script}"
-            gate_proc = subprocess.Popen(["bash", "-c", gate_cmd], start_new_session=True)
-            reality_bg.add(gate_proc.pid)
-            print(f"[{script_name}] Startup gate PID={gate_proc.pid} running in background...", file=sys.stderr)
-
-    # 重启机制：如果 ros2 launch 非正常退出，自动重试
-    # 环境变量控制：NAV_RESTART_MAX（最大重试次数，默认 3）、NAV_RESTART_DELAY（重试间隔秒，默认 5）
-    restart_max = int(os.environ.get("NAV_RESTART_MAX", "3"))
-    restart_delay = float(os.environ.get("NAV_RESTART_DELAY", "5"))
-
-    for attempt in range(restart_max + 1):
-        if attempt > 0:
-            print(
-                f"[{script_name}] Restart attempt {attempt}/{restart_max} after {restart_delay}s...",
-                file=sys.stderr,
-            )
-            time.sleep(restart_delay)
-
-        rc = launch_in_terminal(
-            cfg,
-            fg_title,
-            ros_cmd,
-            neupan_env_cmd,
-            pgid_file=PGID_FILES["reality"],
-            pre_shutdown_hook=pre_shutdown_hook,
-        )
-
-        # rc=0 表示正常退出（用户手动停止），不需要重启
-        # rc=130 表示 SIGINT，不需要重启
-        if rc == 0 or rc == 130:
-            return rc
-
-        # 非正常退出，检查是否还能重试
-        if attempt < restart_max:
-            print(
-                f"[{script_name}] Navigation exited with code {rc}, will restart...",
-                file=sys.stderr,
-            )
-        else:
-            print(
-                f"[{script_name}] Navigation exited with code {rc}, max retries reached.",
-                file=sys.stderr,
-            )
-
-    return rc
+    launch_in_terminal(
+        cfg,
+        fg_title,
+        ros_cmd,
+        neupan_env_cmd,
+        pgid_file=PGID_FILES["reality"],
+        pre_shutdown_hook=pre_shutdown_hook,
+    )
+    return 0
 
 
 if __name__ == "__main__":
