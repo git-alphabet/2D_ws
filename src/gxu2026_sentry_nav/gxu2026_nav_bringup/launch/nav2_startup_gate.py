@@ -14,10 +14,11 @@
 # limitations under the License.
 
 """
-Nav2 startup gate — two-phase readiness check before lifecycle manager.
+Nav2 startup gate — three-phase readiness check before lifecycle manager.
 
 Phase 1 (optional): TF warmup — wait for a specific TF transform to be available.
 Phase 2: Container readiness — wait for all expected composable nodes to be loaded.
+Phase 3: Lifecycle readiness — wait for all nodes to reach INACTIVE state.
 
 Exit codes:
   0  -- all checks passed
@@ -77,6 +78,12 @@ def parse_args():
                     help="Container readiness timeout (default: 30.0).")
     p.add_argument("--container-check-hz", type=float,
                     default=float(os.environ.get("NAV2_CONTAINER_CHECK_HZ", "2.0")))
+    # Lifecycle readiness
+    p.add_argument("--lifecycle-timeout-sec", type=float,
+                    default=float(os.environ.get("NAV2_LIFECYCLE_TIMEOUT_SEC", "30.0")),
+                    help="Lifecycle readiness timeout (default: 30.0).")
+    p.add_argument("--lifecycle-check-hz", type=float,
+                    default=float(os.environ.get("NAV2_LIFECYCLE_CHECK_HZ", "2.0")))
     # Common
     p.add_argument("--namespace",
                     default=os.environ.get("NAV2_NAMESPACE", ""))
@@ -260,6 +267,172 @@ def phase_container_ready(args):
 
 
 # ---------------------------------------------------------------------------
+# Phase 3: Lifecycle readiness
+# ---------------------------------------------------------------------------
+def get_all_lifecycle_states(namespace=""):
+    """Get lifecycle states of all lifecycle nodes.
+
+    Returns dict mapping node_name -> state_string, or empty dict on failure.
+    Uses ThreadPoolExecutor for parallel queries — fast even with many nodes.
+    """
+    try:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        # Step 1: discover lifecycle nodes
+        cmd = ["ros2", "lifecycle", "nodes"]
+        if namespace:
+            cmd.extend(["-n", namespace])
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+        if result.returncode != 0:
+            return {}
+
+        nodes = [line.strip().lstrip("/") for line in result.stdout.strip().splitlines() if line.strip()]
+        if not nodes:
+            return {}
+
+        # Step 2: query each node state in parallel
+        def _get_state(node_name):
+            try:
+                cmd = ["ros2", "lifecycle", "get", node_name]
+                if namespace:
+                    cmd.extend(["-n", namespace])
+                r = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+                if r.returncode == 0:
+                    state = r.stdout.strip().split()[0].lower()
+                    return node_name, state
+            except Exception:
+                pass
+            return node_name, None
+
+        states = {}
+        with ThreadPoolExecutor(max_workers=min(len(nodes), 10)) as pool:
+            futures = {pool.submit(_get_state, n): n for n in nodes}
+            for f in as_completed(futures):
+                name, state = f.result()
+                if state:
+                    states[name] = state
+        return states
+    except Exception:
+        return {}
+
+
+def phase_lifecycle_ready(args):
+    """Block until all expected nodes reach INACTIVE state. Returns True if ready."""
+    expected_nodes = set(args.expected_nodes or EXPECTED_NODES)
+    timeout_sec = args.lifecycle_timeout_sec
+    check_period = 1.0 / max(args.lifecycle_check_hz, 0.1)
+    ns = (args.namespace or "").strip().lstrip("/")
+
+    print(
+        f"[startup_gate] Phase 3: waiting for {len(expected_nodes)} nodes to reach INACTIVE state "
+        f"(timeout={timeout_sec}s)...",
+        flush=True,
+    )
+
+    t0 = time.monotonic()
+    last_log_time = 0
+
+    while True:
+        elapsed = time.monotonic() - t0
+        if elapsed >= timeout_sec:
+            break
+
+        # Parallel query for all lifecycle node states
+        all_states = get_all_lifecycle_states(ns)
+        ready_nodes = {n for n in expected_nodes if all_states.get(n) == "inactive"}
+
+        if ready_nodes == expected_nodes:
+            print(
+                f"[startup_gate] All {len(expected_nodes)} nodes reached INACTIVE state "
+                f"after {elapsed:.1f}s.",
+                flush=True,
+            )
+            return True
+
+        missing = expected_nodes - ready_nodes
+        if elapsed - last_log_time >= 1.0:
+            last_log_time = elapsed
+            print(
+                f"[startup_gate] Waiting for {len(missing)} nodes to reach INACTIVE: "
+                f"{sorted(missing)} ({elapsed:.1f}s / {timeout_sec:.1f}s)",
+                flush=True,
+            )
+
+        time.sleep(check_period)
+
+    # Timeout — one final check
+    all_states = get_all_lifecycle_states(ns)
+    ready_nodes = {n for n in expected_nodes if all_states.get(n) == "inactive"}
+    missing = expected_nodes - ready_nodes
+    print(
+        f"[startup_gate] TIMEOUT after {timeout_sec:.1f}s. "
+        f"Nodes in INACTIVE: {len(ready_nodes)}, Still missing: {sorted(missing)}",
+        flush=True,
+    )
+    return False
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: Trigger lifecycle manager startup
+# ---------------------------------------------------------------------------
+def trigger_lifecycle_startup(namespace=""):
+    """Call lifecycle_manager/startup service to activate all nodes."""
+    import rclpy
+    from std_srvs.srv import Trigger
+
+    ns_value = namespace.strip().lstrip("/")
+    init_args = ["--ros-args"]
+    if ns_value:
+        init_args.extend(["-r", f"__ns:=/{ns_value}"])
+
+    try:
+        rclpy.init(args=init_args)
+    except RuntimeError:
+        # Already initialized — shutdown and reinit
+        rclpy.shutdown()
+        rclpy.init(args=init_args)
+
+    node = rclpy.create_node("startup_gate_trigger")
+
+    # Build service name
+    if ns_value:
+        service_name = f"/{ns_value}/lifecycle_manager_navigation/startup"
+    else:
+        service_name = "/lifecycle_manager_navigation/startup"
+
+    print(f"[startup_gate] Phase 4: Calling {service_name}...", flush=True)
+
+    client = node.create_client(Trigger, service_name)
+
+    # Wait for service with timeout
+    if not client.wait_for_service(timeout_sec=10.0):
+        print(f"[startup_gate] ERROR: Service {service_name} not available after 10s", flush=True)
+        node.destroy_node()
+        rclpy.shutdown()
+        return False
+
+    # Call service
+    future = client.call_async(Trigger.Request())
+    rclpy.spin_until_future_complete(node, future, timeout_sec=10.0)
+
+    if future.result() is not None:
+        response = future.result()
+        if response.success:
+            print(f"[startup_gate] Lifecycle manager started successfully: {response.message}", flush=True)
+            node.destroy_node()
+            rclpy.shutdown()
+            return True
+        else:
+            print(f"[startup_gate] Lifecycle manager startup failed: {response.message}", flush=True)
+    else:
+        print(f"[startup_gate] ERROR: Service call failed or timed out", flush=True)
+
+    node.destroy_node()
+    rclpy.shutdown()
+    return False
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main():
@@ -273,8 +446,21 @@ def main():
             return 1
 
     # Phase 2: Container readiness (mandatory)
-    ok = phase_container_ready(args)
-    return 0 if ok else 1
+    if not phase_container_ready(args):
+        return 1
+
+    # Phase 3: Lifecycle readiness (mandatory)
+    if not phase_lifecycle_ready(args):
+        return 1
+
+    # Phase 4: Trigger lifecycle manager startup
+    ns = (args.namespace or "").strip()
+    if not trigger_lifecycle_startup(ns):
+        print("[startup_gate] Failed to trigger lifecycle manager startup. Aborting.", flush=True)
+        return 1
+
+    print("[startup_gate] All phases passed. Navigation should start now.", flush=True)
+    return 0
 
 
 if __name__ == "__main__":

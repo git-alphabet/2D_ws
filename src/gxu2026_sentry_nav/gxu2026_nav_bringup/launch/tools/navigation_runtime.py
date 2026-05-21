@@ -480,18 +480,6 @@ def build_navigation_runtime_actions(
                     ("cmd_vel_smoothed", "cmd_vel_nav2_result"),
                 ],
             ),
-            ComposableNode(
-                package="nav2_lifecycle_manager",
-                plugin="nav2_lifecycle_manager::LifecycleManager",
-                name="lifecycle_manager_navigation",
-                parameters=[
-                    {
-                        "use_sim_time": use_sim_time,
-                        "autostart": autostart,
-                        "node_names": lifecycle_nodes,
-                    }
-                ],
-            ),
         ],
     )
 
@@ -520,17 +508,15 @@ def build_navigation_runtime_actions(
         ],
     )
 
-    # Lifecycle manager: composable node when using composition (faster, more reliable),
-    # standalone process with delay as fallback when composition is disabled.
-    container_settle_delay = 15.0
-
+    # Lifecycle manager: standalone node with autostart=False.
+    # startup_gate.py will call lifecycle_manager/startup service when ready.
+    # This avoids blocking the launch system and allows dynamic wait.
     start_lifecycle_manager_cmd = TimerAction(
-        condition=UnlessCondition(use_composition),
-        period=container_settle_delay,
+        period=5.0,  # Short delay to let container start
         actions=[
             _build_lifecycle_manager_node(
                 use_sim_time=use_sim_time,
-                autostart=autostart,
+                autostart="False",  # startup_gate.py will trigger startup
                 log_level=log_level,
                 lifecycle_nodes=lifecycle_nodes,
                 configured_params=configured_params,
