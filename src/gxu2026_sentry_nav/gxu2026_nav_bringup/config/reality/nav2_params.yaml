@@ -1199,7 +1199,8 @@ velocity_smoother:
 
 lifecycle_manager_navigation:
   ros__parameters:
-    # 生命周期管理器 bond 超时时间，单位秒。启动时系统负载高，需要足够余量。
-    bond_timeout: 30.0
-    # 是否在 bond 断开后尝试重连。
+    # bond_timeout: lifecycle_manager 等待节点心跳的超时时间（秒）。
+    # 小电脑启动慢，适当放大，防止节点还没起来就被 lifecycle_manager 判死并关闭整个栈。
+    bond_timeout: 12.0
+    # 节点下线后自动尝试重新连接（配合 respawn 或节点自行重启使用）。
     attempt_respawn_reconnection: true

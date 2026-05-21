@@ -480,6 +480,18 @@ def build_navigation_runtime_actions(
                     ("cmd_vel_smoothed", "cmd_vel_nav2_result"),
                 ],
             ),
+            ComposableNode(
+                package="nav2_lifecycle_manager",
+                plugin="nav2_lifecycle_manager::LifecycleManager",
+                name="lifecycle_manager_navigation",
+                parameters=[
+                    {
+                        "use_sim_time": use_sim_time,
+                        "autostart": autostart,
+                        "node_names": lifecycle_nodes,
+                    }
+                ],
+            ),
         ],
     )
 
@@ -508,12 +520,12 @@ def build_navigation_runtime_actions(
         ],
     )
 
-    # Lifecycle manager starts after a settle delay to let container nodes load.
-    # Previous startup_gate polled 'ros2 component list' via DDS discovery which
-    # was unreliable and wasted ~30s on timeout. A fixed delay is simpler and correct.
+    # Lifecycle manager: composable node when using composition (faster, more reliable),
+    # standalone process with delay as fallback when composition is disabled.
     container_settle_delay = 15.0
 
     start_lifecycle_manager_cmd = TimerAction(
+        condition=UnlessCondition(use_composition),
         period=container_settle_delay,
         actions=[
             _build_lifecycle_manager_node(
