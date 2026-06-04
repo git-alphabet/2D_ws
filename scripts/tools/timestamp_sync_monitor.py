@@ -151,6 +151,7 @@ class SyncMonitor(Node):
         self.source_detect_sec = float(config.get("source_detect_sec", 8.0))
         self.auto_save_sec = float(config.get("auto_save_sec", 60.0))
         self.log_pairs = bool(config.get("log_pairs", True))
+        self.report_log = bool(config.get("report_log", True))
         qos_mode = str(config.get("qos", "sensor_data")).strip().lower()
         if qos_mode == "sensor_data":
             qos = QoSPresetProfiles.SENSOR_DATA.value
@@ -432,145 +433,151 @@ class SyncMonitor(Node):
         topic_summaries: dict[str, dict[str, float]] = {}
         for topic in self.topics:
             summary = self._topic_summary(topic)
-            live = bool(topic.last_rx_mono) and (now - topic.last_rx_mono <= self.window_sec)
             if summary is None:
-                if now - self.start_mono < self.source_detect_sec:
-                    self.get_logger().info(
-                        f"[topic:{topic.name}] waiting source detection... rx={topic.rx_count} topic={topic.topic}"
-                    )
-                else:
-                    self.get_logger().info(
-                        f"[topic:{topic.name}] inactive rx={topic.rx_count} topic={topic.topic}"
-                    )
                 continue
-
             topic_summaries[topic.name] = summary
             topic_summaries[topic.topic] = summary
-            live_flag = "live" if live else "stale"
-            frame_id, frame_variants = self._topic_frame_summary(topic)
-            if not frame_id:
-                frame_note = " frame_id=unknown"
-            elif frame_variants > 1:
-                frame_note = f" frame_id={frame_id} variants={frame_variants}"
-            else:
-                frame_note = f" frame_id={frame_id}"
-            self.get_logger().info(
-                f"[topic:{topic.name}] {live_flag} n={summary['n']:.0f} rate={summary['rate']:.2f}Hz "
-                f"age(s): last={summary['last']:.3f} mean={summary['mean']:.3f} "
-                f"p50={summary['p50']:.3f} p95={summary['p95']:.3f} max={summary['max']:.3f}"
-                f"{frame_note}"
-            )
-            if "end_mean" in summary:
-                self.get_logger().info(
-                    f"[topic:{topic.name}] end_age(s): last={summary['end_last']:.3f} "
-                    f"mean={summary['end_mean']:.3f} p50={summary['end_p50']:.3f} "
-                    f"p95={summary['end_p95']:.3f} max={summary['end_max']:.3f}"
-                )
-            if "gap_mean" in summary:
-                self.get_logger().info(
-                    f"[topic:{topic.name}] rx_gap(s): last={summary['gap_last']:.3f} "
-                    f"mean={summary['gap_mean']:.3f} p95={summary['gap_p95']:.3f} "
-                    f"max={summary['gap_max']:.3f}"
-                )
 
-        for chain in self.chains:
-            missing = [topic for topic in chain.topics if topic not in topic_summaries]
-            if missing:
-                self.get_logger().info(
-                    f"[chain:{chain.name}] insufficient samples; missing={','.join(missing)}"
-                )
-                continue
-
-            mean_parts = []
-            last_parts = []
-            prev_topic = chain.topics[0]
-            prev_mean = topic_summaries[prev_topic]["mean"]
-            prev_last = topic_summaries[prev_topic]["last"]
-            for topic in chain.topics[1:]:
-                mean = topic_summaries[topic]["mean"]
-                last = topic_summaries[topic]["last"]
-                mean_parts.append(f"{prev_topic}->{topic}:{mean - prev_mean:+.3f}s")
-                last_parts.append(f"{prev_topic}->{topic}:{last - prev_last:+.3f}s")
-                prev_topic = topic
-                prev_mean = mean
-                prev_last = last
-
-            self.get_logger().info(
-                f"[chain:{chain.name}] mean_age_delta {' '.join(mean_parts)}"
-            )
-            self.get_logger().info(
-                f"[chain:{chain.name}] last_age_delta {' '.join(last_parts)}"
-            )
-
-        if self.log_pairs:
-            for pair in self.pairs:
-                left_state = self.topic_by_name_or_topic.get(pair.left_topic)
-                right_state = self.topic_by_name_or_topic.get(pair.right_topic)
-                left_frame = self._latest_frame_id(left_state)
-                right_frame = self._latest_frame_id(right_state)
-                if left_frame and right_frame and left_frame != right_frame:
-                    self.get_logger().warn(
-                        f"[{pair.name}] frame_id mismatch left={left_frame} right={right_frame}"
-                    )
-                if not pair.samples:
-                    left_live = bool(pair.left_last_rx_mono) and (now - pair.left_last_rx_mono <= self.window_sec)
-                    right_live = bool(pair.right_last_rx_mono) and (now - pair.right_last_rx_mono <= self.window_sec)
-
+        if self.report_log:
+            for topic in self.topics:
+                summary = topic_summaries.get(topic.name) or topic_summaries.get(topic.topic)
+                live = bool(topic.last_rx_mono) and (now - topic.last_rx_mono <= self.window_sec)
+                if summary is None:
                     if now - self.start_mono < self.source_detect_sec:
-                        self.get_logger().info(
-                            f"[{pair.name}] waiting source detection... left={pair.left_rx_count} right={pair.right_rx_count}"
+                        self.get_logger().debug(
+                            f"[topic:{topic.name}] waiting source detection... rx={topic.rx_count} topic={topic.topic}"
                         )
-                        continue
-
-                    if not left_live and not right_live:
-                        self.get_logger().info(
-                            f"[{pair.name}] skipped: both sources inactive, left={pair.left_topic} right={pair.right_topic}"
+                    else:
+                        self.get_logger().debug(
+                            f"[topic:{topic.name}] inactive rx={topic.rx_count} topic={topic.topic}"
                         )
-                        continue
+                    continue
 
-                    if left_live and not right_live:
-                        self.get_logger().info(
-                            f"[{pair.name}] skipped: right source inactive ({pair.right_topic}), evaluate left-source-only chain first"
-                        )
-                        continue
+                live_flag = "live" if live else "stale"
+                frame_id, frame_variants = self._topic_frame_summary(topic)
+                if not frame_id:
+                    frame_note = " frame_id=unknown"
+                elif frame_variants > 1:
+                    frame_note = f" frame_id={frame_id} variants={frame_variants}"
+                else:
+                    frame_note = f" frame_id={frame_id}"
+                self.get_logger().debug(
+                    f"[topic:{topic.name}] {live_flag} n={summary['n']:.0f} rate={summary['rate']:.2f}Hz "
+                    f"age(s): last={summary['last']:.3f} mean={summary['mean']:.3f} "
+                    f"p50={summary['p50']:.3f} p95={summary['p95']:.3f} max={summary['max']:.3f}"
+                    f"{frame_note}"
+                )
+                if "end_mean" in summary:
+                    self.get_logger().debug(
+                        f"[topic:{topic.name}] end_age(s): last={summary['end_last']:.3f} "
+                        f"mean={summary['end_mean']:.3f} p50={summary['end_p50']:.3f} "
+                        f"p95={summary['end_p95']:.3f} max={summary['end_max']:.3f}"
+                    )
+                if "gap_mean" in summary:
+                    self.get_logger().debug(
+                        f"[topic:{topic.name}] rx_gap(s): last={summary['gap_last']:.3f} "
+                        f"mean={summary['gap_mean']:.3f} p95={summary['gap_p95']:.3f} "
+                        f"max={summary['gap_max']:.3f}"
+                    )
 
-                    if right_live and not left_live:
-                        self.get_logger().info(
-                            f"[{pair.name}] skipped: left source inactive ({pair.left_topic})"
-                        )
-                        continue
-
-                    self.get_logger().warn(
-                        f"[{pair.name}] both sources active but no matched samples within max_pair_dt={self.max_pair_dt_sec:.3f}s"
+            for chain in self.chains:
+                missing = [topic for topic in chain.topics if topic not in topic_summaries]
+                if missing:
+                    self.get_logger().debug(
+                        f"[chain:{chain.name}] insufficient samples; missing={','.join(missing)}"
                     )
                     continue
 
-                signed_vals = [v for _, v in pair.samples]
-                abs_vals = [abs(v) for v in signed_vals]
+                mean_parts = []
+                last_parts = []
+                prev_topic = chain.topics[0]
+                prev_mean = topic_summaries[prev_topic]["mean"]
+                prev_last = topic_summaries[prev_topic]["last"]
+                for topic in chain.topics[1:]:
+                    mean = topic_summaries[topic]["mean"]
+                    last = topic_summaries[topic]["last"]
+                    mean_parts.append(f"{prev_topic}->{topic}:{mean - prev_mean:+.3f}s")
+                    last_parts.append(f"{prev_topic}->{topic}:{last - prev_last:+.3f}s")
+                    prev_topic = topic
+                    prev_mean = mean
+                    prev_last = last
 
-                p50 = _percentile(abs_vals, 50.0)
-                p95 = _percentile(abs_vals, 95.0)
-                mx = max(abs_vals)
-                mean_signed = statistics.fmean(signed_vals)
-
-                self.get_logger().info(
-                    f"[{pair.name}] n={len(abs_vals)} abs_dt(s): p50={p50:.4f} p95={p95:.4f} max={mx:.4f} mean_signed={mean_signed:+.4f}"
+                self.get_logger().debug(
+                    f"[chain:{chain.name}] mean_age_delta {' '.join(mean_parts)}"
+                )
+                self.get_logger().debug(
+                    f"[chain:{chain.name}] last_age_delta {' '.join(last_parts)}"
                 )
 
-                if pair.tune_param:
-                    step = min(0.01, max(0.001, abs(mean_signed) * 0.5))
-                    if mean_signed > 0.01:
+            if self.log_pairs:
+                for pair in self.pairs:
+                    left_state = self.topic_by_name_or_topic.get(pair.left_topic)
+                    right_state = self.topic_by_name_or_topic.get(pair.right_topic)
+                    left_frame = self._latest_frame_id(left_state)
+                    right_frame = self._latest_frame_id(right_state)
+                    if left_frame and right_frame and left_frame != right_frame:
                         self.get_logger().warn(
-                            f"[{pair.name}] right stream tends older than left; try decreasing {pair.tune_param} by {step:.4f}s"
+                            f"[{pair.name}] frame_id mismatch left={left_frame} right={right_frame}"
                         )
-                    elif mean_signed < -0.01:
+                    if not pair.samples:
+                        left_live = bool(pair.left_last_rx_mono) and (now - pair.left_last_rx_mono <= self.window_sec)
+                        right_live = bool(pair.right_last_rx_mono) and (now - pair.right_last_rx_mono <= self.window_sec)
+
+                        if now - self.start_mono < self.source_detect_sec:
+                            self.get_logger().debug(
+                                f"[{pair.name}] waiting source detection... left={pair.left_rx_count} right={pair.right_rx_count}"
+                            )
+                            continue
+
+                        if not left_live and not right_live:
+                            self.get_logger().debug(
+                                f"[{pair.name}] skipped: both sources inactive, left={pair.left_topic} right={pair.right_topic}"
+                            )
+                            continue
+
+                        if left_live and not right_live:
+                            self.get_logger().debug(
+                                f"[{pair.name}] skipped: right source inactive ({pair.right_topic}), evaluate left-source-only chain first"
+                            )
+                            continue
+
+                        if right_live and not left_live:
+                            self.get_logger().debug(
+                                f"[{pair.name}] skipped: left source inactive ({pair.left_topic})"
+                            )
+                            continue
+
                         self.get_logger().warn(
-                            f"[{pair.name}] right stream tends newer than left; try increasing {pair.tune_param} by {step:.4f}s"
+                            f"[{pair.name}] both sources active but no matched samples within max_pair_dt={self.max_pair_dt_sec:.3f}s"
                         )
-                    else:
-                        self.get_logger().info(
-                            f"[{pair.name}] mean_signed within +/-10ms; keep {pair.tune_param} unchanged"
-                        )
+                        continue
+
+                    signed_vals = [v for _, v in pair.samples]
+                    abs_vals = [abs(v) for v in signed_vals]
+
+                    p50 = _percentile(abs_vals, 50.0)
+                    p95 = _percentile(abs_vals, 95.0)
+                    mx = max(abs_vals)
+                    mean_signed = statistics.fmean(signed_vals)
+
+                    self.get_logger().debug(
+                        f"[{pair.name}] n={len(abs_vals)} abs_dt(s): p50={p50:.4f} p95={p95:.4f} max={mx:.4f} mean_signed={mean_signed:+.4f}"
+                    )
+
+                    if pair.tune_param:
+                        step = min(0.01, max(0.001, abs(mean_signed) * 0.5))
+                        if mean_signed > 0.01:
+                            self.get_logger().warn(
+                                f"[{pair.name}] right stream tends older than left; try decreasing {pair.tune_param} by {step:.4f}s"
+                            )
+                        elif mean_signed < -0.01:
+                            self.get_logger().warn(
+                                f"[{pair.name}] right stream tends newer than left; try increasing {pair.tune_param} by {step:.4f}s"
+                            )
+                        else:
+                            self.get_logger().debug(
+                                f"[{pair.name}] mean_signed within +/-10ms; keep {pair.tune_param} unchanged"
+                            )
 
         # accumulate snapshot for later save
         snap: dict[str, Any] = {"ts": datetime.now().isoformat()}

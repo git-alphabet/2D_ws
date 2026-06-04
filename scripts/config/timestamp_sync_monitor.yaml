@@ -5,6 +5,7 @@ max_pair_dt_sec: 0.20
 source_detect_sec: 8.0
 auto_save_sec: 10.0   # 自动保存间隔（秒），0 则只在退出时保存
 log_pairs: false       # 关闭 pairs 时间戳对比日志（JSON 快照仍保留）
+report_log: false      # false 时不打印周期性报告，snapshot 照常累积
 qos: sensor_data
 
 topics:
