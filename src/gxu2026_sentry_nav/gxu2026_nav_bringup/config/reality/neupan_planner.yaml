@@ -8,10 +8,10 @@ collision_threshold: 0.1
 
 robot:
   kinematics: "omni"
-  max_speed: [8.0, 6.28]
+  max_speed: [3.0, 6.28]
   max_acce: [2.0, 2.0]
-  length: 1.6
-  width: 2.0
+  length: 0.6
+  width: 0.6
 
 ipath:
   waypoints: []
