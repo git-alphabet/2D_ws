@@ -36,7 +36,7 @@ register_keys:
 
   # IMU data
   # IMU 数据
-  sendimu: 1              # 0: off; 1: on
+  sendimu: 0              # 0: off; 1: on
 
   # SDK IMU smooth sending feature
   # SDK IMU 平滑发送功能
@@ -44,7 +44,7 @@ register_keys:
   # 启用后，SDK 会以精确间隔发送 IMU 数据（默认 400Hz）
   # using a dedicated high-priority thread to reduce jitter and timing variance
   # 使用专用高优先级线程以降低抖动和时间方差
-  enable_imu_smooth: 1    # 0: disable SDK IMU smooth sending; 1: enable
+  enable_imu_smooth: 0    # 0: disable SDK IMU smooth sending; 1: enable
 
   # SDK IMU smooth sending frequency in Hz (only effective when enable_imu_smooth = 1)
   # SDK IMU 平滑发送频率（Hz），仅在 enable_imu_smooth = 1 时生效
@@ -66,7 +66,7 @@ register_keys:
 
   # raw dtof data
   # 原始 DTOF 数据
-  senddtof: 1             # 0: off; 1: on
+  senddtof: 0             # 0: off; 1: on
   # 点云置信度阈值，详情见 README
   cloud_raw_confidence_threshold: 35 # please refer to readme for more details
   
@@ -136,12 +136,12 @@ register_keys:
   pubintensitygray: 0     # 0: off; 1: on
 
   # 是否发布路径显示（0 关 / 1 开）
-  showpath: 0             # 0: off; 1: on
+  showpath: 1             # 0: off; 1: on
   # 是否发布相机位姿显示（0 关 / 1 开）
   showcamerapose: 0       # 0: off; 1: on
   
   # 工作模式：0 里程计模式，1 SLAM 模式，2 重定位模式
-  custom_map_mode: 2      # 0: Odometry mode 1: SLAM mode 2: Relocalization mode
+  custom_map_mode: 1      # 0: Odometry mode 1: SLAM mode 2: Relocalization mode
   # 自定义初始位姿 [x, y, z, qx, qy, qz, qw]
   custom_init_pos: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
   # 重定位模式必须设置地图绝对路径，否则会失败
