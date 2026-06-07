@@ -36,11 +36,11 @@ mid360_runtime:
 pb_navigation_switches:
   ros__parameters:
     # 控制器插件名。
-    controller_plugin: "pb_omni_pid_pursuit_controller"
+    controller_plugin: "neupan_nav2_controller"
     # 里程计来源标识。
     odometry_source: "odin1"
     # 行为树配置名。
-    behavior_tree: "config/RMUC_2026/rmuc_2026.xml"
+    behavior_tree: "none"
 
 # 机器人描述文件基名：对应 gxu2026_robot_description/resource/xmacro/<name>.sdf.xmacro
 robot_description_runtime:
