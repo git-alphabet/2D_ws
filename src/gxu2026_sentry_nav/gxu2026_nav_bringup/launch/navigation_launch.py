@@ -237,6 +237,7 @@ def generate_launch_description():
     enable_mid360_costmap_additive = LaunchConfiguration("enable_mid360_costmap_additive")
     enable_odin1_loam_reframe = LaunchConfiguration("enable_odin1_loam_reframe")
     enable_scan_additive = LaunchConfiguration("enable_scan_additive")
+    enable_terrain_analysis = LaunchConfiguration("enable_terrain_analysis")
     obstacle_scan_output_topic = LaunchConfiguration("obstacle_scan_output_topic")
 
     set_switches_cmd = build_set_switches_cmd(
@@ -288,6 +289,7 @@ def generate_launch_description():
             enable_mid360_costmap_additive=enable_mid360_costmap_additive,
             enable_odin1_loam_reframe=enable_odin1_loam_reframe,
             enable_scan_additive=enable_scan_additive,
+            enable_terrain_analysis=enable_terrain_analysis,
             obstacle_scan_output_topic=obstacle_scan_output_topic,
             enable_fake_vel_transform_tf=enable_fake_vel_transform_tf,
             nav2_tf_warmup_enabled=nav2_tf_warmup_enabled,
@@ -334,6 +336,7 @@ def generate_launch_description():
     ld.add_action(SetLaunchConfiguration("enable_mid360_costmap_additive", "false"))
     ld.add_action(SetLaunchConfiguration("enable_odin1_loam_reframe", "false"))
     ld.add_action(SetLaunchConfiguration("enable_scan_additive", "false"))
+    ld.add_action(SetLaunchConfiguration("enable_terrain_analysis", "true"))
     ld.add_action(SetLaunchConfiguration("obstacle_scan_output_topic", "obstacle_scan"))
     ld.add_action(SetLaunchConfiguration("terrain_registered_scan_topic", ""))
     ld.add_action(SetLaunchConfiguration("terrain_lidar_odometry_topic", ""))

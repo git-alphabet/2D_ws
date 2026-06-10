@@ -414,6 +414,11 @@ terrain_analysis:
 # - 若需改源，可在这里改，或 launch 入参覆盖
 terrain_analysis_runtime:
   ros__parameters:
+    # 是否启用地形分析节点（terrain_analysis + terrain_analysis_ext）。
+    # 禁用后（2D 模式）需手动修改 costmap 的 observation_sources topic
+    # 为 terrain_registered_scan_topic 的值（如 /odin1/cloud_slam）。
+    # 2D 模式不融合，只取 odin1 数据。
+    enable_terrain_analysis: true
     # 输入点云话题。
     registered_scan_topic: "odin1/cloud_slam"
     # 输入里程计话题。

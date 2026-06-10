@@ -64,6 +64,7 @@ def build_navigation_runtime_actions(
     enable_mid360_costmap_additive,
     enable_odin1_loam_reframe,
     enable_scan_additive,
+    enable_terrain_analysis,
     obstacle_scan_output_topic,
     enable_fake_vel_transform_tf,
     nav2_tf_warmup_enabled,
@@ -83,6 +84,31 @@ def build_navigation_runtime_actions(
         ]
     )
 
+    # 地形分析条件：enable_terrain_analysis 为 true 时才启动 terrain_analysis 节点。
+    # terrain_analysis 和 terrain_analysis_ext 共用同一组条件。
+    terrain_analysis_mid360_condition = IfCondition(
+        PythonExpression(
+            [
+                "('",
+                enable_terrain_analysis,
+                "' == 'true') and ('",
+                enable_mid360_costmap_additive,
+                "' == 'true')",
+            ]
+        )
+    )
+    terrain_analysis_single_condition = IfCondition(
+        PythonExpression(
+            [
+                "('",
+                enable_terrain_analysis,
+                "' == 'true') and ('",
+                enable_mid360_costmap_additive,
+                "' != 'true')",
+            ]
+        )
+    )
+
     scan_additive_condition = IfCondition(
         PythonExpression(
             [
@@ -95,6 +121,7 @@ def build_navigation_runtime_actions(
         )
     )
 
+    # 地形分析启用时，pointcloud_to_laserscan 订阅 terrain_map_ext。
     start_pointcloud_to_laserscan_cmd = Node(
         package="pointcloud_to_laserscan",
         executable="pointcloud_to_laserscan_node",
@@ -108,9 +135,48 @@ def build_navigation_runtime_actions(
             ("cloud_in", "terrain_map_ext"),
             ("scan", "obstacle_scan"),
         ],
-        condition=IfCondition(enable_obstacle_scan),
+        condition=IfCondition(
+            PythonExpression(
+                [
+                    "('",
+                    enable_obstacle_scan,
+                    "' == 'true') and ('",
+                    enable_terrain_analysis,
+                    "' == 'true')",
+                ]
+            )
+        ),
     )
 
+    # 地形分析禁用时（2D 模式），pointcloud_to_laserscan 直接订阅 odin1 点云，不融合。
+    start_pointcloud_to_laserscan_no_terrain_cmd = Node(
+        package="pointcloud_to_laserscan",
+        executable="pointcloud_to_laserscan_node",
+        name="pointcloud_to_laserscan",
+        output="screen",
+        respawn=use_respawn,
+        respawn_delay=2.0,
+        parameters=[configured_params],
+        arguments=["--ros-args", "--log-level", log_level],
+        remappings=[
+            ("cloud_in", terrain_registered_scan_topic),
+            ("scan", "obstacle_scan"),
+        ],
+        condition=IfCondition(
+            PythonExpression(
+                [
+                    "('",
+                    enable_obstacle_scan,
+                    "' == 'true') and ('",
+                    enable_terrain_analysis,
+                    "' != 'true')",
+                ]
+            )
+        ),
+    )
+
+    # NOTE: composable 模式下仅支持 terrain_analysis 启用的场景。
+    # 禁用地形分析时需使用非 composable 模式（use_composition=False）。
     load_pointcloud_to_laserscan_composable_cmd = LoadComposableNodes(
         condition=IfCondition(
             PythonExpression(
@@ -119,6 +185,8 @@ def build_navigation_runtime_actions(
                     use_composition,
                     "' == 'True') and ('",
                     enable_obstacle_scan,
+                    "' == 'true') and ('",
+                    enable_terrain_analysis,
                     "' == 'true')",
                 ]
             )
@@ -205,7 +273,7 @@ def build_navigation_runtime_actions(
             ("lidar_odometry", terrain_lidar_odometry_topic),
             ("/lidar_odometry", terrain_lidar_odometry_topic),
         ],
-        condition=IfCondition(enable_mid360_costmap_additive),
+        condition=terrain_analysis_mid360_condition,
     )
 
     # Fallback: single-sensor path without merger.
@@ -224,7 +292,7 @@ def build_navigation_runtime_actions(
             ("lidar_odometry", terrain_lidar_odometry_topic),
             ("/lidar_odometry", terrain_lidar_odometry_topic),
         ],
-        condition=UnlessCondition(enable_mid360_costmap_additive),
+        condition=terrain_analysis_single_condition,
     )
 
     start_terrain_analysis_ext_cmd = Node(
@@ -242,7 +310,7 @@ def build_navigation_runtime_actions(
             ("lidar_odometry", terrain_lidar_odometry_topic),
             ("/lidar_odometry", terrain_lidar_odometry_topic),
         ],
-        condition=IfCondition(enable_mid360_costmap_additive),
+        condition=terrain_analysis_mid360_condition,
     )
 
     start_terrain_analysis_ext_single_cmd = Node(
@@ -260,7 +328,7 @@ def build_navigation_runtime_actions(
             ("lidar_odometry", terrain_lidar_odometry_topic),
             ("/lidar_odometry", terrain_lidar_odometry_topic),
         ],
-        condition=UnlessCondition(enable_mid360_costmap_additive),
+        condition=terrain_analysis_single_condition,
     )
 
     start_rm_behavior_tree_cmd = Node(
@@ -557,6 +625,7 @@ def build_navigation_runtime_actions(
         start_robot_position_bridge_cmd,
         start_rm_behavior_tree_cmd,
         start_nonlinear_spin_publisher_cmd,
+        start_pointcloud_to_laserscan_no_terrain_cmd,
         load_nodes,
         load_loam_composable_node,
         load_composable_nodes,

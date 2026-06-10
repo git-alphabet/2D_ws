@@ -214,6 +214,7 @@ def _set_navigation_switches(
         scan_additive_runtime = _get_ros_params_with_fallback("scan_additive_runtime")
         loam_interface_runtime = _get_ros_params_with_fallback("loam_interface_runtime")
         terrain_analysis_runtime = _get_ros_params_with_fallback("terrain_analysis_runtime")
+        enable_terrain_analysis_value = True  # default: enabled
         sensor_scan_generation_runtime = _get_ros_params_with_fallback(
             "sensor_scan_generation_runtime"
         )
@@ -412,6 +413,12 @@ def _set_navigation_switches(
         # bag 回放时可通过环境变量强制启用 SLAM 模式的 mid360 链路
         if os.environ.get("BAG_MID360_IN_SLAM", "0") == "1" and slam_enabled:
             enable_mid360_costmap_additive_value = "true"
+
+        terrain_analysis_switch = _optional_bool(
+            terrain_analysis_runtime.get("enable_terrain_analysis")
+        )
+        if terrain_analysis_switch is not None:
+            enable_terrain_analysis_value = terrain_analysis_switch
 
         obstacle_scan_switch = _optional_bool(
             obstacle_scan_runtime.get("enabled", switches.get("enable_obstacle_scan"))
@@ -826,6 +833,10 @@ def _set_navigation_switches(
             enable_odin1_loam_reframe_value,
         ),
         SetLaunchConfiguration("enable_scan_additive", enable_scan_additive_value),
+        SetLaunchConfiguration(
+            "enable_terrain_analysis",
+            "true" if enable_terrain_analysis_value else "false",
+        ),
         SetLaunchConfiguration(
             "obstacle_scan_output_topic", obstacle_scan_output_topic_value
         ),
