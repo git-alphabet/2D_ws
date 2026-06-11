@@ -36,8 +36,11 @@ services:
   env:
     build:
       context: ..                    # 构建上下文 = 工作区根目录
-      dockerfile: Dockerfile.env
+      dockerfile: docker/Dockerfile.env
       network: host                  # 构建时共享宿主机网络，127.0.0.1:7897 可达
+      platforms:                     # 多平台构建（buildx）
+        - linux/amd64
+        - linux/arm64
       args:
         APT_MIRROR:      ${APT_MIRROR:-mirrors.tuna.tsinghua.edu.cn}
         PIP_INDEX_URL:   ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}

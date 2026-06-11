@@ -5,6 +5,10 @@ build
 install
 log
 neupan_env
+bags
+maps
+launch_logs
+.buildcache
 **/__pycache__
 **/*.pyc
 **/*.pyo
