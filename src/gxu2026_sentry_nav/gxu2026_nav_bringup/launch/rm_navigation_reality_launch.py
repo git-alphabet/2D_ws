@@ -59,7 +59,6 @@ def generate_launch_description():
     use_rviz = LaunchConfiguration("use_rviz")
     odin_config_file = LaunchConfiguration("odin_config_file")
     use_odin_driver = LaunchConfiguration("use_odin_driver")
-    enable_fake_vel_transform_tf = LaunchConfiguration("enable_fake_vel_transform_tf")
     terrain_registered_scan_topic = LaunchConfiguration("terrain_registered_scan_topic")
     terrain_lidar_odometry_topic = LaunchConfiguration("terrain_lidar_odometry_topic")
     sensor_scan_registered_scan_topic = LaunchConfiguration("sensor_scan_registered_scan_topic")
@@ -172,12 +171,6 @@ def generate_launch_description():
         "use_odin_driver",
         default_value="True",
         description="Whether to start odin_ros_driver. Set False during bag replay to avoid duplicate publisher.",
-    )
-
-    declare_enable_fake_vel_transform_tf_cmd = DeclareLaunchArgument(
-        "enable_fake_vel_transform_tf",
-        default_value="True",
-        description="Whether fake_vel_transform publishes gimbal_yaw->gimbal_yaw_fake TF. Set False during bag replay.",
     )
 
     declare_terrain_registered_scan_topic_cmd = DeclareLaunchArgument(
@@ -449,7 +442,6 @@ def generate_launch_description():
             "terrain_lidar_odometry_topic": terrain_lidar_odometry_topic,
             "sensor_scan_registered_scan_topic": sensor_scan_registered_scan_topic,
             "sensor_scan_lidar_odometry_topic": sensor_scan_lidar_odometry_topic,
-            "enable_fake_vel_transform_tf": enable_fake_vel_transform_tf,
         }.items(),
     )
 
@@ -499,7 +491,6 @@ def generate_launch_description():
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_odin_config_file_cmd)
     ld.add_action(declare_use_odin_driver_cmd)
-    ld.add_action(declare_enable_fake_vel_transform_tf_cmd)
     ld.add_action(declare_terrain_registered_scan_topic_cmd)
     ld.add_action(declare_terrain_lidar_odometry_topic_cmd)
     ld.add_action(declare_sensor_scan_registered_scan_topic_cmd)

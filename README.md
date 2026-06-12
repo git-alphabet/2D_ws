@@ -1,6 +1,7 @@
 # GXU_ROBOTZ_NAV2026
 
-GXU RobotZ 2026 赛季 ROS 2 (Humble) 导航工作空间 —— RoboMaster 哨兵机器人。
+原GXU RobotZ 2026 赛季 ROS 2 (Humble) 导航工作空间 —— RoboMaster 哨兵机器人。
+现在改成四轮足狗
 
 - Nav2 实车导航与建图（odin1 分支，无仿真）
 - 单 LiDAR（odin1）3D 点云地形分析

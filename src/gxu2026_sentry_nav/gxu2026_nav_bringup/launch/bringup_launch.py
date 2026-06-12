@@ -175,12 +175,6 @@ def generate_launch_description():
         description="Pass-through to localization_launch: True for odin Mode0, False for Mode1/2",
     )
 
-    declare_enable_fake_vel_transform_tf_cmd = DeclareLaunchArgument(
-        "enable_fake_vel_transform_tf",
-        default_value="True",
-        description="Whether fake_vel_transform publishes TF. Set False during bag replay.",
-    )
-
     def _prepare_container_params(context):
         params_path = params_file.perform(context)
         ns_value = (namespace.perform(context) or "").strip()
@@ -293,7 +287,6 @@ def generate_launch_description():
                     "terrain_lidar_odometry_topic": terrain_lidar_odometry_topic,
                     "sensor_scan_registered_scan_topic": sensor_scan_registered_scan_topic,
                     "sensor_scan_lidar_odometry_topic": sensor_scan_lidar_odometry_topic,
-                    "enable_fake_vel_transform_tf": LaunchConfiguration("enable_fake_vel_transform_tf"),
                 }.items(),
             ),
         ]
@@ -322,7 +315,6 @@ def generate_launch_description():
     ld.add_action(declare_sensor_scan_registered_scan_topic_cmd)
     ld.add_action(declare_sensor_scan_lidar_odometry_topic_cmd)
     ld.add_action(declare_publish_static_map_tf_cmd)
-    ld.add_action(declare_enable_fake_vel_transform_tf_cmd)
     ld.add_action(SetLaunchConfiguration("container_params_file", params_file))
     ld.add_action(OpaqueFunction(function=_prepare_container_params))
 

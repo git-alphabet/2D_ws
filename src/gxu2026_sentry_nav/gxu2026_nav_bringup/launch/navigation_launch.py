@@ -63,7 +63,6 @@ def generate_launch_description():
     terrain_lidar_odometry_topic = LaunchConfiguration("terrain_lidar_odometry_topic")
     sensor_scan_registered_scan_topic = LaunchConfiguration("sensor_scan_registered_scan_topic")
     sensor_scan_lidar_odometry_topic = LaunchConfiguration("sensor_scan_lidar_odometry_topic")
-    enable_fake_vel_transform_tf = LaunchConfiguration("enable_fake_vel_transform_tf")
     nav2_tf_warmup_enabled = LaunchConfiguration("nav2_tf_warmup_enabled")
     nav2_tf_warmup_target_frame = LaunchConfiguration("nav2_tf_warmup_target_frame")
     nav2_tf_warmup_source_frame = LaunchConfiguration("nav2_tf_warmup_source_frame")
@@ -177,12 +176,6 @@ def generate_launch_description():
         ),
     )
 
-    declare_enable_fake_vel_transform_tf_cmd = DeclareLaunchArgument(
-        "enable_fake_vel_transform_tf",
-        default_value="True",
-        description="Whether fake_vel_transform publishes gimbal_yaw->gimbal_yaw_fake TF. Set False during bag replay.",
-    )
-
     declare_enable_odin1_loam_reframe_cmd = DeclareLaunchArgument(
         "enable_odin1_loam_reframe",
         default_value="false",
@@ -203,7 +196,7 @@ def generate_launch_description():
 
     declare_nav2_tf_warmup_source_frame_cmd = DeclareLaunchArgument(
         "nav2_tf_warmup_source_frame",
-        default_value="gimbal_yaw_fake",
+        default_value="gimbal_yaw",
         description="TF warmup source frame",
     )
 
@@ -270,7 +263,6 @@ def generate_launch_description():
             enable_scan_additive=enable_scan_additive,
             enable_terrain_analysis=enable_terrain_analysis,
             obstacle_scan_output_topic=obstacle_scan_output_topic,
-            enable_fake_vel_transform_tf=enable_fake_vel_transform_tf,
             nav2_tf_warmup_enabled=nav2_tf_warmup_enabled,
             nav2_tf_warmup_target_frame=nav2_tf_warmup_target_frame,
             nav2_tf_warmup_source_frame=nav2_tf_warmup_source_frame,
@@ -300,7 +292,6 @@ def generate_launch_description():
     ld.add_action(declare_terrain_lidar_odometry_topic_cmd)
     ld.add_action(declare_sensor_scan_registered_scan_topic_cmd)
     ld.add_action(declare_sensor_scan_lidar_odometry_topic_cmd)
-    ld.add_action(declare_enable_fake_vel_transform_tf_cmd)
     ld.add_action(declare_enable_odin1_loam_reframe_cmd)
     ld.add_action(declare_nav2_tf_warmup_enabled_cmd)
     ld.add_action(declare_nav2_tf_warmup_target_frame_cmd)

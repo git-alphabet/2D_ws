@@ -346,95 +346,6 @@ terrain_analysis_ext:
     # 局部地形图半径，单位米。
     localTerrainMapRadius: 10.0
 
-# 假速度/坐标变换：把 Nav2 内部期望的底盘速度/局部路径做一层适配
-fake_vel_transform:
-  ros__parameters:
-    # 是否使用仿真时间。
-    use_sim_time: False
-    # 是否发布 gimbal_yaw->gimbal_yaw_fake TF（bag 回放时关闭，避免重复）
-    publish_tf: true
-    # 里程计话题。
-    odom_topic: "odometry"
-    # Nav2 内部规划使用 gimbal_yaw，经过该节点转换后对外发布 fake 底盘框架。
-    # 机器人参考坐标系。
-    robot_base_frame: "gimbal_yaw"
-    # fake 底盘坐标系。
-    fake_robot_base_frame: "gimbal_yaw_fake"
-    # 输入是 controller 结果速度，输出是底盘最终执行速度。
-    # 局部规划话题。
-    local_plan_topic: "local_plan"
-    # 输入速度话题。
-    input_cmd_vel_topic: "cmd_vel_nav2_result"
-    # 输出速度话题。
-    output_cmd_vel_topic: "cmd_vel"
-    # 底盘控制话题。
-    robot_control_topic: "robot_control"
-    # 测试开关：true=移动时关闭小陀螺，false=移动时也保留小陀螺
-    # 是否在移动时关闭小陀螺。
-    disable_spin_while_moving: true
-    # 初始小陀螺速度，单位 rad/s。
-    init_spin_speed: 6.0
-    # 减速带速度下限控制：进入 speed_bump 区域后，线速度低于该值会被抬高
-    # 是否启用减速带最低速度限制。
-    enable_speed_bump_min_speed: true
-    # 减速带角速度限制：进入 speed_bump 区域后，强制 angular.z=0
-    # 是否启用减速带角速度置零。
-    enable_speed_bump_zero_angular_z: true
-    # 减速带最低线速度，单位 m/s。
-    speed_bump_min_linear_speed: 1.4
-    # 减速带地图坐标系。
-    speed_bump_map_frame: "map"
-    # 减速带区域名。
-    speed_bump_zone_name: "speed_bump"
-    # 减速带语义区域文件。
-    speed_bump_zones_file: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/semantic_zones.yaml"
-
-# 非线性小陀螺（实车）：同仿真，发布 cmd_spin（Float32，单位 rad/s）
-nonlinear_spin_publisher:
-  ros__parameters:
-    # 是否使用仿真时间。
-    use_sim_time: False
-
-    # 总开关：true 才会开始发布 cmd_spin
-    # 是否启用小陀螺输出。
-    enabled: true
-
-    # 触发策略：收到第一条 Nav2 local_plan 后开始小陀螺，之后不停止
-    # 是否在首次触发后持续发布。
-    start_on_first_trigger: false
-    start_trigger_topic: "cmd_vel_nav2_result"
-    # 触发消息类型。
-    start_trigger_msg_type: "geometry_msgs/Twist"
-    # 是否要求触发消息非零。
-    trigger_require_nonzero: false
-    # 小陀螺输出话题。
-    cmd_spin_topic: "cmd_spin"
-    # 小陀螺发布频率，单位 Hz。
-    publish_rate_hz: 50.0
-
-    # 变频变幅正弦叠加：center_speed + A1*sin(phi1) + A2*sin(phi2 + offset)
-    center_speed: 4.2            # 中心角速度(rad/s)
-    range_speed: 2.0              # 总振幅基准(rad/s)
-    primary_amp_ratio: 0.65       # 主正弦分量振幅占比(会和 secondary 归一化)
-    secondary_amp_ratio: 0.35     # 次正弦分量振幅占比
-    primary_freq_hz: 0.8          # 主正弦基础频率(Hz)
-    secondary_freq_hz: 1.7        # 次正弦基础频率(Hz)
-    harmonic_phase_offset: 1.57   # 次正弦相位偏移(rad)
-    amp_scale_min: 0.75           # 振幅缩放下限
-    amp_scale_max: 1.20           # 振幅缩放上限
-    freq_scale_min: 0.80          # 频率缩放下限
-    freq_scale_max: 1.20          # 频率缩放上限
-    modulation_slew_rate: 2.2     # 幅频缩放变化斜率上限(每秒)
-
-    # 每隔 target_update_period 重采样幅频缩放目标，并按 modulation_slew_rate 平滑跟踪
-    target_update_period: 0.15    # 重采样周期(s)
-    accel_limit: 16.0             # 输出角速度加速度限幅(rad/s^2)
-
-    max_abs_speed: 4.8            # 输出绝对值上限(rad/s)
-    min_abs_speed: 3.0            # 输出绝对值下限(rad/s)，避免转速贴近 0
-    seed: 1                       # 随机种子(0 为每次随机)
-    start_delay_sec: 0.5          # 节点启动后延迟生效时间(s)
-
 # PointCloud2 -> LaserScan：用于传统 2D 代价地图/SLAM
 pointcloud_to_laserscan:
   ros__parameters:
@@ -619,7 +530,7 @@ bt_navigator:
     # 全局参考坐标系。
     global_frame: map
     # 机器人底盘基坐标系。
-    robot_base_frame: gimbal_yaw_fake
+    robot_base_frame: gimbal_yaw
     # 里程计话题。
     odom_topic: odin1/odometry_highfreq
     # BT 主循环周期，单位秒。
@@ -695,7 +606,7 @@ local_costmap:
       # 局部代价地图使用的全局参考坐标系。
       global_frame: odom
       # 局部代价地图中的机器人底盘基坐标系。
-      robot_base_frame: gimbal_yaw_fake
+      robot_base_frame: gimbal_yaw
       # 代价地图查询 TF 的容忍窗口，覆盖链路延迟峰值。
       transform_tolerance: 0.4
       # 局部代价地图是否采用滚动窗口。
@@ -801,7 +712,7 @@ global_costmap:
       # 全局代价地图使用的参考坐标系。
       global_frame: map
       # 全局代价地图中的机器人底盘基坐标系。
-      robot_base_frame: gimbal_yaw_fake
+      robot_base_frame: gimbal_yaw
       # 导航重定位场景下 map->odom 切换与点云延迟叠加，需更宽容忍窗口。
       transform_tolerance: 0.3
       # 全局代价地图是否采用滚动窗口。
@@ -989,7 +900,7 @@ behavior_server:
     # 行为服务器全局参考坐标系。
     global_frame: map
     # 行为服务器机器人底盘基坐标系。
-    robot_base_frame: gimbal_yaw_fake
+    robot_base_frame: gimbal_yaw
     # 行为服务器 TF 容忍窗口，单位秒。
     transform_tolerance: 0.1
     # 恢复行为向前模拟时长，单位秒。

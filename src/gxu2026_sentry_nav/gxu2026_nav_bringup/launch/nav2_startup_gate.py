@@ -46,7 +46,6 @@ EXPECTED_CONTAINER_NODES = [
     "waypoint_follower",
     "velocity_smoother",
     "sensor_scan_generation",
-    "fake_vel_transform",
 ]
 
 
@@ -67,8 +66,8 @@ def parse_args():
                     default=os.environ.get("NAV2_TF_WARMUP_TARGET_FRAME", "map"),
                     help="Target frame for TF warmup (default: map for global_costmap).")
     p.add_argument("--tf-source-frame",
-                    default=os.environ.get("NAV2_TF_WARMUP_SOURCE_FRAME", "gimbal_yaw_fake"),
-                    help="Source frame for TF warmup (default: gimbal_yaw_fake).")
+                    default=os.environ.get("NAV2_TF_WARMUP_SOURCE_FRAME", "gimbal_yaw"),
+                    help="Source frame for TF warmup (default: gimbal_yaw).")
     p.add_argument("--tf-timeout-sec", type=float,
                     default=float(os.environ.get("NAV2_TF_WARMUP_TIMEOUT_SEC", "25.0")),
                     help="TF warmup timeout; <=0 disables timeout.")

@@ -60,7 +60,6 @@ def build_navigation_runtime_actions(
     enable_scan_additive,
     enable_terrain_analysis,
     obstacle_scan_output_topic,
-    enable_fake_vel_transform_tf,
     nav2_tf_warmup_enabled,
     nav2_tf_warmup_target_frame,
     nav2_tf_warmup_source_frame,
@@ -227,19 +226,6 @@ def build_navigation_runtime_actions(
             ),
             start_pointcloud_to_laserscan_cmd,
             Node(
-                package="fake_vel_transform",
-                executable="fake_vel_transform_node",
-                name="fake_vel_transform",
-                output="screen",
-                respawn=use_respawn,
-                respawn_delay=2.0,
-                parameters=[
-                    configured_params,
-                    {"publish_tf": PythonExpression(["'", enable_fake_vel_transform_tf, "' == 'True'"])},
-                ],
-                arguments=["--ros-args", "--log-level", log_level],
-            ),
-            Node(
                 package="nav2_controller",
                 executable="controller_server",
                 name="controller_server",
@@ -289,7 +275,6 @@ def build_navigation_runtime_actions(
                 respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=["--ros-args", "--log-level", log_level],
-                remappings=[("cmd_vel", "cmd_vel_nav2_result")],
             ),
             Node(
                 package="nav2_waypoint_follower",
@@ -312,7 +297,7 @@ def build_navigation_runtime_actions(
                 arguments=["--ros-args", "--log-level", log_level],
                 remappings=[
                     ("cmd_vel", "cmd_vel_controller"),
-                    ("cmd_vel_smoothed", "cmd_vel_nav2_result"),
+                    ("cmd_vel_smoothed", "cmd_vel"),
                 ],
             ),
         ],
@@ -333,12 +318,6 @@ def build_navigation_runtime_actions(
                     ("lidar_odometry", sensor_scan_lidar_odometry_topic),
                     ("/lidar_odometry", sensor_scan_lidar_odometry_topic),
                 ],
-            ),
-            ComposableNode(
-                package="fake_vel_transform",
-                plugin="fake_vel_transform::FakeVelTransform",
-                name="fake_vel_transform",
-                parameters=[configured_params],
             ),
             ComposableNode(
                 package="nav2_controller",
@@ -364,7 +343,6 @@ def build_navigation_runtime_actions(
                 plugin="behavior_server::BehaviorServer",
                 name="behavior_server",
                 parameters=[configured_params],
-                remappings=[("cmd_vel", "cmd_vel_nav2_result")],
             ),
             ComposableNode(
                 package="nav2_bt_navigator",
@@ -385,7 +363,7 @@ def build_navigation_runtime_actions(
                 parameters=[configured_params],
                 remappings=[
                     ("cmd_vel", "cmd_vel_controller"),
-                    ("cmd_vel_smoothed", "cmd_vel_nav2_result"),
+                    ("cmd_vel_smoothed", "cmd_vel"),
                 ],
             ),
         ],
@@ -417,7 +395,7 @@ def build_navigation_runtime_actions(
     # Lifecycle manager with autostart: automatically activates all managed
     # nodes after the container and odin driver have had time to initialize.
     # The odin driver starts at t=5s and needs additional time to connect
-    # and publish TF (odom->gimbal_yaw_fake) before local costmap can activate.
+    # and publish TF (odom->base_footprint, odom->gimbal_yaw) before local costmap can activate.
     start_lifecycle_manager_cmd = TimerAction(
         period=12.0,  # 5s odin driver delay + 7s driver init margin
         actions=[
@@ -431,21 +409,9 @@ def build_navigation_runtime_actions(
         ],
     )
 
-    start_nonlinear_spin_publisher_cmd = Node(
-        package="fake_vel_transform",
-        executable="nonlinear_spin_publisher",
-        name="nonlinear_spin_publisher",
-        output="screen",
-        respawn=use_respawn,
-        respawn_delay=2.0,
-        parameters=[configured_params],
-        arguments=["--ros-args", "--log-level", log_level],
-    )
-
     return [
         start_terrain_analysis_cmd,
         start_terrain_analysis_ext_cmd,
-        start_nonlinear_spin_publisher_cmd,
         start_pointcloud_to_laserscan_no_terrain_cmd,
         load_nodes,
         load_loam_composable_node,
