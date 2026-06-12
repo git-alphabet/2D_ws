@@ -187,17 +187,14 @@ inline Eigen::Vector3d align_odin_vector_to_vehicle(
     const double raw_y,
     const double raw_z)
 {
-    // 与点云保持一致：x'=-y, y'=x, z'=z。
-    return Eigen::Vector3d(-raw_y, raw_x, raw_z);
+    // 狗：odin 面朝方向即前进方向，无需旋转
+    return Eigen::Vector3d(raw_x, raw_y, raw_z);
 }
 
 inline tf2::Quaternion align_odin_quaternion_to_vehicle(const tf2::Quaternion & raw_q)
 {
-    // 坐标系基变换：绕 Z 轴 +90°，把 Odin 原始平面轴约定对齐到车体约定。
-    static const tf2::Quaternion q_basis(0.0, 0.0, 0.7071067811865476, 0.7071067811865476);
-    tf2::Quaternion corrected_q = q_basis * raw_q * q_basis.inverse();
-    corrected_q.normalize();
-    return corrected_q;
+    // 狗：odin 面朝方向即前进方向，无需旋转
+    return raw_q;
 }
 
 inline ros::Time make_aligned_stamp(uint64_t sensor_timestamp_ns
@@ -298,12 +295,12 @@ public:
         #endif
         imu_msg.header.frame_id = "imu_link";
 
-        imu_msg.linear_acceleration.y = -1 * stream->accel_x;
-        imu_msg.linear_acceleration.x = stream->accel_y;
+        imu_msg.linear_acceleration.x = stream->accel_x;
+        imu_msg.linear_acceleration.y = stream->accel_y;
         imu_msg.linear_acceleration.z = stream->accel_z;
 
-        imu_msg.angular_velocity.y = -1 * stream->gyro_x;
-        imu_msg.angular_velocity.x = stream->gyro_y;
+        imu_msg.angular_velocity.x = stream->gyro_x;
+        imu_msg.angular_velocity.y = stream->gyro_y;
         imu_msg.angular_velocity.z = stream->gyro_z;
 
         imu_msg.orientation.x = 0.0;
@@ -679,9 +676,9 @@ void publishIntensityCloud(capture_Image_List_t* stream, int idx)
                 *iter_offsettime = 0.0f; ++iter_offsettime;
             } else {
                 // XYZ point
-                *iter_x = xyz_data_f[i * 3 + 2] / 1000.0f; ++iter_x;
-                *iter_y = -xyz_data_f[i * 3 + 0] / 1000.0f; ++iter_y;
-                *iter_z = xyz_data_f[i * 3 + 1] / 1000.0f; ++iter_z;
+                *iter_x = xyz_data_f[i * 3 + 0] / 1000.0f; ++iter_x;
+                *iter_y = xyz_data_f[i * 3 + 1] / 1000.0f; ++iter_y;
+                *iter_z = xyz_data_f[i * 3 + 2] / 1000.0f; ++iter_z;
                 
                 *iter_intensity = intensity_data[i]; ++iter_intensity;
                 *iter_confidence = confidence_data[i]; ++iter_confidence;
@@ -700,9 +697,9 @@ void publishIntensityCloud(capture_Image_List_t* stream, int idx)
         uint16_t* intensity_data = static_cast<uint16_t*>(stream->imageList[2].pAddr);
         
         for (int i = 0; i < total_points; ++i) {
-            *iter_x = xyz_data_f[i * 4 + 2] / 1000.0f; ++iter_x;
-            *iter_y = -xyz_data_f[i * 4 + 0] / 1000.0f; ++iter_y;
-            *iter_z = xyz_data_f[i * 4 + 1] / 1000.0f; ++iter_z;
+            *iter_x = xyz_data_f[i * 4 + 0] / 1000.0f; ++iter_x;
+            *iter_y = xyz_data_f[i * 4 + 1] / 1000.0f; ++iter_y;
+            *iter_z = xyz_data_f[i * 4 + 2] / 1000.0f; ++iter_z;
             
             float intensity = (intensity_data[i] - 10) * 255.0f / (12500 - 10);
             if (intensity > 255) {
@@ -965,8 +962,8 @@ void publishRgb(capture_Image_List_t *stream) {
             const float raw_y = static_cast<float>(ptr[1]) / 10000.0f;
             const float raw_z = static_cast<float>(ptr[2]) / 10000.0f;
 
-            const float corrected_x = -raw_y;
-            const float corrected_y = raw_x;
+            const float corrected_x = raw_x;
+            const float corrected_y = raw_y;
             const float corrected_z = raw_z;
             
 #ifdef ROS2
@@ -1016,8 +1013,8 @@ void publishRgb(capture_Image_List_t *stream) {
                 const float raw_x = static_cast<float>(ptr[0]) / 10000.0f;
                 const float raw_y = static_cast<float>(ptr[1]) / 10000.0f;
                 const float raw_z = static_cast<float>(ptr[2]) / 10000.0f;
-                float fx = -raw_y;
-                float fy = raw_x;
+                float fx = raw_x;
+                float fy = raw_y;
                 float fz = raw_z;
                 uint8_t r = static_cast<uint8_t>(ptr[3] & 0xff);
                 uint8_t g = static_cast<uint8_t>(ptr[4] & 0xff);
