@@ -63,7 +63,6 @@ def generate_launch_description():
     terrain_lidar_odometry_topic = LaunchConfiguration("terrain_lidar_odometry_topic")
     sensor_scan_registered_scan_topic = LaunchConfiguration("sensor_scan_registered_scan_topic")
     sensor_scan_lidar_odometry_topic = LaunchConfiguration("sensor_scan_lidar_odometry_topic")
-    point_lio_config_file = LaunchConfiguration("point_lio_config_file")
     enable_fake_vel_transform_tf = LaunchConfiguration("enable_fake_vel_transform_tf")
     nav2_tf_warmup_enabled = LaunchConfiguration("nav2_tf_warmup_enabled")
     nav2_tf_warmup_target_frame = LaunchConfiguration("nav2_tf_warmup_target_frame")
@@ -71,11 +70,6 @@ def generate_launch_description():
     nav2_tf_warmup_timeout_sec = LaunchConfiguration("nav2_tf_warmup_timeout_sec")
     nav2_tf_warmup_check_hz = LaunchConfiguration("nav2_tf_warmup_check_hz")
 
-
-    enable_gimbal_yaw_bridge = LaunchConfiguration("enable_gimbal_yaw_bridge")
-    enable_rm_behavior_tree = LaunchConfiguration("enable_rm_behavior_tree")
-    rm_behavior_tree_executable = LaunchConfiguration("rm_behavior_tree_executable")
-    rm_behavior_tree_style_path = LaunchConfiguration("rm_behavior_tree_style_path")
 
     lifecycle_nodes = [
         "controller_server",
@@ -183,14 +177,6 @@ def generate_launch_description():
         ),
     )
 
-    declare_point_lio_config_file_cmd = DeclareLaunchArgument(
-        "point_lio_config_file",
-        default_value=os.path.join(
-            bringup_dir, "config", "reality", "point_lio_obstacle_only.yaml"
-        ),
-        description="Full path to point_lio config file for mid360 obstacle-only supplement chain",
-    )
-
     declare_enable_fake_vel_transform_tf_cmd = DeclareLaunchArgument(
         "enable_fake_vel_transform_tf",
         default_value="True",
@@ -234,7 +220,6 @@ def generate_launch_description():
     )
 
     enable_obstacle_scan = LaunchConfiguration("enable_obstacle_scan")
-    enable_mid360_costmap_additive = LaunchConfiguration("enable_mid360_costmap_additive")
     enable_odin1_loam_reframe = LaunchConfiguration("enable_odin1_loam_reframe")
     enable_scan_additive = LaunchConfiguration("enable_scan_additive")
     enable_terrain_analysis = LaunchConfiguration("enable_terrain_analysis")
@@ -276,17 +261,11 @@ def generate_launch_description():
             use_respawn=use_respawn,
             log_level=log_level,
             configured_params=configured_params,
-            point_lio_config_file=point_lio_config_file,
             terrain_registered_scan_topic=terrain_registered_scan_topic,
             terrain_lidar_odometry_topic=terrain_lidar_odometry_topic,
             sensor_scan_registered_scan_topic=sensor_scan_registered_scan_topic,
             sensor_scan_lidar_odometry_topic=sensor_scan_lidar_odometry_topic,
-            enable_gimbal_yaw_bridge=enable_gimbal_yaw_bridge,
-            enable_rm_behavior_tree=enable_rm_behavior_tree,
-            rm_behavior_tree_executable=rm_behavior_tree_executable,
-            rm_behavior_tree_style_path=rm_behavior_tree_style_path,
             enable_obstacle_scan=enable_obstacle_scan,
-            enable_mid360_costmap_additive=enable_mid360_costmap_additive,
             enable_odin1_loam_reframe=enable_odin1_loam_reframe,
             enable_scan_additive=enable_scan_additive,
             enable_terrain_analysis=enable_terrain_analysis,
@@ -321,7 +300,6 @@ def generate_launch_description():
     ld.add_action(declare_terrain_lidar_odometry_topic_cmd)
     ld.add_action(declare_sensor_scan_registered_scan_topic_cmd)
     ld.add_action(declare_sensor_scan_lidar_odometry_topic_cmd)
-    ld.add_action(declare_point_lio_config_file_cmd)
     ld.add_action(declare_enable_fake_vel_transform_tf_cmd)
     ld.add_action(declare_enable_odin1_loam_reframe_cmd)
     ld.add_action(declare_nav2_tf_warmup_enabled_cmd)
@@ -332,8 +310,6 @@ def generate_launch_description():
     # processed params defaults to original params file
     ld.add_action(SetLaunchConfiguration("processed_params_file", params_file))
     ld.add_action(SetLaunchConfiguration("enable_obstacle_scan", "false"))
-    ld.add_action(SetLaunchConfiguration("rm_behavior_tree_executable", "rm_behavior_tree"))
-    ld.add_action(SetLaunchConfiguration("enable_mid360_costmap_additive", "false"))
     ld.add_action(SetLaunchConfiguration("enable_odin1_loam_reframe", "false"))
     ld.add_action(SetLaunchConfiguration("enable_scan_additive", "false"))
     ld.add_action(SetLaunchConfiguration("enable_terrain_analysis", "true"))

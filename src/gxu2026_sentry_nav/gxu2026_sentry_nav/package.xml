@@ -13,7 +13,6 @@
   <depend>fake_vel_transform</depend>
   <depend>ign_sim_pointcloud_tool</depend>
   <depend>loam_interface</depend>
-  <depend>scan_additive_adapter</depend>
   <depend>sensor_scan_generation</depend>
 
   <test_depend>ament_lint_auto</test_depend>

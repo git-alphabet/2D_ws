@@ -41,7 +41,6 @@ def generate_launch_description():
     # Get the launch directory
     bringup_dir = get_package_share_directory("gxu2026_nav_bringup")
     odin_driver_dir = get_package_share_directory("odin_ros_driver")
-    mid360_driver_dir = get_package_share_directory("mid360_driver")
     launch_dir = os.path.join(bringup_dir, "launch")
 
     # Create the launch configuration variables
@@ -59,17 +58,13 @@ def generate_launch_description():
     use_robot_state_pub = LaunchConfiguration("use_robot_state_pub")
     use_rviz = LaunchConfiguration("use_rviz")
     odin_config_file = LaunchConfiguration("odin_config_file")
-    mid360_config_file = LaunchConfiguration("mid360_config_file")
-    use_mid360_driver = LaunchConfiguration("use_mid360_driver")
     use_odin_driver = LaunchConfiguration("use_odin_driver")
-    point_lio_config_file = LaunchConfiguration("point_lio_config_file")
     enable_fake_vel_transform_tf = LaunchConfiguration("enable_fake_vel_transform_tf")
     terrain_registered_scan_topic = LaunchConfiguration("terrain_registered_scan_topic")
     terrain_lidar_odometry_topic = LaunchConfiguration("terrain_lidar_odometry_topic")
     sensor_scan_registered_scan_topic = LaunchConfiguration("sensor_scan_registered_scan_topic")
     sensor_scan_lidar_odometry_topic = LaunchConfiguration("sensor_scan_lidar_odometry_topic")
     robot_name = LaunchConfiguration("robot_name")
-    resolved_use_mid360_driver = LaunchConfiguration("resolved_use_mid360_driver")
 
     # Declare the launch arguments
     declare_namespace_cmd = DeclareLaunchArgument(
@@ -173,33 +168,10 @@ def generate_launch_description():
         description="Full path to odin_ros_driver control config file",
     )
 
-    declare_mid360_config_file_cmd = DeclareLaunchArgument(
-        "mid360_config_file",
-        default_value=os.path.join(mid360_driver_dir, "config", "param.yaml"),
-        description="Full path to mid360_driver config file",
-    )
-
-    declare_use_mid360_driver_cmd = DeclareLaunchArgument(
-        "use_mid360_driver",
-        default_value="auto",
-        description=(
-            "Whether to start mid360_driver in reality entry launch. "
-            "Set true/false to force, or auto for source-driven mode"
-        ),
-    )
-
     declare_use_odin_driver_cmd = DeclareLaunchArgument(
         "use_odin_driver",
         default_value="True",
         description="Whether to start odin_ros_driver. Set False during bag replay to avoid duplicate publisher.",
-    )
-
-    declare_point_lio_config_file_cmd = DeclareLaunchArgument(
-        "point_lio_config_file",
-        default_value=os.path.join(
-            bringup_dir, "config", "reality", "point_lio_obstacle_only.yaml"
-        ),
-        description="Full path to point_lio config file for obstacle-only supplement chain",
     )
 
     declare_enable_fake_vel_transform_tf_cmd = DeclareLaunchArgument(
@@ -420,79 +392,6 @@ def generate_launch_description():
         },
     )
 
-    def _set_mid360_driver_from_params(
-        context, *, params_file, namespace, use_mid360_driver
-    ):
-        use_mid360_driver_value = (use_mid360_driver.perform(context) or "").strip()
-        selected = _optional_bool(use_mid360_driver_value)
-
-        if selected is None and use_mid360_driver_value.lower() not in {"", "auto", "default"}:
-            selected = False
-
-        if selected is None:
-            params_path = Path(params_file.perform(context)).expanduser()
-            namespace_value = (namespace.perform(context) or "").strip().lstrip("/")
-
-            if params_path.is_file():
-                try:
-                    raw_yaml = yaml.safe_load(params_path.read_text()) or {}
-                except Exception:
-                    raw_yaml = {}
-
-                target_data = raw_yaml
-                if namespace_value:
-                    namespaced_data = raw_yaml.get(namespace_value)
-                    if isinstance(namespaced_data, dict):
-                        target_data = namespaced_data
-
-                def _get_ros_params(container, key):
-                    entry = container.get(key) if isinstance(container, dict) else None
-                    if isinstance(entry, dict):
-                        params = entry.get("ros__parameters")
-                        if isinstance(params, dict):
-                            return params
-                    return {}
-
-                def _get_ros_params_with_fallback(key):
-                    params = _get_ros_params(target_data, key)
-                    if not params and target_data is not raw_yaml:
-                        params = _get_ros_params(raw_yaml, key)
-                    return params
-
-                switches = _get_ros_params_with_fallback("pb_navigation_switches")
-                mid360_runtime = _get_ros_params_with_fallback("mid360_runtime")
-
-                selected = _optional_bool(
-                    mid360_runtime.get(
-                        "enable_costmap_additive",
-                        switches.get("enable_mid360_costmap_additive"),
-                    )
-                )
-
-                if selected is None:
-                    odometry_source = switches.get("odometry_source")
-                    if isinstance(odometry_source, str) and odometry_source.strip().lower() == "odin1":
-                        selected = True
-
-        if selected is None:
-            selected = True
-
-        return [
-            SetLaunchConfiguration(
-                "resolved_use_mid360_driver",
-                "True" if selected else "False",
-            )
-        ]
-
-    set_mid360_driver_cmd = OpaqueFunction(
-        function=_set_mid360_driver_from_params,
-        kwargs={
-            "params_file": params_file,
-            "namespace": namespace,
-            "use_mid360_driver": use_mid360_driver,
-        },
-    )
-
     start_robot_state_publisher_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(launch_dir, "robot_state_publisher_launch.py")
@@ -523,16 +422,6 @@ def generate_launch_description():
         ],
     )
 
-    start_mid360_driver_node = Node(
-        package="mid360_driver",
-        executable="mid360_driver_node",
-        name="mid360_driver",
-        output="screen",
-        namespace=namespace,
-        parameters=[mid360_config_file, configured_params],
-        condition=IfCondition(resolved_use_mid360_driver),
-    )
-
     rviz_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(launch_dir, "rviz_launch.py")),
         condition=IfCondition(use_rviz),
@@ -560,7 +449,6 @@ def generate_launch_description():
             "terrain_lidar_odometry_topic": terrain_lidar_odometry_topic,
             "sensor_scan_registered_scan_topic": sensor_scan_registered_scan_topic,
             "sensor_scan_lidar_odometry_topic": sensor_scan_lidar_odometry_topic,
-            "point_lio_config_file": point_lio_config_file,
             "enable_fake_vel_transform_tf": enable_fake_vel_transform_tf,
         }.items(),
     )
@@ -610,10 +498,7 @@ def generate_launch_description():
     ld.add_action(declare_use_rviz_cmd)
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_odin_config_file_cmd)
-    ld.add_action(declare_mid360_config_file_cmd)
-    ld.add_action(declare_use_mid360_driver_cmd)
     ld.add_action(declare_use_odin_driver_cmd)
-    ld.add_action(declare_point_lio_config_file_cmd)
     ld.add_action(declare_enable_fake_vel_transform_tf_cmd)
     ld.add_action(declare_terrain_registered_scan_topic_cmd)
     ld.add_action(declare_terrain_lidar_odometry_topic_cmd)
@@ -622,14 +507,11 @@ def generate_launch_description():
     ld.add_action(declare_odin_map_mode_cmd)
     ld.add_action(resolve_map_cmd)
     ld.add_action(SetLaunchConfiguration("resolved_robot_name", "gxu2026_sentry_robot"))
-    ld.add_action(SetLaunchConfiguration("resolved_use_mid360_driver", "False"))
     ld.add_action(set_robot_name_cmd)
-    ld.add_action(set_mid360_driver_cmd)
 
     # Add the actions to launch all of the navigation nodes
     ld.add_action(start_robot_state_publisher_cmd)
     ld.add_action(start_odin_driver_node)
-    ld.add_action(start_mid360_driver_node)
     ld.add_action(bringup_cmd)
     ld.add_action(relocalization_fallback_cmd)
     ld.add_action(rviz_cmd)

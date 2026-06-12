@@ -1,38 +1,3 @@
-mid360_driver:
-  ros__parameters:
-    # 点云主题名。
-    lidar_topic: livox/lidar
-    # 点云坐标系。
-    lidar_frame: front_mid360
-    # IMU 主题名。
-    imu_topic: livox/imu
-    # IMU 坐标系。
-    imu_frame: front_mid360
-    # 是否发布自定义消息。
-    publish_custom_msg: true
-    # 自定义点云消息主题。
-    custom_msg_topic: livox/lidar/pointcloud
-    # 点云发布周期，单位秒。
-    lidar_publish_time_interval: 0.05
-    # 主机地址。
-    host_ip: 0.0.0.0
-    # 是否在话题名里拼接雷达 IP。
-    is_topic_name_with_lidar_ip: false
-
-# mid360 补盲链路开关：auto 表示 odin1 实车默认启用。
-mid360_runtime:
-  ros__parameters:
-    # 是否启用代价地图补盲链路，auto 表示自动判断。
-    enable_costmap_additive: "auto"
-    # 建图阶段建议单源（odin1）避免装配/时序误差叠加；导航阶段再启用双源补盲。
-    # 建图阶段是否启用补盲链路。
-    enable_costmap_additive_in_slam: true
-    # 导航阶段是否启用补盲链路。
-    enable_costmap_additive_in_nav: true
-    # Nav2 observation buffer 判定 mid360 补盲源 stale 的周期阈值，单位秒；0.0 表示关闭该告警。
-    local_costmap_expected_update_rate: 0.30
-
-
 pb_navigation_switches:
   ros__parameters:
     # 控制器插件名。
@@ -76,50 +41,6 @@ robot_description_runtime:
           storage: mcap
           compress: ""
           out_dir: "/ws/bags"
-
-# /auto_aim_yaw -> serial/gimbal_joint_state
-# 说明：
-# - /auto_aim_yaw是绝对话题名
-# - serial/gimbal_joint_state 用相对名，便于在 __ns:=/red_standard_robot1 时自动变成 /red_standard_robot1/serial/gimbal_joint_state
-auto_aim_yaw_joint_state_bridge:
-  ros__parameters:
-    # 是否启用该模块，false 时节点启动但不订阅/发布。
-    enabled: false
-    # 输入话题。
-    input_topic: /auto_aim_yaw
-    # 是否使用带时间戳的消息。
-    use_stamped_msg: true
-    # 输出话题。
-    output_topic: serial/gimbal_joint_state
-    # 关节名。
-    joint_name: gimbal_yaw_joint
-
-    # 输入角度是否为度。
-    input_is_degrees: false
-    # 是否反向符号。
-    invert_sign: false
-    # 数值缩放系数。
-    scale: 1.0
-    # 固定偏置。
-    offset: 0.0
-
-    # 是否启动时立即发布一次。
-    publish_on_startup: true
-    # 启动时默认 yaw，单位弧度。
-    default_yaw_rad: 0.0
-    # 建议设置为 >0：当 /auto_aim_yaw 低频或仅在变化时发布时，持续用“当前时间戳”重发 JointState
-    # 可以避免 TF 因时间戳过旧而在 tf2 buffer 中失效。
-    # 重发频率，单位 Hz。
-    publish_rate_hz: 100.0
-    # 额外时间戳偏移，单位秒。
-    stamp_offset_sec: 0.0
-
-# 与 reality_mid360 框架一致：补齐 gimbal_yaw 关节态链路。
-gimbal_yaw_bridge_runtime:
-  ros__parameters:
-    # 是否启用 gimbal_yaw 关节态桥接。
-    enabled: true
-
 
 # NeuPAN 插件参数已迁移到 neupan_nav2_controller/config/reality/neupan.yaml 维护。
 # 切换为 NeuPAN 控制器时，navigation_launch.py 会自动加载该文件并将 FollowPath 合并到 controller_server。
@@ -233,18 +154,6 @@ pb_controller_profiles:
       # 最大速度缩放系数。
       max_velocity_scaling_factor_rate: 0.9
 
-# 行为树相关（RM 侧）：实车不用 sim time
-rm_behavior_tree:
-  ros__parameters:
-    executable: rm_behavior_tree_rmuc
-    style: rmuc_01.xml
-    # 是否使用仿真时间。
-    use_sim_time: False
-
-# point_lio 参数统一由 navigation_launch.py 的 point_lio_config_file 加载，
-# reality 默认指向 config/reality/point_lio_obstacle_only.yaml。
-# 这里不再保留 point_lio 同名参数块，避免与独立配置文件产生歧义。
-
 # LOAM 接口：把状态估计/点云里程计转换成 Nav2 期望的 odom/base 等
 loam_interface:
   ros__parameters:
@@ -260,9 +169,9 @@ loam_interface:
     # 机器人底盘坐标系。
     base_frame: "base_footprint"
     # 激光雷达坐标系。
-    lidar_frame: "front_mid360"
+    lidar_frame: "front_odin1"
     # 输入语义：
-    # - lidar_odom_to_lidar: 兼容 point_lio 旧链路
+    # - lidar_odom_to_lidar: lidar odom 语义
     # - odom_to_base: odin1 输入是 odom->base_footprint
     # 里程计输入语义。
     input_odom_semantics: "lidar_odom_to_lidar"
@@ -278,35 +187,6 @@ loam_interface:
     # false: 每帧按时间戳更新 base->lidar（适合 front_odin1 挂在 gimbal_yaw 的动态外参）
     # 是否冻结 base 到 lidar 的 TF 缓存。
     freeze_base_to_lidar_tf: true
-    # TF 查询超时时间，单位秒。
-    tf_lookup_timeout_sec: 0.2
-
-# mid360 补盲专用 loam 接口：仅服务 mid360 地形链路，不影响 odin1 主导航重组。
-loam_interface_mid360:
-  ros__parameters:
-    use_sim_time: False
-    # 使用 odin1 里程计作为统一 odom，避免双源 odom 相位差造成虚假障碍。
-    state_estimation_topic: "odin1/odometry_highfreq"
-    # 使用 point_lio 的 body frame 点云，避免把 mid360 自身 lidar_odom 语义错误拼接到 odin 主 odom。
-    # 输入点云话题。
-    registered_scan_topic: "mid360/cloud_registered"
-    # 输出里程计坐标系。
-    odom_frame: "odom"
-    # odin1/odometry_highfreq 的 child_frame 是 base_footprint，因此这里必须与输入里程计语义一致。
-    # mid360 安装在 gimbal_yaw 上时，base_footprint->front_mid360 是动态外参，需要按时间戳实时查询。
-    base_frame: "base_footprint"
-    # 激光雷达坐标系。
-    lidar_frame: "front_mid360"
-    # 里程计输入语义。
-    input_odom_semantics: "odom_to_base"
-    # lidar: 输入点云在 lidar/body 语义，使用 odom->lidar 实时位姿投影到 odom。
-    # 点云输入语义。
-    input_cloud_semantics: "lidar"
-    # 是否启用 odin 坐标轴对齐。
-    align_odin_axes: false
-    # mid360 挂在 gimbal_yaw 时，base_footprint->front_mid360 会随云台转动，不能冻结成单次缓存。
-    # 是否冻结 base 到 lidar 的 TF 缓存。
-    freeze_base_to_lidar_tf: false
     # TF 查询超时时间，单位秒。
     tf_lookup_timeout_sec: 0.2
 
@@ -598,31 +478,6 @@ obstacle_scan_runtime:
     # 输出 scan 话题。
     output_scan_topic: "scan_odin1"
 
-# PointCloud2 融合节点：将 odin1 和 mid360 的 registered_scan 按时间戳配对合并。
-pointcloud_merge_sync:
-  ros__parameters:
-    # 主点云话题（odin1）。
-    primary_topic: "registered_scan"
-    # 次点云话题（mid360）。
-    secondary_topic: "mid360/registered_scan"
-    # 合并输出话题。
-    output_topic: "merged_registered_scan"
-    # ApproximateTime 最大时间差，单位秒。
-    merge_time_tolerance_sec: 0.08
-    # 同步策略：approximate 或 exact。
-    sync_policy: "approximate"
-    # 是否启用主雷达回退发布。
-    enable_fallback: true
-    # 同步队列长度。
-    queue_size: 20
-    # 是否启用时间补偿（用 TF 将次点云对齐到主点云时间）。
-    enable_time_compensation: true
-    # 时间补偿参考坐标系。
-    odom_frame: "odom"
-    base_frame: "base_footprint"
-    # 最大时间补偿窗口，单位秒。
-    max_time_compensation_sec: 0.20
-
 # SLAM Toolbox：mapping 模式时发布 map/odom 等；scan_topic 要与上游生成一致
 slam_toolbox:
   ros__parameters:
@@ -888,7 +743,7 @@ local_costmap:
         min_obstacle_intensity: 0.1
         # 障碍物强度上限。
         max_obstacle_intensity: 2.0
-        # 参与体素层更新的观测源列表（双雷达已在上游 pointcloud_merge_sync 合并）。
+        # 参与体素层更新的观测源列表。
         observation_sources: terrain_map
         terrain_map:
           # 该观测源的数据类型。
@@ -996,7 +851,7 @@ global_costmap:
         min_obstacle_intensity: 0.1
         # 障碍物强度上限。
         max_obstacle_intensity: 2.0
-        # 参与体素层更新的观测源列表（双雷达已在上游 pointcloud_merge_sync 合并）。
+        # 参与体素层更新的观测源列表。
         observation_sources: terrain_map_ext
         terrain_map_ext:
           # 该观测源的数据类型。

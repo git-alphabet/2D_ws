@@ -14,7 +14,6 @@
 
 import os
 import sys
-import tempfile
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
@@ -61,7 +60,6 @@ def generate_launch_description():
     terrain_lidar_odometry_topic = LaunchConfiguration("terrain_lidar_odometry_topic")
     sensor_scan_registered_scan_topic = LaunchConfiguration("sensor_scan_registered_scan_topic")
     sensor_scan_lidar_odometry_topic = LaunchConfiguration("sensor_scan_lidar_odometry_topic")
-    point_lio_config_file = LaunchConfiguration("point_lio_config_file")
     # Create our own temporary YAML files that include substitutions
     param_substitutions = {"use_sim_time": use_sim_time, "yaml_filename": map_yaml_file}
 
@@ -171,14 +169,6 @@ def generate_launch_description():
         description="Optional override for sensor_scan_generation odometry input topic",
     )
 
-    declare_point_lio_config_file_cmd = DeclareLaunchArgument(
-        "point_lio_config_file",
-        default_value=os.path.join(
-            bringup_dir, "config", "reality", "point_lio_obstacle_only.yaml"
-        ),
-        description="Full path to point_lio config file for obstacle-only supplement chain",
-    )
-
     declare_publish_static_map_tf_cmd = DeclareLaunchArgument(
         "publish_static_map_tf",
         default_value="True",
@@ -230,65 +220,13 @@ def generate_launch_description():
                 params = _get_ros_params(raw_yaml, key)
             return params
 
-        def _optional_bool(value):
-            if isinstance(value, bool):
-                return value
-            if isinstance(value, str):
-                normalized = value.strip().lower()
-                if normalized in {"true", "1", "yes", "on"}:
-                    return True
-                if normalized in {"false", "0", "no", "off"}:
-                    return False
-            return None
-
-        mid360_runtime = _get_ros_params_with_fallback("mid360_runtime")
-        mid360_costmap_switch = _optional_bool(
-            mid360_runtime.get("enable_costmap_additive")
-        )
-        mid360_costmap_in_slam_switch = _optional_bool(
-            mid360_runtime.get("enable_costmap_additive_in_slam")
-        )
-        mid360_costmap_in_nav_switch = _optional_bool(
-            mid360_runtime.get("enable_costmap_additive_in_nav")
-        )
-
-        if slam_value:
-            enable_mid360_costmap_additive = (
-                mid360_costmap_in_slam_switch
-                if mid360_costmap_in_slam_switch is not None
-                else False
-            )
-        elif mid360_costmap_in_nav_switch is not None:
-            enable_mid360_costmap_additive = mid360_costmap_in_nav_switch
-        elif mid360_costmap_switch is not None:
-            enable_mid360_costmap_additive = mid360_costmap_switch
-        else:
-            enable_mid360_costmap_additive = True
-
-        # bag 回放时可通过环境变量强制启用 SLAM 模式的 mid360 链路
-        if os.environ.get("BAG_MID360_IN_SLAM", "0") == "1" and slam_value:
-            enable_mid360_costmap_additive = True
-
-        # 双雷达合并后，costmap 只收单源 terrain_map / terrain_map_ext，
-        # 不再动态添加 terrain_map_mid360 / terrain_map_ext_mid360。
-        changed = False
-
-        processed_path = params_path
-        if changed:
-            with tempfile.NamedTemporaryFile(
-                mode="w", delete=False, suffix=".yaml"
-            ) as tmp_file:
-                yaml.safe_dump(raw_yaml, tmp_file, default_flow_style=False)
-                processed_path = tmp_file.name
-
         print(
             "[bringup_launch] container params: "
             f"slam={slam_value} "
-            f"enable_mid360_costmap_additive={enable_mid360_costmap_additive} "
-            f"file={processed_path}",
+            f"file={params_path}",
             file=sys.stderr,
         )
-        return [SetLaunchConfiguration("container_params_file", processed_path)]
+        return [SetLaunchConfiguration("container_params_file", params_path)]
 
     # Specify the actions
     bringup_cmd_group = GroupAction(
@@ -355,7 +293,6 @@ def generate_launch_description():
                     "terrain_lidar_odometry_topic": terrain_lidar_odometry_topic,
                     "sensor_scan_registered_scan_topic": sensor_scan_registered_scan_topic,
                     "sensor_scan_lidar_odometry_topic": sensor_scan_lidar_odometry_topic,
-                    "point_lio_config_file": point_lio_config_file,
                     "enable_fake_vel_transform_tf": LaunchConfiguration("enable_fake_vel_transform_tf"),
                 }.items(),
             ),
@@ -384,7 +321,6 @@ def generate_launch_description():
     ld.add_action(declare_terrain_lidar_odometry_topic_cmd)
     ld.add_action(declare_sensor_scan_registered_scan_topic_cmd)
     ld.add_action(declare_sensor_scan_lidar_odometry_topic_cmd)
-    ld.add_action(declare_point_lio_config_file_cmd)
     ld.add_action(declare_publish_static_map_tf_cmd)
     ld.add_action(declare_enable_fake_vel_transform_tf_cmd)
     ld.add_action(SetLaunchConfiguration("container_params_file", params_file))

@@ -19,19 +19,14 @@
   <exec_depend>nav2_common</exec_depend>
   <exec_depend>pb_nav2_plugins</exec_depend>
   <exec_depend>gxu2026_sentry_nav</exec_depend>
-  <exec_depend>livox_ros_driver2</exec_depend>
-  <exec_depend>mid360_driver</exec_depend>
-  <exec_depend>point_lio</exec_depend>
   <exec_depend>terrain_analysis</exec_depend>
   <exec_depend>terrain_analysis_ext</exec_depend>
   <exec_depend>pb_omni_pid_pursuit_controller</exec_depend>
   <exec_depend>small_gicp_relocalization</exec_depend>
-  <exec_depend>small_point_lio</exec_depend>
   <exec_depend>pointcloud_to_laserscan</exec_depend>
   <exec_depend>slam_toolbox</exec_depend>
   <exec_depend>rviz2</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
-  <exec_depend>rm_behavior_tree</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

@@ -268,12 +268,9 @@ def kill_reality(script_name: str) -> None:
     kill_odin_driver(script_name, timeout=odin_timeout, force_kill=False, keep_waiting=True)
     for pat, title in [
         (r"rm_navigation_reality_launch\.py", "reality nav/SLAM"),
-        (r"(^|/)mid360_driver_node(\s|$)", "mid360_driver"),
-        (r"(^|/)pointlio_mapping(\s|$)", "pointlio_mapping"),
         (r"(^|/)(timestamp_sync_monitor\.py|tools\.timestamp_sync_monitor)(\s|$)", "timestamp_monitor"),
         (r"(^|/)joint_state_publisher(\s|$)", "joint_state_publisher"),
         (r"(^|/)robot_state_publisher(\s|$)", "robot_state_publisher"),
-        (r"(^|/)auto_aim_yaw_joint_state_bridge(\s|$)", "auto_aim_yaw_bridge"),
         (r"component_container_isolated.*nav2_container", "nav2_container"),
     ]:
         kill_by_pattern(pat, title, script_name)

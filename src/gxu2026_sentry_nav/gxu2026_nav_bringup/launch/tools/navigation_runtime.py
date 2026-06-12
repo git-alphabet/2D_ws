@@ -51,17 +51,11 @@ def build_navigation_runtime_actions(
     use_respawn,
     log_level,
     configured_params,
-    point_lio_config_file,
     terrain_registered_scan_topic,
     terrain_lidar_odometry_topic,
     sensor_scan_registered_scan_topic,
     sensor_scan_lidar_odometry_topic,
-    enable_gimbal_yaw_bridge,
-    enable_rm_behavior_tree,
-    rm_behavior_tree_executable,
-    rm_behavior_tree_style_path,
     enable_obstacle_scan,
-    enable_mid360_costmap_additive,
     enable_odin1_loam_reframe,
     enable_scan_additive,
     enable_terrain_analysis,
@@ -74,54 +68,11 @@ def build_navigation_runtime_actions(
     nav2_tf_warmup_check_hz,
     lifecycle_nodes,
 ):
-    enable_loam_interface = PythonExpression(
-        [
-            "('",
-            enable_mid360_costmap_additive,
-            "' == 'true') or ('",
-            enable_odin1_loam_reframe,
-            "' == 'true')",
-        ]
-    )
+    enable_loam_interface = IfCondition(enable_odin1_loam_reframe)
 
-    # 地形分析条件：enable_terrain_analysis 为 true 时才启动 terrain_analysis 节点。
-    # terrain_analysis 和 terrain_analysis_ext 共用同一组条件。
-    terrain_analysis_mid360_condition = IfCondition(
-        PythonExpression(
-            [
-                "('",
-                enable_terrain_analysis,
-                "' == 'true') and ('",
-                enable_mid360_costmap_additive,
-                "' == 'true')",
-            ]
-        )
-    )
-    terrain_analysis_single_condition = IfCondition(
-        PythonExpression(
-            [
-                "('",
-                enable_terrain_analysis,
-                "' == 'true') and ('",
-                enable_mid360_costmap_additive,
-                "' != 'true')",
-            ]
-        )
-    )
+    terrain_analysis_condition = IfCondition(enable_terrain_analysis)
 
-    scan_additive_condition = IfCondition(
-        PythonExpression(
-            [
-                "('",
-                enable_scan_additive,
-                "' == 'true') and ('",
-                enable_mid360_costmap_additive,
-                "' == 'true')",
-            ]
-        )
-    )
-
-    # 地形分析启用时，pointcloud_to_laserscan 订阅 terrain_map_ext。
+    # pointcloud_to_laserscan: terrain analysis enabled
     start_pointcloud_to_laserscan_cmd = Node(
         package="pointcloud_to_laserscan",
         executable="pointcloud_to_laserscan_node",
@@ -148,7 +99,7 @@ def build_navigation_runtime_actions(
         ),
     )
 
-    # 地形分析禁用时（2D 模式），pointcloud_to_laserscan 直接订阅 odin1 点云，不融合。
+    # pointcloud_to_laserscan: terrain analysis disabled (2D mode)
     start_pointcloud_to_laserscan_no_terrain_cmd = Node(
         package="pointcloud_to_laserscan",
         executable="pointcloud_to_laserscan_node",
@@ -175,8 +126,8 @@ def build_navigation_runtime_actions(
         ),
     )
 
-    # NOTE: composable 模式下仅支持 terrain_analysis 启用的场景。
-    # 禁用地形分析时需使用非 composable 模式（use_composition=False）。
+    # NOTE: composable mode only supports terrain_analysis enabled scenario.
+    # When terrain analysis is disabled, use non-composable mode (use_composition=False).
     load_pointcloud_to_laserscan_composable_cmd = LoadComposableNodes(
         condition=IfCondition(
             PythonExpression(
@@ -206,58 +157,7 @@ def build_navigation_runtime_actions(
         ],
     )
 
-    start_point_lio_cmd = Node(
-        package="point_lio",
-        executable="pointlio_mapping",
-        name="point_lio_mid360",
-        output="screen",
-        respawn=use_respawn,
-        respawn_delay=2.0,
-        parameters=[point_lio_config_file],
-        arguments=["--ros-args", "--log-level", log_level],
-        remappings=[
-            ("/tf", "tf"),
-            ("/tf_static", "tf_static"),
-            ("livox/lidar", "/livox/lidar"),
-            ("livox/imu", "/livox/imu"),
-            ("cloud_registered_body", "mid360/cloud_registered"),
-            ("cloud_registered", "mid360/cloud_registered_world"),
-            ("aft_mapped_to_init", "mid360/point_lio_odometry"),
-        ],
-        condition=IfCondition(enable_mid360_costmap_additive),
-    )
-
-    start_loam_interface_mid360_cmd = Node(
-        package="loam_interface",
-        executable="loam_interface_node",
-        name="loam_interface_mid360",
-        output="screen",
-        respawn=use_respawn,
-        respawn_delay=2.0,
-        parameters=[configured_params],
-        arguments=["--ros-args", "--log-level", log_level],
-        remappings=[
-            ("registered_scan", "mid360/registered_scan"),
-            ("lidar_odometry", "mid360/lidar_odometry"),
-            ("/tf", "tf"),
-            ("/tf_static", "tf_static"),
-        ],
-        condition=IfCondition(enable_mid360_costmap_additive),
-    )
-
-    start_pointcloud_merge_sync_cmd = Node(
-        package="pointcloud_merge_sync",
-        executable="pointcloud_merge_sync_node",
-        name="pointcloud_merge_sync",
-        output="screen",
-        respawn=use_respawn,
-        respawn_delay=2.0,
-        parameters=[configured_params],
-        arguments=["--ros-args", "--log-level", log_level],
-        condition=IfCondition(enable_mid360_costmap_additive),
-    )
-
-    # When mid360 merger is active, terrain_analysis reads the merged cloud.
+    # terrain_analysis: single-source odin1 path
     start_terrain_analysis_cmd = Node(
         package="terrain_analysis",
         executable="terrainAnalysis",
@@ -268,33 +168,15 @@ def build_navigation_runtime_actions(
         arguments=["--ros-args", "--log-level", log_level],
         parameters=[configured_params],
         remappings=[
-            ("registered_scan", "merged_registered_scan"),
-            ("/registered_scan", "merged_registered_scan"),
-            ("lidar_odometry", terrain_lidar_odometry_topic),
-            ("/lidar_odometry", terrain_lidar_odometry_topic),
-        ],
-        condition=terrain_analysis_mid360_condition,
-    )
-
-    # Fallback: single-sensor path without merger.
-    start_terrain_analysis_single_cmd = Node(
-        package="terrain_analysis",
-        executable="terrainAnalysis",
-        name="terrain_analysis",
-        output="screen",
-        respawn=use_respawn,
-        respawn_delay=2.0,
-        arguments=["--ros-args", "--log-level", log_level],
-        parameters=[configured_params],
-        remappings=[
             ("registered_scan", terrain_registered_scan_topic),
             ("/registered_scan", terrain_registered_scan_topic),
             ("lidar_odometry", terrain_lidar_odometry_topic),
             ("/lidar_odometry", terrain_lidar_odometry_topic),
         ],
-        condition=terrain_analysis_single_condition,
+        condition=terrain_analysis_condition,
     )
 
+    # terrain_analysis_ext: single-source odin1 path
     start_terrain_analysis_ext_cmd = Node(
         package="terrain_analysis_ext",
         executable="terrainAnalysisExt",
@@ -305,54 +187,12 @@ def build_navigation_runtime_actions(
         arguments=["--ros-args", "--log-level", log_level],
         parameters=[configured_params],
         remappings=[
-            ("registered_scan", "merged_registered_scan"),
-            ("/registered_scan", "merged_registered_scan"),
-            ("lidar_odometry", terrain_lidar_odometry_topic),
-            ("/lidar_odometry", terrain_lidar_odometry_topic),
-        ],
-        condition=terrain_analysis_mid360_condition,
-    )
-
-    start_terrain_analysis_ext_single_cmd = Node(
-        package="terrain_analysis_ext",
-        executable="terrainAnalysisExt",
-        name="terrain_analysis_ext",
-        output="screen",
-        respawn=use_respawn,
-        respawn_delay=2.0,
-        arguments=["--ros-args", "--log-level", log_level],
-        parameters=[configured_params],
-        remappings=[
             ("registered_scan", terrain_registered_scan_topic),
             ("/registered_scan", terrain_registered_scan_topic),
             ("lidar_odometry", terrain_lidar_odometry_topic),
             ("/lidar_odometry", terrain_lidar_odometry_topic),
         ],
-        condition=terrain_analysis_single_condition,
-    )
-
-    start_rm_behavior_tree_cmd = Node(
-        package="rm_behavior_tree",
-        executable=rm_behavior_tree_executable,
-        name="rm_behavior_tree",
-        output="screen",
-        respawn=use_respawn,
-        respawn_delay=2.0,
-        parameters=[configured_params, {"style": rm_behavior_tree_style_path}],
-        arguments=["--ros-args", "--log-level", log_level],
-        condition=IfCondition(enable_rm_behavior_tree),
-    )
-
-    start_robot_position_bridge_cmd = Node(
-        package="rm_behavior_tree",
-        executable="robot_position_bridge",
-        name="robot_position_bridge",
-        output="screen",
-        respawn=use_respawn,
-        respawn_delay=2.0,
-        parameters=[configured_params],
-        arguments=["--ros-args", "--log-level", log_level],
-        condition=IfCondition(enable_rm_behavior_tree),
+        condition=terrain_analysis_condition,
     )
 
     load_nodes = GroupAction(
@@ -367,7 +207,7 @@ def build_navigation_runtime_actions(
                 respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=["--ros-args", "--log-level", log_level],
-                condition=IfCondition(enable_loam_interface),
+                condition=enable_loam_interface,
             ),
             Node(
                 package="sensor_scan_generation",
@@ -557,11 +397,9 @@ def build_navigation_runtime_actions(
                 [
                     "('",
                     use_composition,
-                    "' == 'True') and (('",
-                    enable_mid360_costmap_additive,
-                    "' == 'true') or ('",
+                    "' == 'True') and ('",
                     enable_odin1_loam_reframe,
-                    "' == 'true'))",
+                    "' == 'true')",
                 ]
             )
         ),
@@ -593,15 +431,6 @@ def build_navigation_runtime_actions(
         ],
     )
 
-    start_auto_aim_yaw_joint_state_bridge_cmd = Node(
-        condition=IfCondition(enable_gimbal_yaw_bridge),
-        package="gimbal_yaw_bridge",
-        executable="auto_aim_yaw_joint_state_bridge",
-        name="auto_aim_yaw_joint_state_bridge",
-        output="screen",
-        parameters=[configured_params],
-    )
-
     start_nonlinear_spin_publisher_cmd = Node(
         package="fake_vel_transform",
         executable="nonlinear_spin_publisher",
@@ -614,16 +443,8 @@ def build_navigation_runtime_actions(
     )
 
     return [
-        start_auto_aim_yaw_joint_state_bridge_cmd,
-        start_pointcloud_merge_sync_cmd,
         start_terrain_analysis_cmd,
-        start_terrain_analysis_single_cmd,
         start_terrain_analysis_ext_cmd,
-        start_terrain_analysis_ext_single_cmd,
-        start_point_lio_cmd,
-        start_loam_interface_mid360_cmd,
-        start_robot_position_bridge_cmd,
-        start_rm_behavior_tree_cmd,
         start_nonlinear_spin_publisher_cmd,
         start_pointcloud_to_laserscan_no_terrain_cmd,
         load_nodes,

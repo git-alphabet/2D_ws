@@ -180,11 +180,8 @@ kill_reality() {
   cleanup_fastdds_shm
   stop_odin_driver
   kill_by_pattern 'rm_navigation_reality_launch\.py' 'reality nav/SLAM'
-  kill_by_pattern '(^|/)mid360_driver_node(\s|$)' 'mid360_driver'
-  kill_by_pattern '(^|/)pointlio_mapping(\s|$)' 'pointlio_mapping'
   kill_by_pattern '(^|/)joint_state_publisher(\s|$)' 'joint_state_publisher'
   kill_by_pattern '(^|/)robot_state_publisher(\s|$)' 'robot_state_publisher'
-  kill_by_pattern '(^|/)auto_aim_yaw_joint_state_bridge(\s|$)' 'auto_aim_yaw_bridge'
   kill_by_pattern 'component_container_isolated.*nav2_container' 'nav2_container'
 }
 

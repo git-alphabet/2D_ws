@@ -45,19 +45,13 @@ def _set_navigation_switches(
 ):
     params_path = Path(params_file.perform(context)).expanduser()
     ns_value = namespace.perform(context)
-    default_style_file = "rmuc_01.xml"
-    enable_rm_bt = False
-    style_file = default_style_file
-    rm_bt_executable = "rm_behavior_tree"
     processed_file = str(params_path)
     controller_plugin_name = None
     neupan_frame_name = None
     enable_obstacle_scan_value = "false"
-    enable_mid360_costmap_additive_value = "false"
     enable_odin1_loam_reframe_value = "false"
     enable_scan_additive_value = "false"
     obstacle_scan_output_topic_value = "obstacle_scan"
-    enable_gimbal_yaw_bridge_value = False
     terrain_registered_scan_topic_value = "registered_scan"
     terrain_lidar_odometry_topic_value = "lidar_odometry"
     sensor_scan_registered_scan_topic_value = "registered_scan"
@@ -88,45 +82,6 @@ def _set_navigation_switches(
     sensor_scan_lidar_odometry_topic_override = (
         sensor_scan_lidar_odometry_topic.perform(context) or ""
     ).strip()
-
-    def _resolve_bt_style_path(style_value):
-        candidate = style_value.strip() if isinstance(style_value, str) else ""
-        if not candidate:
-            candidate = default_style_file
-
-        if candidate.startswith("$("):
-            return candidate
-
-        expanded_candidate = os.path.expanduser(candidate)
-        if os.path.isabs(expanded_candidate):
-            return expanded_candidate
-
-        package_name = None
-        relative_path = expanded_candidate
-        if ":" in expanded_candidate:
-            pkg_part, rel_part = expanded_candidate.split(":", 1)
-            pkg_part = pkg_part.strip()
-            if pkg_part:
-                package_name = pkg_part
-                relative_path = rel_part.lstrip("/") or default_style_file
-
-        try:
-            share_dir = get_package_share_directory(package_name or "rm_behavior_tree")
-        except PackageNotFoundError:
-            share_dir = get_package_share_directory("rm_behavior_tree")
-
-        if package_name:
-            return os.path.join(share_dir, relative_path)
-
-        if relative_path.startswith("./") or relative_path.startswith("../"):
-            return os.path.normpath(
-                os.path.join(str(params_path.parent), relative_path)
-            )
-
-        if os.path.sep in relative_path:
-            return os.path.join(share_dir, relative_path)
-
-        return os.path.join(share_dir, "config", relative_path)
 
     if params_path.is_file():
         try:
@@ -166,7 +121,7 @@ def _set_navigation_switches(
                 current[key_path[-1]] = value
 
         def _normalize_costmap_size_types(container):
-            """兼容配置文件里 width/height 写成 20 或 20.0 的情况。"""
+            """Normalize width/height types (20 vs 20.0) in costmap params."""
             changed = False
             param_paths = [
                 ["local_costmap", "local_costmap", "ros__parameters"],
@@ -209,7 +164,6 @@ def _set_navigation_switches(
         switch_override_required = False
 
         switches = _get_ros_params_with_fallback("pb_navigation_switches")
-        mid360_runtime = _get_ros_params_with_fallback("mid360_runtime")
         obstacle_scan_runtime = _get_ros_params_with_fallback("obstacle_scan_runtime")
         scan_additive_runtime = _get_ros_params_with_fallback("scan_additive_runtime")
         loam_interface_runtime = _get_ros_params_with_fallback("loam_interface_runtime")
@@ -217,9 +171,6 @@ def _set_navigation_switches(
         enable_terrain_analysis_value = True  # default: enabled
         sensor_scan_generation_runtime = _get_ros_params_with_fallback(
             "sensor_scan_generation_runtime"
-        )
-        gimbal_yaw_bridge_runtime = _get_ros_params_with_fallback(
-            "gimbal_yaw_bridge_runtime"
         )
 
         def _read_topic_name(runtime_params, runtime_key, legacy_switch_key):
@@ -231,8 +182,6 @@ def _set_navigation_switches(
                 if topic_name:
                     return topic_name
             return ""
-
-        enable_rm_bt = bool(switches.get("enable_rm_behavior_tree", enable_rm_bt))
 
         switches_terrain_registered_scan_topic = _read_topic_name(
             terrain_analysis_runtime,
@@ -311,7 +260,7 @@ def _set_navigation_switches(
                     ]
                 )
 
-            # 容器工作区允许固定路径；宿主机不做用户目录硬编码。
+            # Container workspace allows fixed path; host does not hardcode user dir.
             candidates.extend(
                 [
                     Path("/ws/src/odin_ros_driver/include/host_sdk_sample.h"),
@@ -375,44 +324,6 @@ def _set_navigation_switches(
                     return True
 
             return False
-
-        mid360_costmap_switch = _optional_bool(
-            mid360_runtime.get(
-                "enable_costmap_additive",
-                switches.get("enable_mid360_costmap_additive"),
-            )
-        )
-        mid360_costmap_in_slam_switch = _optional_bool(
-            mid360_runtime.get("enable_costmap_additive_in_slam")
-        )
-        mid360_costmap_in_nav_switch = _optional_bool(
-            mid360_runtime.get("enable_costmap_additive_in_nav")
-        )
-        if slam_enabled:
-            # 建图阶段默认不引入 mid360，避免双源装配误差叠加。
-            if mid360_costmap_in_slam_switch is not None:
-                enable_mid360_costmap_additive_value = (
-                    "true" if mid360_costmap_in_slam_switch else "false"
-                )
-            else:
-                enable_mid360_costmap_additive_value = "false"
-        else:
-            if mid360_costmap_in_nav_switch is not None:
-                enable_mid360_costmap_additive_value = (
-                    "true" if mid360_costmap_in_nav_switch else "false"
-                )
-            elif mid360_costmap_switch is not None:
-                enable_mid360_costmap_additive_value = (
-                    "true" if mid360_costmap_switch else "false"
-                )
-            elif odometry_source == "odin1" and not sim_enabled:
-                # Auto mode in odin1 reality: keep additive chain enabled,
-                # and rely on actual mid360 source availability for outputs.
-                enable_mid360_costmap_additive_value = "true"
-
-        # bag 回放时可通过环境变量强制启用 SLAM 模式的 mid360 链路
-        if os.environ.get("BAG_MID360_IN_SLAM", "0") == "1" and slam_enabled:
-            enable_mid360_costmap_additive_value = "true"
 
         terrain_analysis_switch = _optional_bool(
             terrain_analysis_runtime.get("enable_terrain_analysis")
@@ -501,7 +412,7 @@ def _set_navigation_switches(
         )
 
         if odin1_loam_reframe_enabled:
-            # odin1 走 loam 输出：点云/里程计都从 loam 统一出口进入下游链路。
+            # odin1 loam output: point cloud/odometry both go through loam unified exit.
             terrain_registered_scan_topic_value = "registered_scan"
             terrain_lidar_odometry_topic_value = "lidar_odometry"
             sensor_scan_registered_scan_topic_value = "registered_scan"
@@ -559,23 +470,6 @@ def _set_navigation_switches(
             elif odometry_source == "odin1" and not sim_enabled:
                 sensor_scan_lidar_odometry_topic_value = "odin1/odometry_highfreq"
 
-        # 收敛接口：只暴露一个开关 enable_gimbal_yaw_bridge。
-        # 兼容旧配置：enable_auto_aim_yaw_bridge / enable_auto_aim_yaw_sim_pub。
-        gimbal_yaw_bridge_raw = gimbal_yaw_bridge_runtime.get("enabled")
-        if gimbal_yaw_bridge_raw is None:
-            gimbal_yaw_bridge_raw = gimbal_yaw_bridge_runtime.get(
-                "enable_gimbal_yaw_bridge"
-            )
-        if gimbal_yaw_bridge_raw is not None:
-            parsed_gimbal_bridge = _optional_bool(gimbal_yaw_bridge_raw)
-            enable_gimbal_yaw_bridge_value = bool(parsed_gimbal_bridge)
-        elif "enable_gimbal_yaw_bridge" in switches:
-            enable_gimbal_yaw_bridge_value = bool(switches.get("enable_gimbal_yaw_bridge"))
-        else:
-            legacy_bridge = bool(switches.get("enable_auto_aim_yaw_bridge", False))
-            legacy_sim_pub = bool(switches.get("enable_auto_aim_yaw_sim_pub", False))
-            enable_gimbal_yaw_bridge_value = legacy_bridge or legacy_sim_pub
-
         raw_frame_name = switches.get("neupan_fake_frame")
         if isinstance(raw_frame_name, str):
             stripped_name = raw_frame_name.strip()
@@ -587,47 +481,6 @@ def _set_navigation_switches(
             plugin_candidate = plugin_from_params.strip()
             if plugin_candidate:
                 controller_plugin_name = plugin_candidate
-
-        behavior_tree_selector = switches.get("behavior_tree")
-        if isinstance(behavior_tree_selector, str):
-            behavior_tree_selector = behavior_tree_selector.strip()
-        else:
-            behavior_tree_selector = None
-
-        rm_bt_params = _get_ros_params(target_data, "rm_behavior_tree")
-        if not rm_bt_params and target_data is not raw_yaml:
-            rm_bt_params = _get_ros_params(raw_yaml, "rm_behavior_tree")
-        style_file = rm_bt_params.get("style", style_file)
-        rm_bt_executable = rm_bt_params.get("executable", rm_bt_executable)
-
-        # 统一从 rm_behavior_tree 包中加载 RMUC 哨兵参数，避免在 nav2_params.yaml 里重复维护。
-        try:
-            rm_bt_share_dir = get_package_share_directory("rm_behavior_tree")
-            rmuc_bt_params_file = os.path.join(
-                rm_bt_share_dir, "config", "RMUC_2026", "rmuc_2026_params.yaml"
-            )
-            with open(rmuc_bt_params_file, "r", encoding="utf-8") as _f:
-                _rmuc_params_yaml = yaml.safe_load(_f) or {}
-            rmuc_rm_bt_params = _get_ros_params(_rmuc_params_yaml, "rm_behavior_tree")
-            if isinstance(rmuc_rm_bt_params, dict) and rmuc_rm_bt_params:
-                target_rm_bt = target_data.setdefault("rm_behavior_tree", {}).setdefault(
-                    "ros__parameters", {}
-                )
-                for _k, _v in rmuc_rm_bt_params.items():
-                    if target_rm_bt.get(_k) != _v:
-                        target_rm_bt[_k] = copy.deepcopy(_v)
-                        switch_override_required = True
-        except Exception:
-            pass
-        if behavior_tree_selector:
-            selector_lower = behavior_tree_selector.lower()
-            if selector_lower in {"disabled", "none", "nav2", "default"}:
-                enable_rm_bt = False
-            else:
-                enable_rm_bt = True
-                style_file = behavior_tree_selector
-        else:
-            enable_rm_bt = enable_rm_bt and bool(rm_bt_params)
 
         controller_server = target_data.setdefault("controller_server", {}).setdefault(
             "ros__parameters", {}
@@ -672,9 +525,8 @@ def _set_navigation_switches(
             if available_profiles:
                 selected_plugin_key = next(iter(available_profiles))
 
-        # 若选中 neupan_nav2_controller，无条件从 neupan_nav2_controller 包内
-        # reality 目录加载 neupan.yaml，作为 FollowPath 的配置来源。
-        # bringup nav2_params.yaml 中不应再有 FollowPath NeuPAN 块；即使残留也会被覆盖。
+        # If neupan_nav2_controller is selected, unconditionally load neupan.yaml
+        # from the package's reality directory as FollowPath config source.
         if selected_plugin_key and selected_plugin_key.startswith("neupan_nav2_controller"):
             try:
                 neupan_pkg_dir = get_package_share_directory("neupan_nav2_controller")
@@ -733,22 +585,17 @@ def _set_navigation_switches(
                 enable_scan_additive_value = "true"
                 obstacle_scan_output_topic_value = "scan_odin1"
 
-        # scan_additive 依赖 mid360 costmap 链路，若开启 scan_additive 则强制开启 costmap additive。
         if enable_scan_additive_value == "true":
-            enable_mid360_costmap_additive_value = "true"
-            # scan_additive 需要 odin 原始 scan 输入，确保 pointcloud_to_laserscan 主链路开启。
+            # scan_additive needs odin raw scan input, ensure pointcloud_to_laserscan main chain is on.
             enable_obstacle_scan_value = "true"
-            # 若仍输出到 obstacle_scan，会与 scan_additive_adapter 输出重名冲突。
+            # Avoid output name collision with scan_additive output.
             if obstacle_scan_output_topic_value == "obstacle_scan":
                 obstacle_scan_output_topic_value = "scan_odin1"
         elif slam_enabled:
-            # SLAM 单源建图时，必须把主 scan 直接发布到 obstacle_scan 给 slam_toolbox。
+            # SLAM single-source mapping: publish main scan directly to obstacle_scan for slam_toolbox.
             obstacle_scan_output_topic_value = "obstacle_scan"
 
-
         # odin1 pure navigation usually needs map TF before Nav2 activation.
-        # Relocalization entries can override nav2_tf_warmup_enabled:=False to keep
-        # the saved map loaded while odin mode2 internally falls back to SLAM.
         if odometry_source == "odin1" and not sim_enabled and not slam_enabled:
             if nav2_tf_warmup_target_frame_value == "odom":
                 nav2_tf_warmup_target_frame_value = "map"
@@ -792,7 +639,6 @@ def _set_navigation_switches(
             print(
                 "[navigation_launch] processed params: "
                 f"slam={slam_enabled} "
-                f"enable_mid360_costmap_additive={enable_mid360_costmap_additive_value} "
                 f"local_sources={local_sources!r} "
                 f"global_sources={global_sources!r} "
                 f"file={processed_file}",
@@ -815,19 +661,9 @@ def _set_navigation_switches(
             sensor_scan_lidar_odometry_topic_override
         )
 
-    style_path = _resolve_bt_style_path(style_file) if enable_rm_bt else style_file
     return [
-        SetLaunchConfiguration(
-            "enable_rm_behavior_tree", "true" if enable_rm_bt else "false"
-        ),
-        SetLaunchConfiguration("rm_behavior_tree_executable", rm_bt_executable),
-        SetLaunchConfiguration("rm_behavior_tree_style_path", style_path),
         SetLaunchConfiguration("processed_params_file", processed_file),
         SetLaunchConfiguration("enable_obstacle_scan", enable_obstacle_scan_value),
-        SetLaunchConfiguration(
-            "enable_mid360_costmap_additive",
-            enable_mid360_costmap_additive_value,
-        ),
         SetLaunchConfiguration(
             "enable_odin1_loam_reframe",
             enable_odin1_loam_reframe_value,
@@ -839,10 +675,6 @@ def _set_navigation_switches(
         ),
         SetLaunchConfiguration(
             "obstacle_scan_output_topic", obstacle_scan_output_topic_value
-        ),
-        SetLaunchConfiguration(
-            "enable_gimbal_yaw_bridge",
-            "true" if enable_gimbal_yaw_bridge_value else "false",
         ),
         SetLaunchConfiguration(
             "terrain_registered_scan_topic", terrain_registered_scan_topic_value
@@ -869,15 +701,6 @@ def _set_navigation_switches(
         SetLaunchConfiguration(
             "nav2_tf_warmup_timeout_sec",
             nav2_tf_warmup_timeout_sec_value,
-        ),
-        # Backward-compatible launch configurations (not used in this file anymore).
-        SetLaunchConfiguration(
-            "enable_auto_aim_yaw_bridge",
-            "true" if enable_gimbal_yaw_bridge_value else "false",
-        ),
-        SetLaunchConfiguration(
-            "enable_auto_aim_yaw_sim_pub",
-            "true" if enable_gimbal_yaw_bridge_value else "false",
         ),
     ]
 

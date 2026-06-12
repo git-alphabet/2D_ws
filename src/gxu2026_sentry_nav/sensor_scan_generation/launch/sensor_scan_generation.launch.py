@@ -40,7 +40,7 @@ def generate_launch_description():
 
     declare_lidar_frame = DeclareLaunchArgument(
         "lidar_frame",
-        default_value="front_mid360",
+        default_value="front_odin1",
         description="Frame ID for LiDAR sensor",
     )
 

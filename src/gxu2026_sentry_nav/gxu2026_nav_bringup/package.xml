@@ -20,13 +20,10 @@
   <exec_depend>pb_nav2_plugins</exec_depend>
   <exec_depend>gxu2026_sentry_nav</exec_depend>
   <exec_depend>odin_ros_driver</exec_depend>
-  <exec_depend>mid360_driver</exec_depend>
-  <exec_depend>point_lio</exec_depend>
   <exec_depend>loam_interface</exec_depend>
   <exec_depend>sensor_scan_generation</exec_depend>
   <exec_depend>terrain_analysis</exec_depend>
   <exec_depend>terrain_analysis_ext</exec_depend>
-  <exec_depend>scan_additive_adapter</exec_depend>
   <exec_depend>pb_omni_pid_pursuit_controller</exec_depend>
   <exec_depend>pointcloud_to_laserscan</exec_depend>
   <exec_depend>slam_toolbox</exec_depend>

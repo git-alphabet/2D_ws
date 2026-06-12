@@ -6,14 +6,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # odin1 bag 回放导航：固定使用仿真时钟，并关闭自动录包
 export REALITY_USE_SIM_TIME="True"
 export AUTO_RECORD_BAG="0"
-export BAG_MID360_IN_SLAM="1"
 export NAV2_TF_WARMUP_ENABLED="${NAV2_TF_WARMUP_ENABLED:-False}"
 export NAVIGATION_CMD="ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py \
     slam:=False \
     use_robot_state_pub:=True \
     use_sim_time:=True \
     use_odin_driver:=False \
-    use_mid360_driver:=False \
     publish_static_map_tf:=False \
     terrain_registered_scan_topic:=/odin1/cloud_slam \
     terrain_lidar_odometry_topic:=/odin1/odometry_highfreq \

@@ -6,17 +6,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ── odin1 bag 回放建图配置 ────────────────────────────────────────
 export REALITY_USE_SIM_TIME="True"
 export AUTO_RECORD_BAG="0"
-export BAG_MID360_IN_SLAM="1"
 
 # odin1 建图：use_robot_state_pub 补全 tf_static，use_sim_time 和 bag 时钟同步
-# 关闭 odin_driver、mid360_driver，bag 提供传感器数据
+# 关闭 odin_driver，bag 提供传感器数据
 # 关闭 publish_static_map_tf，避免和 SLAM 发布的 map->odom 冲突
 export MAPPING_CMD="ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py \
     slam:=True \
     use_robot_state_pub:=True \
     use_sim_time:=True \
     use_odin_driver:=False \
-    use_mid360_driver:=False \
     publish_static_map_tf:=False \
     terrain_registered_scan_topic:=/odin1/cloud_slam \
     terrain_lidar_odometry_topic:=/odin1/odometry_highfreq"

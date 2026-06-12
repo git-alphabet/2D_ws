@@ -3,7 +3,7 @@
 GXU RobotZ 2026 赛季 ROS 2 (Humble) 导航工作空间 —— RoboMaster 哨兵机器人。
 
 - Nav2 实车导航与建图（odin1 分支，无仿真）
-- 双 LiDAR 3D 点云融合（odin1 + mid360）
+- 单 LiDAR（odin1）3D 点云地形分析
 - Docker 容器开发，多分支构建缓存隔离
 
 > 导航主代码位于 `src/gxu2026_sentry_nav/`，包级说明见各子包 README。
@@ -126,20 +126,16 @@ colcon build --symlink-install
 flowchart LR
   subgraph Sensors
     A[odin_ros_driver\n定位/里程计主源]
-    B[mid360_driver]
   end
 
   subgraph Per-Sensor
-    B --> C[point_lio\nobstacle-only]
-    C --> D[loam_interface\nmid360 path]
     A --> E[sensor_scan_generation]
+    A --> D[loam_interface\nodin1 path]
   end
 
-  subgraph 3D Fusion
-    A -->|registered_scan| F[pointcloud_merge_sync]
-    D -->|mid360/registered_scan| F
-    F -->|merged_registered_scan| G[terrain_analysis_ext\n全局]
-    F -->|merged_registered_scan| H[terrain_analysis\n局部]
+  subgraph 3D
+    D -->|registered_scan| G[terrain_analysis_ext\n全局]
+    D -->|registered_scan| H[terrain_analysis\n局部]
   end
 
   subgraph Obstacle Map
@@ -151,8 +147,7 @@ flowchart LR
 
   subgraph Scan Chain
     G --> L[pointcloud_to_laserscan]
-    L --> M[scan_additive_adapter]
-    M --> N[obstacle_scan_additive]
+    L --> N[obstacle_scan]
   end
 
   subgraph Nav2
@@ -170,19 +165,15 @@ flowchart LR
 | 约定 | 说明 |
 |------|------|
 | 定位主源 | odin1，`odom -> base_footprint` 由 odin 驱动负责 |
-| mid360 角色 | 点云补盲，不接管定位，`point_lio` obstacle-only |
-| 3D 融合 | `pointcloud_merge_sync` 在 terrain_analysis 之前合并双 LiDAR（ApproximateTime 80ms） |
 | Costmap | `IntensityVoxelLayer`（3D 体素层），intensity = 地面相对高度 |
-| obstacle_scan | `obstacle_scan_additive` 共享话题 |
 | TF 防抖 | `sensor_scan_generation.publish_base_tf=false` |
-| 融合回退 | mid360 不可用时自动回退到 odin1 单源 |
 
 ### 5.3 开关（navigation_launch）
 
 | 参数 | 作用 |
 |------|------|
-| `enable_mid360_costmap_additive` | mid360 -> costmap 补盲 |
 | `enable_scan_additive` | scan 合成链路 |
+| `enable_terrain_analysis` | 地形分析（3D costmap） |
 
 ### 5.4 Odin 地图保存
 
