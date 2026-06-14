@@ -19,6 +19,9 @@ export NAV2_TF_WARMUP_TIMEOUT_SEC="${NAV2_TF_WARMUP_TIMEOUT_SEC:-30.0}"
 export ENABLE_TIMESTAMP_MONITOR="0"
 export TIMESTAMP_SYNC_MONITOR_CONFIG="${TIMESTAMP_SYNC_MONITOR_CONFIG:-$SCRIPT_DIR/config/timestamp_sync_monitor.yaml}"
 
+# 可视化选择：rviz | foxglove | none
+VISUALIZER=${VISUALIZER:-rviz}
+
 # Startup gate: ensure TF is ready before launching navigation
 export NAV2_STARTUP_GATE_ENABLED="${NAV2_STARTUP_GATE_ENABLED:-true}"
 export NAV2_TF_WARMUP_TARGET_FRAME="${NAV2_TF_WARMUP_TARGET_FRAME:-map}"
@@ -26,7 +29,15 @@ export NAV2_TF_WARMUP_SOURCE_FRAME="${NAV2_TF_WARMUP_SOURCE_FRAME:-gimbal_yaw_fa
 
 # 你想加/改 launch 参数，优先改这行（或运行时用环境变量覆盖 NAVIGATION_CMD）。
 # Keep Nav2 in localization/navigation mode so the saved 2D map is loaded.
-NAVIGATION_CMD=${NAVIGATION_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True odin_map_mode:=2 nav2_tf_warmup_enabled:=${NAV2_TF_WARMUP_ENABLED} nav2_tf_warmup_timeout_sec:=${NAV2_TF_WARMUP_TIMEOUT_SEC}"}
+
+# 根据 VISUALIZER 设置 use_rviz / use_foxglove
+case "${VISUALIZER}" in
+  foxglove) _rviz=False; _foxglove=True ;;
+  none)     _rviz=False; _foxglove=False ;;
+  *)        _rviz=True;  _foxglove=False ;;
+esac
+
+NAVIGATION_CMD=${NAVIGATION_CMD:-"ros2 launch gxu2026_nav_bringup rm_navigation_reality_launch.py slam:=False use_robot_state_pub:=True odin_map_mode:=2 use_rviz:=${_rviz} use_foxglove:=${_foxglove} nav2_tf_warmup_enabled:=${NAV2_TF_WARMUP_ENABLED} nav2_tf_warmup_timeout_sec:=${NAV2_TF_WARMUP_TIMEOUT_SEC}"}
 export NAVIGATION_CMD
 export KILL_EXISTING="${KILL_EXISTING:-1}"
 

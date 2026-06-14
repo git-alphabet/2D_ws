@@ -14,6 +14,7 @@
 
 
 import os
+import re
 from pathlib import Path
 
 import yaml  # type: ignore
@@ -57,6 +58,7 @@ def generate_launch_description():
     rviz_config_file = LaunchConfiguration("rviz_config_file")
     use_robot_state_pub = LaunchConfiguration("use_robot_state_pub")
     use_rviz = LaunchConfiguration("use_rviz")
+    use_foxglove = LaunchConfiguration("use_foxglove")
     odin_config_file = LaunchConfiguration("odin_config_file")
     use_odin_driver = LaunchConfiguration("use_odin_driver")
     terrain_registered_scan_topic = LaunchConfiguration("terrain_registered_scan_topic")
@@ -159,6 +161,20 @@ def generate_launch_description():
 
     declare_use_rviz_cmd = DeclareLaunchArgument(
         "use_rviz", default_value="True", description="Whether to start RVIZ"
+    )
+
+    declare_use_foxglove_cmd = DeclareLaunchArgument(
+        "use_foxglove",
+        default_value="False",
+        description="Whether to start foxglove_bridge for remote visualization",
+    )
+
+    declare_foxglove_topics_file_cmd = DeclareLaunchArgument(
+        "foxglove_topics_file",
+        default_value=os.path.join(
+            bringup_dir, "config", "reality", "foxglove_topics.txt"
+        ),
+        description="Plain text file with one topic per line (# = comment). Auto-wrapped as regex.",
     )
 
     declare_odin_config_file_cmd = DeclareLaunchArgument(
@@ -425,6 +441,43 @@ def generate_launch_description():
         }.items(),
     )
 
+    # NOTE: executable name is "foxglove_bridge" per ros2 convention.
+    # If it fails to start, verify with: ros2 pkg executables foxglove_bridge
+    def _launch_foxglove(context, *, use_foxglove_arg, topics_file_arg, namespace_arg):
+        if not _optional_bool(use_foxglove_arg.perform(context)):
+            return []
+        topics_path = Path(topics_file_arg.perform(context)).expanduser()
+        topic_whitelist = []
+        if topics_path.is_file():
+            for line in topics_path.read_text().splitlines():
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    topic_whitelist.append(f"^{re.escape(line)}$")
+        ns = (namespace_arg.perform(context) or "").strip()
+        node_name = "foxglove_bridge"
+        params = {"address": "0.0.0.0", "port": 8765}
+        if topic_whitelist:
+            params["topic_whitelist"] = topic_whitelist
+        return [
+            Node(
+                package="foxglove_bridge",
+                executable="foxglove_bridge",
+                name=node_name,
+                output="screen",
+                namespace=ns,
+                parameters=[params],
+            ),
+        ]
+
+    foxglove_cmd = OpaqueFunction(
+        function=_launch_foxglove,
+        kwargs={
+            "use_foxglove_arg": use_foxglove,
+            "topics_file_arg": LaunchConfiguration("foxglove_topics_file"),
+            "namespace_arg": namespace,
+        },
+    )
+
     bringup_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(launch_dir, "bringup_launch.py")),
         launch_arguments={
@@ -488,6 +541,8 @@ def generate_launch_description():
     ld.add_action(declare_use_robot_state_pub_cmd)
     ld.add_action(declare_robot_name_cmd)
     ld.add_action(declare_use_rviz_cmd)
+    ld.add_action(declare_use_foxglove_cmd)
+    ld.add_action(declare_foxglove_topics_file_cmd)
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_odin_config_file_cmd)
     ld.add_action(declare_use_odin_driver_cmd)
@@ -506,6 +561,7 @@ def generate_launch_description():
     ld.add_action(bringup_cmd)
     ld.add_action(relocalization_fallback_cmd)
     ld.add_action(rviz_cmd)
+    ld.add_action(foxglove_cmd)
 
     # CALIB_HELPER_MODE:
     #   off/false/0  disable the independent RViz map calibration helper
