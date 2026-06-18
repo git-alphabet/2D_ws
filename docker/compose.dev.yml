@@ -28,6 +28,7 @@
 
 x-base: &base
   image: ${DOCKERHUB_NS:-alphabet2006}/${IMAGE_REPO:-gxu2026-nav-env}:${IMAGE_TAG:-latest}
+  pull_policy: never
   network_mode: host
   privileged: true
   init: true
