@@ -49,7 +49,7 @@ controller_server:
     # 是否使用仿真时间。
     use_sim_time: False
     # 里程计话题。
-    odom_topic: odin1/odometry_highfreq
+    odom_topic: odin1/odometry
     # 控制器循环频率，单位 Hz。
     controller_frequency: 20.0
     # 控制失败容忍时间，单位秒。
@@ -230,7 +230,7 @@ sensor_scan_generation_runtime:
     # 输入点云话题。
     registered_scan_topic: "odin1/cloud_slam"
     # 输入里程计话题。
-    lidar_odometry_topic: "odin1/odometry_highfreq"
+    lidar_odometry_topic: "odin1/odometry"
 
 # 地形分析：输出 terrain_map（用于代价地图的点云观测源）
 terrain_analysis:
@@ -289,7 +289,7 @@ terrain_analysis:
     disRatioZ: 0.2                      # Z 值的最大最小范围由这两个值决定，但是并不等于这两个值，是有一个比例关系的，距离机器人越远，限定范围就越大，这其中考虑了坡度
 
 # 地形分析输入源：
-# - 默认走 odin1 的 cloud_slam + odometry_highfreq
+# - 默认走 odin1 的 cloud_slam + odometry
 # - enable_odin1_loam_reframe=true 时，odometry 会被 launch 自动切到 lidar_odometry
 # - 若需改源，可在这里改，或 launch 入参覆盖
 terrain_analysis_runtime:
@@ -302,7 +302,7 @@ terrain_analysis_runtime:
     # 输入点云话题。
     registered_scan_topic: "odin1/cloud_slam"
     # 输入里程计话题。
-    lidar_odometry_topic: "odin1/odometry_highfreq"
+    lidar_odometry_topic: "odin1/odometry"
 
 # 地形分析（扩展版）：输出 terrain_map_ext（全局代价地图常用）
 terrain_analysis_ext:
@@ -532,7 +532,7 @@ bt_navigator:
     # 机器人底盘基坐标系。
     robot_base_frame: gimbal_yaw
     # 里程计话题。
-    odom_topic: odin1/odometry_highfreq
+    odom_topic: odin1/odometry
     # BT 主循环周期，单位秒。
     bt_loop_duration: 10
     # 默认服务超时时间，单位秒。
@@ -958,7 +958,7 @@ velocity_smoother:
     # 最大减速度限制。
     max_decel: [-4.5, -4.5, -5.0]
     # 里程计话题。
-    odom_topic: "odin1/odometry_highfreq"
+    odom_topic: "odin1/odometry"
     # 里程计缓存时长，单位秒。
     odom_duration: 0.1
     # 速度死区。

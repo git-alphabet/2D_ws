@@ -197,7 +197,7 @@ def generate_launch_description():
 
     declare_terrain_lidar_odometry_topic_cmd = DeclareLaunchArgument(
         "terrain_lidar_odometry_topic",
-        default_value="odin1/odometry_highfreq",
+        default_value="odin1/odometry",
         description="Optional override for terrain odometry input topic",
     )
 
@@ -209,7 +209,7 @@ def generate_launch_description():
 
     declare_sensor_scan_lidar_odometry_topic_cmd = DeclareLaunchArgument(
         "sensor_scan_lidar_odometry_topic",
-        default_value="odin1/odometry_highfreq",
+        default_value="odin1/odometry",
         description="Optional override for sensor_scan_generation odometry input topic",
     )
 
