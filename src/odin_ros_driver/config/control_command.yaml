@@ -1,21 +1,21 @@
 register_keys:
   # if off, allow connection even if usb connection is below usb 3.0
   # ATTENTION: usb 3.0 is always recommended, as advance functionality like SLAM mode requires usb 3.0 for reliable map file transfer
-  strict_usb3.0_check: 0  # 0: off: 1: on;
+  strict_usb3.0_check: 1  # 0: off: 1: on;
 
   # 0: use odin internal system time as data time stamp, typical and recommended;
   # 1: use host ros time (upon receive) as data time stamp, only use if you specifically require this setup, not recommended for most users
   # 2: align odin1 time to host time, timestamp is the sensor data reception time on host time axis
-  use_host_ros_time: 0  # Changed to 0 to use device timestamp without PTP offset correction
+  use_host_ros_time: 2  # Changed to 0 to use device timestamp without PTP offset correction
 
   streamctrl: 1           # 0: off; 1: on
 
   # original rgb data in jpeg format from device
-  sendrgbcompressed: 1    # 0: off; 1: on
+  sendrgbcompressed: 0    # 0: off; 1: on
 
   # RGB data, decoded from original jpeg data from device, bgr8 format
   # Processed on host device
-  sendrgb: 1              # 0: off; 1: on
+  sendrgb: 0              # 0: off; 1: on
 
   # undistort rgb image processed from decoded rgb data.
   # depends on sendrgb. related camera parameters can be found in ws/src/odin_ros_driver/config/calib.yaml
@@ -23,7 +23,7 @@ register_keys:
   sendrgbundistort: 0    # 0: off; 1: on.
 
   # IMU data
-  sendimu: 1              # 0: off; 1: on
+  sendimu: 0              # 0: off; 1: on
 
   # SDK IMU smooth sending feature
   # When enabled, SDK will send IMU data at precise intervals (default 400Hz) 
@@ -44,7 +44,7 @@ register_keys:
   odom_base_frame_id: "base_footprint"
 
   # raw dtof data
-  senddtof: 1             # 0: off; 1: on
+  senddtof: 0             # 0: off; 1: on
   cloud_raw_confidence_threshold: 35 # please refer to readme for more details
   
   # dtof sensor frame rate. Supported values: 100 (10fps) or 145 (14.5fps)
@@ -57,7 +57,7 @@ register_keys:
 
   # processed with raw point cloud, rgb image, and calib.yaml from device
   # Processed on host device
-  sendcloudrender: 1      # 0: off; 1: on
+  sendcloudrender: 0      # 0: off; 1: on
 
   # depth completion demo, high computing resource usage. 
   # for more information please refer to the readme file.
