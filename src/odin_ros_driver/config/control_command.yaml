@@ -40,6 +40,9 @@ register_keys:
   # ATTENTION: critical for rviz to show cloud_raw.
   send_odom_baselink_tf: 1 # 0: off; 1: on.
 
+  # Child frame id used by odometry/TF and related cloud headers.
+  odom_base_frame_id: "base_footprint"
+
   # raw dtof data
   senddtof: 1             # 0: off; 1: on
   cloud_raw_confidence_threshold: 35 # please refer to readme for more details

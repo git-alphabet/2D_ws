@@ -235,6 +235,14 @@ class RosNodeControlImpl : public RosNodeControlInterface {
             return pub_odom_baselink_tf;
         }
 
+        void setOdomBaseFrameId(const std::string& odom_base_frame_id) override {
+            odom_base_frame_id_ = odom_base_frame_id;
+        }
+
+        const std::string& odomBaseFrameId() const override {
+            return odom_base_frame_id_;
+        }
+
         void setCloudRawConfidenceThreshold(int threshold) {
             cloud_raw_confidence_threshold = threshold;
         }
@@ -245,6 +253,7 @@ class RosNodeControlImpl : public RosNodeControlInterface {
         int dtof_subframe_interval_time = 0;
         bool pub_use_host_ros_time = false;
         bool pub_odom_baselink_tf = false;
+        std::string odom_base_frame_id_ = "base_footprint";
         int cloud_raw_confidence_threshold = 35;
     };
     
@@ -2241,6 +2250,8 @@ int main(int argc, char *argv[])
             auto it = keys_w_str_val.find(key);
             return it != keys_w_str_val.end() ? it->second : default_value;
         };
+
+        g_rosNodeControlImpl.setOdomBaseFrameId(get_key_str_value("odom_base_frame_id", "base_footprint"));
 
         g_relocalization_map_abs_path = get_key_str_value("relocalization_map_abs_path", "");
         g_mapping_result_dest_dir = get_key_str_value("mapping_result_dest_dir", "");
