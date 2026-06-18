@@ -1,0 +1,14 @@
+# foxglove_bridge 话题白名单
+# 每行一个话题名，# 开头为注释，空行忽略
+# 不需要写 regex 锚点，launch 文件会自动处理
+/tf
+/tf_static
+/odom
+/cmd_vel
+/map
+/plan
+/local_costmap/costmap
+/global_costmap/costmap
+/registered_scan
+/terrain_map_ext
+/terrain_map

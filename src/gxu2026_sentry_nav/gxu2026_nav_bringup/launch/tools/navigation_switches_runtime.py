@@ -422,7 +422,7 @@ def _set_navigation_switches(
                 "ros__parameters", {}
             )
             desired_loam_params = {
-                "state_estimation_topic": "odin1/odometry_highfreq",
+                "state_estimation_topic": "odin1/odometry",
                 "registered_scan_topic": "odin1/cloud_slam",
                 "odom_frame": "odom",
                 "base_frame": "base_footprint",
@@ -454,7 +454,7 @@ def _set_navigation_switches(
             if switches_terrain_lidar_odometry_topic:
                 terrain_lidar_odometry_topic_value = switches_terrain_lidar_odometry_topic
             elif odometry_source == "odin1" and not sim_enabled:
-                terrain_lidar_odometry_topic_value = "odin1/odometry_highfreq"
+                terrain_lidar_odometry_topic_value = "odin1/odometry"
 
             if switches_sensor_scan_registered_scan_topic:
                 sensor_scan_registered_scan_topic_value = (
@@ -468,7 +468,7 @@ def _set_navigation_switches(
                     switches_sensor_scan_lidar_odometry_topic
                 )
             elif odometry_source == "odin1" and not sim_enabled:
-                sensor_scan_lidar_odometry_topic_value = "odin1/odometry_highfreq"
+                sensor_scan_lidar_odometry_topic_value = "odin1/odometry"
 
         raw_frame_name = switches.get("neupan_fake_frame")
         if isinstance(raw_frame_name, str):
