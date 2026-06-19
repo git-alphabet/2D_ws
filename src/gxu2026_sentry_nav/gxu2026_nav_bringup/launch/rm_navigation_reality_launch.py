@@ -56,7 +56,6 @@ def generate_launch_description():
     use_composition = LaunchConfiguration("use_composition")
     use_respawn = LaunchConfiguration("use_respawn")
     rviz_config_file = LaunchConfiguration("rviz_config_file")
-    use_robot_state_pub = LaunchConfiguration("use_robot_state_pub")
     use_rviz = LaunchConfiguration("use_rviz")
     use_foxglove = LaunchConfiguration("use_foxglove")
     odin_config_file = LaunchConfiguration("odin_config_file")
@@ -135,12 +134,6 @@ def generate_launch_description():
         "use_respawn",
         default_value="False",
         description="Whether to respawn if a node crashes. Applied when composition is disabled.",
-    )
-
-    declare_use_robot_state_pub_cmd = DeclareLaunchArgument(
-        "use_robot_state_pub",
-        default_value="False",
-        description="Whether to start the robot state publisher",
     )
 
     declare_robot_name_cmd = DeclareLaunchArgument(
@@ -401,19 +394,6 @@ def generate_launch_description():
         },
     )
 
-    start_robot_state_publisher_cmd = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(launch_dir, "robot_state_publisher_launch.py")
-        ),
-        # NOTE: This startup file is only used when the navigation module is standalone
-        condition=IfCondition(use_robot_state_pub),
-        launch_arguments={
-            "namespace": namespace,
-            "use_sim_time": use_sim_time,
-            "robot_name": LaunchConfiguration("resolved_robot_name"),
-        }.items(),
-    )
-
     # Delay odin driver to avoid CPU contention during composable node loading.
     # The driver floods HIGHFREQ_ODOM data on connect, starving the container.
     start_odin_driver_node = TimerAction(
@@ -427,6 +407,30 @@ def generate_launch_description():
                 namespace=namespace,
                 parameters=[{"config_file": odin_config_file}],
                 condition=IfCondition(use_odin_driver),
+            )
+        ],
+    )
+
+    # Robot marker publisher: publishes an arrow marker to represent robot position and yaw
+    start_robot_marker_publisher_node = TimerAction(
+        period=6.0,
+        actions=[
+            Node(
+                package="robot_marker_publisher",
+                executable="robot_marker_publisher_node",
+                name="robot_marker_publisher",
+                output="screen",
+                namespace=namespace,
+                parameters=[{
+                    "odometry_topic": "odin1/odometry",
+                    "marker_topic": "robot_marker",
+                    "marker_color_r": 0.0,
+                    "marker_color_g": 1.0,
+                    "marker_color_b": 0.0,
+                    "marker_scale_x": 0.5,
+                    "marker_scale_y": 0.1,
+                    "marker_scale_z": 0.1,
+                }],
             )
         ],
     )
@@ -538,7 +542,6 @@ def generate_launch_description():
     ld.add_action(declare_autostart_cmd)
     ld.add_action(declare_use_composition_cmd)
     ld.add_action(declare_rviz_config_file_cmd)
-    ld.add_action(declare_use_robot_state_pub_cmd)
     ld.add_action(declare_robot_name_cmd)
     ld.add_action(declare_use_rviz_cmd)
     ld.add_action(declare_use_foxglove_cmd)
@@ -556,8 +559,8 @@ def generate_launch_description():
     ld.add_action(set_robot_name_cmd)
 
     # Add the actions to launch all of the navigation nodes
-    ld.add_action(start_robot_state_publisher_cmd)
     ld.add_action(start_odin_driver_node)
+    ld.add_action(start_robot_marker_publisher_node)
     ld.add_action(bringup_cmd)
     ld.add_action(relocalization_fallback_cmd)
     ld.add_action(rviz_cmd)

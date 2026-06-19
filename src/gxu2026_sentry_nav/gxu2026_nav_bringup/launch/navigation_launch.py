@@ -176,12 +176,6 @@ def generate_launch_description():
         ),
     )
 
-    declare_enable_odin1_loam_reframe_cmd = DeclareLaunchArgument(
-        "enable_odin1_loam_reframe",
-        default_value="false",
-        description="Enable odin1->loam odometry reframing to output odom/lidar_frame semantics",
-    )
-
     declare_nav2_tf_warmup_enabled_cmd = DeclareLaunchArgument(
         "nav2_tf_warmup_enabled",
         default_value="True",
@@ -213,7 +207,6 @@ def generate_launch_description():
     )
 
     enable_obstacle_scan = LaunchConfiguration("enable_obstacle_scan")
-    enable_odin1_loam_reframe = LaunchConfiguration("enable_odin1_loam_reframe")
     enable_scan_additive = LaunchConfiguration("enable_scan_additive")
     enable_terrain_analysis = LaunchConfiguration("enable_terrain_analysis")
     obstacle_scan_output_topic = LaunchConfiguration("obstacle_scan_output_topic")
@@ -259,7 +252,6 @@ def generate_launch_description():
             sensor_scan_registered_scan_topic=sensor_scan_registered_scan_topic,
             sensor_scan_lidar_odometry_topic=sensor_scan_lidar_odometry_topic,
             enable_obstacle_scan=enable_obstacle_scan,
-            enable_odin1_loam_reframe=enable_odin1_loam_reframe,
             enable_scan_additive=enable_scan_additive,
             enable_terrain_analysis=enable_terrain_analysis,
             obstacle_scan_output_topic=obstacle_scan_output_topic,
@@ -292,7 +284,6 @@ def generate_launch_description():
     ld.add_action(declare_terrain_lidar_odometry_topic_cmd)
     ld.add_action(declare_sensor_scan_registered_scan_topic_cmd)
     ld.add_action(declare_sensor_scan_lidar_odometry_topic_cmd)
-    ld.add_action(declare_enable_odin1_loam_reframe_cmd)
     ld.add_action(declare_nav2_tf_warmup_enabled_cmd)
     ld.add_action(declare_nav2_tf_warmup_target_frame_cmd)
     ld.add_action(declare_nav2_tf_warmup_source_frame_cmd)
@@ -301,7 +292,6 @@ def generate_launch_description():
     # processed params defaults to original params file
     ld.add_action(SetLaunchConfiguration("processed_params_file", params_file))
     ld.add_action(SetLaunchConfiguration("enable_obstacle_scan", "false"))
-    ld.add_action(SetLaunchConfiguration("enable_odin1_loam_reframe", "false"))
     ld.add_action(SetLaunchConfiguration("enable_scan_additive", "false"))
     ld.add_action(SetLaunchConfiguration("enable_terrain_analysis", "true"))
     ld.add_action(SetLaunchConfiguration("obstacle_scan_output_topic", "obstacle_scan"))

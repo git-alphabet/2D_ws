@@ -56,7 +56,6 @@ def build_navigation_runtime_actions(
     sensor_scan_registered_scan_topic,
     sensor_scan_lidar_odometry_topic,
     enable_obstacle_scan,
-    enable_odin1_loam_reframe,
     enable_scan_additive,
     enable_terrain_analysis,
     obstacle_scan_output_topic,
@@ -67,8 +66,6 @@ def build_navigation_runtime_actions(
     nav2_tf_warmup_check_hz,
     lifecycle_nodes,
 ):
-    enable_loam_interface = IfCondition(enable_odin1_loam_reframe)
-
     terrain_analysis_condition = IfCondition(enable_terrain_analysis)
 
     # pointcloud_to_laserscan: terrain analysis enabled
@@ -197,17 +194,6 @@ def build_navigation_runtime_actions(
     load_nodes = GroupAction(
         condition=UnlessCondition(use_composition),
         actions=[
-            Node(
-                package="loam_interface",
-                executable="loam_interface_node",
-                name="loam_interface",
-                output="screen",
-                respawn=use_respawn,
-                respawn_delay=2.0,
-                parameters=[configured_params],
-                arguments=["--ros-args", "--log-level", log_level],
-                condition=enable_loam_interface,
-            ),
             Node(
                 package="sensor_scan_generation",
                 executable="sensor_scan_generation_node",
@@ -369,29 +355,6 @@ def build_navigation_runtime_actions(
         ],
     )
 
-    load_loam_composable_node = LoadComposableNodes(
-        condition=IfCondition(
-            PythonExpression(
-                [
-                    "('",
-                    use_composition,
-                    "' == 'True') and ('",
-                    enable_odin1_loam_reframe,
-                    "' == 'true')",
-                ]
-            )
-        ),
-        target_container=container_name_full,
-        composable_node_descriptions=[
-            ComposableNode(
-                package="loam_interface",
-                plugin="loam_interface::LoamInterfaceNode",
-                name="loam_interface",
-                parameters=[configured_params],
-            )
-        ],
-    )
-
     # Lifecycle manager with autostart: automatically activates all managed
     # nodes after the container and odin driver have had time to initialize.
     # The odin driver starts at t=5s and needs additional time to connect
@@ -414,7 +377,6 @@ def build_navigation_runtime_actions(
         start_terrain_analysis_ext_cmd,
         start_pointcloud_to_laserscan_no_terrain_cmd,
         load_nodes,
-        load_loam_composable_node,
         load_composable_nodes,
         load_pointcloud_to_laserscan_composable_cmd,
         start_lifecycle_manager_cmd,

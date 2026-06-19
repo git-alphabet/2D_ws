@@ -20,7 +20,6 @@
   <exec_depend>pb_nav2_plugins</exec_depend>
   <exec_depend>gxu2026_sentry_nav</exec_depend>
   <exec_depend>odin_ros_driver</exec_depend>
-  <exec_depend>loam_interface</exec_depend>
   <exec_depend>sensor_scan_generation</exec_depend>
   <exec_depend>terrain_analysis</exec_depend>
   <exec_depend>terrain_analysis_ext</exec_depend>

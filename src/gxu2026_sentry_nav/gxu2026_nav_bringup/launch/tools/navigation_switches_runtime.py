@@ -49,7 +49,6 @@ def _set_navigation_switches(
     controller_plugin_name = None
     neupan_frame_name = None
     enable_obstacle_scan_value = "false"
-    enable_odin1_loam_reframe_value = "false"
     enable_scan_additive_value = "false"
     obstacle_scan_output_topic_value = "obstacle_scan"
     terrain_registered_scan_topic_value = "registered_scan"
@@ -166,7 +165,6 @@ def _set_navigation_switches(
         switches = _get_ros_params_with_fallback("pb_navigation_switches")
         obstacle_scan_runtime = _get_ros_params_with_fallback("obstacle_scan_runtime")
         scan_additive_runtime = _get_ros_params_with_fallback("scan_additive_runtime")
-        loam_interface_runtime = _get_ros_params_with_fallback("loam_interface_runtime")
         terrain_analysis_runtime = _get_ros_params_with_fallback("terrain_analysis_runtime")
         enable_terrain_analysis_value = True  # default: enabled
         sensor_scan_generation_runtime = _get_ros_params_with_fallback(
@@ -369,106 +367,29 @@ def _set_navigation_switches(
             if obstacle_scan_output_topic_switch:
                 obstacle_scan_output_topic_value = obstacle_scan_output_topic_switch
 
-        odin1_loam_reframe_switch = _optional_bool(
-            loam_interface_runtime.get(
-                "enable_odin1_loam_reframe",
-                switches.get("enable_odin1_loam_reframe"),
+        if switches_terrain_registered_scan_topic:
+            terrain_registered_scan_topic_value = switches_terrain_registered_scan_topic
+        elif odometry_source == "odin1" and not sim_enabled:
+            terrain_registered_scan_topic_value = "odin1/cloud_slam"
+
+        if switches_terrain_lidar_odometry_topic:
+            terrain_lidar_odometry_topic_value = switches_terrain_lidar_odometry_topic
+        elif odometry_source == "odin1" and not sim_enabled:
+            terrain_lidar_odometry_topic_value = "odin1/odometry"
+
+        if switches_sensor_scan_registered_scan_topic:
+            sensor_scan_registered_scan_topic_value = (
+                switches_sensor_scan_registered_scan_topic
             )
-        )
-        if odin1_loam_reframe_switch is not None:
-            enable_odin1_loam_reframe_value = (
-                "true" if odin1_loam_reframe_switch else "false"
+        elif odometry_source == "odin1" and not sim_enabled:
+            sensor_scan_registered_scan_topic_value = "odin1/cloud_slam"
+
+        if switches_sensor_scan_lidar_odometry_topic:
+            sensor_scan_lidar_odometry_topic_value = (
+                switches_sensor_scan_lidar_odometry_topic
             )
-
-        odin1_external_axis_alignment_switch = _optional_bool(
-            loam_interface_runtime.get(
-                "enable_odin1_external_axis_alignment",
-                switches.get("enable_odin1_external_axis_alignment"),
-            )
-        )
-        odin1_external_axis_alignment_raw = loam_interface_runtime.get(
-            "enable_odin1_external_axis_alignment",
-            switches.get("enable_odin1_external_axis_alignment"),
-        )
-        odin1_external_axis_alignment_enabled = False
-        if odin1_external_axis_alignment_switch is not None:
-            odin1_external_axis_alignment_enabled = bool(
-                odin1_external_axis_alignment_switch
-            )
-        elif isinstance(odin1_external_axis_alignment_raw, str):
-            if odin1_external_axis_alignment_raw.strip().lower() == "auto":
-                odin_internal_alignment_enabled = _detect_odin_internal_axis_alignment()
-                odin1_external_axis_alignment_enabled = not odin_internal_alignment_enabled
-                print(
-                    "[navigation_launch] odin1 external axis alignment auto mode: "
-                    f"internal={odin_internal_alignment_enabled}, "
-                    f"external={odin1_external_axis_alignment_enabled}"
-                )
-
-        odin1_loam_reframe_enabled = (
-            enable_odin1_loam_reframe_value == "true"
-            and odometry_source == "odin1"
-            and not sim_enabled
-        )
-
-        if odin1_loam_reframe_enabled:
-            # odin1 loam output: point cloud/odometry both go through loam unified exit.
-            terrain_registered_scan_topic_value = "registered_scan"
-            terrain_lidar_odometry_topic_value = "lidar_odometry"
-            sensor_scan_registered_scan_topic_value = "registered_scan"
-            sensor_scan_lidar_odometry_topic_value = "lidar_odometry"
-
-            loam_params = target_data.setdefault("loam_interface", {}).setdefault(
-                "ros__parameters", {}
-            )
-            desired_loam_params = {
-                "state_estimation_topic": "odin1/odometry",
-                "registered_scan_topic": "odin1/cloud_slam",
-                "odom_frame": "odom",
-                "base_frame": "base_footprint",
-                "lidar_frame": "front_odin1",
-                "input_odom_semantics": "odom_to_base",
-                "input_cloud_semantics": "odom",
-                "align_odin_axes": odin1_external_axis_alignment_enabled,
-                "freeze_base_to_lidar_tf": False,
-                "tf_lookup_timeout_sec": 0.2,
-            }
-            for key, value in desired_loam_params.items():
-                if loam_params.get(key) != value:
-                    loam_params[key] = value
-                    switch_override_required = True
-
-            sensor_scan_params = target_data.setdefault(
-                "sensor_scan_generation", {}
-            ).setdefault("ros__parameters", {})
-            if sensor_scan_params.get("publish_base_tf") is not False:
-                sensor_scan_params["publish_base_tf"] = False
-                switch_override_required = True
-
-        if not odin1_loam_reframe_enabled:
-            if switches_terrain_registered_scan_topic:
-                terrain_registered_scan_topic_value = switches_terrain_registered_scan_topic
-            elif odometry_source == "odin1" and not sim_enabled:
-                terrain_registered_scan_topic_value = "odin1/cloud_slam"
-
-            if switches_terrain_lidar_odometry_topic:
-                terrain_lidar_odometry_topic_value = switches_terrain_lidar_odometry_topic
-            elif odometry_source == "odin1" and not sim_enabled:
-                terrain_lidar_odometry_topic_value = "odin1/odometry"
-
-            if switches_sensor_scan_registered_scan_topic:
-                sensor_scan_registered_scan_topic_value = (
-                    switches_sensor_scan_registered_scan_topic
-                )
-            elif odometry_source == "odin1" and not sim_enabled:
-                sensor_scan_registered_scan_topic_value = "odin1/cloud_slam"
-
-            if switches_sensor_scan_lidar_odometry_topic:
-                sensor_scan_lidar_odometry_topic_value = (
-                    switches_sensor_scan_lidar_odometry_topic
-                )
-            elif odometry_source == "odin1" and not sim_enabled:
-                sensor_scan_lidar_odometry_topic_value = "odin1/odometry"
+        elif odometry_source == "odin1" and not sim_enabled:
+            sensor_scan_lidar_odometry_topic_value = "odin1/odometry"
 
         raw_frame_name = switches.get("neupan_fake_frame")
         if isinstance(raw_frame_name, str):
@@ -664,10 +585,6 @@ def _set_navigation_switches(
     return [
         SetLaunchConfiguration("processed_params_file", processed_file),
         SetLaunchConfiguration("enable_obstacle_scan", enable_obstacle_scan_value),
-        SetLaunchConfiguration(
-            "enable_odin1_loam_reframe",
-            enable_odin1_loam_reframe_value,
-        ),
         SetLaunchConfiguration("enable_scan_additive", enable_scan_additive_value),
         SetLaunchConfiguration(
             "enable_terrain_analysis",
