@@ -7,41 +7,6 @@ pb_navigation_switches:
     # 行为树配置名。
     behavior_tree: "none"
 
-# 机器人描述文件基名：对应 gxu2026_robot_description/resource/xmacro/<name>.sdf.xmacro
-robot_description_runtime:
-  ros__parameters:
-    # 机器人描述文件名。
-    robot_description_file: "gxu2026_sentry_robot"
-
-   # 标定辅助节点模式：
-    #   off     关闭
-    #   slam    仅 SLAM 时启动（默认）
-    #   always  任何时候都启动（含纯导航）
-    # 标定辅助节点模式。
-    calib_helper_mode: "always"
-    # 是否不保存 CSV 文件（true 表示跳过 CSV 写入）
-    # 是否跳过 CSV 输出。
-    calib_no_csv: false
-
-
-    bag_record:
-      enabled: false
-      profiles:
-        replay_full:
-          name: replay_full
-          enabled: true
-          mode: full
-          storage: mcap
-          compress: ""
-          out_dir: "/ws/bags"
-        raw_debug:
-          name: raw_debug
-          enabled: true
-          mode: raw
-          storage: mcap
-          compress: ""
-          out_dir: "/ws/bags"
-
 # NeuPAN 插件参数已迁移到 neupan_nav2_controller/config/reality/neupan.yaml 维护。
 # 切换为 NeuPAN 控制器时，navigation_launch.py 会自动加载该文件并将 FollowPath 合并到 controller_server。
 controller_server:
@@ -154,58 +119,11 @@ pb_controller_profiles:
       # 最大速度缩放系数。
       max_velocity_scaling_factor_rate: 0.9
 
-# LOAM 接口：把状态估计/点云里程计转换成 Nav2 期望的 odom/base 等
-loam_interface:
-  ros__parameters:
-    # 是否使用仿真时间。
-    use_sim_time: False
-    # 默认用于 mid360；当 enable_odin1_loam_reframe=true 时，会在 launch 中自动改写为 odin1 输入并输出 lidar_odometry
-    # 状态估计话题。
-    state_estimation_topic: "aft_mapped_to_init"
-    # 输入点云话题。
-    registered_scan_topic: "cloud_registered"
-    # 输出里程计坐标系。
-    odom_frame: "odom"
-    # 机器人底盘坐标系。
-    base_frame: "base_footprint"
-    # 激光雷达坐标系。
-    lidar_frame: "front_odin1"
-    # 输入语义：
-    # - lidar_odom_to_lidar: lidar odom 语义
-    # - odom_to_base: odin1 输入是 odom->base_footprint
-    # 里程计输入语义。
-    input_odom_semantics: "lidar_odom_to_lidar"
-    # 点云输入语义：
-    # - lidar_odom: 输入点云在 lidar_odom 语义，需要变换到 odom
-    # - odom: 输入点云已是 odom 语义（如 odin1/cloud_slam）
-    # 点云输入语义。
-    input_cloud_semantics: "lidar_odom"
-    # 驱动外坐标对齐：x'=-y, y'=x, z'=z；四元数按同一基变换处理。
-    # 是否启用 odin 坐标轴对齐。
-    align_odin_axes: false
-    # true: 只缓存一次 base->lidar（适合固定安装）
-    # false: 每帧按时间戳更新 base->lidar（适合 front_odin1 挂在 gimbal_yaw 的动态外参）
-    # 是否冻结 base 到 lidar 的 TF 缓存。
-    freeze_base_to_lidar_tf: true
-    # TF 查询超时时间，单位秒。
-    tf_lookup_timeout_sec: 0.2
-
-# loam 重组开关：把 odin1 里程计整理为 odom/lidar_frame 语义输出。
-loam_interface_runtime:
-  ros__parameters:
-    # 是否启用 odin1 loam 重组。
-    enable_odin1_loam_reframe: true
-    # 驱动外坐标对齐：用于承接原先在 odin_ros_driver 里的 x'=-y, y'=x 对齐逻辑。
-    # auto: 启动时自动检测驱动是否已内置对齐；旧驱动自动开启外部对齐，新驱动自动关闭避免重复旋转。
-    # odin1 外部轴对齐开关。
-    enable_odin1_external_axis_alignment: "auto"
-
 # 从点云生成 scan（给 slam_toolbox / obstacle_scan 等使用）
 sensor_scan_generation:
   ros__parameters:
     # 是否使用仿真时间。
     use_sim_time: False
-    # 点云默认仍走 odin1/cloud_slam；若开启 odin1 loam 重组，点云/里程计输入都由 launch 自动切到 loam 输出
     # 激光雷达坐标系。
     lidar_frame: "front_odin1"
     # 机器人底盘坐标系。
@@ -223,8 +141,6 @@ sensor_scan_generation:
     debug_tf_throttle_ms: 1000
 
 # sensor_scan_generation 输入源：
-# - 默认用 odin1 输出
-# - enable_odin1_loam_reframe=true 时，odometry 会被 launch 自动切到 lidar_odometry
 sensor_scan_generation_runtime:
   ros__parameters:
     # 输入点云话题。
@@ -290,7 +206,6 @@ terrain_analysis:
 
 # 地形分析输入源：
 # - 默认走 odin1 的 cloud_slam + odometry
-# - enable_odin1_loam_reframe=true 时，odometry 会被 launch 自动切到 lidar_odometry
 # - 若需改源，可在这里改，或 launch 入参覆盖
 terrain_analysis_runtime:
   ros__parameters:
