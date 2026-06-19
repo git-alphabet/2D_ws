@@ -47,7 +47,7 @@ Visualization Manager:
       Name: RobotModel
       TF Prefix: ""
       Update Interval: 0
-      Value: true
+      Value: false
       Visual Enabled: true
     - Class: rviz_default_plugins/TF
       Enabled: true
@@ -103,7 +103,7 @@ Visualization Manager:
         Value: obstacle_scan
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Alpha: 0.20000000298023224
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -171,7 +171,7 @@ Visualization Manager:
         Value: terrain_map_ext
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Alpha: 0.5
       Class: rviz_default_plugins/Map
       Color Scheme: map
@@ -314,7 +314,7 @@ Visualization Manager:
           Buffer Length: 1
           Class: rviz_default_plugins/Path
           Color: 0; 220; 0
-          Enabled: true
+          Enabled: false
           Head Diameter: 0.019999999552965164
           Head Length: 0.019999999552965164
           Length: 0.30000001192092896
@@ -337,7 +337,7 @@ Visualization Manager:
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: neupan_plan
-          Value: true
+          Value: false
         - Alpha: 0.800000011920929
           Class: rviz_default_plugins/PointStamped
           Color: 204; 41; 204
@@ -380,8 +380,22 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: waypoints
       Value: true
-    - Class: rviz_default_plugins/MarkerArray
+    - Alpha: 1
+      Class: rviz_default_plugins/Marker
+      Color: 0; 255; 0
       Enabled: true
+      Name: Robot Marker
+      Namespaces:
+        {}
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: robot_marker
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: false
       Name: Speed Bump Zone
       Namespaces:
         {}
@@ -391,9 +405,9 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: speed_bump_zone_markers
-      Value: true
+      Value: false
     - Class: rviz_default_plugins/MarkerArray
-      Enabled: true
+      Enabled: false
       Name: Calibrated Points
       Namespaces:
         {}
@@ -403,9 +417,9 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /calibrated_points
-      Value: true
+      Value: false
     - Class: rviz_default_plugins/MarkerArray
-      Enabled: true
+      Enabled: false
       Name: Calib Hint
       Namespaces:
         {}
@@ -415,7 +429,7 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /calib/current_label
-      Value: true
+      Value: false
 
   Enabled: true
   Global Options:
