@@ -10,32 +10,27 @@ import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from tools.wrapper_helpers import (
+from tools.wrapper_config import (
     GAZEBO_STARTUP_DELAY,
-    PGID_FILES,
     controller_plugin,
     enable_chassis_odometry_gt,
     in_docker,
     is_truthy,
-    kill_reality,
-    kill_sim,
-    neupan_env,
     pick_terminal_cmd,
     resolve_overlay_setup,
 )
-from tools.wrapper_models import BackgroundGroup, CommonConfig
-from tools.wrapper_runtime import (
+from tools.wrapper_launch import (
     ODIN_SAVE_GRACE_SEC,
     ensure_launch_arg,
     ensure_odin_mode_consistency,
     extract_launch_arg,
     launch_in_terminal,
-    start_bag_recording,
     save_map_now,
     save_odin_bin_now,
-    start_timestamp_monitor,
-    start_watchdog,
+    start_bag_recording,
 )
+from tools.wrapper_process import PGID_FILES, kill_reality, kill_sim
+from tools.wrapper_models import BackgroundGroup, CommonConfig
 
 
 def main(argv: list[str]) -> int:
@@ -100,12 +95,6 @@ def main(argv: list[str]) -> int:
     else:
         print(f"[{script_name}] controller_plugin unset.", file=sys.stderr)
 
-    try:
-        neupan_env_cmd = neupan_env(plugin, script_name=script_name)
-    except Exception as exc:
-        print(f"[{script_name}] {exc}", file=sys.stderr)
-        return 1
-
     if kill_existing:
         if is_sim:
             kill_sim(script_name)
@@ -165,13 +154,12 @@ def main(argv: list[str]) -> int:
         if is_multi_terminal:
             launch_in_terminal(cfg, "Gazebo Sim", gazebo_cmd, "")
             time.sleep(1.0)
-            launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env_cmd)
+            launch_in_terminal(cfg, fg_title, ros_cmd, "")
             return 0
 
         launch_in_terminal(cfg, "Gazebo Sim", gazebo_cmd, "", background=True, bg=bg)
         time.sleep(GAZEBO_STARTUP_DELAY)
-        start_watchdog(cfg, [("/registered_scan", 5.0), ("/Odometry", 10.0)], bg)
-        launch_in_terminal(cfg, fg_title, ros_cmd, neupan_env_cmd, pgid_file=PGID_FILES["sim"])
+        launch_in_terminal(cfg, fg_title, ros_cmd, "", pgid_file=PGID_FILES["sim"])
         return 0
 
     if mode == "reality_mapping":
@@ -196,10 +184,6 @@ def main(argv: list[str]) -> int:
     atexit.register(reality_bg.cleanup)
 
     start_bag_recording(cfg, reality_bg)
-    start_timestamp_monitor(cfg, reality_bg)
-
-    if is_truthy(os.environ.get("ENABLE_WATCHDOG")):
-        start_watchdog(cfg, [("/registered_scan", 5.0), ("/Odometry", 10.0), ("/scan", 5.0)], reality_bg)
 
     pre_shutdown_hook = None
     if mode == "reality_mapping":
@@ -228,7 +212,7 @@ def main(argv: list[str]) -> int:
         cfg,
         fg_title,
         ros_cmd,
-        neupan_env_cmd,
+        "",
         pgid_file=PGID_FILES["reality"],
         pre_shutdown_hook=pre_shutdown_hook,
     )
