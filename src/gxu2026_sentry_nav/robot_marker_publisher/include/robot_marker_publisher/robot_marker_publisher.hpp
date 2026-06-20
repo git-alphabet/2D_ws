@@ -18,6 +18,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <visualization_msgs/msg/marker.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 #include <string>
 
 namespace robot_marker_publisher
@@ -40,9 +41,10 @@ private:
   double marker_scale_x_;
   double marker_scale_y_;
   double marker_scale_z_;
+  double dot_radius_;
 
   // Publisher
-  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
 
   // Subscriber
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;

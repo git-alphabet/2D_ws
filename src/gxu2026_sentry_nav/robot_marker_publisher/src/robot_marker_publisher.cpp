@@ -29,6 +29,7 @@ RobotMarkerPublisher::RobotMarkerPublisher(const rclcpp::NodeOptions & options)
   this->declare_parameter<double>("marker_scale_x", 0.5);
   this->declare_parameter<double>("marker_scale_y", 0.1);
   this->declare_parameter<double>("marker_scale_z", 0.1);
+  this->declare_parameter<double>("dot_radius", 0.15);
 
   // Get parameters
   this->get_parameter("odometry_topic", odometry_topic_);
@@ -39,9 +40,10 @@ RobotMarkerPublisher::RobotMarkerPublisher(const rclcpp::NodeOptions & options)
   this->get_parameter("marker_scale_x", marker_scale_x_);
   this->get_parameter("marker_scale_y", marker_scale_y_);
   this->get_parameter("marker_scale_z", marker_scale_z_);
+  this->get_parameter("dot_radius", dot_radius_);
 
   // Publisher
-  marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>(marker_topic_, 10);
+  marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(marker_topic_, 10);
 
   // Subscriber
   odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -55,40 +57,57 @@ RobotMarkerPublisher::RobotMarkerPublisher(const rclcpp::NodeOptions & options)
 
 void RobotMarkerPublisher::odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
-  auto marker = visualization_msgs::msg::Marker();
+  visualization_msgs::msg::MarkerArray array;
+  auto stamp = msg->header.stamp;
 
-  // Header
-  marker.header.frame_id = msg->child_frame_id;
-  marker.header.stamp = msg->header.stamp;
+  // Triangle marker (yaw direction indicator)
+  visualization_msgs::msg::Marker triangle;
+  triangle.header.frame_id = "odom";
+  triangle.header.stamp = stamp;
+  triangle.ns = "robot";
+  triangle.id = 0;
+  triangle.type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
+  triangle.action = visualization_msgs::msg::Marker::ADD;
+  triangle.pose.position = msg->pose.pose.position;
+  triangle.pose.orientation = msg->pose.pose.orientation;
+  triangle.scale.x = 1.0;
+  triangle.scale.y = 1.0;
+  triangle.scale.z = 1.0;
+  triangle.color.r = marker_color_r_;
+  triangle.color.g = marker_color_g_;
+  triangle.color.b = marker_color_b_;
+  triangle.color.a = 0.8;
 
-  // Marker properties
-  marker.ns = "robot";
-  marker.id = 0;
-  marker.type = visualization_msgs::msg::Marker::ARROW;
-  marker.action = visualization_msgs::msg::Marker::ADD;
+  // Triangle vertices: arrow pointing +x, centered at origin
+  geometry_msgs::msg::Point p1, p2, p3;
+  p1.x = marker_scale_x_; p1.y = 0.0; p1.z = 0.0;
+  p2.x = -marker_scale_x_ * 0.5; p2.y = marker_scale_y_ * 0.5; p2.z = 0.0;
+  p3.x = -marker_scale_x_ * 0.5; p3.y = -marker_scale_y_ * 0.5; p3.z = 0.0;
+  triangle.points.push_back(p1);
+  triangle.points.push_back(p2);
+  triangle.points.push_back(p3);
+  array.markers.push_back(triangle);
 
-  // Position (from odometry)
-  marker.pose.position = msg->pose.pose.position;
+  // Dot marker (center position indicator)
+  visualization_msgs::msg::Marker dot;
+  dot.header.frame_id = "odom";
+  dot.header.stamp = stamp;
+  dot.ns = "robot";
+  dot.id = 1;
+  dot.type = visualization_msgs::msg::Marker::SPHERE;
+  dot.action = visualization_msgs::msg::Marker::ADD;
+  dot.pose.position = msg->pose.pose.position;
+  dot.pose.orientation.w = 1.0;
+  dot.scale.x = dot_radius_ * 2;
+  dot.scale.y = dot_radius_ * 2;
+  dot.scale.z = dot_radius_ * 2;
+  dot.color.r = 1.0;
+  dot.color.g = 1.0;
+  dot.color.b = 1.0;
+  dot.color.a = 1.0;
+  array.markers.push_back(dot);
 
-  // Orientation (from odometry)
-  marker.pose.orientation = msg->pose.pose.orientation;
-
-  // Scale (length, width, height)
-  marker.scale.x = marker_scale_x_;
-  marker.scale.y = marker_scale_y_;
-  marker.scale.z = marker_scale_z_;
-
-  // Color
-  marker.color.r = marker_color_r_;
-  marker.color.g = marker_color_g_;
-  marker.color.b = marker_color_b_;
-  marker.color.a = 1.0;
-
-  // Lifetime (0 = forever)
-  marker.lifetime.sec = 0;
-  marker.lifetime.nanosec = 0;
-
-  marker_pub_->publish(marker);
+  marker_pub_->publish(array);
 }
 
 }  // namespace robot_marker_publisher
