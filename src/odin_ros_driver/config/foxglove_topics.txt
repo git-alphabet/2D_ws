@@ -1,0 +1,21 @@
+# foxglove_bridge topic whitelist
+# Based on odin_ros2.rviz subscribed topics
+# one topic per line, # = comment, empty lines ignored
+
+/tf
+/tf_static
+/odin1/odometry
+/odin1/odometry_highfreq
+/odin1/cloud_raw
+/odin1/cloud_slam
+/odin1/cloud_render
+/odin1/image
+/odin1/image/undistorted
+/odin1/reprojected_image
+/odin1/depth_img_competetion
+/odin1/depth_img_competetion_cloud
+/odin1/camera_pose_visual
+/odin1/path
+/initialpose
+/goal_pose
+/clicked_point

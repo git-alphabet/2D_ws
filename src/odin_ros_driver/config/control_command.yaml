@@ -108,3 +108,8 @@ register_keys:
 
   # Algorithm reset settings
   resetalgo: 0            # 0: off; 1: on - send algo_reset command to device on startup
+
+  # Visualization mode: rviz2 or foxglove
+  visualization: "foxglove"
+  foxglove_port: 8765
+  foxglove_topics_file: "src/odin_ros_driver/config/foxglove_topics.txt"  # path to topic whitelist file, one topic per line, # = comment
