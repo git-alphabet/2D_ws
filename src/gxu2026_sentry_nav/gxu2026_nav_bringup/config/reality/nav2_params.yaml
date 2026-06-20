@@ -45,6 +45,54 @@ controller_server:
 # 控制器参数集合（传统控制器 profile）：这里的 profile 通常与仿真保持一致，便于复现调参。
 pb_controller_profiles:
   ros__parameters:
+    dwb_controller:
+      plugin: "dwb_core::DWBLocalPlanner"
+      # 前向模拟时间，单位秒。
+      sim_time: 1.5
+      # 线速度采样数。
+      linear_granularity: 0.05
+      # 角速度采样数。
+      angular_granularity: 0.025
+      # 轨迹生成器插件。
+      trajectory_generator_name: "dwb_plugins::StandardTrajectoryGenerator"
+      # 目标检查插件。
+      goal_checker_name: "dwb_plugins::SimpleGoalChecker"
+      # 前进批评插件列表。
+      critics: ["RotateToGoal", "ObstacleFootprint", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
+      RotateToGoal:
+        scale: 32.0
+        forward_sampling_distance: 0.5
+      ObstacleFootprint:
+        scale: 0.02
+        max_scaling_factor: 0.2
+        scaling_speed: 0.25
+      GoalAlign:
+        scale: 24.0
+        forward_point_distance: 0.325
+      PathAlign:
+        scale: 32.0
+        forward_point_distance: 0.325
+      PathDist:
+        scale: 32.0
+      GoalDist:
+        scale: 24.0
+      # 振荡超时时间，单位秒。
+      oscillation_reset_time: 5.0
+      # 振荡重置距离，单位米。
+      oscillation_reset_dist: 0.15
+      # 最小线速度，单位 m/s。
+      vx_min: -2.5
+      # 最大线速度，单位 m/s。
+      vx_max: 2.5
+      # 最小横向速度，单位 m/s。
+      vy_min: -2.5
+      # 最大横向速度，单位 m/s。
+      vy_max: 2.5
+      # 最小角速度，单位 rad/s。
+      vtheta_min: -3.0
+      # 最大角速度，单位 rad/s。
+      vtheta_max: 3.0
+
     neupan_nav2_controller:
       plugin: "nav2_neupan_controller::NeuPANController"
       dune_model_path: "/ws/src/gxu2026_sentry_nav/neupan_nav2_controller/model/model_8000.pth"
