@@ -587,6 +587,18 @@ Visualization Manager:
       Name: Controller
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
+      Name: Robot Marker
+      Namespaces:
+        robot: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: robot_marker
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
       Name: WayPoints
       Namespaces:
         {}
