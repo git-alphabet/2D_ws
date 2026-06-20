@@ -1,9 +1,9 @@
-# compose.snapshot.yml — 将当前运行中的开发容器快照为新镜像并推送
+# compose.snapshot.yml — 将当前运行中的开发容器快照为本地新镜像
 # 用法（项目根目录执行）:
 #   docker compose -f docker/compose.snapshot.yml up --abort-on-container-exit --exit-code-from snapshot
 #
 # 可选参数（通过环境变量覆盖）:
-#   TARGET_CONTAINER=docker-nav-1   # 需要快照的容器名
+#   TARGET_CONTAINER=gxu2026-nav-robot   # 需要快照的容器名
 
 name: nav-snapshot
 
@@ -14,56 +14,49 @@ services:
       - .env
     working_dir: /workspace
     environment:
-      DOCKER_HUB_USER: ${DOCKER_HUB_USER:-}
-      IMAGE_NAME: ${IMAGE_NAME:-}
       DOCKERHUB_NS: ${DOCKERHUB_NS:-}
       IMAGE_REPO: ${IMAGE_REPO:-}
       TARGET_CONTAINER: ${TARGET_CONTAINER:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ..:/workspace:rw
     entrypoint:
       - /bin/sh
       - -lc
       - |
         set -eu
-        HUB_USER="$${DOCKER_HUB_USER:-$${DOCKERHUB_NS:-}}"
-        IMG_NAME="$${IMAGE_NAME:-$${IMAGE_REPO:-}}"
+        NS="$${DOCKERHUB_NS:-}"
+        REPO_NAME="$${IMAGE_REPO:-}"
 
-        if [ -z "$$HUB_USER" ] || [ -z "$$IMG_NAME" ]; then
-          echo "[ERROR] Missing image repo config. Please set one of the following variable groups in .env:"
-          echo "       1) DOCKER_HUB_USER + IMAGE_NAME"
-          echo "       2) DOCKERHUB_NS + IMAGE_REPO"
+        if [ -z "$$NS" ] || [ -z "$$REPO_NAME" ]; then
+          echo "[ERROR] Missing config in .env: DOCKERHUB_NS and IMAGE_REPO"
           exit 1
         fi
 
-        REPO="$$HUB_USER/$$IMG_NAME"
+        REPO="$$NS/$$REPO_NAME"
         TAG="$$(TZ=UTC-8 date +%Y%m%d%H%M)"
-        TARGET="$${TARGET_CONTAINER:-gxu2026-nav-laptop}"
+        TARGET="$${TARGET_CONTAINER:-}"
 
-        if ! docker container inspect "$$TARGET" >/dev/null 2>&1; then
-          if docker container inspect docker-nav-1 >/dev/null 2>&1; then
-            TARGET="docker-nav-1"
-          fi
+        # auto-detect running nav container
+        if [ -z "$$TARGET" ]; then
+          for c in gxu2026-nav-laptop gxu2026-nav-robot docker-nav-1; do
+            if docker container inspect "$$c" >/dev/null 2>&1; then
+              TARGET="$$c"
+              break
+            fi
+          done
         fi
 
-        if ! docker container inspect "$$TARGET" >/dev/null 2>&1; then
-          echo "[ERROR] Target container not found: $$TARGET"
-          echo "[HINT] Use 'docker ps' to check container name, or set TARGET_CONTAINER=xxx"
+        if [ -z "$$TARGET" ] || ! docker container inspect "$$TARGET" >/dev/null 2>&1; then
+          echo "[ERROR] No running nav container found. Set TARGET_CONTAINER=xxx"
+          docker ps --format '{{.Names}} {{.Status}}'
           exit 1
         fi
 
-        echo "[1/4] commit $$TARGET -> $$REPO:$$TAG"
+        echo "[1/2] commit $$TARGET -> $$REPO:$$TAG"
         docker commit "$$TARGET" "$$REPO:$$TAG"
 
-        echo "[2/4] tag latest"
+        echo "[2/2] tag latest"
         docker tag "$$REPO:$$TAG" "$$REPO:latest"
 
-        echo "[3/4] push $$REPO:$$TAG"
-        docker push "$$REPO:$$TAG"
-
-        echo "[4/4] push $$REPO:latest"
-        docker push "$$REPO:latest"
-
         echo "$$TAG" > /workspace/.last_snapshot_tag
-        echo "[DONE] Pushed $$REPO:$$TAG and $$REPO:latest"
+        echo "[DONE] $$REPO:$$TAG and $$REPO:latest saved locally"
