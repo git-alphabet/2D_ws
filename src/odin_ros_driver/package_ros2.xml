@@ -25,6 +25,7 @@
   <!-- AE/AWB debug services (custom .srv files in srv/) -->
   <buildtool_depend>rosidl_default_generators</buildtool_depend>
   <exec_depend>rosidl_default_runtime</exec_depend>
+  <exec_depend>foxglove_bridge</exec_depend>
   <member_of_group>rosidl_interface_packages</member_of_group>
   <!-- Specify build type as ament -->
   <export>  

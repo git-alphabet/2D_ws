@@ -30,10 +30,10 @@ def generate_launch_description():
         description='Path to RViz2 config file'
     )
 
-    # Read visualization config from yaml
+    # Read visualization config from yaml (under register_keys)
     config_path = os.path.join(package_dir, 'config', 'control_command.yaml')
     with open(config_path, 'r') as f:
-        vis_config = yaml.safe_load(f)
+        vis_config = yaml.safe_load(f).get('register_keys', {})
     visualization_mode = vis_config.get('visualization', 'rviz2')
     foxglove_port = vis_config.get('foxglove_port', 8765)
     foxglove_topics_file = vis_config.get('foxglove_topics_file', '') or \
