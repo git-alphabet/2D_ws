@@ -1,14 +1,11 @@
 pb_navigation_switches:
   ros__parameters:
     # 控制器插件名。
-    controller_plugin: "neupan_nav2_controller"
+    controller_plugin: "pb_omni_pid_pursuit_controller"
     # 里程计来源标识。
     odometry_source: "odin1"
     # 行为树配置名。
     behavior_tree: "none"
-
-# NeuPAN 插件参数已迁移到 neupan_nav2_controller/config/reality/neupan.yaml 维护。
-# 切换为 NeuPAN 控制器时，navigation_launch.py 会自动加载该文件并将 FollowPath 合并到 controller_server。
 controller_server:
   ros__parameters:
     # 是否使用仿真时间。
@@ -45,16 +42,6 @@ controller_server:
 # 控制器参数集合（传统控制器 profile）：这里的 profile 通常与仿真保持一致，便于复现调参。
 pb_controller_profiles:
   ros__parameters:
-    neupan_nav2_controller:
-      plugin: "nav2_neupan_controller::NeuPANController"
-      dune_model_path: "/ws/src/gxu2026_sentry_nav/neupan_nav2_controller/model/model_8000.pth"
-      neupan_config_path: "/ws/src/gxu2026_sentry_nav/gxu2026_nav_bringup/config/reality/neupan_planner.yaml"
-      max_linear_velocity: 2.5
-      max_angular_velocity: 3.0
-      robot_type: "omni"
-      marker_size: 0.05
-      marker_z: 1.0
-      
     pb_omni_pid_pursuit_controller:
       # 控制器插件类型。
       plugin: "pb_omni_pid_pursuit_controller::OmniPidPursuitController"
@@ -119,35 +106,6 @@ pb_controller_profiles:
       # 最大速度缩放系数。
       max_velocity_scaling_factor_rate: 0.9
 
-# 从点云生成 scan（给 slam_toolbox / obstacle_scan 等使用）
-sensor_scan_generation:
-  ros__parameters:
-    # 是否使用仿真时间。
-    use_sim_time: False
-    # 激光雷达坐标系。
-    lidar_frame: "front_odin1"
-    # 机器人底盘坐标系。
-    base_frame: "base_footprint"
-    # 机器人参考坐标系。
-    robot_base_frame: "gimbal_yaw"
-    # odin1 实车由 odin_ros_driver 发布 odom->base TF，避免与 sensor_scan_generation 重复发布。
-    # 是否发布 base TF。
-    publish_base_tf: false
-
-    # TF 调试：打印 TF lookup 是否成功，以及推导出来的 yaw(chassis->gimbal_yaw)
-    # 是否打印 TF 调试信息。
-    debug_tf: false
-    # 调试日志节流周期，单位毫秒。
-    debug_tf_throttle_ms: 1000
-
-# sensor_scan_generation 输入源：
-sensor_scan_generation_runtime:
-  ros__parameters:
-    # 输入点云话题。
-    registered_scan_topic: "odin1/cloud_slam"
-    # 输入里程计话题。
-    lidar_odometry_topic: "odin1/odometry"
-
 # 地形分析：输出 terrain_map（用于代价地图的点云观测源）
 terrain_analysis:
   ros__parameters:
@@ -209,7 +167,7 @@ terrain_analysis:
 # - 若需改源，可在这里改，或 launch 入参覆盖
 terrain_analysis_runtime:
   ros__parameters:
-    # 是否启用地形分析节点（terrain_analysis + terrain_analysis_ext）。
+    # 是否启用地形分析节点（terrain_analysis）。
     # 禁用后（2D 模式）需手动修改 costmap 的 observation_sources topic
     # 为 terrain_registered_scan_topic 的值（如 /odin1/cloud_slam）。
     # 2D 模式不融合，只取 odin1 数据。
@@ -261,6 +219,35 @@ terrain_analysis_ext:
     # 局部地形图半径，单位米。
     localTerrainMapRadius: 10.0
 
+# 从点云生成 scan（给 slam_toolbox / obstacle_scan 等使用）
+sensor_scan_generation:
+  ros__parameters:
+    # 是否使用仿真时间。
+    use_sim_time: False
+    # 激光雷达坐标系。
+    lidar_frame: "front_odin1"
+    # 机器人底盘坐标系。
+    base_frame: "base_footprint"
+    # 机器人参考坐标系。
+    robot_base_frame: "gimbal_yaw"
+    # odin1 实车由 odin_ros_driver 发布 odom->base TF，避免与 sensor_scan_generation 重复发布。
+    # 是否发布 base TF。
+    publish_base_tf: false
+
+    # TF 调试：打印 TF lookup 是否成功，以及推导出来的 yaw(chassis->gimbal_yaw)
+    # 是否打印 TF 调试信息。
+    debug_tf: false
+    # 调试日志节流周期，单位毫秒。
+    debug_tf_throttle_ms: 1000
+
+# sensor_scan_generation 输入源：
+sensor_scan_generation_runtime:
+  ros__parameters:
+    # 输入点云话题。
+    registered_scan_topic: "odin1/cloud_slam"
+    # 输入里程计话题。
+    lidar_odometry_topic: "odin1/odometry"
+
 # PointCloud2 -> LaserScan：用于传统 2D 代价地图/SLAM
 pointcloud_to_laserscan:
   ros__parameters:
@@ -296,7 +283,7 @@ pointcloud_to_laserscan:
     # 是否使用无穷远值表示无回波。
     use_inf: true
 
-# obstacle_scan 主链路开关（pointcloud_to_laserscan：terrain_map_ext -> scan）。
+# obstacle_scan 主链路开关（pointcloud_to_laserscan：terrain_map -> scan）。
 obstacle_scan_runtime:
   ros__parameters:
     # 是否启用 obstacle_scan 生成。

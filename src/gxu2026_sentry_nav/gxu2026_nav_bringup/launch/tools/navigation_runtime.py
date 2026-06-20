@@ -68,6 +68,44 @@ def build_navigation_runtime_actions(
 ):
     terrain_analysis_condition = IfCondition(enable_terrain_analysis)
 
+    # terrain_analysis: single-source odin1 path
+    start_terrain_analysis_cmd = Node(
+        package="terrain_analysis",
+        executable="terrainAnalysis",
+        name="terrain_analysis",
+        output="screen",
+        respawn=use_respawn,
+        respawn_delay=2.0,
+        arguments=["--ros-args", "--log-level", log_level],
+        parameters=[configured_params],
+        remappings=[
+            ("registered_scan", terrain_registered_scan_topic),
+            ("/registered_scan", terrain_registered_scan_topic),
+            ("lidar_odometry", terrain_lidar_odometry_topic),
+            ("/lidar_odometry", terrain_lidar_odometry_topic),
+        ],
+        condition=terrain_analysis_condition,
+    )
+
+    # terrain_analysis_ext: single-source odin1 path
+    start_terrain_analysis_ext_cmd = Node(
+        package="terrain_analysis_ext",
+        executable="terrainAnalysisExt",
+        name="terrain_analysis_ext",
+        output="screen",
+        respawn=use_respawn,
+        respawn_delay=2.0,
+        arguments=["--ros-args", "--log-level", log_level],
+        parameters=[configured_params],
+        remappings=[
+            ("registered_scan", terrain_registered_scan_topic),
+            ("/registered_scan", terrain_registered_scan_topic),
+            ("lidar_odometry", terrain_lidar_odometry_topic),
+            ("/lidar_odometry", terrain_lidar_odometry_topic),
+        ],
+        condition=terrain_analysis_condition,
+    )
+
     # pointcloud_to_laserscan: terrain analysis enabled
     start_pointcloud_to_laserscan_cmd = Node(
         package="pointcloud_to_laserscan",
@@ -79,7 +117,7 @@ def build_navigation_runtime_actions(
         parameters=[configured_params],
         arguments=["--ros-args", "--log-level", log_level],
         remappings=[
-            ("cloud_in", "terrain_map_ext"),
+            ("cloud_in", "terrain_map"),
             ("scan", "obstacle_scan"),
         ],
         condition=IfCondition(
@@ -120,75 +158,6 @@ def build_navigation_runtime_actions(
                 ]
             )
         ),
-    )
-
-    # NOTE: composable mode only supports terrain_analysis enabled scenario.
-    # When terrain analysis is disabled, use non-composable mode (use_composition=False).
-    load_pointcloud_to_laserscan_composable_cmd = LoadComposableNodes(
-        condition=IfCondition(
-            PythonExpression(
-                [
-                    "('",
-                    use_composition,
-                    "' == 'True') and ('",
-                    enable_obstacle_scan,
-                    "' == 'true') and ('",
-                    enable_terrain_analysis,
-                    "' == 'true')",
-                ]
-            )
-        ),
-        target_container=container_name_full,
-        composable_node_descriptions=[
-            ComposableNode(
-                package="pointcloud_to_laserscan",
-                plugin="pointcloud_to_laserscan::PointCloudToLaserScanNode",
-                name="pointcloud_to_laserscan",
-                parameters=[configured_params],
-                remappings=[
-                    ("cloud_in", "terrain_map_ext"),
-                    ("scan", "obstacle_scan"),
-                ],
-            )
-        ],
-    )
-
-    # terrain_analysis: single-source odin1 path
-    start_terrain_analysis_cmd = Node(
-        package="terrain_analysis",
-        executable="terrainAnalysis",
-        name="terrain_analysis",
-        output="screen",
-        respawn=use_respawn,
-        respawn_delay=2.0,
-        arguments=["--ros-args", "--log-level", log_level],
-        parameters=[configured_params],
-        remappings=[
-            ("registered_scan", terrain_registered_scan_topic),
-            ("/registered_scan", terrain_registered_scan_topic),
-            ("lidar_odometry", terrain_lidar_odometry_topic),
-            ("/lidar_odometry", terrain_lidar_odometry_topic),
-        ],
-        condition=terrain_analysis_condition,
-    )
-
-    # terrain_analysis_ext: single-source odin1 path
-    start_terrain_analysis_ext_cmd = Node(
-        package="terrain_analysis_ext",
-        executable="terrainAnalysisExt",
-        name="terrain_analysis_ext",
-        output="screen",
-        respawn=use_respawn,
-        respawn_delay=2.0,
-        arguments=["--ros-args", "--log-level", log_level],
-        parameters=[configured_params],
-        remappings=[
-            ("registered_scan", terrain_registered_scan_topic),
-            ("/registered_scan", terrain_registered_scan_topic),
-            ("lidar_odometry", terrain_lidar_odometry_topic),
-            ("/lidar_odometry", terrain_lidar_odometry_topic),
-        ],
-        condition=terrain_analysis_condition,
     )
 
     load_nodes = GroupAction(
@@ -375,9 +344,9 @@ def build_navigation_runtime_actions(
     return [
         start_terrain_analysis_cmd,
         start_terrain_analysis_ext_cmd,
+        start_pointcloud_to_laserscan_cmd,
         start_pointcloud_to_laserscan_no_terrain_cmd,
         load_nodes,
         load_composable_nodes,
-        load_pointcloud_to_laserscan_composable_cmd,
         start_lifecycle_manager_cmd,
     ]

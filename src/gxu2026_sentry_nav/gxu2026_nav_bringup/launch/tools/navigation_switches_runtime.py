@@ -47,7 +47,6 @@ def _set_navigation_switches(
     ns_value = namespace.perform(context)
     processed_file = str(params_path)
     controller_plugin_name = None
-    neupan_frame_name = None
     enable_obstacle_scan_value = "false"
     enable_scan_additive_value = "false"
     obstacle_scan_output_topic_value = "obstacle_scan"
@@ -391,12 +390,6 @@ def _set_navigation_switches(
         elif odometry_source == "odin1" and not sim_enabled:
             sensor_scan_lidar_odometry_topic_value = "odin1/odometry"
 
-        raw_frame_name = switches.get("neupan_fake_frame")
-        if isinstance(raw_frame_name, str):
-            stripped_name = raw_frame_name.strip()
-            if stripped_name:
-                neupan_frame_name = stripped_name
-
         plugin_from_params = switches.get("controller_plugin")
         if isinstance(plugin_from_params, str):
             plugin_candidate = plugin_from_params.strip()
@@ -446,34 +439,6 @@ def _set_navigation_switches(
             if available_profiles:
                 selected_plugin_key = next(iter(available_profiles))
 
-        # If neupan_nav2_controller is selected, unconditionally load neupan.yaml
-        # from the package's reality directory as FollowPath config source.
-        if selected_plugin_key and selected_plugin_key.startswith("neupan_nav2_controller"):
-            try:
-                neupan_pkg_dir = get_package_share_directory("neupan_nav2_controller")
-                neupan_yaml_path = os.path.join(
-                    neupan_pkg_dir, "config", "reality", "neupan.yaml"
-                )
-                with open(neupan_yaml_path, "r") as _f:
-                    _neupan_data = yaml.safe_load(_f) or {}
-                _cs_params = _neupan_data.get("controller_server", {}).get("ros__parameters", {})
-                _neupan_profile = _cs_params.get(active_plugin_slot)
-                if isinstance(_neupan_profile, dict):
-                    available_profiles[selected_plugin_key] = copy.deepcopy(_neupan_profile)
-                    import sys as _sys
-
-                    print(
-                        f"[navigation_launch] Loaded NeuPAN profile from {neupan_yaml_path}",
-                        file=_sys.stderr,
-                    )
-            except Exception as _e:
-                import sys as _sys
-
-                print(
-                    f"[navigation_launch] Warning: could not load neupan.yaml: {_e}",
-                    file=_sys.stderr,
-                )
-
         frame_override_paths = [
             ["bt_navigator", "ros__parameters", "robot_base_frame"],
             ["local_costmap", "local_costmap", "ros__parameters", "robot_base_frame"],
@@ -491,20 +456,6 @@ def _set_navigation_switches(
             if current_profile != target_profile:
                 controller_server[active_plugin_slot] = copy.deepcopy(target_profile)
                 override_required = True
-
-            neupan_plugin_selected = selected_plugin_key == "neupan_nav2_controller" or (
-                isinstance(plugin_field, str)
-                and plugin_field.startswith("neupan_nav2_controller")
-            )
-            if neupan_plugin_selected and neupan_frame_name:
-                for path in frame_override_paths:
-                    _set_nested_value(target_data, path, neupan_frame_name)
-                override_required = True
-
-            if neupan_plugin_selected and not slam_enabled:
-                enable_obstacle_scan_value = "true"
-                enable_scan_additive_value = "true"
-                obstacle_scan_output_topic_value = "scan_odin1"
 
         if enable_scan_additive_value == "true":
             # scan_additive needs odin raw scan input, ensure pointcloud_to_laserscan main chain is on.
