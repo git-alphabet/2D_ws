@@ -14,4 +14,9 @@
 /local_costmap/published_footprint
 /waypoints
 /robot_marker
-
+/navigate_to_pose/_action/feedback
+/navigate_to_pose/_action/status
+/follow_waypoints/_action/feedback
+/follow_waypoints/_action/status
+/clicked_point
+/waypoint_markers
