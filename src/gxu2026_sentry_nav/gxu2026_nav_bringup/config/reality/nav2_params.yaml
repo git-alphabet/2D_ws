@@ -224,17 +224,17 @@ sensor_scan_generation:
   ros__parameters:
     # 是否使用仿真时间。
     use_sim_time: False
-    # 激光雷达坐标系。
-    lidar_frame: "front_odin1"
+    # 激光雷达坐标系。雷达固连底盘，直接用 base_footprint。
+    lidar_frame: "base_footprint"
     # 机器人底盘坐标系。
     base_frame: "base_footprint"
-    # 机器人参考坐标系。
-    robot_base_frame: "gimbal_yaw"
+    # 机器人参考坐标系。雷达固连底盘，直接用 base_footprint。
+    robot_base_frame: "base_footprint"
     # odin1 实车由 odin_ros_driver 发布 odom->base TF，避免与 sensor_scan_generation 重复发布。
     # 是否发布 base TF。
     publish_base_tf: false
 
-    # TF 调试：打印 TF lookup 是否成功，以及推导出来的 yaw(chassis->gimbal_yaw)
+    # TF 调试：打印 TF lookup 是否成功
     # 是否打印 TF 调试信息。
     debug_tf: false
     # 调试日志节流周期，单位毫秒。
@@ -431,8 +431,8 @@ bt_navigator:
     use_sim_time: False
     # 全局参考坐标系。
     global_frame: map
-    # 机器人底盘基坐标系。
-    robot_base_frame: gimbal_yaw
+    # 机器人底盘基坐标系。雷达固连底盘，直接用 base_footprint。
+    robot_base_frame: base_footprint
     # 里程计话题。
     odom_topic: odin1/odometry
     # BT 主循环周期，单位秒。
@@ -507,8 +507,8 @@ local_costmap:
       publish_frequency: 8.0
       # 局部代价地图使用的全局参考坐标系。
       global_frame: odom
-      # 局部代价地图中的机器人底盘基坐标系。
-      robot_base_frame: gimbal_yaw
+      # 局部代价地图中的机器人底盘基坐标系。雷达固连底盘，直接用 base_footprint。
+      robot_base_frame: base_footprint
       # 代价地图查询 TF 的容忍窗口，覆盖链路延迟峰值。
       transform_tolerance: 0.4
       # 局部代价地图是否采用滚动窗口。
@@ -613,8 +613,8 @@ global_costmap:
       publish_frequency: 5.0
       # 全局代价地图使用的参考坐标系。
       global_frame: map
-      # 全局代价地图中的机器人底盘基坐标系。
-      robot_base_frame: gimbal_yaw
+      # 全局代价地图中的机器人底盘基坐标系。雷达固连底盘，直接用 base_footprint。
+      robot_base_frame: base_footprint
       # 导航重定位场景下 map->odom 切换与点云延迟叠加，需更宽容忍窗口。
       transform_tolerance: 0.3
       # 全局代价地图是否采用滚动窗口。
@@ -801,8 +801,8 @@ behavior_server:
     local_frame: odom
     # 行为服务器全局参考坐标系。
     global_frame: map
-    # 行为服务器机器人底盘基坐标系。
-    robot_base_frame: gimbal_yaw
+    # 行为服务器机器人底盘基坐标系。雷达固连底盘，直接用 base_footprint。
+    robot_base_frame: base_footprint
     # 行为服务器 TF 容忍窗口，单位秒。
     transform_tolerance: 0.1
     # 恢复行为向前模拟时长，单位秒。

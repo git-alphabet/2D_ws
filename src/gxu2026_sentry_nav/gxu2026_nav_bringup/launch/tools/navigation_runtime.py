@@ -327,7 +327,7 @@ def build_navigation_runtime_actions(
     # Lifecycle manager with autostart: automatically activates all managed
     # nodes after the container and odin driver have had time to initialize.
     # The odin driver starts at t=5s and needs additional time to connect
-    # and publish TF (odom->base_footprint, odom->gimbal_yaw) before local costmap can activate.
+    # and publish TF (odom->base_footprint) before local costmap can activate.
     start_lifecycle_manager_cmd = TimerAction(
         period=12.0,  # 5s odin driver delay + 7s driver init margin
         actions=[

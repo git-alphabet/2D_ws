@@ -190,7 +190,7 @@ def generate_launch_description():
 
     declare_nav2_tf_warmup_source_frame_cmd = DeclareLaunchArgument(
         "nav2_tf_warmup_source_frame",
-        default_value="gimbal_yaw",
+        default_value="base_footprint",
         description="TF warmup source frame",
     )
 

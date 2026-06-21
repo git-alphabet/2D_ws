@@ -58,8 +58,8 @@ def _set_navigation_switches(
         nav2_tf_warmup_target_frame.perform(context) or "odom"
     ).strip() or "odom"
     nav2_tf_warmup_source_frame_value = (
-        nav2_tf_warmup_source_frame.perform(context) or "gimbal_yaw"
-    ).strip() or "gimbal_yaw"
+        nav2_tf_warmup_source_frame.perform(context) or "base_footprint"
+    ).strip() or "base_footprint"
     nav2_tf_warmup_timeout_sec_value = (
         nav2_tf_warmup_timeout_sec.perform(context) or "25.0"
     ).strip() or "25.0"
@@ -471,8 +471,6 @@ def _set_navigation_switches(
         if odometry_source == "odin1" and not sim_enabled and not slam_enabled:
             if nav2_tf_warmup_target_frame_value == "odom":
                 nav2_tf_warmup_target_frame_value = "map"
-            if nav2_tf_warmup_source_frame_value == "gimbal_yaw_fake":
-                nav2_tf_warmup_source_frame_value = "gimbal_yaw"
 
         if override_required:
             local_costmap_params = _get_ros_params_with_fallback("local_costmap")

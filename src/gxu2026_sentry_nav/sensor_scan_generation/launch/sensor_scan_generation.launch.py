@@ -40,26 +40,26 @@ def generate_launch_description():
 
     declare_lidar_frame = DeclareLaunchArgument(
         "lidar_frame",
-        default_value="front_odin1",
-        description="Frame ID for LiDAR sensor",
+        default_value="base_footprint",
+        description="Frame ID for LiDAR sensor (radar fixed to chassis)",
     )
 
     declare_base_frame = DeclareLaunchArgument(
         "base_frame",
-        default_value="chassis",
+        default_value="base_footprint",
         description="Frame ID for Vehicle Base",
     )
 
     declare_robot_base_frame = DeclareLaunchArgument(
         "robot_base_frame",
-        default_value="gimbal_yaw",
-        description="Frame ID for Gimbal",
+        default_value="base_footprint",
+        description="Frame ID for robot base (radar fixed to chassis)",
     )
 
     declare_debug_tf = DeclareLaunchArgument(
         "debug_tf",
         default_value="false",
-        description="Enable TF debug log (prints derived yaw(chassis->gimbal_yaw))",
+        description="Enable TF debug log",
     )
 
     declare_debug_tf_throttle_ms = DeclareLaunchArgument(
