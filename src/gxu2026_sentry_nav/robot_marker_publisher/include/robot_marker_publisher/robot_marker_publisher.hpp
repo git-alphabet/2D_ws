@@ -38,10 +38,8 @@ private:
   double marker_color_r_;
   double marker_color_g_;
   double marker_color_b_;
-  double marker_scale_x_;
-  double marker_scale_y_;
-  double marker_scale_z_;
-  double dot_radius_;
+  double arrow_side_;
+  double robot_radius_;
 
   // Publisher
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;

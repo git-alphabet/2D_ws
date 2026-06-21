@@ -26,10 +26,8 @@ RobotMarkerPublisher::RobotMarkerPublisher(const rclcpp::NodeOptions & options)
   this->declare_parameter<double>("marker_color_r", 0.0);
   this->declare_parameter<double>("marker_color_g", 1.0);
   this->declare_parameter<double>("marker_color_b", 0.0);
-  this->declare_parameter<double>("marker_scale_x", 0.5);
-  this->declare_parameter<double>("marker_scale_y", 0.1);
-  this->declare_parameter<double>("marker_scale_z", 0.1);
-  this->declare_parameter<double>("dot_radius", 0.15);
+  this->declare_parameter<double>("arrow_side", 0.45);
+  this->declare_parameter<double>("robot_radius", 0.225);
 
   // Get parameters
   this->get_parameter("odometry_topic", odometry_topic_);
@@ -37,10 +35,8 @@ RobotMarkerPublisher::RobotMarkerPublisher(const rclcpp::NodeOptions & options)
   this->get_parameter("marker_color_r", marker_color_r_);
   this->get_parameter("marker_color_g", marker_color_g_);
   this->get_parameter("marker_color_b", marker_color_b_);
-  this->get_parameter("marker_scale_x", marker_scale_x_);
-  this->get_parameter("marker_scale_y", marker_scale_y_);
-  this->get_parameter("marker_scale_z", marker_scale_z_);
-  this->get_parameter("dot_radius", dot_radius_);
+  this->get_parameter("arrow_side", arrow_side_);
+  this->get_parameter("robot_radius", robot_radius_);
 
   // Publisher
   marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(marker_topic_, 10);
@@ -60,7 +56,7 @@ void RobotMarkerPublisher::odom_callback(const nav_msgs::msg::Odometry::SharedPt
   visualization_msgs::msg::MarkerArray array;
   auto stamp = msg->header.stamp;
 
-  // Triangle marker (yaw direction indicator)
+  // Triangle marker (yaw direction indicator at footprint edge)
   visualization_msgs::msg::Marker triangle;
   triangle.header.frame_id = "odom";
   triangle.header.stamp = stamp;
@@ -68,8 +64,20 @@ void RobotMarkerPublisher::odom_callback(const nav_msgs::msg::Odometry::SharedPt
   triangle.id = 0;
   triangle.type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
   triangle.action = visualization_msgs::msg::Marker::ADD;
-  triangle.pose.position = msg->pose.pose.position;
+
+  // Offset centroid along local +x: base tangent to circle, tip pointing outward
+  auto & q = msg->pose.pose.orientation;
+  double siny_cosp = 2.0 * (q.w * q.z + q.x * q.y);
+  double cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z);
+  double yaw = std::atan2(siny_cosp, cosy_cosp);
+  double tip_dist = arrow_side_ / std::sqrt(3.0);
+  double half_base = arrow_side_ / (2.0 * std::sqrt(3.0));
+  double offset = robot_radius_ + half_base;
+  triangle.pose.position.x = msg->pose.pose.position.x + offset * std::cos(yaw);
+  triangle.pose.position.y = msg->pose.pose.position.y + offset * std::sin(yaw);
+  triangle.pose.position.z = msg->pose.pose.position.z;
   triangle.pose.orientation = msg->pose.pose.orientation;
+
   triangle.scale.x = 1.0;
   triangle.scale.y = 1.0;
   triangle.scale.z = 1.0;
@@ -78,34 +86,15 @@ void RobotMarkerPublisher::odom_callback(const nav_msgs::msg::Odometry::SharedPt
   triangle.color.b = marker_color_b_;
   triangle.color.a = 0.8;
 
-  // Triangle vertices: arrow pointing +x, centered at origin
+  // Equilateral triangle vertices: centroid at origin, tip pointing +x
   geometry_msgs::msg::Point p1, p2, p3;
-  p1.x = marker_scale_x_; p1.y = 0.0; p1.z = 0.0;
-  p2.x = -marker_scale_x_ * 0.5; p2.y = marker_scale_y_ * 0.5; p2.z = 0.0;
-  p3.x = -marker_scale_x_ * 0.5; p3.y = -marker_scale_y_ * 0.5; p3.z = 0.0;
+  p1.x = tip_dist;  p1.y = 0.0;           p1.z = 0.0;
+  p2.x = -half_base; p2.y = arrow_side_ / 2.0; p2.z = 0.0;
+  p3.x = -half_base; p3.y = -arrow_side_ / 2.0; p3.z = 0.0;
   triangle.points.push_back(p1);
   triangle.points.push_back(p2);
   triangle.points.push_back(p3);
   array.markers.push_back(triangle);
-
-  // Dot marker (center position indicator)
-  visualization_msgs::msg::Marker dot;
-  dot.header.frame_id = "odom";
-  dot.header.stamp = stamp;
-  dot.ns = "robot";
-  dot.id = 1;
-  dot.type = visualization_msgs::msg::Marker::SPHERE;
-  dot.action = visualization_msgs::msg::Marker::ADD;
-  dot.pose.position = msg->pose.pose.position;
-  dot.pose.orientation.w = 1.0;
-  dot.scale.x = dot_radius_ * 2;
-  dot.scale.y = dot_radius_ * 2;
-  dot.scale.z = dot_radius_ * 2;
-  dot.color.r = 1.0;
-  dot.color.g = 1.0;
-  dot.color.b = 1.0;
-  dot.color.a = 1.0;
-  array.markers.push_back(dot);
 
   marker_pub_->publish(array);
 }
