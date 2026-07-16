@@ -9,7 +9,7 @@ TARGET="all"
 WS_IN_CONTAINER="${WS_IN_CONTAINER:-/ws}"
 # 容器外执行时自动检测这些容器（可用 DOCKER_CONTAINERS 覆盖，空格或逗号分隔）。
 CONTAINER_CANDIDATES="${DOCKER_CONTAINERS:-gxu2026-nav-laptop gxu2026-nav-robot gxu2026-neupan-runtime}"
-ODIN_SHUTDOWN_TIMEOUT="${ODIN_SHUTDOWN_TIMEOUT:-30}"
+ODIN_SHUTDOWN_TIMEOUT="${ODIN_SHUTDOWN_TIMEOUT:-15}"
 
 SIM_PGID_FILE="/tmp/ros2_nav_sim.pgid"
 REALITY_PGID_FILE="/tmp/ros2_nav_reality.pgid"

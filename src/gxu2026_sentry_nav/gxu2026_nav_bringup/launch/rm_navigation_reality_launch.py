@@ -427,9 +427,8 @@ def generate_launch_description():
                     "marker_color_r": 0.0,
                     "marker_color_g": 1.0,
                     "marker_color_b": 0.0,
-                    "marker_scale_x": 0.5,
-                    "marker_scale_y": 0.1,
-                    "marker_scale_z": 0.1,
+                    "arrow_side": 0.45,
+                    "robot_radius": 0.225,
                 }],
             )
         ],
@@ -462,6 +461,13 @@ def generate_launch_description():
         params = {"address": "0.0.0.0", "port": 8765}
         if topic_whitelist:
             params["topic_whitelist"] = topic_whitelist
+        # Services exposed to foxglove
+        params["service_whitelist"] = [
+            "^/start_waypoints$",
+            "^/clear_waypoints$",
+            "^/navigate_to_pose/_action/cancel_goal$",
+            "^/follow_waypoints/_action/cancel_goal$",
+        ]
         return [
             Node(
                 package="foxglove_bridge",
