@@ -10,7 +10,10 @@ maps/
 bags/
 
 
-
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
 .agents/
 .claude/
