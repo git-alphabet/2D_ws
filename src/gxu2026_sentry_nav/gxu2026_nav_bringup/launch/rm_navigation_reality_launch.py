@@ -19,7 +19,11 @@ from pathlib import Path
 
 import yaml  # type: ignore
 
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import get_package_share_directory, PackageNotFoundError
+try:
+    from ament_index_python.packages import has_package
+except ImportError:
+    has_package = None
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
@@ -27,15 +31,20 @@ from launch.actions import (
     IncludeLaunchDescription,
     LogInfo,
     OpaqueFunction,
+    RegisterEventHandler,
     SetLaunchConfiguration,
     TimerAction,
 )
 from launch.conditions import IfCondition
+from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, TextSubstitution
 from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterFile
 from nav2_common.launch import RewrittenYaml
+import launch.logging
+
+logger = launch.logging.get_logger('rm_navigation_reality_launch')
 
 
 def generate_launch_description():
@@ -444,11 +453,50 @@ def generate_launch_description():
         }.items(),
     )
 
+    def _package_installed(pkg_name):
+        """检查 ROS 2 包是否已安装"""
+        if has_package is not None:
+            return has_package(pkg_name)
+        try:
+            get_package_share_directory(pkg_name)
+            return True
+        except PackageNotFoundError:
+            return False
+
+    def _make_rviz2_fallback(context, *, namespace, use_sim_time, rviz_config):
+        """创建 rviz2 回退动作（复用 rviz_launch.py）"""
+        logger.warning(
+            "Falling back to rviz2 (config: {})".format(rviz_config.perform(context))
+        )
+        return [IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(os.path.join(launch_dir, "rviz_launch.py")),
+            launch_arguments={
+                "namespace": namespace,
+                "use_sim_time": use_sim_time,
+                "rviz_config": rviz_config,
+            }.items(),
+        )]
+
     # NOTE: executable name is "foxglove_bridge" per ros2 convention.
     # If it fails to start, verify with: ros2 pkg executables foxglove_bridge
-    def _launch_foxglove(context, *, use_foxglove_arg, topics_file_arg, namespace_arg):
+    def _launch_foxglove(context, *, use_foxglove_arg, topics_file_arg, namespace_arg,
+                         use_sim_time_arg, rviz_config_arg):
         if not _optional_bool(use_foxglove_arg.perform(context)):
             return []
+
+        # 检查 foxglove_bridge 是否安装
+        if not _package_installed("foxglove_bridge"):
+            logger.warning(
+                "foxglove_bridge not installed, falling back to rviz2. "
+                "Install it with: sudo apt install ros-humble-foxglove-bridge"
+            )
+            return _make_rviz2_fallback(
+                context,
+                namespace=namespace_arg,
+                use_sim_time=use_sim_time_arg,
+                rviz_config=rviz_config_arg,
+            )
+
         topics_path = Path(topics_file_arg.perform(context)).expanduser()
         topic_whitelist = []
         if topics_path.is_file():
@@ -468,16 +516,32 @@ def generate_launch_description():
             "^/navigate_to_pose/_action/cancel_goal$",
             "^/follow_waypoints/_action/cancel_goal$",
         ]
-        return [
-            Node(
-                package="foxglove_bridge",
-                executable="foxglove_bridge",
-                name=node_name,
-                output="screen",
-                namespace=ns,
-                parameters=[params],
-            ),
-        ]
+        foxglove_node = Node(
+            package="foxglove_bridge",
+            executable="foxglove_bridge",
+            name=node_name,
+            output="screen",
+            namespace=ns,
+            parameters=[params],
+        )
+
+        # 注册退出事件处理器：如果 foxglove_bridge 异常退出，回退到 rviz2
+        foxglove_exit_handler = RegisterEventHandler(
+            OnProcessExit(
+                target_action=foxglove_node,
+                on_exit=[
+                    LogInfo(msg="foxglove_bridge exited, falling back to rviz2"),
+                    *_make_rviz2_fallback(
+                        context,
+                        namespace=namespace_arg,
+                        use_sim_time=use_sim_time_arg,
+                        rviz_config=rviz_config_arg,
+                    ),
+                ],
+            )
+        )
+
+        return [foxglove_node, foxglove_exit_handler]
 
     foxglove_cmd = OpaqueFunction(
         function=_launch_foxglove,
@@ -485,6 +549,8 @@ def generate_launch_description():
             "use_foxglove_arg": use_foxglove,
             "topics_file_arg": LaunchConfiguration("foxglove_topics_file"),
             "namespace_arg": namespace,
+            "use_sim_time_arg": use_sim_time,
+            "rviz_config_arg": rviz_config_file,
         },
     )
 
