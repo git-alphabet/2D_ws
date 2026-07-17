@@ -19,7 +19,9 @@
 #
 # 环境变量：
 #   DOCKERHUB_NS   Docker Hub 用户名（默认 alphabet2006）
-#   IMAGE_TAG      镜像 tag（默认 latest）
+#   IMAGE_REPO     镜像仓库名（默认 gxu2026-nav-env）
+#   IMAGE_TAG      x86 镜像 tag，用于 laptop profile（默认 latest）
+#   IMAGE_TAG_ARM  ARM 镜像 tag，用于 robot profile（默认 arm64202606182309）
 #   LOCAL_UID      宿主机用户 UID（默认 1000）
 #   LOCAL_GID      宿主机用户 GID（默认 1000）
 #   DOCKER_GUI_HOST_DIR 宿主机图形提示目录（默认 /tmp/gxu2026-docker-gui）
@@ -27,7 +29,7 @@
 # ============================================================
 
 x-base: &base
-  image: ${DOCKERHUB_NS:-alphabet2006}/${IMAGE_REPO:-gxu2026-nav-env}:${IMAGE_TAG:-latest}
+  # image 由各 service 单独指定（laptop → x86，robot → ARM）
   pull_policy: never
   network_mode: host
   privileged: true
@@ -103,9 +105,10 @@ services:
   #     retries: 5
   #     start_period: 15s
 
-  # ---------- 笔记本（有 NVIDIA GPU）----------
+  # ---------- 笔记本（有 NVIDIA GPU，x86 镜像）----------
   dev-laptop:
     <<: *base
+    image: ${DOCKERHUB_NS:-alphabet2006}/${IMAGE_REPO:-gxu2026-nav-env}:${IMAGE_TAG:-latest}
     profiles: ["laptop"]
     container_name: gxu2026-nav-laptop
     shm_size: "1gb"
@@ -135,9 +138,10 @@ services:
               count: all
               capabilities: [gpu, graphics, display, compute, utility]
 
-  # ---------- 小电脑实车（无 GPU）----------
+  # ---------- 小电脑实车（无 GPU，ARM 镜像）----------
   dev-robot:
     <<: *base
+    image: ${DOCKERHUB_NS:-alphabet2006}/${IMAGE_REPO:-gxu2026-nav-env}:${IMAGE_TAG_ARM:-arm64202606182309}
     profiles: ["robot"]
     container_name: gxu2026-nav-robot
     # depends_on:
