@@ -420,29 +420,6 @@ def generate_launch_description():
         ],
     )
 
-    # Robot marker publisher: publishes an arrow marker to represent robot position and yaw
-    start_robot_marker_publisher_node = TimerAction(
-        period=6.0,
-        actions=[
-            Node(
-                package="robot_marker_publisher",
-                executable="robot_marker_publisher_node",
-                name="robot_marker_publisher",
-                output="screen",
-                namespace=namespace,
-                parameters=[{
-                    "odometry_topic": "odin1/odometry",
-                    "marker_topic": "robot_marker",
-                    "marker_color_r": 0.0,
-                    "marker_color_g": 1.0,
-                    "marker_color_b": 0.0,
-                    "arrow_side": 0.45,
-                    "robot_radius": 0.225,
-                }],
-            )
-        ],
-    )
-
     rviz_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(launch_dir, "rviz_launch.py")),
         condition=IfCondition(use_rviz),
@@ -632,7 +609,6 @@ def generate_launch_description():
 
     # Add the actions to launch all of the navigation nodes
     ld.add_action(start_odin_driver_node)
-    ld.add_action(start_robot_marker_publisher_node)
     ld.add_action(bringup_cmd)
     ld.add_action(relocalization_fallback_cmd)
     ld.add_action(rviz_cmd)
